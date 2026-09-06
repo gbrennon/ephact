@@ -136,8 +136,15 @@ mod tests {
     }
 
     #[test]
-    fn to_domain_without_all_workflows_defaults_to_disabled() {
+    fn to_domain_without_a_named_workflow_defaults_to_running_all_workflows() {
         let args = parse_run_test_args(&[]);
+        let (config, _repo) = args.to_domain().unwrap();
+        assert!(config.all_workflows());
+    }
+
+    #[test]
+    fn to_domain_with_a_named_workflow_runs_only_that_workflow() {
+        let args = parse_run_test_args(&["--workflow", "ci.yml"]);
         let (config, _repo) = args.to_domain().unwrap();
         assert!(!config.all_workflows());
     }

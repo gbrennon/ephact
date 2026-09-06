@@ -39,7 +39,9 @@ pub struct RunArgs {
     #[arg(long = "secret", value_name = "KEY[=VALUE]")]
     secrets: Vec<String>,
 
-    /// Run every workflow found in the repository instead of a single one.
+    /// Force running every workflow found in the repository. Running all
+    /// workflows is already the default; passing `--workflow` narrows the run
+    /// to a single named workflow.
     #[arg(long = "all-workflows")]
     all_workflows: bool,
 
@@ -87,7 +89,7 @@ impl RunArgs {
         if let Some(ref event) = self.event {
             config = config.with_event(ActEvent::new(event.clone()));
         }
-        config = config.with_all_workflows(self.all_workflows);
+        config = config.with_all_workflows(self.all_workflows || self.workflow.is_none());
         config = config.with_allow_real_container(self.allow_real_container);
         config = config.with_allow_real_fetcher(self.allow_real_fetcher);
         config = config.with_allow_network(self.allow_network);
