@@ -31,6 +31,13 @@ impl ContainerRuntimePort for StubFailingContainerRuntime {
         Err(ContainerError::Internal(format!("failed to stop {name}")))
     }
 
+    fn kill_container(&self, name: &str) -> Result<(), ContainerError> {
+        Err(ContainerError::KillFailed(
+            name.to_string(),
+            "kill failure".to_string(),
+        ))
+    }
+
     fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
         Err(ContainerError::NotAvailable)
     }

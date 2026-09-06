@@ -69,6 +69,7 @@ mod tests {
         fn every_container_is_stopped_once_the_run_completes() {
             let run = DeliveryPipelineRun::execute();
             assert_eq!(run.activity.stopped_containers().len(), 3);
+            assert_eq!(run.activity.killed_containers().len(), 3);
         }
     }
 

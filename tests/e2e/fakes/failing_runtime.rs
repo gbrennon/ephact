@@ -42,6 +42,11 @@ impl ContainerRuntimePort for FailingRuntime {
         Ok(())
     }
 
+    fn kill_container(&self, name: &str) -> Result<(), ContainerError> {
+        self.activity.record_killed_container(name);
+        Ok(())
+    }
+
     fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
         Ok(HostInfo {
             os: "linux".into(),
