@@ -19,6 +19,9 @@ pub enum ContainerError {
     /// Failed to remove the container.
     RemovalFailed(String, String),
 
+    /// Failed to kill the container.
+    KillFailed(String, String),
+
     /// The requested platform is not supported by this runtime.
     UnsupportedPlatform(String),
 

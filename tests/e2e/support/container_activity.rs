@@ -14,6 +14,7 @@ pub struct ContainerActivity {
     copied_paths: Arc<Mutex<Vec<String>>>,
     pulled_images: Arc<Mutex<Vec<String>>>,
     stopped_containers: Arc<Mutex<Vec<String>>>,
+    killed_containers: Arc<Mutex<Vec<String>>>,
 }
 
 impl ContainerActivity {
@@ -36,6 +37,10 @@ impl ContainerActivity {
 
     pub fn record_stopped_container(&self, name: &str) {
         self.stopped_containers.lock().push(name.into());
+    }
+
+    pub fn record_killed_container(&self, name: &str) {
+        self.killed_containers.lock().push(name.into());
     }
 
     /// Returns the script of every executed command, which for a shell step is
@@ -91,5 +96,9 @@ impl ContainerActivity {
 
     pub fn stopped_containers(&self) -> Vec<String> {
         self.stopped_containers.lock().clone()
+    }
+
+    pub fn killed_containers(&self) -> Vec<String> {
+        self.killed_containers.lock().clone()
     }
 }

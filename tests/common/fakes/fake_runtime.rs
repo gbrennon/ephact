@@ -22,6 +22,7 @@ pub struct FakeRuntime {
     pub copied_paths: Arc<Mutex<Vec<String>>>,
     pub removed_containers: Mutex<Vec<String>>,
     pub stopped_containers: Mutex<Vec<String>>,
+    pub killed_containers: Mutex<Vec<String>>,
 }
 
 impl FakeRuntime {
@@ -35,6 +36,7 @@ impl FakeRuntime {
             copied_paths: Arc::new(Mutex::new(vec![])),
             removed_containers: Mutex::new(vec![]),
             stopped_containers: Mutex::new(vec![]),
+            killed_containers: Mutex::new(vec![]),
         }
     }
 
@@ -75,6 +77,11 @@ impl ContainerRuntimePort for FakeRuntime {
 
     fn stop_container(&self, name: &str) -> Result<(), ContainerError> {
         self.stopped_containers.lock().push(name.to_string());
+        Ok(())
+    }
+
+    fn kill_container(&self, name: &str) -> Result<(), ContainerError> {
+        self.killed_containers.lock().push(name.to_string());
         Ok(())
     }
 

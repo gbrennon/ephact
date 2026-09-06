@@ -23,6 +23,7 @@ mod tests {
         fn containers_are_stopped_even_when_the_run_fails() {
             let run = FailingPipelineRun::execute();
             assert_eq!(run.activity.stopped_containers().len(), 2);
+            assert_eq!(run.activity.killed_containers().len(), 2);
         }
     }
 

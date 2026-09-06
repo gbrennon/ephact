@@ -21,8 +21,8 @@ pub mod types {
         models::{ContainerCreateBody, HostConfig},
         query_parameters::{
             CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
-            DownloadFromContainerOptionsBuilder, InspectContainerOptions, RemoveContainerOptions,
-            StartContainerOptions, UploadToContainerOptionsBuilder,
+            DownloadFromContainerOptionsBuilder, InspectContainerOptions, KillContainerOptions,
+            RemoveContainerOptions, StartContainerOptions, UploadToContainerOptionsBuilder,
         },
     };
 }

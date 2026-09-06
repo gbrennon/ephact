@@ -13,7 +13,9 @@ use super::stub_container::StubContainer;
 #[derive(Clone, Default)]
 pub struct SpyContainerRuntime {
     stopped_containers: Arc<Mutex<Vec<String>>>,
+    killed_containers: Arc<Mutex<Vec<String>>>,
     removed_containers: Arc<Mutex<Vec<String>>>,
+    operations: Arc<Mutex<Vec<String>>>,
 }
 
 impl SpyContainerRuntime {
@@ -25,8 +27,18 @@ impl SpyContainerRuntime {
         self.stopped_containers.lock().clone()
     }
 
+    pub fn killed_containers(&self) -> Vec<String> {
+        self.killed_containers.lock().clone()
+    }
+
     pub fn removed_containers(&self) -> Vec<String> {
         self.removed_containers.lock().clone()
+    }
+
+    /// Every stop/kill/remove call in the order it was issued, as
+    /// `"<operation>:<name>"` entries (e.g. `"stop:app1"`).
+    pub fn operations(&self) -> Vec<String> {
+        self.operations.lock().clone()
     }
 }
 
@@ -44,11 +56,19 @@ impl ContainerRuntimePort for SpyContainerRuntime {
 
     fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
         self.removed_containers.lock().push(name.to_string());
+        self.operations.lock().push(format!("remove:{name}"));
         Ok(())
     }
 
     fn stop_container(&self, name: &str) -> Result<(), ContainerError> {
         self.stopped_containers.lock().push(name.to_string());
+        self.operations.lock().push(format!("stop:{name}"));
+        Ok(())
+    }
+
+    fn kill_container(&self, name: &str) -> Result<(), ContainerError> {
+        self.killed_containers.lock().push(name.to_string());
+        self.operations.lock().push(format!("kill:{name}"));
         Ok(())
     }
 
