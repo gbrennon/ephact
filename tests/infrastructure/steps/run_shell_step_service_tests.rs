@@ -4,13 +4,13 @@ use ephact::{
 };
 use std::collections::HashMap;
 
+use ephact::application::dtos::ContainerConfig;
 use ephact::application::dtos::ExecResult;
 use ephact::application::dtos::RunShellStepRequest;
 use ephact::application::dtos::RunnerContext;
+use ephact::application::ports::outbound::ContainerRuntimePort;
 use ephact::application::ports::outbound::container_port::ContainerPort;
 use ephact::domain::workflow::Step;
-use ephact::infrastructure::containers::ContainerConfig;
-use ephact::infrastructure::containers::ContainerRuntimePort;
 
 use crate::common::fakes::{
     fake_runtime::FakeRuntime, stub_failing_container::StubFailingContainer,

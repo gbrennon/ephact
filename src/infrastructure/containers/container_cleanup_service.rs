@@ -2,8 +2,7 @@ use crate::infrastructure::containers::container_cleanup_port::ContainerCleanupP
 use std::sync::Arc;
 
 use crate::{
-    application::dtos::ContainerCleanupRequest,
-    infrastructure::containers::container_runtime::ContainerRuntimePort,
+    application::dtos::ContainerCleanupRequest, application::ports::outbound::ContainerRuntimePort,
 };
 
 /// Application service that reacts to workflow completion by cleaning up

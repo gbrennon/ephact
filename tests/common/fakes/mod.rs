@@ -30,6 +30,7 @@ pub mod fake_workflow_source;
 pub mod spy_cleanup_handler;
 pub mod spy_container_runtime;
 pub mod stub_container;
+pub mod stub_docker_erroring_runtime;
 pub mod stub_exporting_container;
 pub mod stub_failing_action_fetcher;
 pub mod stub_failing_container;

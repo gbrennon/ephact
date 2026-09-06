@@ -20,6 +20,9 @@ futures-util = "0.3.33"
 libc = "0.2.189"
 bytes = "1"
 
+[features]
+container-integration = []
+
 [dev-dependencies]
 parking_lot = "0.12"
 tempfile = "3"
@@ -39,3 +42,8 @@ path = "tests/presentation/mod.rs"
 [[test]]
 name = "e2e"
 path = "tests/e2e/mod.rs"
+
+[[test]]
+name = "container_integration"
+path = "tests/container_integration/mod.rs"
+required-features = ["container-integration"]
