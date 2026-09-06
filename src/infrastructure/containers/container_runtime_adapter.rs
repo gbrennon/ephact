@@ -81,6 +81,14 @@ impl ContainerRuntimePort for ContainerRuntimeAdapter {
         result.map_err(|e| self.map_error(e))
     }
 
+    fn kill_container(&self, name: &str) -> Result<(), ContainerError> {
+        let result = match self {
+            ContainerRuntimeAdapter::Docker(rt) => rt.kill_container(name),
+            ContainerRuntimeAdapter::Podman(rt) => rt.kill_container(name),
+        };
+        result.map_err(|e| self.map_error(e))
+    }
+
     fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
         match self {
             ContainerRuntimeAdapter::Docker(rt) => rt.get_host_info(),

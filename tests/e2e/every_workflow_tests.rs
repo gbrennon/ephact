@@ -32,6 +32,7 @@ mod tests {
             let run = EveryWorkflowRun::execute();
             assert_eq!(run.activity.pulled_images().len(), 3);
             assert_eq!(run.activity.stopped_containers().len(), 3);
+            assert_eq!(run.activity.killed_containers().len(), 3);
         }
     }
 

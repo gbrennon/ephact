@@ -53,6 +53,10 @@ impl ContainerRuntimePort for StubPullFailingRuntime {
         Ok(())
     }
 
+    fn kill_container(&self, _name: &str) -> Result<(), ContainerError> {
+        Ok(())
+    }
+
     fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
         Ok(HostInfo {
             os: "linux".into(),

@@ -12,7 +12,7 @@ use crate::common::fakes::{
 };
 
 #[test]
-fn execute_stops_and_removes_each_requested_container() {
+fn execute_stops_kills_and_removes_each_requested_container() {
     let runtime = SpyContainerRuntime::new();
     let service = ContainerCleanupService::new(Arc::new(runtime.clone()));
     let request = ContainerCleanupRequest::new(vec!["app1".into(), "app2".into()]);
@@ -20,11 +20,26 @@ fn execute_stops_and_removes_each_requested_container() {
     service.execute(request);
 
     assert_eq!(runtime.stopped_containers(), vec!["app1", "app2"]);
+    assert_eq!(runtime.killed_containers(), vec!["app1", "app2"]);
     assert_eq!(runtime.removed_containers(), vec!["app1", "app2"]);
 }
 
 #[test]
-fn execute_with_empty_request_does_not_stop_or_remove_containers() {
+fn execute_stops_then_kills_then_removes_in_order_per_container() {
+    let runtime = SpyContainerRuntime::new();
+    let service = ContainerCleanupService::new(Arc::new(runtime.clone()));
+    let request = ContainerCleanupRequest::new(vec!["app1".into()]);
+
+    service.execute(request);
+
+    assert_eq!(
+        runtime.operations(),
+        vec!["stop:app1", "kill:app1", "remove:app1"]
+    );
+}
+
+#[test]
+fn execute_with_empty_request_does_not_stop_kill_or_remove_containers() {
     let runtime = SpyContainerRuntime::new();
     let service = ContainerCleanupService::new(Arc::new(runtime.clone()));
     let request = ContainerCleanupRequest::default();
@@ -32,11 +47,12 @@ fn execute_with_empty_request_does_not_stop_or_remove_containers() {
     service.execute(request);
 
     assert!(runtime.stopped_containers().is_empty());
+    assert!(runtime.killed_containers().is_empty());
     assert!(runtime.removed_containers().is_empty());
 }
 
 #[test]
-fn execute_continues_when_runtime_fails_to_stop_or_remove() {
+fn execute_continues_when_runtime_fails_to_stop_kill_or_remove() {
     let runtime = StubFailingContainerRuntime;
     let service = ContainerCleanupService::new(Arc::new(runtime));
     let request = ContainerCleanupRequest::new(vec!["app1".into(), "app2".into()]);

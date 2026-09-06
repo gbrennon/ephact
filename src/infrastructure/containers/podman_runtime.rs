@@ -15,6 +15,7 @@ use crate::infrastructure::containers::bollard_wrapper::types::CreateContainerOp
 use crate::infrastructure::containers::bollard_wrapper::types::CreateImageOptionsBuilder;
 use crate::infrastructure::containers::bollard_wrapper::types::HostConfig;
 use crate::infrastructure::containers::bollard_wrapper::types::InspectContainerOptions;
+use crate::infrastructure::containers::bollard_wrapper::types::KillContainerOptions;
 use crate::infrastructure::containers::bollard_wrapper::types::RemoveContainerOptions;
 use crate::infrastructure::containers::bollard_wrapper::types::StartContainerOptions;
 
@@ -176,6 +177,25 @@ impl ContainerRuntimePort for PodmanRuntime {
                 .stop_container(name, None)
                 .await
                 .map_err(|e| ContainerError::RemovalFailed(name.to_string(), e.to_string()))
+        })
+    }
+
+    fn kill_container(&self, name: &str) -> Result<(), ContainerError> {
+        self.runtime.block_on(async {
+            // A missing or already-stopped container needs no killing; treat
+            // both as success so cleanup stays idempotent.
+            match self
+                .client
+                .inspect_container(name, None::<InspectContainerOptions>)
+                .await
+            {
+                Ok(inspect) if inspect.state.as_ref().and_then(|s| s.running) == Some(true) => {}
+                _ => return Ok(()),
+            }
+            self.client
+                .kill_container(name, None::<KillContainerOptions>)
+                .await
+                .map_err(|e| ContainerError::KillFailed(name.to_string(), e.to_string()))
         })
     }
 
