@@ -58,11 +58,13 @@ pub mod run_shell_step_request;
 pub mod run_summary;
 pub mod run_workflow_request;
 pub mod runner_context;
+pub mod show_project_branding_info_response;
 pub mod step_exports;
 pub mod summarize_step_request;
 pub mod summarized_step;
 pub mod workflow_execution;
 pub mod workflow_list_item;
+pub use show_project_branding_info_response::ShowProjectBrandingInfoResponse;
 
 pub use build_action_input_environment_request::BuildActionInputEnvironmentRequest;
 pub use build_action_input_environment_response::BuildActionInputEnvironmentResponse;
