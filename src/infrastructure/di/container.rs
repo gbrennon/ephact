@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     application::{
-        ports::outbound::{EventBusPort, WorkflowSourcePort},
+        ports::outbound::{ContainerRuntimePort, EventBusPort, WorkflowSourcePort},
         services::{
             list_actions_service::ListActionsService, list_workflows_service::ListWorkflowsService,
             run_action_service::RunActionService,
@@ -12,7 +12,7 @@ use crate::{
     },
     infrastructure::{
         actions::{ActionFetcherPort, GitActionFetcher},
-        containers::{ContainerCleanupHandler, ContainerRuntimeAdapter, ContainerRuntimePort},
+        containers::{ContainerCleanupHandler, ContainerRuntimeAdapter},
         di::{app_container::AppContainer, command_bus_wiring::CommandBusWiring},
         images::{ImageMapperPort, PlatformImageMapper},
         messaging::InMemoryEventBus,

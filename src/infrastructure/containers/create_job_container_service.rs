@@ -3,11 +3,11 @@ use crate::infrastructure::containers::{
 };
 use std::{collections::HashMap, error::Error, sync::Arc};
 
+use crate::application::dtos::ContainerConfig;
 use crate::application::dtos::CreateJobContainerRequest;
 use crate::application::dtos::RunnerContext;
+use crate::application::ports::outbound::ContainerRuntimePort;
 use crate::application::ports::outbound::container_port::ContainerPort;
-use crate::infrastructure::containers::ContainerConfig;
-use crate::infrastructure::containers::ContainerRuntimePort;
 
 /// Service that creates the container a job's steps run in, removing any
 /// container left behind by an earlier run of the same job first.

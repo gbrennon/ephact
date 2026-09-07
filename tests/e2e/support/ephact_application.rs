@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use ephact::{
-    application::ports::outbound::WorkflowSourcePort,
-    infrastructure::{actions::ActionFetcherPort, containers::ContainerRuntimePort, di::Container},
+    application::ports::outbound::{ContainerRuntimePort, WorkflowSourcePort},
+    infrastructure::{actions::ActionFetcherPort, di::Container},
     presentation::composition_root::{Application, CompositionRoot},
 };
 

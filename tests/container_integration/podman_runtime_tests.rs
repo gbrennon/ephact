@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
+use ephact::application::dtos::ContainerConfig;
 use ephact::application::dtos::FileEntry;
-use ephact::infrastructure::containers::ContainerConfig;
-use ephact::infrastructure::containers::ContainerRuntimePort;
+use ephact::application::ports::outbound::ContainerRuntimePort;
 use ephact::infrastructure::containers::PodmanRuntime;
 
 #[cfg(test)]

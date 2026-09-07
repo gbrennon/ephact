@@ -4,19 +4,15 @@ mod tests {
 
     use ephact::{
         application::{
-            dtos::{ExecResult, ExecuteActionRequest, RunnerContext},
+            dtos::{ContainerConfig, ExecResult, ExecuteActionRequest, RunnerContext},
             ports::{
                 inbound::execute_action_port::ExecuteActionPort,
-                outbound::container_port::ContainerPort,
+                outbound::{ContainerRuntimePort, container_port::ContainerPort},
             },
             services::execute_action_service::ExecuteActionService,
         },
         domain::{expression::EvalContext, workflow::Step},
-        infrastructure::{
-            actions::ActionFetcherPort,
-            containers::{ContainerConfig, ContainerRuntimePort},
-            di::ActionExecutionWiring,
-        },
+        infrastructure::{actions::ActionFetcherPort, di::ActionExecutionWiring},
     };
     use serde_json::Value;
 
