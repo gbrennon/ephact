@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::{
+    application::ports::outbound::ContainerRuntimePort,
     domain::events::{ActRunCompletedPayload, DomainEvent},
-    infrastructure::containers::ContainerRuntimePort,
 };
 
 /// Infrastructure handler that cleans up containers when execution finishes.

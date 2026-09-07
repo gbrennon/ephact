@@ -1,9 +1,12 @@
-use super::{container_config::ContainerConfig, host_info::HostInfo};
-use crate::{
-    application::ports::outbound::container_port::ContainerPort, domain::errors::ContainerError,
-};
+use crate::application::dtos::{ContainerConfig, HostInfo};
+use crate::application::ports::outbound::container_port::ContainerPort;
+use crate::domain::errors::ContainerError;
 
 /// Outbound port for managing a container runtime (Docker, Podman, etc.).
+///
+/// The application layer owns this contract; infrastructure supplies adapters
+/// (`DockerRuntime`, `PodmanRuntime`, `ContainerRuntimeAdapter`) that implement
+/// it.
 pub trait ContainerRuntimePort: Send + Sync {
     /// Pulls a container image from a registry.
     fn pull_image(&self, image: &str, platform: Option<&str>) -> Result<(), ContainerError>;

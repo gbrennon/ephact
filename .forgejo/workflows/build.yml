@@ -26,6 +26,8 @@ jobs:
       - name: Build release binary
         run: cargo build --release --locked
         timeout-minutes: 15
+      - name: Run tests
+        uses: ./.forgejo/actions/run-tests
       - name: Create artifact
         run: |
           mkdir -p artifacts

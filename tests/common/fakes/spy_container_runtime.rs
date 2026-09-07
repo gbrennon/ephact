@@ -2,16 +2,18 @@
 use parking_lot::Mutex;
 use std::sync::Arc;
 
+use ephact::application::dtos::ContainerConfig;
+use ephact::application::dtos::HostInfo;
+use ephact::application::ports::outbound::ContainerRuntimePort;
 use ephact::application::ports::outbound::container_port::ContainerPort;
 use ephact::domain::errors::ContainerError;
-use ephact::infrastructure::containers::ContainerConfig;
-use ephact::infrastructure::containers::ContainerRuntimePort;
-use ephact::infrastructure::containers::HostInfo;
 
 use super::stub_container::StubContainer;
 
 #[derive(Clone, Default)]
 pub struct SpyContainerRuntime {
+    pulled_images: Arc<Mutex<Vec<String>>>,
+    created_containers: Arc<Mutex<Vec<String>>>,
     stopped_containers: Arc<Mutex<Vec<String>>>,
     killed_containers: Arc<Mutex<Vec<String>>>,
     removed_containers: Arc<Mutex<Vec<String>>>,
@@ -21,6 +23,14 @@ pub struct SpyContainerRuntime {
 impl SpyContainerRuntime {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn pulled_images(&self) -> Vec<String> {
+        self.pulled_images.lock().clone()
+    }
+
+    pub fn created_containers(&self) -> Vec<String> {
+        self.created_containers.lock().clone()
     }
 
     pub fn stopped_containers(&self) -> Vec<String> {
@@ -43,14 +53,19 @@ impl SpyContainerRuntime {
 }
 
 impl ContainerRuntimePort for SpyContainerRuntime {
-    fn pull_image(&self, _image: &str, _platform: Option<&str>) -> Result<(), ContainerError> {
+    fn pull_image(&self, image: &str, _platform: Option<&str>) -> Result<(), ContainerError> {
+        self.pulled_images.lock().push(image.to_string());
+        self.operations.lock().push(format!("pull:{image}"));
         Ok(())
     }
 
     fn create_container(
         &self,
-        _config: &ContainerConfig,
+        config: &ContainerConfig,
     ) -> Result<Box<dyn ContainerPort>, ContainerError> {
+        let name = config.name.clone().unwrap_or_default();
+        self.created_containers.lock().push(name.clone());
+        self.operations.lock().push(format!("create:{name}"));
         Ok(Box::new(StubContainer))
     }
 

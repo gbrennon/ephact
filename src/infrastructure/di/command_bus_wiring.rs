@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     application::{
-        ports::outbound::CommandBusPort,
+        ports::outbound::{CommandBusPort, ContainerRuntimePort},
         services::{
             execute_job_service::ExecuteJobService, execute_step_service::ExecuteStepService,
             execute_workflow_service::ExecuteWorkflowService,
@@ -11,7 +11,7 @@ use crate::{
     infrastructure::{
         actions::{ActionCommandHandler, ActionFetcherPort},
         containers::{
-            ContainerRuntimePort, create_job_container_service::CreateJobContainerService,
+            create_job_container_service::CreateJobContainerService,
             prepare_job_container_service::PrepareJobContainerService,
             pull_job_image_service::PullJobImageService,
         },

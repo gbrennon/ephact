@@ -2,11 +2,11 @@ use futures_util::StreamExt;
 use tokio::runtime::Runtime;
 
 use super::docker_container::DockerContainer;
+use crate::application::dtos::ContainerConfig;
+use crate::application::dtos::HostInfo;
+use crate::application::ports::outbound::ContainerRuntimePort;
 use crate::application::ports::outbound::container_port::ContainerPort;
 use crate::domain::errors::ContainerError;
-use crate::infrastructure::containers::ContainerConfig;
-use crate::infrastructure::containers::ContainerRuntimePort;
-use crate::infrastructure::containers::HostInfo;
 use crate::infrastructure::containers::bollard_wrapper::AuthCredentials;
 use crate::infrastructure::containers::bollard_wrapper::Client;
 use crate::infrastructure::containers::bollard_wrapper::types::ContainerCreateBody;
