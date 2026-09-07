@@ -7,7 +7,10 @@ mod tests {
     impl FailingPipelineTests {
         fn a_workflow_whose_steps_fail_reports_a_failed_run() {
             let run = FailingPipelineRun::execute();
-            assert_eq!(run.outcome, Err("workflow failed".to_string()));
+            assert_eq!(
+                run.outcome,
+                Err("workflow failed; see the run summary for failed steps".to_string())
+            );
         }
 
         fn the_failing_shell_step_was_executed() {

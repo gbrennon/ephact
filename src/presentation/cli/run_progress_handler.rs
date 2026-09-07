@@ -55,7 +55,21 @@ impl RunProgressHandler {
             Some(code) => format!("failed (exit code: {code})"),
             None => "error".to_string(),
         };
-        format!("    Step '{}': {outcome}", payload.step_name)
+        let mut output = format!("    Step '{}': {outcome}", payload.step_name);
+        if payload.exit_code != Some(0) {
+            Self::append_failure_output(&mut output, "stdout", &payload.stdout);
+            Self::append_failure_output(&mut output, "stderr", &payload.stderr);
+        }
+        output
+    }
+
+    fn append_failure_output(output: &mut String, label: &str, text: &str) {
+        if text.is_empty() {
+            return;
+        }
+        for line in text.lines() {
+            output.push_str(&format!("\n      {label}: {line}"));
+        }
     }
 
     /// Renders the terminal line for an event, or `None` when the event is
@@ -131,6 +145,8 @@ mod tests {
             step_name: "compile".into(),
             success: exit_code == Some(0),
             exit_code,
+            stdout: String::new(),
+            stderr: String::new(),
         })
     }
 
@@ -175,6 +191,25 @@ mod tests {
             handler.render(&step_finished(Some(2))).as_deref(),
             Some("    Step 'compile': failed (exit code: 2)")
         );
+    }
+
+    #[test]
+    fn quiet_mode_reports_failed_step_output() {
+        let handler = RunProgressHandler::new(false);
+        let event = DomainEvent::StepFinished(StepFinishedPayload {
+            workflow_name: "Build".into(),
+            job_id: "build".into(),
+            step_name: "clippy".into(),
+            success: false,
+            exit_code: Some(101),
+            stdout: String::new(),
+            stderr: "clippy failed".into(),
+        });
+
+        let rendered = handler.render(&event).unwrap();
+
+        assert!(rendered.contains("Step 'clippy': failed (exit code: 101)"));
+        assert!(rendered.contains("stderr: clippy failed"));
     }
 
     #[test]
