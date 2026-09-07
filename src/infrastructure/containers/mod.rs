@@ -10,11 +10,13 @@ pub mod create_job_container_port;
 pub mod create_job_container_service;
 pub mod docker_container;
 pub mod docker_runtime;
+pub mod exec_streaming_support;
 pub mod podman_container;
 pub mod podman_runtime;
 pub mod prepare_job_container_service;
 pub mod pull_job_image_port;
 pub mod pull_job_image_service;
+pub mod tar_transfer;
 pub mod workspace;
 
 pub use build_run_context_port::BuildRunContextPort;

@@ -1,23 +1,19 @@
 use std::collections::HashMap;
 
-use bytes::Bytes;
-use futures_util::StreamExt;
-
 use crate::application::dtos::ExecResult;
 use crate::application::dtos::FileEntry;
 use crate::application::dtos::RunnerContext;
 use crate::application::ports::outbound::container_port::ContainerPort;
 use crate::domain::errors::ContainerError;
+use crate::domain::events::OutputStream;
 use crate::infrastructure::containers::bollard_wrapper::Client;
-use crate::infrastructure::containers::bollard_wrapper::body_full;
-use crate::infrastructure::containers::bollard_wrapper::types::CreateExecOptions;
-use crate::infrastructure::containers::bollard_wrapper::types::DownloadFromContainerOptionsBuilder;
-use crate::infrastructure::containers::bollard_wrapper::types::InspectContainerOptions;
-use crate::infrastructure::containers::bollard_wrapper::types::LogOutput;
 use crate::infrastructure::containers::bollard_wrapper::types::RemoveContainerOptions;
-use crate::infrastructure::containers::bollard_wrapper::types::StartExecOptions;
-use crate::infrastructure::containers::bollard_wrapper::types::StartExecResults;
-use crate::infrastructure::containers::bollard_wrapper::types::UploadToContainerOptionsBuilder;
+use crate::infrastructure::containers::exec_streaming_support::{
+    exec_options, run_streaming_exec, runner_context_with_container_env,
+};
+use crate::infrastructure::containers::tar_transfer::{
+    download_archive, pack_entries, unpack_entries, upload_archive,
+};
 
 /// A running Podman container, created by [`PodmanRuntime`].
 pub(super) struct PodmanContainer {
@@ -34,181 +30,40 @@ impl ContainerPort for PodmanContainer {
         workdir: Option<&str>,
         env: &HashMap<String, String>,
     ) -> Result<ExecResult, ContainerError> {
-        let exec_config = CreateExecOptions {
-            attach_stdout: Some(true),
-            attach_stderr: Some(true),
-            cmd: Some(cmd.to_vec()),
-            working_dir: workdir.map(|s| s.to_string()),
-            env: if env.is_empty() {
-                None
-            } else {
-                Some(env.iter().map(|(k, v)| format!("{}={}", k, v)).collect())
-            },
-            ..Default::default()
-        };
+        self.exec_streaming(cmd, workdir, env, &mut |_, _| {})
+    }
 
-        self.runtime.block_on(async {
-            let exec = self
-                .client
-                .create_exec(&self.container_id, exec_config)
-                .await
-                .map_err(|e| {
-                    ContainerError::ExecutionFailed(self.container_id.clone(), e.to_string())
-                })?;
-
-            let output = self
-                .client
-                .start_exec(&exec.id, None::<StartExecOptions>)
-                .await
-                .map_err(|e| {
-                    ContainerError::ExecutionFailed(self.container_id.clone(), e.to_string())
-                })?;
-
-            match output {
-                StartExecResults::Attached { mut output, input } => {
-                    let mut stdout = String::new();
-                    let mut stderr = String::new();
-                    while let Some(chunk) = output.next().await {
-                        match chunk {
-                            Ok(LogOutput::StdOut { message }) => {
-                                stdout.push_str(&String::from_utf8_lossy(&message));
-                            }
-                            Ok(LogOutput::StdErr { message }) => {
-                                stderr.push_str(&String::from_utf8_lossy(&message));
-                            }
-                            Ok(_) => {}
-                            Err(e) => {
-                                return Err(ContainerError::ExecutionFailed(
-                                    self.container_id.clone(),
-                                    e.to_string(),
-                                ));
-                            }
-                        }
-                    }
-                    drop(input);
-
-                    let exit_code = self
-                        .client
-                        .inspect_exec(&exec.id)
-                        .await
-                        .map(|inspect| inspect.exit_code.unwrap_or(0))
-                        .unwrap_or(0);
-
-                    Ok(ExecResult {
-                        exit_code,
-                        stdout,
-                        stderr,
-                    })
-                }
-                StartExecResults::Detached => Ok(ExecResult {
-                    exit_code: 0,
-                    stdout: String::new(),
-                    stderr: String::new(),
-                }),
-            }
-        })
+    fn exec_streaming(
+        &self,
+        cmd: &[String],
+        workdir: Option<&str>,
+        env: &HashMap<String, String>,
+        on_output: &mut dyn FnMut(OutputStream, &str),
+    ) -> Result<ExecResult, ContainerError> {
+        let options = exec_options(cmd, workdir, env);
+        self.runtime.block_on(run_streaming_exec(
+            &self.client,
+            &self.container_id,
+            options,
+            on_output,
+        ))
     }
 
     fn copy_to(&self, container_path: &str, entries: &[FileEntry]) -> Result<(), ContainerError> {
-        let mut tar_builder = tar::Builder::new(Vec::new());
-
-        for entry in entries {
-            let mut header = tar::Header::new_gnu();
-            header.set_path(&entry.path).map_err(|e| {
-                ContainerError::CopyFailed(self.container_id.clone(), e.to_string())
-            })?;
-            header.set_size(entry.content.len() as u64);
-            header.set_mode(entry.mode);
-            header.set_cksum();
-
-            tar_builder
-                .append(&header, entry.content.as_slice())
-                .map_err(|e| {
-                    ContainerError::CopyFailed(self.container_id.clone(), e.to_string())
-                })?;
-        }
-
-        let tar_data = tar_builder
-            .into_inner()
-            .map_err(|e| ContainerError::CopyFailed(self.container_id.clone(), e.to_string()))?;
-
-        let upload_options = UploadToContainerOptionsBuilder::new()
-            .path(container_path)
-            .build();
-
-        self.runtime.block_on(async {
-            self.client
-                .upload_to_container(
-                    &self.container_id,
-                    Some(upload_options),
-                    body_full(Bytes::from(tar_data)),
-                )
-                .await
-                .map_err(|e| ContainerError::CopyFailed(self.container_id.clone(), e.to_string()))
-        })?;
-
-        Ok(())
+        let archive = pack_entries(entries, &self.container_id)?;
+        self.runtime.block_on(upload_archive(
+            &self.client,
+            &self.container_id,
+            container_path,
+            archive,
+        ))
     }
 
     fn copy_from(&self, container_path: &str) -> Result<Vec<FileEntry>, ContainerError> {
-        let download_options = DownloadFromContainerOptionsBuilder::new()
-            .path(container_path)
-            .build();
-
         self.runtime.block_on(async {
-            let mut stream = self
-                .client
-                .download_from_container(&self.container_id, Some(download_options));
-
-            let mut tar_bytes = Vec::new();
-            while let Some(result) = stream.next().await {
-                match result {
-                    Ok(chunk) => tar_bytes.extend_from_slice(&chunk),
-                    Err(e) => {
-                        return Err(ContainerError::CopyFailed(
-                            self.container_id.clone(),
-                            e.to_string(),
-                        ));
-                    }
-                }
-            }
-
-            let mut archive = tar::Archive::new(tar_bytes.as_slice());
-            let mut entries = Vec::new();
-
-            for entry_result in archive
-                .entries()
-                .map_err(|e| ContainerError::CopyFailed(self.container_id.clone(), e.to_string()))?
-            {
-                let mut entry = entry_result.map_err(|e| {
-                    ContainerError::CopyFailed(self.container_id.clone(), e.to_string())
-                })?;
-
-                let path = entry
-                    .path()
-                    .map_err(|e| {
-                        ContainerError::CopyFailed(self.container_id.clone(), e.to_string())
-                    })?
-                    .to_string_lossy()
-                    .to_string();
-
-                let mode = entry.header().mode().map_err(|e| {
-                    ContainerError::CopyFailed(self.container_id.clone(), e.to_string())
-                })?;
-
-                let mut content = Vec::new();
-                std::io::Read::read_to_end(&mut entry, &mut content).map_err(|e| {
-                    ContainerError::CopyFailed(self.container_id.clone(), e.to_string())
-                })?;
-
-                entries.push(FileEntry {
-                    path,
-                    content,
-                    mode,
-                });
-            }
-
-            Ok(entries)
+            let archive =
+                download_archive(&self.client, &self.container_id, container_path).await?;
+            unpack_entries(&archive, &self.container_id)
         })
     }
 
@@ -233,27 +88,18 @@ impl ContainerPort for PodmanContainer {
         self.runtime.block_on(async {
             let info = self
                 .client
-                .inspect_container(&self.container_id, None::<InspectContainerOptions>)
+                .inspect_container(&self.container_id, None)
                 .await
-                .map_err(|_| ContainerError::NotFound(self.container_id.clone()))?;
+                .map_err(|_e| ContainerError::NotFound(self.container_id.clone()))?;
 
-            let env_map: HashMap<String, String> = info
+            let container_env = info
                 .config
-                .and_then(|c| c.env)
-                .unwrap_or_default()
-                .iter()
-                .filter_map(|kv| {
-                    let mut parts = kv.splitn(2, '=');
-                    Some((
-                        parts.next()?.to_string(),
-                        parts.next().unwrap_or("").to_string(),
-                    ))
-                })
-                .collect();
-
-            let mut ctx = self.runner_context.clone();
-            ctx.env.extend(env_map);
-            Ok(ctx)
+                .and_then(|config| config.env)
+                .unwrap_or_default();
+            Ok(runner_context_with_container_env(
+                &self.runner_context,
+                container_env,
+            ))
         })
     }
 }
