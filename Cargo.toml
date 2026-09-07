@@ -19,6 +19,8 @@ tar = "0.4.46"
 futures-util = "0.3.33"
 libc = "0.2.189"
 bytes = "1"
+figlet-rs = "1.0.0"
+crossterm = "0.29"
 
 [features]
 container-integration = []
