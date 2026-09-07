@@ -15,16 +15,20 @@ use crate::application::ports::inbound::execute_job_port::ExecuteJobPort;
 use crate::application::ports::outbound::build_job_environment_port::BuildJobEnvironmentPort;
 use crate::application::ports::outbound::build_step_context_port::BuildStepContextPort;
 use crate::application::ports::outbound::command_bus_port::CommandBusPort;
+use crate::application::ports::outbound::event_bus_port::EventBusPort;
 use crate::application::ports::outbound::prefix_step_path_port::PrefixStepPathPort;
 use crate::application::ports::outbound::prepare_job_container_port::PrepareJobContainerPort;
 use crate::application::ports::outbound::read_step_exports_port::ReadStepExportsPort;
 use crate::application::ports::outbound::summarize_step_port::SummarizeStepPort;
+use crate::domain::events::{DomainEvent, StepFinishedPayload, StepStartedPayload};
 
 /// Application service coordinating the execution of one job.
 ///
 /// Builds the job environment and container through outbound ports, then
 /// publishes one [`ExecuteStepCommand`] per step: the step command handler
 /// runs each step, so this service never depends on the step entrypoint.
+/// Progress facts for every step are announced as domain events on the
+/// outbound [`EventBusPort`].
 pub struct ExecuteJobService {
     job_environment_builder: Box<dyn BuildJobEnvironmentPort>,
     container_preparer: Box<dyn PrepareJobContainerPort>,
@@ -33,6 +37,7 @@ pub struct ExecuteJobService {
     step_summarizer: Box<dyn SummarizeStepPort>,
     step_exports_reader: Box<dyn ReadStepExportsPort>,
     command_bus: Arc<dyn CommandBusPort>,
+    event_bus: Arc<dyn EventBusPort>,
 }
 
 impl ExecuteJobService {
@@ -45,6 +50,7 @@ impl ExecuteJobService {
         step_summarizer: Box<dyn SummarizeStepPort>,
         step_exports_reader: Box<dyn ReadStepExportsPort>,
         command_bus: Arc<dyn CommandBusPort>,
+        event_bus: Arc<dyn EventBusPort>,
     ) -> Self {
         Self {
             job_environment_builder,
@@ -54,6 +60,7 @@ impl ExecuteJobService {
             step_summarizer,
             step_exports_reader,
             command_bus,
+            event_bus,
         }
     }
 }
@@ -92,6 +99,7 @@ impl ExecuteJobPort for ExecuteJobService {
                 env: &step_env,
             });
 
+            self.announce_step_started(&request, step);
             let outcome = self.command_bus.dispatch_step(ExecuteStepCommand::new(
                 step.clone(),
                 step_env.clone(),
@@ -106,6 +114,7 @@ impl ExecuteJobPort for ExecuteJobService {
                 duration: started_at.elapsed(),
             });
             job_success &= !summarized.fails_job;
+            self.announce_step_finished(&request, &summarized.summary, !summarized.fails_job);
             steps.push(summarized.summary);
 
             let exports = self.step_exports_reader.execute(ReadStepExportsRequest {
@@ -124,5 +133,44 @@ impl ExecuteJobPort for ExecuteJobService {
             },
             container_name: prepared.container_name,
         })
+    }
+}
+
+impl ExecuteJobService {
+    fn announce_step_started(
+        &self,
+        request: &ExecuteJobRequest<'_>,
+        step: &crate::domain::workflow::Step,
+    ) {
+        self.event_bus
+            .publish(DomainEvent::StepStarted(StepStartedPayload {
+                workflow_name: request
+                    .workflow
+                    .name
+                    .clone()
+                    .unwrap_or_else(|| "unnamed".into()),
+                job_id: request.run.job_id.clone(),
+                step_name: step.name.clone().unwrap_or_else(|| "unnamed step".into()),
+            }));
+    }
+
+    fn announce_step_finished(
+        &self,
+        request: &ExecuteJobRequest<'_>,
+        summary: &StepSummary,
+        step_success: bool,
+    ) {
+        self.event_bus
+            .publish(DomainEvent::StepFinished(StepFinishedPayload {
+                workflow_name: request
+                    .workflow
+                    .name
+                    .clone()
+                    .unwrap_or_else(|| "unnamed".into()),
+                job_id: request.run.job_id.clone(),
+                step_name: summary.name.clone(),
+                success: step_success,
+                exit_code: summary.exit_code,
+            }));
     }
 }

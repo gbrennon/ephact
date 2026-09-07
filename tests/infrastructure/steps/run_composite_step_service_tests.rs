@@ -15,8 +15,8 @@ use ephact::{
 };
 
 use crate::common::fakes::{
-    fake_command_bus::FakeCommandBus, stub_failing_container::StubFailingContainer,
-    stub_recording_container::StubRecordingContainer,
+    fake_command_bus::FakeCommandBus, fake_event_bus::FakeEventBus,
+    stub_failing_container::StubFailingContainer, stub_recording_container::StubRecordingContainer,
 };
 
 fn step_from(yaml: &str) -> Step {
@@ -45,7 +45,10 @@ fn action_response() -> ExecuteActionResponse {
 }
 
 fn service(command_bus: FakeCommandBus) -> RunCompositeStepService {
-    RunCompositeStepService::new(Box::new(RunShellStepService::new()), Arc::new(command_bus))
+    RunCompositeStepService::new(
+        Box::new(RunShellStepService::new(Arc::new(FakeEventBus::new()))),
+        Arc::new(command_bus),
+    )
 }
 
 #[test]

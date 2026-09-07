@@ -17,7 +17,8 @@ use ephact::{
 };
 
 use crate::common::fakes::{
-    fake_command_bus::FakeCommandBus, fake_prepare_job_container_port::FakePrepareJobContainerPort,
+    fake_command_bus::FakeCommandBus, fake_event_bus::FakeEventBus,
+    fake_prepare_job_container_port::FakePrepareJobContainerPort,
     fake_read_step_exports_port::FakeReadStepExportsPort,
 };
 
@@ -38,6 +39,7 @@ fn service(
         Box::new(SummarizeStepService::new()),
         Box::new(exports),
         Arc::new(command_bus),
+        Arc::new(FakeEventBus::new()),
     )
 }
 

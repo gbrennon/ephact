@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use crate::{
     application::{
-        ports::outbound::{ContainerRuntimePort, EventBusPort, WorkflowSourcePort},
+        ports::outbound::{
+            ContainerRuntimePort, DomainEventHandler, EventBusPort, WorkflowSourcePort,
+        },
         services::{
             list_actions_service::ListActionsService, list_workflows_service::ListWorkflowsService,
             run_action_service::RunActionService,
@@ -23,20 +25,26 @@ use crate::{
 pub struct Container;
 
 impl Container {
-    pub fn build() -> AppContainer {
+    pub fn build(
+        progress_reporter: Option<Box<dyn DomainEventHandler + Send + Sync>>,
+    ) -> AppContainer {
         let runtime: Arc<dyn ContainerRuntimePort> = Arc::new(
             ContainerRuntimeAdapter::detect()
                 .expect("no container runtime available (Docker or Podman required)"),
         );
-        Self::with_runtime(runtime)
+        Self::with_runtime(runtime, progress_reporter)
     }
 
-    pub fn with_runtime(runtime: Arc<dyn ContainerRuntimePort>) -> AppContainer {
+    pub fn with_runtime(
+        runtime: Arc<dyn ContainerRuntimePort>,
+        progress_reporter: Option<Box<dyn DomainEventHandler + Send + Sync>>,
+    ) -> AppContainer {
         Self::with_collaborators(
             runtime,
             Box::new(PlatformImageMapper),
             Box::new(GitActionFetcher::with_default_cache_root()),
             Arc::new(FilesystemWorkflowSource::default()),
+            progress_reporter,
         )
     }
 
@@ -45,11 +53,16 @@ impl Container {
         image_mapper: Box<dyn ImageMapperPort>,
         action_fetcher: Box<dyn ActionFetcherPort>,
         workflow_source: Arc<dyn WorkflowSourcePort>,
+        progress_reporter: Option<Box<dyn DomainEventHandler + Send + Sync>>,
     ) -> AppContainer {
-        let event_bus: Arc<dyn EventBusPort> = Arc::new(InMemoryEventBus::new(Box::new(
-            ContainerCleanupHandler::new(runtime.clone()),
-        )));
-        let command_bus = CommandBusWiring::build(runtime, image_mapper, action_fetcher);
+        let mut handlers: Vec<Box<dyn DomainEventHandler + Send + Sync>> =
+            vec![Box::new(ContainerCleanupHandler::new(runtime.clone()))];
+        if let Some(reporter) = progress_reporter {
+            handlers.push(reporter);
+        }
+        let event_bus: Arc<dyn EventBusPort> = Arc::new(InMemoryEventBus::new(handlers));
+        let command_bus =
+            CommandBusWiring::build(runtime, image_mapper, action_fetcher, event_bus.clone());
         let list_workflows_service = ListWorkflowsService::new(Box::new(workflow_source.clone()));
         let list_actions_service = ListActionsService::new(Box::new(workflow_source.clone()));
         let run_workflow_service = RunWorkflowService::new(

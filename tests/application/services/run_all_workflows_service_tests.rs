@@ -58,7 +58,9 @@ fn execute_runs_all_workflows_and_merges_summary() {
 
     let events = event_bus.events();
     assert_eq!(events.len(), 1);
-    let DomainEvent::ActRunCompleted(payload) = &events[0];
+    let DomainEvent::ActRunCompleted(payload) = &events[0] else {
+        panic!("expected ActRunCompleted event");
+    };
     assert!(payload.success);
     assert_eq!(payload.container_names, vec!["c-all", "c-all"]);
 }
