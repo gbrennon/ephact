@@ -8,6 +8,7 @@ pub mod list_workflows_args;
 pub mod list_workflows_handler;
 pub mod run_args;
 pub mod run_handler;
+pub mod run_progress_handler;
 
 pub use cli::Cli;
 pub use cli_parser::{
@@ -19,3 +20,4 @@ pub use list_workflows_args::ListWorkflowsArgs;
 pub use list_workflows_handler::ListWorkflowsHandler;
 pub use run_args::RunArgs;
 pub use run_handler::RunHandler;
+pub use run_progress_handler::RunProgressHandler;

@@ -41,16 +41,7 @@ impl Cli {
         let parsed = CliParser::try_parse_from(args);
         let cli = match parsed {
             Ok(cli) => cli,
-            Err(e) => {
-                if e.kind() == clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand {
-                    let mut stdout = std::io::stdout();
-                    let _ = write!(stdout, "{e}");
-                    let _ = stdout.flush();
-                    return Ok(());
-                }
-                let _ = write!(std::io::stderr(), "{e}");
-                return Err(e.to_string().into());
-            }
+            Err(e) => return render_parse_error(e),
         };
         match cli.command {
             Command::Run(args) => RunHandler::handle(
@@ -66,4 +57,17 @@ impl Cli {
             }
         }
     }
+}
+
+fn render_parse_error(e: clap::error::Error) -> Result<(), Box<dyn std::error::Error>> {
+    if e.kind() == clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+        || !e.use_stderr()
+    {
+        let mut stdout = std::io::stdout();
+        let _ = write!(stdout, "{e}");
+        let _ = stdout.flush();
+        return Ok(());
+    }
+    let _ = write!(std::io::stderr(), "{e}");
+    Err(e.to_string().into())
 }

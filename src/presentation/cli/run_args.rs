@@ -63,6 +63,11 @@ pub struct RunArgs {
     /// Allow containers to make outbound network requests.
     #[arg(long = "allow-network")]
     allow_network: bool,
+
+    /// Show real-time step details (running steps and their output) in
+    /// addition to the final status of each step.
+    #[arg(long)]
+    verbose: bool,
 }
 
 impl RunArgs {
@@ -103,6 +108,16 @@ impl RunArgs {
         }
 
         Ok((config, repository))
+    }
+
+    /// Reports whether verbose output was requested.
+    pub fn verbose(&self) -> bool {
+        self.verbose
+    }
+
+    /// Reports whether the given argument is the verbose flag.
+    pub fn is_verbose_flag(arg: &std::ffi::OsStr) -> bool {
+        arg == std::ffi::OsStr::new("--verbose")
     }
 
     /// Splits a `KEY=VALUE` string into its key and value components.
