@@ -3,6 +3,7 @@ pub mod containers;
 pub mod di;
 pub mod images;
 pub mod jobs;
+pub mod logging;
 pub mod messaging;
 pub mod steps;
 pub mod workflows;

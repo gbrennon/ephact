@@ -63,4 +63,18 @@ mod tests {
         let result = cli.run(["ephact", "--nonexistent-flag"]);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn run_explicit_help_flag_succeeds() {
+        let cli = make_cli();
+        let result = cli.run(["ephact", "--help"]);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn run_subcommand_help_flag_succeeds() {
+        let cli = make_cli();
+        let result = cli.run(["ephact", "run", "--help"]);
+        assert!(result.is_ok());
+    }
 }

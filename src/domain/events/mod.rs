@@ -1,5 +1,19 @@
 pub mod act_run_completed_payload;
 pub mod domain_event;
+pub mod job_finished_payload;
+pub mod job_started_payload;
+pub mod output_stream;
+pub mod step_finished_payload;
+pub mod step_output_payload;
+pub mod step_started_payload;
+pub mod workflow_started_payload;
 
 pub use act_run_completed_payload::ActRunCompletedPayload;
 pub use domain_event::DomainEvent;
+pub use job_finished_payload::JobFinishedPayload;
+pub use job_started_payload::JobStartedPayload;
+pub use output_stream::OutputStream;
+pub use step_finished_payload::StepFinishedPayload;
+pub use step_output_payload::StepOutputPayload;
+pub use step_started_payload::StepStartedPayload;
+pub use workflow_started_payload::WorkflowStartedPayload;

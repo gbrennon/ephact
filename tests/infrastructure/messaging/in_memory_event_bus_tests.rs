@@ -12,7 +12,7 @@ use crate::common::fakes::fake_runtime::FakeRuntime;
 fn publish_act_run_completed_stops_kills_and_removes_containers() {
     let runtime = Arc::new(FakeRuntime::new());
     let cleanup_handler = Box::new(ContainerCleanupHandler::new(runtime.clone()));
-    let bus = InMemoryEventBus::new(cleanup_handler);
+    let bus = InMemoryEventBus::new(vec![cleanup_handler]);
 
     let event = DomainEvent::ActRunCompleted(ActRunCompletedPayload {
         container_names: vec!["container-a".into(), "container-b".into()],

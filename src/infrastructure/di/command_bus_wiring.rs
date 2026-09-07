@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     application::{
-        ports::outbound::{CommandBusPort, ContainerRuntimePort},
+        ports::outbound::{CommandBusPort, ContainerRuntimePort, EventBusPort},
         services::{
             execute_job_service::ExecuteJobService, execute_step_service::ExecuteStepService,
             execute_workflow_service::ExecuteWorkflowService,
@@ -48,6 +48,7 @@ impl CommandBusWiring {
         runtime: Arc<dyn ContainerRuntimePort>,
         image_mapper: Box<dyn ImageMapperPort>,
         action_fetcher: Box<dyn ActionFetcherPort>,
+        event_bus: Arc<dyn EventBusPort>,
     ) -> Arc<dyn CommandBusPort> {
         let image_mapper: Arc<dyn ImageMapperPort> = Arc::from(image_mapper);
         let deferred = Arc::new(DeferredCommandBus::new());
@@ -56,22 +57,25 @@ impl CommandBusWiring {
         let workflow_handler = WorkflowCommandHandler::new(Box::new(ExecuteWorkflowService::new(
             Box::new(LoadWorkflowService::new()),
             command_bus.clone(),
+            event_bus.clone(),
         )));
 
         let job_handler = JobCommandHandler::new(Box::new(Self::build_job_executor(
             runtime.clone(),
             image_mapper,
             command_bus.clone(),
+            event_bus.clone(),
         )));
 
         let step_handler = StepCommandHandler::new(Box::new(ExecuteStepService::new(
-            Box::new(RunShellStepService::new()),
+            Box::new(RunShellStepService::new(event_bus.clone())),
             command_bus.clone(),
         )));
 
         let action_handler = ActionCommandHandler::new(Box::new(ActionExecutionWiring::build(
             action_fetcher,
             command_bus,
+            event_bus,
         )));
 
         deferred.bind(Box::new(InMemoryCommandBus::new(
@@ -88,6 +92,7 @@ impl CommandBusWiring {
         runtime: Arc<dyn ContainerRuntimePort>,
         image_mapper: Arc<dyn ImageMapperPort>,
         command_bus: Arc<dyn CommandBusPort>,
+        event_bus: Arc<dyn EventBusPort>,
     ) -> ExecuteJobService {
         ExecuteJobService::new(
             Box::new(GitHubJobEnvironmentAdapter::new()),
@@ -103,6 +108,7 @@ impl CommandBusWiring {
                 Box::new(ReadStepEnvExportsService::new()),
             )),
             command_bus,
+            event_bus,
         )
     }
 }

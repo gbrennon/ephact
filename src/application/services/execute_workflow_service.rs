@@ -3,13 +3,19 @@ use std::{error::Error, sync::Arc};
 use crate::application::commands::ExecuteJobCommand;
 use crate::{
     application::{
-        dtos::{ExecuteWorkflowRequest, JobSummary, LoadWorkflowRequest, WorkflowExecution},
+        dtos::{ExecuteWorkflowRequest, LoadWorkflowRequest, WorkflowExecution},
         ports::{
             inbound::execute_workflow_port::ExecuteWorkflowPort,
-            outbound::{command_bus_port::CommandBusPort, load_workflow_port::LoadWorkflowPort},
+            outbound::{
+                command_bus_port::CommandBusPort, event_bus_port::EventBusPort,
+                load_workflow_port::LoadWorkflowPort,
+            },
         },
     },
-    domain::planner::Planner,
+    domain::{
+        events::{DomainEvent, JobFinishedPayload, JobStartedPayload, WorkflowStartedPayload},
+        planner::{Planner, Run},
+    },
 };
 
 /// Application service coordinating the execution of a single workflow.
@@ -17,20 +23,24 @@ use crate::{
 /// Loads the workflow definition through an outbound port, plans its job
 /// stages, and publishes one [`ExecuteJobCommand`] per planned run. The job
 /// command handler is what turns each command into an execution, so this
-/// service never depends on the job entrypoint itself.
+/// service never depends on the job entrypoint itself. Progress facts are
+/// announced as domain events on the outbound [`EventBusPort`].
 pub struct ExecuteWorkflowService {
     workflow_loader: Box<dyn LoadWorkflowPort>,
     command_bus: Arc<dyn CommandBusPort>,
+    event_bus: Arc<dyn EventBusPort>,
 }
 
 impl ExecuteWorkflowService {
     pub fn new(
         workflow_loader: Box<dyn LoadWorkflowPort>,
         command_bus: Arc<dyn CommandBusPort>,
+        event_bus: Arc<dyn EventBusPort>,
     ) -> Self {
         Self {
             workflow_loader,
             command_bus,
+            event_bus,
         }
     }
 }
@@ -46,30 +56,89 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
         let workflow_name = workflow.name.clone().unwrap_or_else(|| "unnamed".into());
         let plan = Planner.plan(&workflow).map_err(|e| format!("{:?}", e))?;
 
-        let mut job_summaries: Vec<JobSummary> = Vec::new();
-        let mut container_names: Vec<String> = Vec::new();
-        let mut success = true;
+        self.announce_workflow_started(&workflow_name);
 
-        for stage in &plan.stages {
-            for run in &stage.runs {
-                let execution = self.command_bus.dispatch_job(ExecuteJobCommand::new(
-                    run.job.clone(),
-                    run.job_id.clone(),
-                    workflow.clone(),
-                    request.repo_path.to_path_buf(),
-                    request.context.clone(),
-                ))?;
-                success &= execution.job_summary.success;
-                job_summaries.push(execution.job_summary);
-                container_names.push(execution.container_name);
-            }
-        }
+        let executions = self.execute_planned_runs(&workflow, &plan, request)?;
 
         Ok(WorkflowExecution {
             workflow_name,
-            job_summaries,
-            container_names,
-            success,
+            job_summaries: executions.iter().map(|e| e.job_summary.clone()).collect(),
+            container_names: executions
+                .iter()
+                .map(|e| e.container_name.clone())
+                .collect(),
+            success: executions.iter().all(|e| e.job_summary.success),
         })
+    }
+}
+
+impl ExecuteWorkflowService {
+    fn execute_planned_runs(
+        &self,
+        workflow: &crate::domain::workflow::Workflow,
+        plan: &crate::domain::planner::Plan,
+        request: ExecuteWorkflowRequest<'_>,
+    ) -> Result<Vec<crate::application::dtos::JobExecution>, Box<dyn Error>> {
+        let all_runs: Vec<&crate::domain::planner::Run> = plan
+            .stages
+            .iter()
+            .flat_map(|stage| stage.runs.iter())
+            .collect();
+        all_runs
+            .iter()
+            .map(|run| self.execute_run(workflow, run, request.repo_path, request.context))
+            .collect()
+    }
+
+    fn execute_run(
+        &self,
+        workflow: &crate::domain::workflow::Workflow,
+        run: &crate::domain::planner::Run,
+        repo_path: &std::path::Path,
+        context: &crate::domain::expression::EvalContext,
+    ) -> Result<crate::application::dtos::JobExecution, Box<dyn Error>> {
+        self.announce_job_started(
+            &workflow.name.clone().unwrap_or_else(|| "unnamed".into()),
+            run,
+        );
+        let execution = self.command_bus.dispatch_job(ExecuteJobCommand::new(
+            run.job.clone(),
+            run.job_id.clone(),
+            workflow.clone(),
+            repo_path.to_path_buf(),
+            context.clone(),
+        ))?;
+        self.announce_job_finished(
+            &workflow.name.clone().unwrap_or_else(|| "unnamed".into()),
+            run,
+            execution.job_summary.success,
+        );
+        Ok(execution)
+    }
+
+    fn announce_workflow_started(&self, workflow_name: &str) {
+        self.event_bus
+            .publish(DomainEvent::WorkflowStarted(WorkflowStartedPayload {
+                workflow_name: workflow_name.to_string(),
+            }));
+    }
+
+    fn announce_job_started(&self, workflow_name: &str, run: &Run) {
+        self.event_bus
+            .publish(DomainEvent::JobStarted(JobStartedPayload {
+                workflow_name: workflow_name.to_string(),
+                job_id: run.job_id.clone(),
+                job_name: run.job.name.clone(),
+            }));
+    }
+
+    fn announce_job_finished(&self, workflow_name: &str, run: &Run, job_success: bool) {
+        self.event_bus
+            .publish(DomainEvent::JobFinished(JobFinishedPayload {
+                workflow_name: workflow_name.to_string(),
+                job_id: run.job_id.clone(),
+                job_name: run.job.name.clone(),
+                success: job_success,
+            }));
     }
 }

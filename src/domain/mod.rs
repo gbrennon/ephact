@@ -9,13 +9,13 @@ pub mod workflow;
 
 pub use self::{
     entities::{
-        ephemeral_repository::EphemeralRepository, repository::Repository,
-        temp_dir_template::TempDirTemplate,
+        ephemeral_repository::EphemeralRepository, project_branding::ProjectBranding,
+        repository::Repository, temp_dir_template::TempDirTemplate,
     },
-    errors::core_error::CoreError,
+    errors::{core_error::CoreError, project_branding_error::ProjectBrandingError},
     value_objects::{
         ActEvent, ActInput, ActJob, ActRunConfig, ActWorkflow, ActionReference, CleanupPolicy,
-        ContainerEngine, GitDirKind, RemoteActionReference, RepoPath, RepositoryName, Secret,
-        ShellCommand,
+        ContainerEngine, GitDirKind, ProjectDescription, ProjectEmblem, ProjectName,
+        ProjectVersion, RemoteActionReference, RepoPath, RepositoryName, Secret,
     },
 };

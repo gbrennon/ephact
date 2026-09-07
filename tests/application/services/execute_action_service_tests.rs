@@ -19,12 +19,16 @@ mod tests {
     use crate::common::fakes::{
         fake_action_fetcher::FakeActionFetcher,
         fake_action_routing_command_bus::FakeActionRoutingCommandBus,
-        fake_command_bus::FakeCommandBus, fake_runtime::FakeRuntime,
+        fake_command_bus::FakeCommandBus, fake_event_bus::FakeEventBus, fake_runtime::FakeRuntime,
         stub_failing_action_fetcher::StubFailingActionFetcher,
     };
 
     fn wiring(fetcher: Box<dyn ActionFetcherPort>) -> ExecuteActionService {
-        ActionExecutionWiring::build(fetcher, Arc::new(FakeCommandBus::new()))
+        ActionExecutionWiring::build(
+            fetcher,
+            Arc::new(FakeCommandBus::new()),
+            Arc::new(FakeEventBus::new()),
+        )
     }
 
     fn container(runtime: &FakeRuntime) -> Arc<dyn ContainerPort> {
@@ -434,6 +438,7 @@ mod tests {
         let service = Arc::new(ActionExecutionWiring::build(
             Box::new(FakeActionFetcher::returning(repo.path().into())),
             command_bus.clone(),
+            Arc::new(FakeEventBus::new()),
         ));
         command_bus.bind(service.clone());
 

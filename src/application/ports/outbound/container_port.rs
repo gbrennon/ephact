@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::{
     application::dtos::{ExecResult, FileEntry, RunnerContext},
     domain::errors::ContainerError,
+    domain::events::OutputStream,
 };
 
 /// Outbound port for working inside one running container.
@@ -18,6 +19,29 @@ pub trait ContainerPort: Send + Sync {
         workdir: Option<&str>,
         env: &HashMap<String, String>,
     ) -> Result<ExecResult, ContainerError>;
+
+    /// Executes a command inside the container, forwarding each output chunk
+    /// to `on_output` as it is produced.
+    ///
+    /// The returned [`ExecResult`] carries the same output accumulated by the
+    /// sink. Implementations that cannot stream may buffer and deliver the
+    /// whole output once, right before returning.
+    fn exec_streaming(
+        &self,
+        cmd: &[String],
+        workdir: Option<&str>,
+        env: &HashMap<String, String>,
+        on_output: &mut dyn FnMut(OutputStream, &str),
+    ) -> Result<ExecResult, ContainerError> {
+        let result = self.exec(cmd, workdir, env)?;
+        if !result.stdout.is_empty() {
+            on_output(OutputStream::StandardOutput, &result.stdout);
+        }
+        if !result.stderr.is_empty() {
+            on_output(OutputStream::StandardError, &result.stderr);
+        }
+        Ok(result)
+    }
 
     /// Copies the given entries into the container at `container_path`.
     fn copy_to(&self, container_path: &str, entries: &[FileEntry]) -> Result<(), ContainerError>;

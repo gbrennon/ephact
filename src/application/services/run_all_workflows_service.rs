@@ -3,7 +3,7 @@ use std::{error::Error, sync::Arc, time::Instant};
 use crate::application::commands::ExecuteWorkflowCommand;
 use crate::{
     application::{
-        dtos::{RunAllWorkflowsRequest, RunSummary},
+        dtos::{JobSummary, RunAllWorkflowsRequest, RunSummary, WorkflowExecution},
         ports::{
             inbound::run_all_workflows_port::RunAllWorkflowsPort,
             outbound::{CommandBusPort, EventBusPort, WorkflowSourcePort},
@@ -15,11 +15,12 @@ use crate::{
 /// Name reported for the aggregate summary of a full multi-workflow run.
 pub const ALL_WORKFLOWS_SUMMARY_NAME: &str = "All Workflows";
 
-/// Application service implementing the entrypoint to run all workflows.
+/// Application service running every workflow found in the repository.
 ///
-/// Agnostic by construction: it never touches the filesystem. It reads workflow
-/// definitions through the outbound [`WorkflowSourcePort`] and dispatches commands
-/// through the outbound [`CommandBusPort`].
+/// Reads all workflow sources through an outbound port and publishes one
+/// [`ExecuteWorkflowCommand`] per workflow. When every workflow finished, the
+/// completion is announced as an [`DomainEvent::ActRunCompleted`] event so
+/// infrastructure handlers can clean up.
 pub struct RunAllWorkflowsService {
     workflow_source: Box<dyn WorkflowSourcePort>,
     command_bus: Arc<dyn CommandBusPort>,
@@ -43,52 +44,71 @@ impl RunAllWorkflowsService {
 impl RunAllWorkflowsPort for RunAllWorkflowsService {
     fn execute(&self, request: RunAllWorkflowsRequest) -> Result<RunSummary, Box<dyn Error>> {
         let started_at = Instant::now();
-        let repo = &request.repository;
+        let executions = self.execute_all_workflows(&request)?;
+        let success = executions.iter().all(|execution| execution.success);
 
-        // Use the outbound port to get all workflow contents
-        let workflow_contents = self.workflow_source.read_all_workflows(repo)?;
-
-        let mut executions = Vec::new();
-        for workflow_content in workflow_contents {
-            let execution = self
-                .command_bus
-                .dispatch_workflow(ExecuteWorkflowCommand::new(
-                    workflow_content,
-                    request.config.clone(),
-                    repo.clone(),
-                ))?;
-            executions.push(execution);
-        }
-
-        let success = executions.iter().all(|e| e.success);
-
-        let mut all_jobs = Vec::new();
-        for exec in &executions {
-            for job in &exec.job_summaries {
-                let mut j = job.clone();
-                if let Some(name) = &j.name {
-                    j.name = Some(format!("{} / {}", exec.workflow_name, name));
-                }
-                all_jobs.push(j);
-            }
-        }
-
-        let container_names: Vec<String> = executions
-            .iter()
-            .flat_map(|e| e.container_names.clone())
-            .collect();
-
-        self.event_bus
-            .publish(DomainEvent::ActRunCompleted(ActRunCompletedPayload {
-                container_names,
-                success,
-            }));
+        self.announce_run_completed(&executions, success);
 
         Ok(RunSummary {
             name: ALL_WORKFLOWS_SUMMARY_NAME.into(),
             success,
             duration: started_at.elapsed(),
-            job_summaries: all_jobs,
+            job_summaries: collect_job_summaries(&executions),
         })
     }
+}
+
+impl RunAllWorkflowsService {
+    fn execute_all_workflows(
+        &self,
+        request: &RunAllWorkflowsRequest,
+    ) -> Result<Vec<WorkflowExecution>, Box<dyn Error>> {
+        let workflow_contents = self
+            .workflow_source
+            .read_all_workflows(&request.repository)?;
+        workflow_contents
+            .iter()
+            .map(|content| {
+                self.command_bus
+                    .dispatch_workflow(ExecuteWorkflowCommand::new(
+                        content.clone(),
+                        request.config.clone(),
+                        request.repository.clone(),
+                    ))
+            })
+            .collect()
+    }
+
+    fn announce_run_completed(&self, executions: &[WorkflowExecution], success: bool) {
+        let container_names: Vec<String> = executions
+            .iter()
+            .flat_map(|execution| execution.container_names.clone())
+            .collect();
+        self.event_bus
+            .publish(DomainEvent::ActRunCompleted(ActRunCompletedPayload {
+                container_names,
+                success,
+            }));
+    }
+}
+
+fn collect_job_summaries(executions: &[WorkflowExecution]) -> Vec<JobSummary> {
+    executions
+        .iter()
+        .flat_map(|execution| {
+            execution
+                .job_summaries
+                .iter()
+                .map(move |job| qualified_job_summary(execution, job))
+        })
+        .collect()
+}
+
+fn qualified_job_summary(execution: &WorkflowExecution, job: &JobSummary) -> JobSummary {
+    let mut summary = job.clone();
+    summary.name = job
+        .name
+        .as_ref()
+        .map(|name| format!("{} / {}", execution.workflow_name, name));
+    summary
 }
