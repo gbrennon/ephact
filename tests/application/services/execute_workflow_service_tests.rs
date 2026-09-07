@@ -10,7 +10,8 @@ use ephact::{
 };
 
 use crate::common::fakes::{
-    fake_command_bus::FakeCommandBus, fake_load_workflow_port::FakeLoadWorkflowPort,
+    fake_command_bus::FakeCommandBus, fake_event_bus::FakeEventBus,
+    fake_load_workflow_port::FakeLoadWorkflowPort,
 };
 
 const TWO_JOBS: &str = "name: Ci\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: build\n  publish:\n    needs: build\n    runs-on: ubuntu-latest\n    steps:\n      - run: publish\n";
@@ -21,13 +22,16 @@ fn execute(
     loader: FakeLoadWorkflowPort,
     command_bus: FakeCommandBus,
 ) -> Result<WorkflowExecution, Box<dyn std::error::Error>> {
-    ExecuteWorkflowService::new(Box::new(loader), Arc::new(command_bus)).execute(
-        ExecuteWorkflowRequest {
-            workflow_content: REQUESTED_CONTENT,
-            repo_path: Path::new("/repo"),
-            context: &EvalContext::new(),
-        },
+    ExecuteWorkflowService::new(
+        Box::new(loader),
+        Arc::new(command_bus),
+        Arc::new(FakeEventBus::new()),
     )
+    .execute(ExecuteWorkflowRequest {
+        workflow_content: REQUESTED_CONTENT,
+        repo_path: Path::new("/repo"),
+        context: &EvalContext::new(),
+    })
 }
 
 #[test]

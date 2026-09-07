@@ -21,7 +21,7 @@ mod tests {
     #[test]
     fn build_returns_app_container() {
         let runtime = Arc::new(FakeRuntime::new());
-        let _container = Container::with_runtime(runtime);
+        let _container = Container::with_runtime(runtime, None);
     }
 
     #[test]
@@ -33,6 +33,7 @@ mod tests {
             Box::new(FakeImageMapper),
             Box::new(FakeActionFetcher::returning(std::path::PathBuf::new())),
             workflow_source,
+            None,
         );
         fn _assert_run_all_workflows(_: Box<dyn RunAllWorkflowsPort>) {}
         fn _assert_run_workflow(_: Box<dyn RunWorkflowPort>) {}

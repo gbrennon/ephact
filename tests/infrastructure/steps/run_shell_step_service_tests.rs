@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use ephact::{
     application::ports::outbound::run_shell_step_port::RunShellStepPort,
     infrastructure::steps::run_shell_step_service::RunShellStepService,
@@ -13,7 +15,8 @@ use ephact::application::ports::outbound::container_port::ContainerPort;
 use ephact::domain::workflow::Step;
 
 use crate::common::fakes::{
-    fake_runtime::FakeRuntime, stub_failing_container::StubFailingContainer,
+    fake_event_bus::FakeEventBus, fake_runtime::FakeRuntime,
+    stub_failing_container::StubFailingContainer,
 };
 
 fn container(runtime: &dyn ContainerRuntimePort) -> Box<dyn ContainerPort> {
@@ -48,7 +51,7 @@ fn execute_runs_the_steps_script_through_bash() {
     let container = container(&runtime);
     let step = step_from("run: echo hi\n");
 
-    let result = RunShellStepService::new()
+    let result = RunShellStepService::new(Arc::new(FakeEventBus::new()))
         .execute(RunShellStepRequest {
             step: &step,
             container: container.as_ref(),
@@ -69,7 +72,7 @@ fn execute_lets_the_steps_own_env_override_the_passed_env() {
     let mut env = HashMap::new();
     env.insert("MODE".to_string(), "job".to_string());
 
-    RunShellStepService::new()
+    RunShellStepService::new(Arc::new(FakeEventBus::new()))
         .execute(RunShellStepRequest {
             step: &step,
             container: container.as_ref(),
@@ -90,7 +93,7 @@ fn execute_errors_when_the_step_has_neither_run_nor_uses() {
     let container = container(&runtime);
     let step = step_from("name: nothing to run\n");
 
-    let error = RunShellStepService::new()
+    let error = RunShellStepService::new(Arc::new(FakeEventBus::new()))
         .execute(RunShellStepRequest {
             step: &step,
             container: container.as_ref(),
@@ -106,7 +109,7 @@ fn execute_reports_a_container_failure_as_a_step_error() {
     let step = step_from("run: echo hi\n");
     let container = StubFailingContainer;
 
-    let error = RunShellStepService::new()
+    let error = RunShellStepService::new(Arc::new(FakeEventBus::new()))
         .execute(RunShellStepRequest {
             step: &step,
             container: &container,

@@ -148,4 +148,24 @@ mod tests {
         let (config, _repo) = args.to_domain().unwrap();
         assert!(!config.all_workflows());
     }
+
+    #[test]
+    fn verbose_defaults_to_false() {
+        let args = parse_run_test_args(&[]);
+        assert!(!args.verbose());
+    }
+
+    #[test]
+    fn verbose_flag_is_reported() {
+        let args = parse_run_test_args(&["--verbose"]);
+        assert!(args.verbose());
+    }
+
+    #[test]
+    fn verbose_flag_recognizes_only_the_exact_flag() {
+        use std::ffi::OsStr;
+        assert!(RunArgs::is_verbose_flag(OsStr::new("--verbose")));
+        assert!(!RunArgs::is_verbose_flag(OsStr::new("--verbose=1")));
+        assert!(!RunArgs::is_verbose_flag(OsStr::new("--workflows")));
+    }
 }

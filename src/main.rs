@@ -1,62 +1,35 @@
-use std::{
-    io::{BufRead, BufReader, Write},
-    os::unix::io::FromRawFd,
-    thread::{self, JoinHandle},
+use ephact::infrastructure::logging::stderr_filter::StderrFilter;
+use ephact::{
+    infrastructure::Container,
+    presentation::{
+        banner, cli::run_progress_handler::RunProgressHandler, composition_root::CompositionRoot,
+    },
 };
 
-use ephact::{infrastructure::Container, presentation::composition_root::CompositionRoot};
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let real_stderr = unsafe { libc::dup(libc::STDERR_FILENO) };
-    let mut filter_handle: Option<JoinHandle<()>> = None;
-    let mut restore_fd: libc::c_int = -1;
+    print!("{}", banner::render());
+    let stderr_filter = StderrFilter::install();
+    let result = run_application();
+    stderr_filter.restore();
 
-    if real_stderr >= 0 {
-        restore_fd = real_stderr;
-        let mut fds: [libc::c_int; 2] = [0; 2];
-        if unsafe { libc::pipe(fds.as_mut_ptr()) } == 0 {
-            let read_end = fds[0];
-            let write_end = fds[1];
-            let filter_fd = unsafe { libc::dup(real_stderr) };
-            filter_handle = Some(thread::spawn(move || {
-                let reader = BufReader::new(unsafe { std::fs::File::from_raw_fd(read_end) });
-                let mut real = unsafe { std::fs::File::from_raw_fd(filter_fd) };
-                for line in reader.lines().map_while(Result::ok) {
-                    if line.starts_with("Error: crun: executable file `bash` not found")
-                        || line.starts_with("Error: read unixpacket")
-                    {
-                        continue;
-                    }
-                    let _ = writeln!(real, "{}", line);
-                    let _ = real.flush();
-                }
-            }));
-            unsafe { libc::dup2(write_end, libc::STDERR_FILENO) };
-            unsafe { libc::close(write_end) };
+    match result {
+        Ok(()) => std::process::exit(0),
+        Err(error) => {
+            eprintln!("Error: {error}");
+            std::process::exit(1);
         }
     }
+}
 
-    let container = Container::build();
+fn run_application() -> Result<(), Box<dyn std::error::Error>> {
+    let verbose =
+        std::env::args_os().any(|arg| ephact::presentation::cli::RunArgs::is_verbose_flag(&arg));
+    let container = Container::build(Some(Box::new(RunProgressHandler::new(verbose))));
     let app = CompositionRoot::compose(
         container.run_workflow_port,
         container.run_all_workflows_port,
         container.list_workflows_port,
         container.list_actions_port,
     );
-    let result = app.cli.run(std::env::args_os());
-    if restore_fd >= 0 {
-        unsafe { libc::dup2(restore_fd, libc::STDERR_FILENO) };
-        unsafe { libc::close(restore_fd) };
-    }
-    if let Some(handle) = filter_handle {
-        let _ = handle.join();
-    }
-
-    match result {
-        Ok(()) => std::process::exit(0),
-        Err(e) => {
-            eprintln!("Error: {}", e);
-            std::process::exit(1);
-        }
-    }
+    app.cli.run(std::env::args_os())
 }

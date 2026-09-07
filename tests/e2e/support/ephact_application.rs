@@ -21,6 +21,7 @@ impl EphactApplication {
             Box::new(FixedImageMapper),
             fetcher,
             workflow_source,
+            None,
         );
 
         CompositionRoot::compose(
