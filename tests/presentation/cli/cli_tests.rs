@@ -1,6 +1,13 @@
 #[cfg(test)]
 mod tests {
-    use ephact::presentation::cli::Cli;
+    use std::error::Error;
+
+    use ephact::{
+        application::{
+            dtos::ShowProjectBrandingInfoResponse, ports::inbound::ShowProjectBrandingInfoPort,
+        },
+        presentation::cli::Cli,
+    };
 
     use crate::common::fakes::{
         fake_list_actions_port::FakeListActionsPort,
@@ -9,12 +16,26 @@ mod tests {
         fake_run_workflow_port::FakeRunWorkflowPort,
     };
 
+    struct FakeShowProjectBrandingInfoPort;
+
+    impl ShowProjectBrandingInfoPort for FakeShowProjectBrandingInfoPort {
+        fn execute(&self) -> Result<ShowProjectBrandingInfoResponse, Box<dyn Error>> {
+            Ok(ShowProjectBrandingInfoResponse {
+                name: "ephact".to_string(),
+                description: "Ephemeral action runner".to_string(),
+                version: "0.1.0".to_string(),
+                emblem: "shield".to_string(),
+            })
+        }
+    }
+
     fn make_cli() -> Cli {
         Cli::new(
             Box::new(FakeRunWorkflowPort::new(true)),
             Box::new(FakeRunAllWorkflowsPort::new(true)),
             Box::new(FakeListWorkflowsPort::new()),
             Box::new(FakeListActionsPort::new()),
+            Box::new(FakeShowProjectBrandingInfoPort),
         )
     }
 
@@ -22,7 +43,6 @@ mod tests {
     fn new_creates_cli_instance() {
         let _cli = make_cli();
     }
-
     #[test]
     fn run_no_args_displays_help() {
         let cli = make_cli();
@@ -44,6 +64,7 @@ mod tests {
             Box::new(FakeRunAllWorkflowsPort::new(false)),
             Box::new(FakeListWorkflowsPort::new()),
             Box::new(FakeListActionsPort::new()),
+            Box::new(FakeShowProjectBrandingInfoPort),
         );
         let result = cli.run(["ephact", "run"]);
         assert!(result.is_err());

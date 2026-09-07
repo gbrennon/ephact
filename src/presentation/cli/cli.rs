@@ -9,6 +9,11 @@ use super::{
 use crate::application::ports::inbound::{
     list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
     run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
+    show_project_branding_info_port::ShowProjectBrandingInfoPort,
+};
+use crate::presentation::components::{
+    banner::Banner, box_component::BoxComponent, content::ContentComponent,
+    terminal::SystemTerminal,
 };
 
 pub struct Cli {
@@ -16,6 +21,7 @@ pub struct Cli {
     run_all_workflows_port: Box<dyn RunAllWorkflowsPort>,
     list_workflows_port: Box<dyn ListWorkflowsPort>,
     list_actions_port: Box<dyn ListActionsPort>,
+    show_project_branding_info_port: Box<dyn ShowProjectBrandingInfoPort>,
 }
 
 impl Cli {
@@ -24,20 +30,31 @@ impl Cli {
         run_all_workflows_port: Box<dyn RunAllWorkflowsPort>,
         list_workflows_port: Box<dyn ListWorkflowsPort>,
         list_actions_port: Box<dyn ListActionsPort>,
+        show_project_branding_info_port: Box<dyn ShowProjectBrandingInfoPort>,
     ) -> Self {
         Self {
             run_workflow_port,
             run_all_workflows_port,
             list_workflows_port,
             list_actions_port,
+            show_project_branding_info_port,
         }
     }
+}
 
+impl Cli {
     pub fn run<I, T>(self, args: I) -> Result<(), Box<dyn std::error::Error>>
     where
         I: IntoIterator<Item = T>,
         T: Into<OsString> + Clone,
     {
+        let terminal = SystemTerminal;
+        let branding = self.show_project_branding_info_port.execute()?;
+        print!(
+            "{}",
+            BoxComponent::new(Banner::new(&branding), &terminal).render()
+        );
+
         let parsed = CliParser::try_parse_from(args);
         let cli = match parsed {
             Ok(cli) => cli,
@@ -48,12 +65,31 @@ impl Cli {
                 *args,
                 &*self.run_workflow_port,
                 &*self.run_all_workflows_port,
+                &terminal,
             ),
             Command::ListWorkflows(args) => {
-                ListWorkflowsHandler::handle(*args, &*self.list_workflows_port)
+                let content = ListWorkflowsHandler::handle(*args, &*self.list_workflows_port)?;
+                print!(
+                    "{}",
+                    BoxComponent::new(
+                        ContentComponent::new("Workflows".to_string(), content),
+                        &terminal,
+                    )
+                    .render()
+                );
+                Ok(())
             }
             Command::ListActions(args) => {
-                ListActionsHandler::handle(*args, &*self.list_actions_port)
+                let content = ListActionsHandler::handle(*args, &*self.list_actions_port)?;
+                print!(
+                    "{}",
+                    BoxComponent::new(
+                        ContentComponent::new("Actions".to_string(), content),
+                        &terminal,
+                    )
+                    .render()
+                );
+                Ok(())
             }
         }
     }
