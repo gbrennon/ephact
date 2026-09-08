@@ -70,6 +70,9 @@ clean:
 lint-workflows:
 	actionlint -config-file .actionlint.yaml .forgejo/workflows/*.yml
 
+semgrep:
+	semgrep scan --config .semgrep --error .
+
 # Install lefthook pre-commit hooks
 install-hooks:
 	lefthook install
