@@ -1,4 +1,3 @@
-use clap::Parser;
 use ephact::presentation::{
     cli::{CliParser, parse_run_test_args, run_handler::RunHandler},
     components::terminal::SystemTerminal,
