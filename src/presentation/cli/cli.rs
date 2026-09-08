@@ -49,49 +49,64 @@ impl Cli {
         T: Into<OsString> + Clone,
     {
         let terminal = SystemTerminal;
+        let output = self.run_with_terminal(args, &terminal)?;
+        print!("{output}");
+        Ok(())
+    }
+
+    pub fn run_with_terminal<I, T>(
+        self,
+        args: I,
+        terminal: &dyn crate::presentation::components::terminal::Terminal,
+    ) -> Result<String, Box<dyn std::error::Error>>
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<OsString> + Clone,
+    {
         let branding = self.show_project_branding_info_port.execute()?;
-        print!(
-            "{}",
-            BoxComponent::new(Banner::new(&branding), &terminal).render()
-        );
+        let mut output = BoxComponent::new(Banner::new(&branding), terminal).render();
 
         let parsed = CliParser::try_parse_from(args);
         let cli = match parsed {
             Ok(cli) => cli,
-            Err(e) => return render_parse_error(e),
+            Err(e) => return render_parse_error(e).map(|()| output),
         };
         match cli.command {
-            Command::Run(args) => RunHandler::handle(
-                *args,
-                &*self.run_workflow_port,
-                &*self.run_all_workflows_port,
-                &terminal,
-            ),
+            Command::Run(args) => {
+                let (summary, success) = RunHandler::handle_with_output(
+                    *args,
+                    &*self.run_workflow_port,
+                    &*self.run_all_workflows_port,
+                    terminal,
+                )?;
+                output.push_str(&summary);
+                if !success {
+                    print!("{output}");
+                    return Err("workflow failed; see the run summary for failed steps".into());
+                }
+            }
             Command::ListWorkflows(args) => {
                 let content = ListWorkflowsHandler::handle(*args, &*self.list_workflows_port)?;
-                print!(
-                    "{}",
-                    BoxComponent::new(
+                output.push_str(
+                    &BoxComponent::new(
                         ContentComponent::new("Workflows".to_string(), content),
-                        &terminal,
+                        terminal,
                     )
-                    .render()
+                    .render(),
                 );
-                Ok(())
             }
             Command::ListActions(args) => {
                 let content = ListActionsHandler::handle(*args, &*self.list_actions_port)?;
-                print!(
-                    "{}",
-                    BoxComponent::new(
+                output.push_str(
+                    &BoxComponent::new(
                         ContentComponent::new("Actions".to_string(), content),
-                        &terminal,
+                        terminal,
                     )
-                    .render()
+                    .render(),
                 );
-                Ok(())
             }
         }
+        Ok(output)
     }
 }
 
