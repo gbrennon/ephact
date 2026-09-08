@@ -26,6 +26,18 @@ impl RunHandler {
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
         terminal: &dyn Terminal,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let (rendered, success) =
+            Self::handle_with_output(args, run_workflow_port, run_all_workflows_port, terminal)?;
+        print!("{rendered}");
+        Self::result_for(success)
+    }
+
+    pub fn handle_with_output(
+        args: RunArgs,
+        run_workflow_port: &dyn RunWorkflowPort,
+        run_all_workflows_port: &dyn RunAllWorkflowsPort,
+        terminal: &dyn Terminal,
+    ) -> Result<(String, bool), Box<dyn std::error::Error>> {
         let (config, repository) = args.to_domain()?;
         let summary = Self::execute(
             config,
@@ -33,11 +45,16 @@ impl RunHandler {
             run_workflow_port,
             run_all_workflows_port,
         )?;
-        eprint!(
-            "{}",
-            BoxComponent::new(RunSummaryComponent::new(&summary), terminal).render()
-        );
-        Self::interpret_result(&summary)
+        let rendered = BoxComponent::new(RunSummaryComponent::new(&summary), terminal).render();
+        Ok((rendered, summary.success))
+    }
+
+    fn result_for(success: bool) -> Result<(), Box<dyn std::error::Error>> {
+        if success {
+            Ok(())
+        } else {
+            Err("workflow failed; see the run summary for failed steps".into())
+        }
     }
 
     fn execute(
@@ -50,14 +67,6 @@ impl RunHandler {
             run_all_workflows_port.execute(RunAllWorkflowsRequest::new(config, repository))
         } else {
             run_workflow_port.execute(RunWorkflowRequest::new(config, repository))
-        }
-    }
-
-    fn interpret_result(summary: &RunSummary) -> Result<(), Box<dyn std::error::Error>> {
-        if summary.success {
-            Ok(())
-        } else {
-            Err("workflow failed; see the run summary for failed steps".into())
         }
     }
 
@@ -111,12 +120,52 @@ mod tests {
             Duration::ZERO,
         ));
         assert_eq!(rendered.line(0), "Summary");
-        assert_eq!(rendered.line(1), "  [ok] build (Build)");
-        assert_eq!(rendered.line(2), "  [failed] validate");
+        assert_eq!(rendered.line(1), "Workflow: test");
+        assert_eq!(rendered.line(2), "  [ok] build (Build)");
+        assert_eq!(rendered.line(3), "  [failed] validate");
+    }
+    #[test]
+    fn render_includes_workflow_and_every_step_status() {
+        let summary = RunSummary {
+            name: "Build".into(),
+            job_summaries: vec![JobSummary {
+                job_id: "compile".into(),
+                name: Some("Compile".into()),
+                steps: vec![
+                    StepSummary {
+                        name: "Checkout".into(),
+                        step_type: StepType::Run,
+                        exit_code: Some(0),
+                        continue_on_error: false,
+                        duration: Duration::ZERO,
+                        stdout: String::new(),
+                        stderr: String::new(),
+                    },
+                    StepSummary {
+                        name: "Build".into(),
+                        step_type: StepType::Run,
+                        exit_code: Some(1),
+                        continue_on_error: false,
+                        duration: Duration::ZERO,
+                        stdout: String::new(),
+                        stderr: String::new(),
+                    },
+                ],
+                success: false,
+            }],
+            success: false,
+            duration: Duration::ZERO,
+        };
+
+        let rendered = RunHandler::render(&summary);
+
+        assert!(rendered.contains("Workflow: Build"));
+        assert!(rendered.contains("[ok] Step 'Checkout'"));
+        assert!(rendered.contains("[failed] Step 'Build'"));
     }
 
     #[test]
-    fn render_reports_failed_step_details() {
+    fn render_reports_failed_step_status_without_output_details() {
         let summary = RunSummary {
             name: "test".into(),
             job_summaries: vec![JobSummary {
@@ -139,14 +188,14 @@ mod tests {
 
         let rendered = RunHandler::render(&summary);
 
-        assert!(rendered.contains("Step 'Clippy' failed (exit code: 101)"));
-        assert!(rendered.contains("stderr: clippy failed"));
+        assert!(rendered.contains("[failed] Step 'Clippy'"));
+        assert!(!rendered.contains("clippy failed"));
     }
 
     #[test]
-    fn render_omits_the_summary_block_when_the_run_has_no_jobs() {
+    fn render_includes_summary_heading_without_jobs() {
         let rendered = Rendered::of(&summary(true, vec![], Duration::ZERO));
-        assert_eq!(rendered.lines().count(), 1);
+        assert_eq!(rendered.lines().count(), 2);
     }
 
     struct Rendered {
