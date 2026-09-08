@@ -12,31 +12,53 @@ network access is opt-in. Safe by default, real only when you ask for it.
 
 ## Quick start
 
+Run a specific workflow in the current repository:
+
 ```sh
-cargo run -- run --repo /path/to/repo --workflow .github/workflows/ci.yml --event push
+cargo run -- run --workflow CI --event push
 ```
+
+Run a workflow in an explicit repository path:
+
+```sh
+cargo run -- run /path/to/repo --workflow CI --event push
+```
+
+Run all discovered workflows:
+
+```sh
+cargo run -- run
+```
+
+Supported platforms are **Forgejo** and **GitHub**. Workflows are discovered automatically from `.forgejo/workflows` and `.github/workflows`.
+
+### Subcommands
+
+- `run [PATH]`: Run workflows in an ephemeral copy of the repository (defaults to `.`).
+- `list-workflows [PATH]`: List workflow names discovered across supported workflow directories.
+- `list-actions [PATH]`: List actions referenced across workflows.
 
 Built on Rust edition **2024**; the toolchain comes from
 [`rust-toolchain.toml`](rust-toolchain.toml).
-
 ---
 
 ## 1. Using ephact
 
-CLI flags, event simulation, secrets and inputs, and the opt-in flags that let
-runs touch real containers or the network are documented in
+CLI subcommands, flags, event simulation, secrets and inputs, and the opt-in
+flags that let runs touch real containers or the network are documented in
 [`docs/usage.md`](docs/usage.md).
 
 ## 2. Architecture
 
 The crate follows hexagonal architecture, with `domain`, `application`,
-`infrastructure`, and `presentation` layers under `src/`. Ports and adapters,
-and how the layers depend on each other, are documented in
+`infrastructure`, and `presentation` layers under `src/`. Ports, adapters,
+command bus coordination, and test suites are documented in
 [`docs/architecture.md`](docs/architecture.md).
 
 ---
 
-## 3. Development
+## 3. Contributing and Development
 
-Building, testing, linting, coverage, and the `just` recipes that drive them
-are documented in [`docs/development.md`](docs/development.md).
+Prerequisites, contribution guidelines, development workflows, and the `just`
+command reference for contributors are documented in
+[`CONTRIBUTING.md`](CONTRIBUTING.md) and [`docs/development.md`](docs/development.md).
