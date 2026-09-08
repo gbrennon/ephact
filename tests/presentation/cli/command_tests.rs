@@ -1,6 +1,11 @@
 #[cfg(test)]
 mod tests {
-    use ephact::presentation::cli::Cli;
+    use ephact::{
+        application::{
+            dtos::ShowProjectBrandingInfoResponse, ports::inbound::ShowProjectBrandingInfoPort,
+        },
+        presentation::cli::Cli,
+    };
 
     use crate::common::fakes::{
         fake_list_actions_port::FakeListActionsPort,
@@ -9,12 +14,26 @@ mod tests {
         fake_run_workflow_port::FakeRunWorkflowPort,
     };
 
+    struct FakeShowProjectBrandingInfoPort;
+
+    impl ShowProjectBrandingInfoPort for FakeShowProjectBrandingInfoPort {
+        fn execute(&self) -> Result<ShowProjectBrandingInfoResponse, Box<dyn std::error::Error>> {
+            Ok(ShowProjectBrandingInfoResponse {
+                name: "ephact".to_string(),
+                description: "Ephemeral action runner".to_string(),
+                version: "0.1.0".to_string(),
+                emblem: "shield".to_string(),
+            })
+        }
+    }
+
     fn make_cli() -> Cli {
         Cli::new(
             Box::new(FakeRunWorkflowPort::new(true)),
             Box::new(FakeRunAllWorkflowsPort::new(true)),
             Box::new(FakeListWorkflowsPort::new()),
             Box::new(FakeListActionsPort::new()),
+            Box::new(FakeShowProjectBrandingInfoPort),
         )
     }
 

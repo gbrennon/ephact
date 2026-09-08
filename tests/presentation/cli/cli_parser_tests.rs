@@ -1,5 +1,8 @@
 use clap::Parser;
-use ephact::presentation::cli::{CliParser, parse_run_test_args, run_handler::RunHandler};
+use ephact::presentation::{
+    cli::{CliParser, parse_run_test_args, run_handler::RunHandler},
+    components::terminal::SystemTerminal,
+};
 
 #[cfg(test)]
 mod tests {
@@ -31,7 +34,8 @@ mod tests {
             result: Ok(ok_summary()),
         };
         let args = parse_run_test_args(&[]);
-        RunHandler::handle(args, &wf_port, &all_wf_port).unwrap();
+        let terminal = SystemTerminal;
+        RunHandler::handle(args, &wf_port, &all_wf_port, &terminal).unwrap();
     }
 
     #[test]
@@ -43,7 +47,8 @@ mod tests {
             result: Ok(ok_summary()),
         };
         let args = parse_run_test_args(&["--workflow", "ci.yml"]);
-        RunHandler::handle(args, &wf_port, &all_wf_port).unwrap();
+        let terminal = SystemTerminal;
+        RunHandler::handle(args, &wf_port, &all_wf_port, &terminal).unwrap();
     }
 
     #[test]

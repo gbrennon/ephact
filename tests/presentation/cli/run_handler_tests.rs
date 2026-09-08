@@ -1,13 +1,15 @@
 #[cfg(test)]
 mod tests {
-    use ephact::{
-        application::dtos::{JobSummary, RunSummary},
-        presentation::cli::{parse_run_test_args, run_handler::RunHandler},
-    };
-
     use crate::common::fakes::{
         stub_run_all_workflows_port::StubRunAllWorkflowsPort,
         stub_run_workflow_port::StubRunWorkflowPort,
+    };
+    use ephact::{
+        application::dtos::{JobSummary, RunSummary},
+        presentation::{
+            cli::{parse_run_test_args, run_handler::RunHandler},
+            components::terminal::SystemTerminal,
+        },
     };
 
     fn summary(success: bool) -> RunSummary {
@@ -33,7 +35,8 @@ mod tests {
         let all_wf_port = StubRunAllWorkflowsPort {
             result: Ok(summary(true)),
         };
-        assert!(RunHandler::handle(args, &wf_port, &all_wf_port).is_ok());
+        let terminal = SystemTerminal;
+        assert!(RunHandler::handle(args, &wf_port, &all_wf_port, &terminal).is_ok());
     }
 
     #[test]
@@ -45,7 +48,8 @@ mod tests {
         let all_wf_port = StubRunAllWorkflowsPort {
             result: Ok(summary(false)),
         };
-        let err = RunHandler::handle(args, &wf_port, &all_wf_port).unwrap_err();
+        let terminal = SystemTerminal;
+        let err = RunHandler::handle(args, &wf_port, &all_wf_port, &terminal).unwrap_err();
         assert!(err.to_string().contains("workflow failed"));
     }
 
@@ -58,7 +62,8 @@ mod tests {
         let all_wf_port = StubRunAllWorkflowsPort {
             result: Err("port failure".into()),
         };
-        let err = RunHandler::handle(args, &wf_port, &all_wf_port).unwrap_err();
+        let terminal = SystemTerminal;
+        let err = RunHandler::handle(args, &wf_port, &all_wf_port, &terminal).unwrap_err();
         assert!(err.to_string().contains("port failure"));
     }
 }

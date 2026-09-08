@@ -171,6 +171,8 @@ impl ExecuteJobService {
                 step_name: summary.name.clone(),
                 success: step_success,
                 exit_code: summary.exit_code,
+                stdout: summary.stdout.clone(),
+                stderr: summary.stderr.clone(),
             }));
     }
 }

@@ -9,8 +9,8 @@ pub struct StepFinishedPayload {
     pub job_id: String,
     /// Name of the step that finished.
     pub step_name: String,
-    /// Whether the step succeeded.
     pub success: bool,
-    /// Exit code reported by the step, when it ran to completion.
     pub exit_code: Option<i64>,
+    pub stdout: String,
+    pub stderr: String,
 }
