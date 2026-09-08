@@ -18,42 +18,27 @@ impl<'a> RunSummaryComponent<'a> {
         }
     }
 
-    fn failed_step_lines(job: &JobSummary) -> Vec<String> {
-        job.steps
-            .iter()
-            .filter(|step| step.exit_code != Some(0))
-            .flat_map(Self::step_lines)
-            .collect()
-    }
-
-    fn step_lines(step: &StepSummary) -> Vec<String> {
-        let outcome = match step.exit_code {
-            Some(code) => format!("exit code: {code}"),
-            None => "no exit code".to_string(),
-        };
-        let mut lines = vec![format!("    Step '{}' failed ({outcome})", step.name)];
-        Self::append_output(&mut lines, "stdout", &step.stdout);
-        Self::append_output(&mut lines, "stderr", &step.stderr);
-        lines
-    }
-
-    fn append_output(lines: &mut Vec<String>, label: &str, output: &str) {
-        if output.is_empty() {
-            return;
+    fn step_status(step: &StepSummary) -> &'static str {
+        match step.exit_code {
+            Some(0) => "ok",
+            Some(_) => "failed",
+            None => "error",
         }
-        lines.extend(output.lines().map(|line| format!("      {label}: {line}")));
     }
 }
 
 impl Component for RunSummaryComponent<'_> {
     fn render(&self) -> String {
-        let mut output = String::from("Summary");
+        let mut output = format!("Summary\nWorkflow: {}", self.summary.name);
         for job in &self.summary.job_summaries {
             let status = if job.success { "ok" } else { "failed" };
             output.push_str(&format!("\n  [{status}] {}", Self::job_label(job)));
-            for line in Self::failed_step_lines(job) {
-                output.push('\n');
-                output.push_str(&line);
+            for step in &job.steps {
+                output.push_str(&format!(
+                    "\n    [{}] Step '{}'",
+                    Self::step_status(step),
+                    step.name
+                ));
             }
         }
         output
