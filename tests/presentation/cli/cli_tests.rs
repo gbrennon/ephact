@@ -6,7 +6,7 @@ mod tests {
         application::{
             dtos::ShowProjectBrandingInfoResponse, ports::inbound::ShowProjectBrandingInfoPort,
         },
-        presentation::cli::Cli,
+        presentation::{cli::Cli, components::terminal::Terminal},
     };
 
     use crate::common::fakes::{
@@ -26,6 +26,13 @@ mod tests {
                 version: "0.1.0".to_string(),
                 emblem: "shield".to_string(),
             })
+        }
+    }
+    struct TestTerminal;
+
+    impl Terminal for TestTerminal {
+        fn dimensions(&self) -> (usize, usize) {
+            (100, 40)
         }
     }
 
@@ -48,6 +55,14 @@ mod tests {
         let cli = make_cli();
         let result = cli.run(["ephact"]);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn run_no_args_displays_supported_platforms() {
+        let cli = make_cli();
+        let output = cli.run_with_terminal(["ephact"], &TestTerminal).unwrap();
+        assert!(output.contains("Forgejo"));
+        assert!(output.contains("GitHub"));
     }
 
     #[test]
@@ -90,6 +105,18 @@ mod tests {
         let cli = make_cli();
         let result = cli.run(["ephact", "--help"]);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn run_explicit_help_flag_displays_supported_platforms_and_workflows() {
+        let cli = make_cli();
+        let output = cli
+            .run_with_terminal(["ephact", "--help"], &TestTerminal)
+            .unwrap();
+        assert!(output.contains("Forgejo"));
+        assert!(output.contains("GitHub"));
+        assert!(output.contains(".forgejo/workflows"));
+        assert!(output.contains(".github/workflows"));
     }
 
     #[test]
