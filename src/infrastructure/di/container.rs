@@ -10,6 +10,7 @@ use crate::{
             run_action_service::RunActionService,
             run_all_workflows_service::RunAllWorkflowsService,
             run_workflow_service::RunWorkflowService,
+            show_project_branding_info_service::ShowProjectBrandingInfoService,
         },
     },
     infrastructure::{
@@ -18,6 +19,7 @@ use crate::{
         di::{app_container::AppContainer, command_bus_wiring::CommandBusWiring},
         images::{ImageMapperPort, PlatformImageMapper},
         messaging::InMemoryEventBus,
+        project_branding_store::CargoProjectBrandingStore,
         workflows::FilesystemWorkflowSource,
     },
 };
@@ -74,7 +76,11 @@ impl Container {
             RunAllWorkflowsService::new(Box::new(workflow_source), command_bus.clone(), event_bus);
         let run_action_service = RunActionService::new(command_bus);
 
+        let show_project_branding_info_service =
+            ShowProjectBrandingInfoService::new(Box::new(CargoProjectBrandingStore));
+
         AppContainer {
+            show_project_branding_info_port: Box::new(show_project_branding_info_service),
             run_all_workflows_port: Box::new(run_all_workflows_service),
             run_workflow_port: Box::new(run_workflow_service),
             run_action_port: Box::new(run_action_service),

@@ -7,5 +7,6 @@ mod di;
 mod images;
 mod jobs;
 mod messaging;
+mod project_branding_store_tests;
 mod steps;
 mod workflows;

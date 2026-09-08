@@ -8,6 +8,7 @@ pub mod list_workflows_port;
 pub mod run_action_port;
 pub mod run_all_workflows_port;
 pub mod run_workflow_port;
+pub mod show_project_branding_info_port;
 
 pub use execute_action_port::ExecuteActionPort;
 pub use execute_job_port::ExecuteJobPort;
@@ -19,3 +20,4 @@ pub use list_workflows_port::ListWorkflowsPort;
 pub use run_action_port::RunActionPort;
 pub use run_all_workflows_port::RunAllWorkflowsPort;
 pub use run_workflow_port::RunWorkflowPort;
+pub use show_project_branding_info_port::ShowProjectBrandingInfoPort;

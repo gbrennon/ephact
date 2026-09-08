@@ -7,3 +7,4 @@ mod list_workflows_service_tests;
 mod run_action_service_tests;
 mod run_all_workflows_service_tests;
 mod run_workflow_service_tests;
+mod show_project_branding_info_service_tests;

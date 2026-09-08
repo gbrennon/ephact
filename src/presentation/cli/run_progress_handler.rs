@@ -55,12 +55,29 @@ impl RunProgressHandler {
             Some(code) => format!("failed (exit code: {code})"),
             None => "error".to_string(),
         };
-        format!("    Step '{}': {outcome}", payload.step_name)
+        let mut output = format!("    Step '{}': {outcome}", payload.step_name);
+        if payload.exit_code != Some(0) {
+            Self::append_failure_output(&mut output, "stdout", &payload.stdout);
+            Self::append_failure_output(&mut output, "stderr", &payload.stderr);
+        }
+        output
+    }
+
+    fn append_failure_output(output: &mut String, label: &str, text: &str) {
+        if text.is_empty() {
+            return;
+        }
+        for line in text.lines() {
+            output.push_str(&format!("\n      {label}: {line}"));
+        }
     }
 
     /// Renders the terminal line for an event, or `None` when the event is
     /// not shown in the current verbosity mode.
     fn render(&self, event: &DomainEvent) -> Option<String> {
+        if !self.verbose {
+            return None;
+        }
         match event {
             DomainEvent::WorkflowStarted(WorkflowStartedPayload { workflow_name }) => {
                 Some(format!("Workflow '{workflow_name}'"))
@@ -73,7 +90,7 @@ impl RunProgressHandler {
                 payload.job_id,
                 Self::status(payload.success)
             )),
-            DomainEvent::StepStarted(payload) if self.verbose => {
+            DomainEvent::StepStarted(payload) => {
                 Some(format!("    Step '{}': running...", payload.step_name))
             }
             DomainEvent::StepFinished(payload) => Some(Self::step_outcome(payload)),
@@ -131,50 +148,54 @@ mod tests {
             step_name: "compile".into(),
             success: exit_code == Some(0),
             exit_code,
+            stdout: String::new(),
+            stderr: String::new(),
         })
     }
 
     #[test]
-    fn quiet_mode_shows_only_the_step_status() {
+    fn quiet_mode_hides_workflow_details() {
         let handler = RunProgressHandler::new(false);
         assert!(handler.render(&step_started()).is_none());
+        assert!(handler.render(&step_finished(Some(0))).is_none());
         assert!(!handler.renders_output());
-        assert_eq!(
-            handler.render(&step_finished(Some(0))).as_deref(),
-            Some("    Step 'compile': ok")
-        );
     }
 
     #[test]
-    fn quiet_mode_still_shows_workflow_and_job_headers() {
+    fn quiet_mode_hides_workflow_and_job_headers() {
         let handler = RunProgressHandler::new(false);
-        assert_eq!(
+        assert!(
             handler
                 .render(&DomainEvent::WorkflowStarted(WorkflowStartedPayload {
                     workflow_name: "Build".into(),
                 }))
-                .as_deref(),
-            Some("Workflow 'Build'")
+                .is_none()
         );
-        assert_eq!(
+        assert!(
             handler
                 .render(&DomainEvent::JobStarted(JobStartedPayload {
                     workflow_name: "Build".into(),
                     job_id: "build".into(),
                     job_name: Some("Build".into()),
                 }))
-                .as_deref(),
-            Some("  Job 'build (Build)'")
+                .is_none()
         );
     }
 
     #[test]
-    fn quiet_mode_reports_a_failed_step_with_its_exit_code() {
+    fn quiet_mode_hides_failed_step_output() {
         let handler = RunProgressHandler::new(false);
-        assert_eq!(
-            handler.render(&step_finished(Some(2))).as_deref(),
-            Some("    Step 'compile': failed (exit code: 2)")
-        );
+        let event = DomainEvent::StepFinished(StepFinishedPayload {
+            workflow_name: "Build".into(),
+            job_id: "build".into(),
+            step_name: "clippy".into(),
+            success: false,
+            exit_code: Some(101),
+            stdout: String::new(),
+            stderr: "clippy failed".into(),
+        });
+
+        assert!(handler.render(&event).is_none());
     }
 
     #[test]
