@@ -75,6 +75,9 @@ impl RunProgressHandler {
     /// Renders the terminal line for an event, or `None` when the event is
     /// not shown in the current verbosity mode.
     fn render(&self, event: &DomainEvent) -> Option<String> {
+        if !self.verbose {
+            return None;
+        }
         match event {
             DomainEvent::WorkflowStarted(WorkflowStartedPayload { workflow_name }) => {
                 Some(format!("Workflow '{workflow_name}'"))
@@ -87,7 +90,7 @@ impl RunProgressHandler {
                 payload.job_id,
                 Self::status(payload.success)
             )),
-            DomainEvent::StepStarted(payload) if self.verbose => {
+            DomainEvent::StepStarted(payload) => {
                 Some(format!("    Step '{}': running...", payload.step_name))
             }
             DomainEvent::StepFinished(payload) => Some(Self::step_outcome(payload)),
@@ -151,50 +154,36 @@ mod tests {
     }
 
     #[test]
-    fn quiet_mode_shows_only_the_step_status() {
+    fn quiet_mode_hides_workflow_details() {
         let handler = RunProgressHandler::new(false);
         assert!(handler.render(&step_started()).is_none());
+        assert!(handler.render(&step_finished(Some(0))).is_none());
         assert!(!handler.renders_output());
-        assert_eq!(
-            handler.render(&step_finished(Some(0))).as_deref(),
-            Some("    Step 'compile': ok")
-        );
     }
 
     #[test]
-    fn quiet_mode_still_shows_workflow_and_job_headers() {
+    fn quiet_mode_hides_workflow_and_job_headers() {
         let handler = RunProgressHandler::new(false);
-        assert_eq!(
+        assert!(
             handler
                 .render(&DomainEvent::WorkflowStarted(WorkflowStartedPayload {
                     workflow_name: "Build".into(),
                 }))
-                .as_deref(),
-            Some("Workflow 'Build'")
+                .is_none()
         );
-        assert_eq!(
+        assert!(
             handler
                 .render(&DomainEvent::JobStarted(JobStartedPayload {
                     workflow_name: "Build".into(),
                     job_id: "build".into(),
                     job_name: Some("Build".into()),
                 }))
-                .as_deref(),
-            Some("  Job 'build (Build)'")
+                .is_none()
         );
     }
 
     #[test]
-    fn quiet_mode_reports_a_failed_step_with_its_exit_code() {
-        let handler = RunProgressHandler::new(false);
-        assert_eq!(
-            handler.render(&step_finished(Some(2))).as_deref(),
-            Some("    Step 'compile': failed (exit code: 2)")
-        );
-    }
-
-    #[test]
-    fn quiet_mode_reports_failed_step_output() {
+    fn quiet_mode_hides_failed_step_output() {
         let handler = RunProgressHandler::new(false);
         let event = DomainEvent::StepFinished(StepFinishedPayload {
             workflow_name: "Build".into(),
@@ -206,10 +195,7 @@ mod tests {
             stderr: "clippy failed".into(),
         });
 
-        let rendered = handler.render(&event).unwrap();
-
-        assert!(rendered.contains("Step 'clippy': failed (exit code: 101)"));
-        assert!(rendered.contains("stderr: clippy failed"));
+        assert!(handler.render(&event).is_none());
     }
 
     #[test]
