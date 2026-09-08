@@ -1,16 +1,12 @@
 use clap::Parser;
 
-/// CLI argument parser backed by clap.
-///
-/// This struct is only used internally by [`Cli`] at parse time; consumers
-/// never interact with it directly.
+use crate::infrastructure::workflows::workflow_directories::{
+    supported_platforms_display, supported_workflows_display,
+};
+
 #[derive(Parser)]
 #[command(
     name = "ephact",
-    about = "Run GitHub Actions locally in ephemeral repositories",
-    long_about = "Runs CI workflows in an ephemeral copy of a repository using \
-                  `act`. The CI host is auto-detected from the \
-                  repository layout; see `run --help` for the available options.",
     arg_required_else_help = true,
     after_long_help = r#"EXAMPLES:
     ephact run
@@ -23,6 +19,44 @@ CI host from the repository layout and manages ephemeral copies internally."#
 pub struct CliParser {
     #[command(subcommand)]
     pub(crate) command: super::command::Command,
+}
+
+impl CliParser {
+    /// Builds the base CLI command with dynamic platform and workflow descriptions.
+    pub fn build_command() -> clap::Command {
+        let platforms = supported_platforms_display();
+        let workflows = supported_workflows_display();
+        <Self as clap::CommandFactory>::command()
+            .about(format!(
+                "Run CI workflows locally in ephemeral repositories ({platforms})"
+            ))
+            .long_about(format!(
+                "Runs CI workflows in an ephemeral copy of a repository using `act`. \
+                 The CI host is auto-detected from the repository layout; \
+                 see `run --help` for the available options.\n\n\
+                 Supported platforms: {platforms}\n\
+                 Supported workflow directories: {workflows}"
+            ))
+    }
+
+    /// Attempts to parse command-line arguments, returning a [`clap::Error`] on failure.
+    pub fn try_parse_from<I, T>(args: I) -> Result<Self, clap::Error>
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<std::ffi::OsString> + Clone,
+    {
+        let matches = Self::build_command().try_get_matches_from(args)?;
+        <Self as clap::FromArgMatches>::from_arg_matches(&matches)
+    }
+
+    /// Parses command-line arguments, printing an error and exiting on failure.
+    pub fn parse_from<I, T>(args: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<std::ffi::OsString> + Clone,
+    {
+        Self::try_parse_from(args).unwrap_or_else(|error| error.exit())
+    }
 }
 
 /// Parses CLI arguments for the `run` subcommand from a string slice.

@@ -10,9 +10,12 @@ use crate::{
 
 /// Presentation handler that renders workflow run progress to the terminal.
 ///
-/// Without verbose mode only the final status of each step is shown; with
-/// verbose mode every step is announced while running and its output is
-/// relayed in real time.
+/// In non-verbose mode, steps are announced as they begin and their outcome is
+/// reported on completion, while workflow and job headers, live step output,
+/// and failure diagnostics remain hidden.
+///
+/// In verbose mode, workflow and job lifecycle events are announced, step output
+/// is relayed in real time, and failure diagnostics are appended on step completion.
 ///
 /// Everything is written to standard error so that step output relayed to
 /// standard output stays clean.
@@ -49,14 +52,18 @@ impl RunProgressHandler {
         let _ = stderr.flush();
     }
 
-    fn step_outcome(payload: &StepFinishedPayload) -> String {
-        let outcome = match payload.exit_code {
+    fn step_status(exit_code: Option<i64>) -> String {
+        match exit_code {
             Some(0) => "ok".to_string(),
             Some(code) => format!("failed (exit code: {code})"),
             None => "error".to_string(),
-        };
+        }
+    }
+
+    fn step_outcome(&self, payload: &StepFinishedPayload) -> String {
+        let outcome = Self::step_status(payload.exit_code);
         let mut output = format!("    Step '{}': {outcome}", payload.step_name);
-        if payload.exit_code != Some(0) {
+        if self.verbose && payload.exit_code != Some(0) {
             Self::append_failure_output(&mut output, "stdout", &payload.stdout);
             Self::append_failure_output(&mut output, "stderr", &payload.stderr);
         }
@@ -75,17 +82,16 @@ impl RunProgressHandler {
     /// Renders the terminal line for an event, or `None` when the event is
     /// not shown in the current verbosity mode.
     fn render(&self, event: &DomainEvent) -> Option<String> {
-        if !self.verbose {
-            return None;
-        }
         match event {
-            DomainEvent::WorkflowStarted(WorkflowStartedPayload { workflow_name }) => {
+            DomainEvent::WorkflowStarted(WorkflowStartedPayload { workflow_name })
+                if self.verbose =>
+            {
                 Some(format!("Workflow '{workflow_name}'"))
             }
-            DomainEvent::JobStarted(payload) => {
+            DomainEvent::JobStarted(payload) if self.verbose => {
                 Some(format!("  Job '{}'", Self::job_label(payload)))
             }
-            DomainEvent::JobFinished(payload) => Some(format!(
+            DomainEvent::JobFinished(payload) if self.verbose => Some(format!(
                 "  Job '{}': {}",
                 payload.job_id,
                 Self::status(payload.success)
@@ -93,7 +99,7 @@ impl RunProgressHandler {
             DomainEvent::StepStarted(payload) => {
                 Some(format!("    Step '{}': running...", payload.step_name))
             }
-            DomainEvent::StepFinished(payload) => Some(Self::step_outcome(payload)),
+            DomainEvent::StepFinished(payload) => Some(self.step_outcome(payload)),
             _ => None,
         }
     }
@@ -122,7 +128,8 @@ impl DomainEventHandler for RunProgressHandler {
 mod tests {
     use super::*;
     use crate::domain::events::{
-        OutputStream, StepFinishedPayload, StepOutputPayload, StepStartedPayload,
+        JobFinishedPayload, OutputStream, StepFinishedPayload, StepOutputPayload,
+        StepStartedPayload,
     };
 
     fn step_started() -> DomainEvent {
@@ -154,10 +161,21 @@ mod tests {
     }
 
     #[test]
-    fn quiet_mode_hides_workflow_details() {
+    fn quiet_mode_announces_running_steps() {
         let handler = RunProgressHandler::new(false);
-        assert!(handler.render(&step_started()).is_none());
-        assert!(handler.render(&step_finished(Some(0))).is_none());
+        assert_eq!(
+            handler.render(&step_started()).as_deref(),
+            Some("    Step 'compile': running...")
+        );
+    }
+
+    #[test]
+    fn quiet_mode_reports_step_status() {
+        let handler = RunProgressHandler::new(false);
+        assert_eq!(
+            handler.render(&step_finished(Some(0))).as_deref(),
+            Some("    Step 'compile': ok")
+        );
         assert!(!handler.renders_output());
     }
 
@@ -180,6 +198,16 @@ mod tests {
                 }))
                 .is_none()
         );
+        assert!(
+            handler
+                .render(&DomainEvent::JobFinished(JobFinishedPayload {
+                    workflow_name: "Build".into(),
+                    job_id: "build".into(),
+                    job_name: Some("Build".into()),
+                    success: true,
+                }))
+                .is_none()
+        );
     }
 
     #[test]
@@ -191,13 +219,37 @@ mod tests {
             step_name: "clippy".into(),
             success: false,
             exit_code: Some(101),
-            stdout: String::new(),
+            stdout: "stdout text".into(),
             stderr: "clippy failed".into(),
         });
 
-        assert!(handler.render(&event).is_none());
+        let rendered = handler.render(&event);
+        assert_eq!(
+            rendered.as_deref(),
+            Some("    Step 'clippy': failed (exit code: 101)")
+        );
+        let rendered_text = rendered.unwrap();
+        assert!(!rendered_text.contains("stdout"));
+        assert!(!rendered_text.contains("clippy failed"));
     }
 
+    #[test]
+    fn verbose_mode_reports_failed_step_output() {
+        let handler = RunProgressHandler::new(true);
+        let event = DomainEvent::StepFinished(StepFinishedPayload {
+            workflow_name: "Build".into(),
+            job_id: "build".into(),
+            step_name: "clippy".into(),
+            success: false,
+            exit_code: Some(101),
+            stdout: "stdout text".into(),
+            stderr: "clippy failed".into(),
+        });
+
+        let rendered = handler.render(&event).unwrap();
+        assert!(rendered.contains("Step 'clippy': failed (exit code: 101)"));
+        assert!(rendered.contains("stderr: clippy failed"));
+    }
     #[test]
     fn verbose_mode_announces_running_steps() {
         let handler = RunProgressHandler::new(true);
