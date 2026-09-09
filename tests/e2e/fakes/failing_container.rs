@@ -28,11 +28,7 @@ impl ContainerPort for FailingContainer {
         env: &HashMap<String, String>,
     ) -> Result<ExecResult, ContainerError> {
         self.activity.record_command(cmd, env);
-        Ok(ExecResult {
-            exit_code: 1,
-            stdout: String::new(),
-            stderr: String::new(),
-        })
+        Ok(ExecResult::new(1, String::new(), String::new()))
     }
 
     fn copy_to(&self, container_path: &str, _entries: &[FileEntry]) -> Result<(), ContainerError> {
