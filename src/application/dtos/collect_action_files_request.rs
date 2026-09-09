@@ -5,7 +5,7 @@ use std::path::Path;
 /// inbound port.
 pub struct CollectActionFilesRequest<'a> {
     /// Directory whose files are collected.
-    action_dir: &'a Path,
+    pub action_dir: &'a Path,
 }
 
 impl<'a> CollectActionFilesRequest<'a> {
