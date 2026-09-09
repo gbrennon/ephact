@@ -3,9 +3,9 @@ use crate::application::dtos::StepSummary;
 /// Summary of one executed step, and whether it fails the job it belongs to.
 pub struct SummarizedStep {
     /// Summary reported for the step.
-    summary: StepSummary,
+    pub summary: StepSummary,
     /// Whether this step's outcome fails the job.
-    fails_job: bool,
+    pub fails_job: bool,
 }
 
 impl SummarizedStep {
