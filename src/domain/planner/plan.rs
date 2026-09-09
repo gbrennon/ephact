@@ -25,3 +25,15 @@ impl Plan {
         self.stages
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_exposes_and_consumes_stages() {
+        let plan = Plan::new(Vec::new());
+
+        assert!(plan.stages().is_empty());
+        assert!(plan.into_stages().is_empty());
+    }
+}
