@@ -71,7 +71,6 @@ impl RemoteActionPipelineRun {
         );
 
         let outcome = application
-            .cli
             .run([
                 "ephact",
                 "run",
