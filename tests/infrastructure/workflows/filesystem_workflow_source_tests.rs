@@ -73,6 +73,23 @@ fn list_workflows_reports_name_and_path_of_forgejo_workflow() {
 }
 
 #[test]
+fn list_workflows_reports_declared_events() {
+    let tmp = git_repository_dir();
+    write_workflow(
+        tmp.path(),
+        "ci.yml",
+        "name: CI\non: [push, pull_request]\njobs:\n  test:\n    runs-on: ubuntu-latest\n",
+    );
+
+    let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
+
+    assert_eq!(
+        workflows[0].events(),
+        &["push".to_string(), "pull_request".to_string()]
+    );
+}
+
+#[test]
 fn list_workflows_finds_workflow_in_github_directory() {
     let tmp = git_repository_dir();
     write_github_workflow(
@@ -102,7 +119,6 @@ fn list_workflows_returns_one_item_per_workflow_file_sorted_by_path() {
 
     let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
 
-    // Paths are sorted, and ".forgejo" sorts before ".github".
     assert_eq!(names(&workflows), vec!["CI", "Deploy", "Build"]);
 }
 
@@ -148,7 +164,6 @@ fn list_workflows_skips_workflow_file_without_a_name_key() {
 
     let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
 
-    // An item is only emitted when a name could be extracted.
     assert!(workflows.is_empty());
 }
 
@@ -181,7 +196,6 @@ fn list_workflows_is_empty_when_the_workflow_directory_disappeared() {
 
     let workflows = source().list_workflows(&repository).unwrap();
 
-    // A missing workflow directory is skipped rather than reported as an error.
     assert!(workflows.is_empty());
 }
 
@@ -189,8 +203,6 @@ fn list_workflows_is_empty_when_the_workflow_directory_disappeared() {
 fn repository_cannot_be_built_for_a_nonexistent_path() {
     let tmp = git_repository_dir();
 
-    // A nonexistent path never reaches the port: it is rejected while building
-    // the repository, so the adapter has no invalid-path branch to exercise.
     assert!(RepoPath::new(tmp.path().join("nonexistent")).is_err());
     assert!(RepoPath::new(PathBuf::from("/nonexistent")).is_err());
 }
@@ -206,7 +218,6 @@ fn list_actions_collects_uses_references_in_both_line_forms() {
 
     let actions = source().list_actions(&repository(tmp.path())).unwrap();
 
-    // Collected into a BTreeSet, so the result is sorted.
     assert_eq!(actions, vec!["./local-action", "actions/checkout@v4"]);
 }
 
