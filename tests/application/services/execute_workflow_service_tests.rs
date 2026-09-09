@@ -27,11 +27,11 @@ fn execute(
         Arc::new(command_bus),
         Arc::new(FakeEventBus::new()),
     )
-    .execute(ExecuteWorkflowRequest {
-        workflow_content: REQUESTED_CONTENT,
-        repo_path: Path::new("/repo"),
-        context: &EvalContext::new(),
-    })
+    .execute(ExecuteWorkflowRequest::new(
+        REQUESTED_CONTENT,
+        Path::new("/repo"),
+        &EvalContext::new(),
+    ))
 }
 
 #[test]
@@ -41,7 +41,7 @@ fn execute_publishes_a_job_command_per_job_in_dependency_order() {
     let execution = execute(FakeLoadWorkflowPort::holding(TWO_JOBS), command_bus.clone()).unwrap();
 
     assert_eq!(command_bus.dispatched_job_ids(), vec!["build", "publish"]);
-    assert_eq!(execution.job_summaries.len(), 2);
+    assert_eq!(execution.job_summaries().len(), 2);
 }
 
 #[test]
@@ -52,8 +52,8 @@ fn execute_publishes_job_commands_carrying_the_loaded_workflow_and_repo_path() {
 
     let dispatched = command_bus.dispatched_jobs.lock();
     let first = dispatched.first().expect("a job command");
-    assert_eq!(first.workflow.name.as_deref(), Some("Ci"));
-    assert_eq!(first.repo_path, Path::new("/repo"));
+    assert_eq!(first.workflow().name().as_deref(), Some("Ci"));
+    assert_eq!(first.repo_path(), Path::new("/repo"));
 }
 
 #[test]
@@ -64,7 +64,7 @@ fn execute_reports_the_workflow_name() {
     )
     .unwrap();
 
-    assert_eq!(execution.workflow_name, "Ci");
+    assert_eq!(execution.workflow_name(), "Ci");
 }
 
 #[test]
@@ -77,7 +77,7 @@ fn execute_names_an_unnamed_workflow_unnamed() {
     )
     .unwrap();
 
-    assert_eq!(execution.workflow_name, "unnamed");
+    assert_eq!(execution.workflow_name(), "unnamed");
 }
 
 #[test]
@@ -89,7 +89,7 @@ fn execute_returns_every_jobs_container_name() {
     .unwrap();
 
     assert_eq!(
-        execution.container_names,
+        execution.container_names(),
         vec![
             "container-build".to_string(),
             "container-publish".to_string()
@@ -105,7 +105,7 @@ fn execute_fails_the_workflow_when_one_job_fails() {
     )
     .unwrap();
 
-    assert!(!execution.success);
+    assert!(!execution.success());
 }
 
 #[test]
