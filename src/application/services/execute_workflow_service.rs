@@ -50,18 +50,17 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
         &self,
         request: ExecuteWorkflowRequest<'_>,
     ) -> Result<WorkflowExecution, Box<dyn Error>> {
-        let workflow = self.workflow_loader.execute(LoadWorkflowRequest::new(request.workflow_content()))?;
-        let workflow_name = workflow.name().clone().unwrap_or_else(|| "unnamed".into());
+        let workflow = self
+            .workflow_loader
+            .execute(LoadWorkflowRequest::new(request.workflow_content()))?;
+        let workflow_name = workflow.name().unwrap_or("unnamed");
         let plan = Planner.plan(&workflow).map_err(|e| format!("{:?}", e))?;
 
-        self.announce_workflow_started(&workflow_name);
+        self.announce_workflow_started(workflow_name);
 
         let executions = self.execute_planned_runs(&workflow, &plan, request)?;
 
-        let job_summaries = executions
-            .iter()
-            .map(|e| e.job_summary().clone())
-            .collect();
+        let job_summaries = executions.iter().map(|e| e.job_summary().clone()).collect();
         let container_names = executions
             .iter()
             .map(|e| e.container_name().to_string())
@@ -102,10 +101,7 @@ impl ExecuteWorkflowService {
         repo_path: &std::path::Path,
         context: &crate::domain::expression::EvalContext,
     ) -> Result<crate::application::dtos::JobExecution, Box<dyn Error>> {
-        self.announce_job_started(
-            workflow.name().unwrap_or("unnamed"),
-            run,
-        );
+        self.announce_job_started(workflow.name().unwrap_or("unnamed"), run);
         let execution = self.command_bus.dispatch_job(ExecuteJobCommand::new(
             run.job().clone(),
             run.job_id().to_string(),
