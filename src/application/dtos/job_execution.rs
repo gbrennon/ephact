@@ -3,8 +3,8 @@ use crate::application::dtos::JobSummary;
 /// Outcome of running one job, with the container it ran in.
 #[derive(Debug, Clone)]
 pub struct JobExecution {
-    job_summary: JobSummary,
-    container_name: String,
+    pub job_summary: JobSummary,
+    pub container_name: String,
 }
 
 impl JobExecution {
