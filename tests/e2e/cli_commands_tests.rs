@@ -33,12 +33,12 @@ mod tests {
 
     impl ShowProjectBrandingInfoPort for BrandingFake {
         fn execute(&self) -> Result<ShowProjectBrandingInfoResponse, Box<dyn std::error::Error>> {
-            Ok(ShowProjectBrandingInfoResponse {
-                name: "ephact".into(),
-                description: "test runner".into(),
-                version: "test".into(),
-                emblem: "*".into(),
-            })
+            Ok(ShowProjectBrandingInfoResponse::new(
+                "ephact".into(),
+                "test runner".into(),
+                "test".into(),
+                "*".into(),
+            ))
         }
     }
 
@@ -113,36 +113,36 @@ mod tests {
     }
 
     fn run_summary() -> RunSummary {
-        RunSummary {
-            name: "Build".into(),
-            job_summaries: vec![JobSummary {
-                job_id: "build".into(),
-                name: Some("Build job".into()),
-                steps: vec![
-                    StepSummary {
-                        name: "Checkout".into(),
-                        step_type: StepType::Run,
-                        exit_code: Some(0),
-                        continue_on_error: false,
-                        duration: Duration::ZERO,
-                        stdout: String::new(),
-                        stderr: String::new(),
-                    },
-                    StepSummary {
-                        name: "Compile".into(),
-                        step_type: StepType::Run,
-                        exit_code: Some(0),
-                        continue_on_error: false,
-                        duration: Duration::ZERO,
-                        stdout: String::new(),
-                        stderr: String::new(),
-                    },
+        RunSummary::new(
+            "Build",
+            vec![JobSummary::new(
+                "build",
+                Some("Build job".into()),
+                vec![
+                    StepSummary::new(
+                        "Checkout",
+                        StepType::Run,
+                        Some(0),
+                        false,
+                        Duration::ZERO,
+                        String::new(),
+                        String::new(),
+                    ),
+                    StepSummary::new(
+                        "Compile",
+                        StepType::Run,
+                        Some(0),
+                        false,
+                        Duration::ZERO,
+                        String::new(),
+                        String::new(),
+                    ),
                 ],
-                success: true,
-            }],
-            success: true,
-            duration: Duration::ZERO,
-        }
+                true,
+            )],
+            true,
+            Duration::ZERO,
+        )
     }
 
     #[test]
