@@ -13,7 +13,7 @@ pub struct FakeRunAllWorkflowsPort {
 impl FakeRunAllWorkflowsPort {
     pub fn new(success: bool) -> Self {
         Self {
-            result: RunSummary::new("All Workflows".into(), vec![], success, Duration::ZERO),
+            result: RunSummary::new("All Workflows".to_string(), vec![], success, Duration::ZERO),
         }
     }
 }
