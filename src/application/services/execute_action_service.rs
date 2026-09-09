@@ -55,12 +55,16 @@ impl ExecuteActionService {
         &self,
         request: &ExecuteActionRequest,
     ) -> Result<ExecuteActionResponse, StepError> {
-        let action_dir = match self
-            .directory_resolver
-            .execute(ResolveActionDirectoryRequest::new(request.action_ref(), request.repo_path()))? {
-            ResolvedActionDirectory::Skipped(response) => return Ok(response),
-            ResolvedActionDirectory::Directory(directory) => directory,
-        };
+        let action_dir =
+            match self
+                .directory_resolver
+                .execute(ResolveActionDirectoryRequest::new(
+                    request.action_ref(),
+                    request.repo_path(),
+                ))? {
+                ResolvedActionDirectory::Skipped(response) => return Ok(response),
+                ResolvedActionDirectory::Directory(directory) => directory,
+            };
 
         let definition = self
             .definition_loader
@@ -72,23 +76,33 @@ impl ExecuteActionService {
                     error.message()
                 ))
             })?;
-        let inputs = self.input_resolver.execute(ResolveActionInputsRequest::new(&definition, request.step()));
+        let inputs = self
+            .input_resolver
+            .execute(ResolveActionInputsRequest::new(&definition, request.step()));
 
         match &definition.runs() {
             ActionRuns::Composite { steps } => {
-                self.composite_runner.execute(RunCompositeActionRequest::new(&steps, &inputs, &action_dir, request))
+                self.composite_runner
+                    .execute(RunCompositeActionRequest::new(
+                        steps,
+                        &inputs,
+                        &action_dir,
+                        request,
+                    ))
             }
             ActionRuns::Node12 { main }
             | ActionRuns::Node16 { main }
             | ActionRuns::Node20 { main } => self
                 .node_runner
-                .execute(RunNodeActionRequest::new(&action_dir, &main, &inputs, request.env(), request.container().as_ref()))
+                .execute(RunNodeActionRequest::new(
+                    &action_dir,
+                    main,
+                    &inputs,
+                    request.env(),
+                    request.container().as_ref(),
+                ))
                 .map(|result| {
-                    ExecuteActionResponse::new(
-                        result.exit_code(),
-                        result.stdout(),
-                        result.stderr(),
-                    )
+                    ExecuteActionResponse::new(result.exit_code(), result.stdout(), result.stderr())
                 }),
             ActionRuns::Docker { image } => Err(StepError::new(
                 ActionError::Unsupported(format!(
