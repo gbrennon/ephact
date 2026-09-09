@@ -1,9 +1,9 @@
 /// A file entry for copy operations.
 #[derive(Debug, Clone)]
 pub struct FileEntry {
-    path: String,
-    content: Vec<u8>,
-    mode: u32,
+    pub path: String,
+    pub content: Vec<u8>,
+    pub mode: u32,
 }
 
 impl FileEntry {
