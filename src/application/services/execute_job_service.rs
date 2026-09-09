@@ -88,16 +88,14 @@ impl ExecuteJobPort for ExecuteJobService {
         let mut steps: Vec<StepSummary> = Vec::new();
 
         for step in request.run().job().steps() {
-            step_env = self.step_path_prefixer.execute(PrefixStepPathRequest::new(
-                &step_env,
-                &extra_path,
-            ));
+            step_env = self
+                .step_path_prefixer
+                .execute(PrefixStepPathRequest::new(&step_env, &extra_path));
 
             let started_at = Instant::now();
-            let step_context = self.step_context_builder.execute(BuildStepContextRequest::new(
-                request.context(),
-                &step_env,
-            ));
+            let step_context = self
+                .step_context_builder
+                .execute(BuildStepContextRequest::new(request.context(), &step_env));
 
             self.announce_step_started(&request, step);
             let outcome = self.command_bus.dispatch_step(ExecuteStepCommand::new(
@@ -117,9 +115,9 @@ impl ExecuteJobPort for ExecuteJobService {
             self.announce_step_finished(&request, summarized.summary(), !summarized.fails_job());
             steps.push(summarized.summary().clone());
 
-            let exports = self.step_exports_reader.execute(ReadStepExportsRequest::new(
-                prepared.container().as_ref(),
-            ));
+            let exports = self
+                .step_exports_reader
+                .execute(ReadStepExportsRequest::new(prepared.container().as_ref()));
             let (path_additions, env) = exports.into_parts();
             extra_path.extend(path_additions);
             step_env.extend(env);
@@ -131,7 +129,10 @@ impl ExecuteJobPort for ExecuteJobService {
             steps,
             job_success,
         );
-        Ok(JobExecution::new(job_summary, prepared.container_name().to_string()))
+        Ok(JobExecution::new(
+            job_summary,
+            prepared.container_name().to_string(),
+        ))
     }
 }
 
@@ -143,11 +144,7 @@ impl ExecuteJobService {
     ) {
         self.event_bus
             .publish(DomainEvent::StepStarted(StepStartedPayload::new(
-                request
-                    .workflow()
-                    .name()
-                    .unwrap_or("unnamed")
-                    .to_string(),
+                request.workflow().name().unwrap_or("unnamed").to_string(),
                 request.run().job_id().to_string(),
                 step.name().unwrap_or("unnamed step").to_string(),
             )));
@@ -161,11 +158,7 @@ impl ExecuteJobService {
     ) {
         self.event_bus
             .publish(DomainEvent::StepFinished(StepFinishedPayload::new(
-                request
-                    .workflow()
-                    .name()
-                    .unwrap_or("unnamed")
-                    .to_string(),
+                request.workflow().name().unwrap_or("unnamed").to_string(),
                 request.run().job_id().to_string(),
                 summary.name().to_string(),
                 step_success,
