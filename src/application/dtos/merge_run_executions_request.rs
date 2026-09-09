@@ -5,9 +5,9 @@ use crate::application::dtos::WorkflowExecution;
 /// inbound port.
 pub struct MergeRunExecutionsRequest {
     /// Executions to merge, in the order they ran.
-    executions: Vec<WorkflowExecution>,
+    pub executions: Vec<WorkflowExecution>,
     /// Whether the run covered every workflow of the repository.
-    all_workflows: bool,
+    pub all_workflows: bool,
 }
 
 impl MergeRunExecutionsRequest {
