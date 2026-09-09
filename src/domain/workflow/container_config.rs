@@ -68,3 +68,29 @@ impl ContainerConfig {
         self.options.as_deref()
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_exposes_fields() {
+        let config = ContainerConfig::new(
+            "ubuntu",
+            Some(ContainerCredentials::new("user", "password")),
+            HashMap::from([("KEY".into(), "value".into())]),
+            vec!["80:80".into()],
+            vec!["/tmp:/tmp".into()],
+            Some("--privileged".into()),
+        );
+
+        assert_eq!(config.image(), "ubuntu");
+        assert_eq!(
+            config.credentials().map(ContainerCredentials::username),
+            Some("user")
+        );
+        assert_eq!(config.env()["KEY"], "value");
+        assert_eq!(config.ports(), &["80:80".to_string()]);
+        assert_eq!(config.volumes(), &["/tmp:/tmp".to_string()]);
+        assert_eq!(config.options(), Some("--privileged"));
+    }
+}
