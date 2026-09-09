@@ -169,9 +169,9 @@ fn compare_numbers(
     let af = a
         .as_f64()
         .ok_or_else(|| EvalError::TypeError("left operand is not a valid number".into()))?;
-    let bf = b.as_f64().ok_or_else(|| {
-        EvalError::TypeError("right operand is not a valid number".into())
-    })?;
+    let bf = b
+        .as_f64()
+        .ok_or_else(|| EvalError::TypeError("right operand is not a valid number".into()))?;
     Ok(af.total_cmp(&bf))
 }
 
@@ -187,9 +187,10 @@ fn compare_values(left: &Value, right: &Value) -> Result<std::cmp::Ordering, Eva
 }
 
 fn eval_array_index(arr: &[Value], n: &serde_json::Number) -> Result<Value, EvalError> {
-    let i = n.as_u64().ok_or_else(|| {
-        EvalError::TypeError("index must be a non-negative integer".into())
-    })? as usize;
+    let i = n
+        .as_u64()
+        .ok_or_else(|| EvalError::TypeError("index must be a non-negative integer".into()))?
+        as usize;
     arr.get(i).cloned().ok_or_else(|| {
         EvalError::TypeError(format!(
             "index {i} out of bounds for array of length {}",
@@ -198,10 +199,7 @@ fn eval_array_index(arr: &[Value], n: &serde_json::Number) -> Result<Value, Eval
     })
 }
 
-fn eval_object_index(
-    map: &serde_json::Map<String, Value>,
-    key: &str,
-) -> Result<Value, EvalError> {
+fn eval_object_index(map: &serde_json::Map<String, Value>, key: &str) -> Result<Value, EvalError> {
     map.get(key)
         .cloned()
         .ok_or_else(|| EvalError::TypeError(format!("key '{key}' not found on object")))
