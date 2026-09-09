@@ -4,8 +4,8 @@ use super::{
 };
 use std::{error::Error, path::PathBuf};
 
-use crate::application::dtos::{DetectWorkflowFileRequest, ListWorkflowDirectoryRequest};
 use super::workflow_directories::WORKFLOW_DIRECTORIES;
+use crate::application::dtos::{DetectWorkflowFileRequest, ListWorkflowDirectoryRequest};
 
 /// Service that detects the workflow a repository runs when the caller names
 /// none, preferring the Forgejo layout over the GitHub one.
@@ -28,7 +28,7 @@ impl DetectWorkflowFilePort for DetectWorkflowFileService {
                     .directory_lister
                     .execute(ListWorkflowDirectoryRequest::new(&workflows_dir))?
                     .workflow_files()
-                    .into_iter()
+                    .iter()
                     .next()
                 {
                     Some(path) => Ok(path.to_path_buf().to_path_buf()),
