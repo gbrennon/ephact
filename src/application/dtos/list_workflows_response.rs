@@ -4,7 +4,7 @@ use super::workflow_list_item::WorkflowListItem;
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ListWorkflowsResponse {
     /// Workflows found in the repository, in discovery order.
-    workflows: Vec<WorkflowListItem>,
+    pub workflows: Vec<WorkflowListItem>,
 }
 
 impl ListWorkflowsResponse {
