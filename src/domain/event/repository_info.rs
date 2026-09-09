@@ -16,8 +16,26 @@ pub struct RepositoryInfo {
 }
 
 impl RepositoryInfo {
-    pub fn new(name: String, full_name: String, owner: UserInfo, private: bool, html_url: String, default_branch: String, clone_url: String, ssh_url: String) -> Self {
-        Self { name, full_name, owner, private, html_url, default_branch, clone_url, ssh_url }
+    pub fn new(
+        name: String,
+        full_name: String,
+        owner: UserInfo,
+        private: bool,
+        html_url: String,
+        default_branch: String,
+        clone_url: String,
+        ssh_url: String,
+    ) -> Self {
+        Self {
+            name,
+            full_name,
+            owner,
+            private,
+            html_url,
+            default_branch,
+            clone_url,
+            ssh_url,
+        }
     }
 
     pub fn name(&self) -> &str {
@@ -50,5 +68,36 @@ impl RepositoryInfo {
 
     pub fn ssh_url(&self) -> &str {
         &self.ssh_url
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn owner() -> UserInfo {
+        UserInfo::new("name".into(), "email".into(), "login".into())
+    }
+
+    #[test]
+    fn new_preserves_fields() {
+        let repository = RepositoryInfo::new(
+            "repo".into(),
+            "owner/repo".into(),
+            owner(),
+            true,
+            "html".into(),
+            "main".into(),
+            "clone".into(),
+            "ssh".into(),
+        );
+
+        assert_eq!(repository.name(), "repo");
+        assert_eq!(repository.full_name(), "owner/repo");
+        assert_eq!(repository.owner().login(), "login");
+        assert!(repository.private());
+        assert_eq!(repository.html_url(), "html");
+        assert_eq!(repository.default_branch(), "main");
+        assert_eq!(repository.clone_url(), "clone");
+        assert_eq!(repository.ssh_url(), "ssh");
     }
 }
