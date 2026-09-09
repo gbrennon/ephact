@@ -20,8 +20,34 @@ pub struct PushPayload {
 }
 
 impl PushPayload {
-    pub fn new(r#ref: String, before: String, after: String, repository: RepositoryInfo, pusher: UserInfo, sender: UserInfo, created: bool, deleted: bool, forced: bool, commits: Vec<CommitInfo>, head_commit: Option<CommitInfo>, compare: String) -> Self {
-        Self { r#ref, before, after, repository, pusher, sender, created, deleted, forced, commits, head_commit, compare }
+    pub fn new(
+        r#ref: String,
+        before: String,
+        after: String,
+        repository: RepositoryInfo,
+        pusher: UserInfo,
+        sender: UserInfo,
+        created: bool,
+        deleted: bool,
+        forced: bool,
+        commits: Vec<CommitInfo>,
+        head_commit: Option<CommitInfo>,
+        compare: String,
+    ) -> Self {
+        Self {
+            r#ref,
+            before,
+            after,
+            repository,
+            pusher,
+            sender,
+            created,
+            deleted,
+            forced,
+            commits,
+            head_commit,
+            compare,
+        }
     }
 
     pub fn r#ref(&self) -> &str {
@@ -70,5 +96,70 @@ impl PushPayload {
 
     pub fn compare(&self) -> &str {
         &self.compare
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn user() -> UserInfo {
+        UserInfo::new("name".into(), "email".into(), "login".into())
+    }
+
+    fn repository() -> RepositoryInfo {
+        RepositoryInfo::new(
+            "repo".into(),
+            "owner/repo".into(),
+            user(),
+            false,
+            "html".into(),
+            "main".into(),
+            "clone".into(),
+            "ssh".into(),
+        )
+    }
+
+    #[test]
+    fn new_preserves_fields() {
+        let commit = CommitInfo::new(
+            "id".into(),
+            "message".into(),
+            "timestamp".into(),
+            user(),
+            user(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+        );
+        let payload = PushPayload::new(
+            "refs/heads/main".into(),
+            "before".into(),
+            "after".into(),
+            repository(),
+            user(),
+            user(),
+            true,
+            false,
+            true,
+            vec![commit.clone()],
+            Some(commit),
+            "compare".into(),
+        );
+
+        assert_eq!(payload.r#ref(), "refs/heads/main");
+        assert_eq!(payload.before(), "before");
+        assert_eq!(payload.after(), "after");
+        assert_eq!(payload.repository().name(), "repo");
+        assert_eq!(payload.pusher().login(), "login");
+        assert_eq!(payload.sender().login(), "login");
+        assert!(payload.created());
+        assert!(!payload.deleted());
+        assert!(payload.forced());
+        assert_eq!(payload.commits().len(), 1);
+        assert_eq!(
+            payload.head_commit().as_ref().map(CommitInfo::id),
+            Some("id")
+        );
+        assert_eq!(payload.compare(), "compare");
     }
 }
