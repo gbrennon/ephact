@@ -74,7 +74,7 @@ impl FakeCommandBus {
         self.dispatched_steps
             .lock()
             .iter()
-            .map(|cmd| cmd.env.clone())
+            .map(|cmd| cmd.env().clone())
             .collect()
     }
 
@@ -82,7 +82,7 @@ impl FakeCommandBus {
         self.dispatched_jobs
             .lock()
             .iter()
-            .map(|cmd| cmd.job_id.clone())
+            .map(|cmd| cmd.job_id().to_owned())
             .collect()
     }
 
@@ -90,7 +90,7 @@ impl FakeCommandBus {
         self.dispatched_actions
             .lock()
             .iter()
-            .map(|cmd| cmd.action_ref.clone())
+            .map(|cmd| cmd.action_ref().to_owned())
             .collect()
     }
 }
@@ -101,46 +101,49 @@ impl CommandBusPort for FakeCommandBus {
         cmd: ExecuteWorkflowCommand,
     ) -> Result<WorkflowExecution, Box<dyn Error>> {
         self.dispatched_workflows.lock().push(cmd);
-        Ok(self.workflow_result.clone().unwrap_or(WorkflowExecution {
-            workflow_name: "fake-workflow".into(),
-            job_summaries: Vec::new(),
-            container_names: vec!["c1".into()],
-            success: true,
-        }))
+        Ok(self
+            .workflow_result
+            .clone()
+            .unwrap_or(WorkflowExecution::new(
+                "fake-workflow".to_string(),
+                Vec::new(),
+                vec!["c1".to_string()],
+                true,
+            )))
     }
 
     fn dispatch_job(&self, cmd: ExecuteJobCommand) -> Result<JobExecution, Box<dyn Error>> {
-        let job_id = cmd.job_id.clone();
-        let name = cmd.job.name.clone();
+        let job_id = cmd.job_id().to_owned();
+        let name = cmd.job().name().map(|s| s.to_owned());
         self.dispatched_jobs.lock().push(cmd);
         if let Some(message) = &self.job_error {
             return Err(message.clone().into());
         }
-        Ok(JobExecution {
-            job_summary: JobSummary {
-                job_id: job_id.clone(),
+        Ok(JobExecution::new(
+            JobSummary::new(
+                job_id.clone(),
                 name,
-                steps: Vec::new(),
-                success: !self.failing_jobs.contains(&job_id),
-            },
-            container_name: format!("container-{job_id}"),
-        })
+                Vec::new(),
+                !self.failing_jobs.contains(&job_id),
+            ),
+            format!("container-{job_id}"),
+        ))
     }
 
     fn dispatch_step(&self, cmd: ExecuteStepCommand) -> Result<ExecutedStep, StepError> {
-        let step = cmd.step.clone();
+        let step = cmd.step().clone();
         self.dispatched_steps.lock().push(cmd);
         if let Some(message) = &self.step_error {
             return Err(StepError::new(message.clone()));
         }
-        Ok(ExecutedStep {
+        Ok(ExecutedStep::new(
             step,
-            response: ExecuteActionResponse {
-                exit_code: self.step_exit_codes.lock().pop().unwrap_or(0),
-                stdout: String::new(),
-                stderr: String::new(),
-            },
-        })
+            ExecuteActionResponse::new(
+                self.step_exit_codes.lock().pop().unwrap_or(0),
+                String::new(),
+                String::new(),
+            ),
+        ))
     }
 
     fn dispatch_action(
@@ -148,10 +151,9 @@ impl CommandBusPort for FakeCommandBus {
         cmd: ExecuteActionCommand,
     ) -> Result<ExecuteActionResponse, StepError> {
         self.dispatched_actions.lock().push(cmd);
-        Ok(self.action_result.clone().unwrap_or(ExecuteActionResponse {
-            exit_code: 0,
-            stdout: String::new(),
-            stderr: String::new(),
-        }))
+        Ok(self
+            .action_result
+            .clone()
+            .unwrap_or(ExecuteActionResponse::new(0, String::new(), String::new())))
     }
 }
