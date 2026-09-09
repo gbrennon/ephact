@@ -6,8 +6,8 @@ use crate::domain::workflow::Workflow;
 /// [`BuildJobEnvironmentPort`](crate::application::ports::outbound::build_job_environment_port::BuildJobEnvironmentPort)
 /// outbound port.
 pub struct BuildJobEnvironmentRequest<'a> {
-    workflow: &'a Workflow,
-    job_env: &'a HashMap<String, String>,
+    pub workflow: &'a Workflow,
+    pub job_env: &'a HashMap<String, String>,
 }
 
 impl<'a> BuildJobEnvironmentRequest<'a> {
