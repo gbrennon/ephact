@@ -56,20 +56,20 @@ mod tests {
     fn a_single_job_id_becomes_a_one_element_dependency_list() {
         let job: Job = serde_yaml::from_str("needs: build\n").unwrap();
 
-        assert_eq!(job.needs, vec!["build".to_string()]);
+        assert_eq!(job.needs(), &["build".to_string()]);
     }
 
     #[test]
     fn a_sequence_of_job_ids_keeps_every_dependency() {
         let job: Job = serde_yaml::from_str("needs: [build, lint]\n").unwrap();
 
-        assert_eq!(job.needs, vec!["build".to_string(), "lint".to_string()]);
+        assert_eq!(job.needs(), &["build".to_string(), "lint".to_string()]);
     }
 
     #[test]
     fn a_job_without_dependencies_has_an_empty_dependency_list() {
         let job: Job = serde_yaml::from_str("runs-on: ubuntu-latest\n").unwrap();
 
-        assert_eq!(job.needs, Vec::<String>::new());
+        assert_eq!(job.needs(), Vec::<String>::new().as_slice());
     }
 }

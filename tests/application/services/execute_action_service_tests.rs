@@ -34,18 +34,18 @@ mod tests {
     fn container(runtime: &FakeRuntime) -> Arc<dyn ContainerPort> {
         Arc::from(
             runtime
-                .create_container(&ContainerConfig {
-                    image: "image".into(),
-                    platform: None,
-                    env: HashMap::new(),
-                    binds: vec![],
-                    workdir: None,
-                    cmd: None,
-                    entrypoint: None,
-                    network: None,
-                    name: None,
-                    runner_context: RunnerContext::default(),
-                })
+                .create_container(&ContainerConfig::new(
+                    "image",
+                    None,
+                    HashMap::new(),
+                    vec![],
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    RunnerContext::default(),
+                ))
                 .unwrap(),
         )
     }
@@ -61,14 +61,14 @@ mod tests {
         container: Arc<dyn ContainerPort>,
         context: EvalContext,
     ) -> ExecuteActionRequest {
-        ExecuteActionRequest {
-            action_ref: action_ref.to_string(),
+        ExecuteActionRequest::new(
+            action_ref,
             step,
-            repo_path: repo_path.to_path_buf(),
-            env: HashMap::new(),
+            repo_path.to_path_buf(),
+            HashMap::new(),
             context,
             container,
-        }
+        )
     }
 
     fn write_action(dir: &Path, body: &str) {
@@ -77,11 +77,10 @@ mod tests {
     }
 
     fn push_result(runtime: &FakeRuntime, exit_code: i64, stdout: &str) {
-        runtime.exec_results.lock().push(ExecResult {
-            exit_code,
-            stdout: stdout.into(),
-            stderr: String::new(),
-        });
+        runtime
+            .exec_results
+            .lock()
+            .push(ExecResult::new(exit_code, stdout, String::new()));
     }
 
     #[test]
@@ -105,8 +104,8 @@ mod tests {
             ))
             .unwrap();
 
-        assert_eq!(response.exit_code, 0);
-        assert_eq!(response.stdout, "hi\n");
+        assert_eq!(response.exit_code(), 0);
+        assert_eq!(response.stdout(), "hi\n");
         assert_eq!(runtime.executed_scripts(), vec!["echo hi".to_string()]);
     }
 
@@ -171,10 +170,9 @@ mod tests {
         );
         let runtime = FakeRuntime::new();
         let service = wiring(Box::new(FakeActionFetcher::returning(repo.path().into())));
-        let mut context = EvalContext::new();
         let mut secrets = serde_json::Map::new();
-        secrets.insert("TOKEN".into(), Value::String("abc123".into()));
-        context.secrets = Value::Object(secrets);
+        secrets.insert("TOKEN".to_string(), Value::String("abc123".to_string()));
+        let context = EvalContext::new().with_secrets(Value::Object(secrets));
 
         service
             .execute(request(
@@ -213,7 +211,7 @@ mod tests {
             ))
             .unwrap();
 
-        assert_eq!(response.exit_code, 2);
+        assert_eq!(response.exit_code(), 2);
         assert_eq!(runtime.executed_scripts(), vec!["first".to_string()]);
     }
 
@@ -239,7 +237,7 @@ mod tests {
             ))
             .unwrap();
 
-        assert_eq!(response.exit_code, 0);
+        assert_eq!(response.exit_code(), 0);
         assert_eq!(
             runtime.executed_scripts(),
             vec!["restore-cache".to_string()]
@@ -271,7 +269,7 @@ mod tests {
             ))
             .unwrap();
 
-        assert_eq!(response.exit_code, 0);
+        assert_eq!(response.exit_code(), 0);
         let commands = runtime.executed_commands.lock();
         let node_command = commands
             .iter()
@@ -319,7 +317,7 @@ mod tests {
             ))
             .unwrap();
 
-        assert_eq!(response.stdout, "cached\n");
+        assert_eq!(response.stdout(), "cached\n");
         assert!(
             runtime
                 .executed_commands
@@ -348,8 +346,12 @@ mod tests {
             ))
             .unwrap();
 
-        assert_eq!(response.exit_code, 0);
-        assert!(response.stdout.contains("[skipped]"), "{}", response.stdout);
+        assert_eq!(response.exit_code(), 0);
+        assert!(
+            response.stdout().contains("[skipped]"),
+            "{}",
+            response.stdout()
+        );
         assert!(runtime.executed_commands.lock().is_empty());
     }
 
@@ -370,9 +372,9 @@ mod tests {
             .unwrap_err();
 
         assert!(
-            error.message.contains("failed to fetch action"),
+            error.message().contains("failed to fetch action"),
             "{}",
-            error.message
+            error.message()
         );
     }
 
@@ -393,9 +395,9 @@ mod tests {
             .unwrap_err();
 
         assert!(
-            error.message.contains("unsupported action"),
+            error.message().contains("unsupported action"),
             "{}",
-            error.message
+            error.message()
         );
     }
 
@@ -416,9 +418,9 @@ mod tests {
             .unwrap_err();
 
         assert!(
-            error.message.contains("action.yml not found"),
+            error.message().contains("action.yml not found"),
             "{}",
-            error.message
+            error.message()
         );
     }
 
@@ -452,7 +454,7 @@ mod tests {
             ))
             .unwrap();
 
-        assert_eq!(response.exit_code, 0);
+        assert_eq!(response.exit_code(), 0);
         assert_eq!(runtime.executed_scripts(), vec!["inner-step".to_string()]);
     }
 }

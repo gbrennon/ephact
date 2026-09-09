@@ -36,35 +36,28 @@ impl ExecuteStepService {
 
 impl ExecuteStepPort for ExecuteStepService {
     fn execute(&self, request: ExecuteStepRequest<'_>) -> Result<ExecutedStep, StepError> {
-        let interpolated = StepInterpolator::interpolate(request.step, request.context)
+        let interpolated = StepInterpolator::interpolate(request.step(), request.context())
             .map_err(|error| StepError::new(format!("failed to resolve expressions: {error:?}")))?;
 
         let response = match interpolated.uses() {
             Some(action_ref) => self.command_bus.dispatch_action(ExecuteActionCommand::new(
                 action_ref.to_string(),
                 interpolated.clone(),
-                request.repo_path.to_path_buf(),
-                request.env.clone(),
-                request.context.clone(),
-                request.container,
+                request.repo_path().to_path_buf(),
+                request.env().clone(),
+                request.context().clone(),
+                request.container().clone().clone(),
             ))?,
             None => {
-                let result = self.shell_runner.execute(RunShellStepRequest {
-                    step: &interpolated,
-                    container: request.container.as_ref(),
-                    env: request.env,
-                })?;
-                ExecuteActionResponse {
-                    exit_code: result.exit_code,
-                    stdout: result.stdout,
-                    stderr: result.stderr,
-                }
+                let result = self.shell_runner.execute(RunShellStepRequest::new(
+                    &interpolated,
+                    request.container().as_ref(),
+                    request.env(),
+                ))?;
+                ExecuteActionResponse::new(result.exit_code(), result.stdout(), result.stderr())
             }
         };
 
-        Ok(ExecutedStep {
-            step: interpolated,
-            response,
-        })
+        Ok(ExecutedStep::new(interpolated, response))
     }
 }

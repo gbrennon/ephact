@@ -6,23 +6,83 @@ use std::collections::HashMap;
 /// [`ContainerRuntimePort`](crate::application::ports::outbound::ContainerRuntimePort).
 #[derive(Debug, Clone)]
 pub struct ContainerConfig {
-    pub image: String,
+    image: String,
+    platform: Option<String>,
+    env: HashMap<String, String>,
+    binds: Vec<String>,
+    workdir: Option<String>,
+    cmd: Option<Vec<String>>,
+    entrypoint: Option<Vec<String>>,
+    network: Option<String>,
+    name: Option<String>,
+    runner_context: RunnerContext,
+}
 
-    pub platform: Option<String>,
+impl ContainerConfig {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        image: impl Into<String>,
+        platform: Option<String>,
+        env: HashMap<String, String>,
+        binds: Vec<String>,
+        workdir: Option<String>,
+        cmd: Option<Vec<String>>,
+        entrypoint: Option<Vec<String>>,
+        network: Option<String>,
+        name: Option<String>,
+        runner_context: RunnerContext,
+    ) -> Self {
+        Self {
+            image: image.into(),
+            platform,
+            env,
+            binds,
+            workdir,
+            cmd,
+            entrypoint,
+            network,
+            name,
+            runner_context,
+        }
+    }
 
-    pub env: HashMap<String, String>,
+    pub fn image(&self) -> &str {
+        &self.image
+    }
 
-    pub binds: Vec<String>,
+    pub fn platform(&self) -> Option<&str> {
+        self.platform.as_deref()
+    }
 
-    pub workdir: Option<String>,
+    pub fn env(&self) -> &HashMap<String, String> {
+        &self.env
+    }
 
-    pub cmd: Option<Vec<String>>,
+    pub fn binds(&self) -> &[String] {
+        &self.binds
+    }
 
-    pub entrypoint: Option<Vec<String>>,
+    pub fn workdir(&self) -> Option<&str> {
+        self.workdir.as_deref()
+    }
 
-    pub network: Option<String>,
+    pub fn cmd(&self) -> Option<&[String]> {
+        self.cmd.as_deref()
+    }
 
-    pub name: Option<String>,
+    pub fn entrypoint(&self) -> Option<&[String]> {
+        self.entrypoint.as_deref()
+    }
 
-    pub runner_context: RunnerContext,
+    pub fn network(&self) -> Option<&str> {
+        self.network.as_deref()
+    }
+
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    pub fn runner_context(&self) -> &RunnerContext {
+        &self.runner_context
+    }
 }

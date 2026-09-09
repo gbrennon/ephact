@@ -25,5 +25,5 @@ fn run_application() -> Result<(), Box<dyn std::error::Error>> {
         std::env::args_os().any(|arg| ephact::presentation::cli::RunArgs::is_verbose_flag(&arg));
     let container = Container::build(Some(Box::new(RunProgressHandler::new(verbose))));
     let app = CompositionRoot::compose(container);
-    app.cli.run(std::env::args_os())
+    app.run(std::env::args_os())
 }

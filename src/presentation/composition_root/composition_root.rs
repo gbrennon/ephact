@@ -5,14 +5,20 @@ pub struct CompositionRoot;
 
 impl CompositionRoot {
     pub fn compose(container: AppContainer) -> Application {
-        Application {
-            cli: Cli::new(
-                container.run_workflow_port,
-                container.run_all_workflows_port,
-                container.list_workflows_port,
-                container.list_actions_port,
-                container.show_project_branding_info_port,
-            ),
-        }
+        let (
+            show_project_branding_info_port,
+            run_all_workflows_port,
+            run_workflow_port,
+            _run_action_port,
+            list_workflows_port,
+            list_actions_port,
+        ) = container.into_parts();
+        Application::new(Cli::new(
+            run_workflow_port,
+            run_all_workflows_port,
+            list_workflows_port,
+            list_actions_port,
+            show_project_branding_info_port,
+        ))
     }
 }

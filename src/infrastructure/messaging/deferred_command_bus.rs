@@ -53,13 +53,13 @@ impl CommandBusPort for DeferredCommandBus {
         cmd: ExecuteWorkflowCommand,
     ) -> Result<WorkflowExecution, Box<dyn Error>> {
         self.bound()
-            .ok_or_else(|| Self::unbound().message)?
+            .ok_or_else(|| Self::unbound().message().to_string())?
             .dispatch_workflow(cmd)
     }
 
     fn dispatch_job(&self, cmd: ExecuteJobCommand) -> Result<JobExecution, Box<dyn Error>> {
         self.bound()
-            .ok_or_else(|| Self::unbound().message)?
+            .ok_or_else(|| Self::unbound().message().to_string())?
             .dispatch_job(cmd)
     }
 

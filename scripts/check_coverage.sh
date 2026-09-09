@@ -22,7 +22,7 @@ run_coverage_and_emit_json() {
     echo "No container runtime detected; excluding container infrastructure from coverage."
     args+=(--ignore-filename-regex 'src/infrastructure/(runners/.*|container\.rs)')
   fi
-  cargo llvm-cov --json --output-path cov.json "${args[@]}" || true
+  cargo llvm-cov --tests --json --output-path cov.json "${args[@]}"
 }
 
 run_coverage_and_emit_json

@@ -16,14 +16,8 @@ impl ActionCommandHandler {
     }
 
     pub fn handle(&self, cmd: ExecuteActionCommand) -> Result<ExecuteActionResponse, StepError> {
-        let req = ExecuteActionRequest {
-            action_ref: cmd.action_ref,
-            step: cmd.step,
-            repo_path: cmd.repo_path,
-            env: cmd.env,
-            context: cmd.context,
-            container: cmd.container,
-        };
+        let (action_ref, step, repo_path, env, context, container) = cmd.into_parts();
+        let req = ExecuteActionRequest::new(action_ref, step, repo_path, env, context, container);
         self.executor.execute(req)
     }
 }

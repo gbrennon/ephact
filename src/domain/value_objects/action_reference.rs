@@ -45,10 +45,8 @@ impl ActionReference {
     /// relative path, a container image, nor an `owner/repo` pair.
     pub fn parse(raw: &str) -> Result<Self, ActionError> {
         let reference = raw.trim();
-        let invalid = || ActionError::InvalidReference(raw.to_string());
-
         if reference.is_empty() {
-            return Err(invalid());
+            return Err(ActionError::InvalidReference(raw.to_string()));
         }
         if let Some(image) = reference.strip_prefix("docker://") {
             return Ok(Self::Docker(image.to_string()));
@@ -56,39 +54,70 @@ impl ActionReference {
         if reference.starts_with("./") || reference.starts_with("../") {
             return Ok(Self::Local(reference.to_string()));
         }
+        Self::parse_remote(reference, raw)
+    }
 
-        let (location, git_ref) = match reference.rsplit_once('@') {
-            Some((location, git_ref)) if !location.is_empty() && !git_ref.is_empty() => {
-                (location, git_ref)
-            }
-            Some(_) => return Err(invalid()),
-            None => (reference, DEFAULT_GIT_REF),
+    fn parse_remote(reference: &str, raw: &str) -> Result<Self, ActionError> {
+        let invalid = || ActionError::InvalidReference(raw.to_string());
+        let (location, git_ref) = Self::split_git_ref(reference).ok_or_else(invalid)?;
+        let (scheme, host, path) = Self::parse_scheme_host_path(location).ok_or_else(invalid)?;
+        let (owner, repo, directory) = Self::parse_segments(path).ok_or_else(invalid)?;
+        Ok(Self::Remote(Self::build_remote(
+            scheme, host, owner, repo, directory, git_ref,
+        )))
+    }
+
+    fn build_remote(
+        scheme: String,
+        host: String,
+        owner: &str,
+        repo: &str,
+        directory: Vec<&str>,
+        git_ref: &str,
+    ) -> RemoteActionReference {
+        let dir = match directory.is_empty() {
+            true => None,
+            false => Some(directory.join("/")),
         };
-
-        let (scheme, host, path) = match location.split_once("://") {
-            Some((scheme, remainder)) => {
-                let (host, path) = remainder.split_once('/').ok_or_else(invalid)?;
-                if scheme.is_empty() || host.is_empty() {
-                    return Err(invalid());
-                }
-                (scheme.to_string(), host.to_string(), path)
-            }
-            None => ("https".to_string(), DEFAULT_HOST.to_string(), location),
-        };
-
-        let mut segments = path.split('/').filter(|segment| !segment.is_empty());
-        let owner = segments.next().ok_or_else(invalid)?;
-        let repo = segments.next().ok_or_else(invalid)?;
-        let directory: Vec<&str> = segments.collect();
-
-        Ok(Self::Remote(RemoteActionReference::new(
+        RemoteActionReference::new(
             scheme,
             host,
             owner.to_string(),
             repo.to_string(),
-            (!directory.is_empty()).then(|| directory.join("/")),
+            dir,
             git_ref.to_string(),
-        )))
+        )
+    }
+
+    fn split_git_ref(reference: &str) -> Option<(&str, &str)> {
+        match reference.rsplit_once('@') {
+            Some((location, git_ref)) if !location.is_empty() && !git_ref.is_empty() => {
+                Some((location, git_ref))
+            }
+            Some(_) => None,
+            None => Some((reference, DEFAULT_GIT_REF)),
+        }
+    }
+
+    fn parse_scheme_host_path(location: &str) -> Option<(String, String, &str)> {
+        match location.split_once("://") {
+            Some((scheme, remainder)) => {
+                let (host, path) = remainder.split_once('/')?;
+                if scheme.is_empty() || host.is_empty() {
+                    return None;
+                }
+                Some((scheme.to_string(), host.to_string(), path))
+            }
+            None => Some(("https".to_string(), DEFAULT_HOST.to_string(), location)),
+        }
+    }
+
+    fn parse_segments(path: &str) -> Option<(&str, &str, Vec<&str>)> {
+        let mut segments = path.split('/').filter(|segment| !segment.is_empty());
+        let owner = segments.next()?;
+        let repo = segments.next()?;
+        let directory: Vec<&str> = segments.collect();
+        Some((owner, repo, directory))
     }
 }
 

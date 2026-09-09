@@ -6,11 +6,19 @@ use crate::domain::entities::repository::Repository;
 /// application layer.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListWorkflowsRequest {
-    pub repository: Repository,
+    repository: Repository,
 }
 
 impl ListWorkflowsRequest {
     pub fn new(repository: Repository) -> Self {
         Self { repository }
+    }
+
+    pub fn repository(&self) -> &Repository {
+        &self.repository
+    }
+
+    pub fn into_repository(self) -> Repository {
+        self.repository
     }
 }

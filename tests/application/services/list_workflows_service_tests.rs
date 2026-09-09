@@ -11,16 +11,24 @@ use crate::common::fakes::fake_workflow_source::FakeWorkflowSource;
 
 fn make_repo() -> Repository {
     let repo_path = RepoPath::new(env!("CARGO_MANIFEST_DIR")).unwrap();
-    let name = RepositoryName::new("test-repo".into()).unwrap();
+    let name = RepositoryName::new("test-repo".to_string()).unwrap();
     Repository::new(repo_path, name)
 }
 
 #[test]
 fn execute_returns_the_workflows_reported_by_the_source() {
     let workflows = vec![
-        WorkflowListItem::new(Some("CI".into()), Some("ci.yml".into())),
-        WorkflowListItem::new(Some("Release".into()), Some("release.yml".into())),
-        WorkflowListItem::new(None, Some("unnamed.yml".into())),
+        WorkflowListItem::new(
+            Some("CI".to_string()),
+            Some("ci.yml".to_string()),
+            vec!["pull_request".to_string()],
+        ),
+        WorkflowListItem::new(
+            Some("Release".to_string()),
+            Some("release.yml".to_string()),
+            vec!["push".to_string()],
+        ),
+        WorkflowListItem::new(None, Some("unnamed.yml".to_string()), vec![]),
     ];
     let source = FakeWorkflowSource::new().with_workflows(workflows.clone());
     let service = ListWorkflowsService::new(Box::new(source));
@@ -28,7 +36,7 @@ fn execute_returns_the_workflows_reported_by_the_source() {
 
     let response = service.execute(request).unwrap();
 
-    assert_eq!(response.workflows, workflows);
+    assert_eq!(response.workflows(), workflows);
 }
 
 #[test]
@@ -50,7 +58,7 @@ fn execute_returns_an_empty_response_when_the_source_finds_no_workflows() {
 
     let response = service.execute(request).unwrap();
 
-    assert!(response.workflows.is_empty());
+    assert!(response.workflows().is_empty());
 }
 
 #[test]

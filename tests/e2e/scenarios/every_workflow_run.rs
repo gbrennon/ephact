@@ -12,7 +12,7 @@ use crate::{
 
 const LINT_WORKFLOW: &str = r#"
 name: Lint
-on: push
+on: pull_request
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -22,7 +22,7 @@ jobs:
 
 const TEST_WORKFLOW: &str = r#"
 name: Test
-on: push
+on: pull_request
 jobs:
   unit:
     runs-on: ubuntu-latest
@@ -63,7 +63,6 @@ impl EveryWorkflowRun {
         );
 
         let outcome = application
-            .cli
             .run([
                 "ephact",
                 "run",

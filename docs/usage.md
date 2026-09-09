@@ -25,6 +25,7 @@ ephact run [OPTIONS] [PATH]
 | `--job` | `<JOB>` | Specific job name to run from the selected workflow | Run all jobs |
 | `--event` | `<EVENT>` | Event to simulate (`push`, `pull_request`, `workflow_dispatch`, `release`) | `push` |
 | `--input` | `<KEY=VALUE>` | Inject a workflow input as `${{ inputs.KEY }}` (repeatable) | None |
+| `--interactive` | None | Select a pull-request workflow interactively and enter action inputs as literals or `env:VARIABLE` references | Disabled |
 | `--secret` | `<KEY[=VALUE]>` | Inject a secret as `${{ secrets.KEY }}`. If `=VALUE` is omitted, reads the value from the host environment (repeatable) | None |
 | `--all-workflows` | None | Force running every workflow discovered in the repository | Active if `--workflow` omitted |
 | `--preserve` | None | Preserve the ephemeral repository directory after execution instead of removing it | Clean up on exit |
@@ -46,6 +47,15 @@ Run a specific workflow triggered by a `push` event:
 ```sh
 ephact run --workflow CI --event push
 ```
+
+Run a pull-request workflow interactively:
+
+```sh
+ephact run --interactive
+```
+
+The prompt lists only workflows declaring a pull-request event. Enter action
+inputs as `KEY=VALUE` or `KEY=env:VARIABLE`; a blank line starts the run.
 
 Run a single job within a workflow:
 

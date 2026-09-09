@@ -20,14 +20,13 @@ impl Default for BuildStepContextService {
 
 impl BuildStepContextPort for BuildStepContextService {
     fn execute(&self, request: BuildStepContextRequest<'_>) -> EvalContext {
-        let mut step_context = request.context.clone();
-        step_context.env = Value::Object(
+        let env = Value::Object(
             request
-                .env
+                .env()
                 .iter()
                 .map(|(key, value)| (key.clone(), Value::String(value.clone())))
                 .collect(),
         );
-        step_context
+        request.context().clone().with_env(env)
     }
 }

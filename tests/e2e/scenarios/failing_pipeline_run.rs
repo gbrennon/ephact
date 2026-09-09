@@ -10,7 +10,7 @@ use crate::{
 
 const RELEASE_WORKFLOW: &str = r#"
 name: Release
-on: workflow_dispatch
+on: pull_request
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -60,7 +60,6 @@ impl FailingPipelineRun {
         );
 
         let outcome = application
-            .cli
             .run([
                 "ephact",
                 "run",

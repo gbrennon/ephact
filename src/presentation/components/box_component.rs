@@ -46,14 +46,22 @@ where
 
 #[cfg(test)]
 mod tests {
+    use super::super::{content::ContentComponent, terminal::Terminal};
     use super::BoxComponent;
-    use crate::presentation::components::{content::ContentComponent, terminal::Terminal};
 
     struct FakeTerminal;
 
     impl Terminal for FakeTerminal {
         fn dimensions(&self) -> (usize, usize) {
             (30, 12)
+        }
+
+        fn write_text(&self, _text: &str) -> std::io::Result<()> {
+            Ok(())
+        }
+
+        fn read_line(&self) -> std::io::Result<String> {
+            Ok(String::new())
         }
     }
 

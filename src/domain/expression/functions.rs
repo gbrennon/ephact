@@ -85,50 +85,89 @@ impl Functions {
         let mut chars = rest.char_indices();
 
         while let Some((i, ch)) = chars.next() {
-            if ch == '{' {
-                let start = i + 1;
-                let mut end = start;
-                let mut found_close = false;
-                for (j, c) in chars.by_ref() {
-                    if c == '}' {
-                        found_close = true;
-                        end = j;
-                        break;
-                    }
-                    if !c.is_ascii_digit() {
-                        return Err(EvalError::FormatError(format!(
-                            "format: invalid placeholder character '{c}' at position {j}"
-                        )));
-                    }
-                }
-                if !found_close {
-                    return Err(EvalError::FormatError(
-                        "format: unclosed placeholder".into(),
-                    ));
-                }
-                let idx_str = &rest[start..end];
-                let idx: usize = idx_str.parse().map_err(|_| {
-                    EvalError::FormatError(format!("format: invalid placeholder index '{idx_str}'"))
-                })?;
-                let replacement = args.get(idx).ok_or_else(|| {
-                    EvalError::FormatError(format!(
-                        "format: placeholder index {idx} out of range (have {} args)",
-                        args.len()
-                    ))
-                })?;
-                result.push_str(&value_to_string(replacement));
-                rest = &rest[end + 1..];
-                chars = rest.char_indices();
-            } else if ch == '}' {
-                return Err(EvalError::FormatError(
-                    "format: unexpected '}' without opening '{'".into(),
-                ));
-            } else {
-                result.push(ch);
+            Self::process_format_char(ch, i, &mut chars, &mut rest, &mut result, args)?;
+        }
+        Ok(Value::String(result))
+    }
+
+    fn process_format_char<'a>(
+        ch: char,
+        i: usize,
+        chars: &mut std::str::CharIndices<'a>,
+        rest: &mut &'a str,
+        result: &mut String,
+        args: &[Value],
+    ) -> Result<(), EvalError> {
+        match ch {
+            '{' => {
+                let (end, idx) = Self::parse_placeholder(chars, rest, i + 1)?;
+                Self::append_formatted_arg(result, args, idx)?;
+                *rest = &rest[end + 1..];
+                *chars = rest.char_indices();
+                Ok(())
+            }
+            '}' => Err(EvalError::FormatError(
+                "format: single '}' encountered in template".into(),
+            )),
+            other => {
+                result.push(other);
+                Ok(())
             }
         }
+    }
 
-        Ok(Value::String(result))
+    fn append_formatted_arg(
+        result: &mut String,
+        args: &[Value],
+        idx: usize,
+    ) -> Result<(), EvalError> {
+        let replacement = args.get(idx).ok_or_else(|| {
+            EvalError::FormatError(format!(
+                "format: placeholder index {idx} out of range (have {} args)",
+                args.len()
+            ))
+        })?;
+        result.push_str(&value_to_string(replacement));
+        Ok(())
+    }
+
+    fn parse_placeholder(
+        chars: &mut std::str::CharIndices<'_>,
+        rest: &str,
+        start: usize,
+    ) -> Result<(usize, usize), EvalError> {
+        let end = Self::find_placeholder_end(chars, start)?;
+        let idx_str = &rest[start..end];
+        let idx: usize = idx_str.parse().map_err(|_| {
+            EvalError::FormatError(format!("format: invalid placeholder index '{idx_str}'"))
+        })?;
+        Ok((end, idx))
+    }
+
+    fn find_placeholder_end(
+        chars: &mut std::str::CharIndices<'_>,
+        start: usize,
+    ) -> Result<usize, EvalError> {
+        let mut end = start;
+        let mut found_close = false;
+        for (j, c) in chars.by_ref() {
+            if c == '}' {
+                found_close = true;
+                end = j;
+                break;
+            }
+            if !c.is_ascii_digit() {
+                return Err(EvalError::FormatError(format!(
+                    "format: invalid placeholder character '{c}' at position {j}"
+                )));
+            }
+        }
+        if !found_close {
+            return Err(EvalError::FormatError(
+                "format: unclosed placeholder".into(),
+            ));
+        }
+        Ok(end)
     }
 
     /// Joins the elements of `array` into a single string, separated by
@@ -200,19 +239,89 @@ impl Functions {
     /// is supplied. Returns [`EvalError::TypeError`] or other variants
     /// as propagated from the individual function implementations.
     pub fn call(&self, name: &str, args: &[Value]) -> Result<Value, EvalError> {
-        match name.to_lowercase().as_str() {
+        let lower = name.to_lowercase();
+        if let Some(res) = self.call_status_fn(&lower, name, args)? {
+            return Ok(res);
+        }
+        if let Some(res) = self.call_json_fn(&lower, name, args)? {
+            return Ok(res);
+        }
+        self.call_string_fn(&lower, name, args)
+    }
+
+    fn call_status_fn(
+        &self,
+        lower: &str,
+        name: &str,
+        args: &[Value],
+    ) -> Result<Option<Value>, EvalError> {
+        let status = match lower {
+            "success" => self.success(),
+            "always" => self.always(),
+            "cancelled" => self.cancelled(),
+            "failure" => self.failure(),
+            _ => return Ok(None),
+        };
+        expect_arg_count(name, args.len(), 0, 0)?;
+        status.map(Some)
+    }
+
+    fn call_json_fn(
+        &self,
+        lower: &str,
+        name: &str,
+        args: &[Value],
+    ) -> Result<Option<Value>, EvalError> {
+        match lower {
+            "tojson" => {
+                expect_arg_count(name, args.len(), 1, 1)?;
+                self.to_json(&args[0]).map(Some)
+            }
+            "fromjson" => {
+                expect_arg_count(name, args.len(), 1, 1)?;
+                self.from_json(&args[0]).map(Some)
+            }
+            _ => Ok(None),
+        }
+    }
+
+    fn call_string_fn(&self, lower: &str, name: &str, args: &[Value]) -> Result<Value, EvalError> {
+        if let Some(res) = self.call_predicate_fn(lower, name, args)? {
+            return Ok(res);
+        }
+        self.call_transform_fn(lower, name, args)
+    }
+
+    fn call_predicate_fn(
+        &self,
+        lower: &str,
+        name: &str,
+        args: &[Value],
+    ) -> Result<Option<Value>, EvalError> {
+        match lower {
             "contains" => {
                 expect_arg_count(name, args.len(), 2, 2)?;
-                self.contains(&args[0], &args[1])
+                self.contains(&args[0], &args[1]).map(Some)
             }
             "startswith" => {
                 expect_arg_count(name, args.len(), 2, 2)?;
-                self.starts_with(&args[0], &args[1])
+                self.starts_with(&args[0], &args[1]).map(Some)
             }
             "endswith" => {
                 expect_arg_count(name, args.len(), 2, 2)?;
-                self.ends_with(&args[0], &args[1])
+                self.ends_with(&args[0], &args[1]).map(Some)
             }
+            _ => Ok(None),
+        }
+    }
+
+    fn call_transform_fn(
+        &self,
+        lower: &str,
+        name: &str,
+        args: &[Value],
+    ) -> Result<Value, EvalError> {
+        match lower {
             "format" => {
                 if args.is_empty() {
                     return Err(EvalError::ArgCount(format!(
@@ -224,30 +333,6 @@ impl Functions {
             "join" => {
                 expect_arg_count(name, args.len(), 2, 2)?;
                 self.join(&args[0], &args[1])
-            }
-            "tojson" => {
-                expect_arg_count(name, args.len(), 1, 1)?;
-                self.to_json(&args[0])
-            }
-            "fromjson" => {
-                expect_arg_count(name, args.len(), 1, 1)?;
-                self.from_json(&args[0])
-            }
-            "success" => {
-                expect_arg_count(name, args.len(), 0, 0)?;
-                self.success()
-            }
-            "always" => {
-                expect_arg_count(name, args.len(), 0, 0)?;
-                self.always()
-            }
-            "cancelled" => {
-                expect_arg_count(name, args.len(), 0, 0)?;
-                self.cancelled()
-            }
-            "failure" => {
-                expect_arg_count(name, args.len(), 0, 0)?;
-                self.failure()
             }
             other => Err(EvalError::TypeError(format!("unknown function: {other}"))),
         }

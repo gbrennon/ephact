@@ -18,19 +18,10 @@ impl JobCommandHandler {
     }
 
     pub fn handle(&self, cmd: ExecuteJobCommand) -> Result<JobExecution, Box<dyn Error>> {
-        let run = Run {
-            workflow_name: cmd.workflow.name.clone(),
-            job_id: cmd.job_id,
-            job: cmd.job,
-            matrix_values: None,
-        };
+        let (job, job_id, workflow, repo_path, context) = cmd.into_parts();
+        let run = Run::new(workflow.name().map(str::to_string), job_id, job, None);
 
-        let req = ExecuteJobRequest {
-            run: &run,
-            workflow: &cmd.workflow,
-            repo_path: &cmd.repo_path,
-            context: &cmd.context,
-        };
+        let req = ExecuteJobRequest::new(&run, &workflow, &repo_path, &context);
         self.executor.execute(req)
     }
 }

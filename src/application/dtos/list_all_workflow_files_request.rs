@@ -5,5 +5,17 @@ use std::path::Path;
 /// inbound port.
 pub struct ListAllWorkflowFilesRequest<'a> {
     /// Path to the repository whose workflow files are listed.
-    pub repo_path: &'a Path,
+    repo_path: &'a Path,
+}
+
+impl<'a> ListAllWorkflowFilesRequest<'a> {
+    /// Creates a new request.
+    pub fn new(repo_path: &'a Path) -> Self {
+        Self { repo_path }
+    }
+
+    /// Path to the repository whose workflow files are listed.
+    pub fn repo_path(&self) -> &'a Path {
+        self.repo_path
+    }
 }

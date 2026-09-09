@@ -1,6 +1,11 @@
 use std::{error::Error, sync::Arc, time::Instant};
 
-use crate::application::commands::ExecuteWorkflowCommand;
+use crate::application::{
+    commands::ExecuteWorkflowCommand,
+    services::pull_request_workflow::{
+        config_for_pull_request_event, content_has_pull_request_event,
+    },
+};
 use crate::{
     application::{
         dtos::{RunSummary, RunWorkflowRequest},
@@ -41,12 +46,17 @@ impl RunWorkflowService {
 
 impl RunWorkflowPort for RunWorkflowService {
     fn execute(&self, request: RunWorkflowRequest) -> Result<RunSummary, Box<dyn Error>> {
-        let RunWorkflowRequest { config, repository } = request;
+        let repository = request.repository().clone();
+        let config = request.into_config();
         let started_at = Instant::now();
 
         let workflow_content = self
             .workflow_source
             .read_workflow(&repository, config.workflow().map(|w| w.as_str()))?;
+        if !content_has_pull_request_event(&workflow_content) {
+            return Err("workflow does not define a pull_request event".into());
+        }
+        let config = config_for_pull_request_event(config);
 
         let execution = self
             .command_bus
@@ -56,17 +66,19 @@ impl RunWorkflowPort for RunWorkflowService {
                 repository,
             ))?;
 
-        self.event_bus
-            .publish(DomainEvent::ActRunCompleted(ActRunCompletedPayload {
-                container_names: execution.container_names,
-                success: execution.success,
-            }));
+        let (workflow_name, job_summaries, container_names, success) = execution.into_parts();
 
-        Ok(RunSummary {
-            name: execution.workflow_name,
-            success: execution.success,
-            duration: started_at.elapsed(),
-            job_summaries: execution.job_summaries,
-        })
+        self.event_bus
+            .publish(DomainEvent::ActRunCompleted(ActRunCompletedPayload::new(
+                container_names,
+                success,
+            )));
+
+        Ok(RunSummary::new(
+            workflow_name,
+            job_summaries,
+            success,
+            started_at.elapsed(),
+        ))
     }
 }

@@ -22,30 +22,26 @@ impl RunShellStepService {
 
     fn relay_output(&self, step_name: &str, stream: OutputStream, text: &str) {
         self.event_bus
-            .publish(DomainEvent::StepOutput(StepOutputPayload {
-                step_name: step_name.to_string(),
+            .publish(DomainEvent::StepOutput(StepOutputPayload::new(
+                step_name.to_string(),
                 stream,
-                text: text.to_string(),
-            }));
+                text.to_string(),
+            )));
     }
 }
 
 impl RunShellStepPort for RunShellStepService {
     fn execute(&self, request: RunShellStepRequest<'_>) -> Result<ExecResult, StepError> {
-        let command = ShellCommand::for_step(request.step, request.env)
+        let command = ShellCommand::for_step(request.step(), request.env())
             .ok_or_else(|| StepError::new("step has neither `run` nor `uses` defined"))?;
-        let step_name = request
-            .step
-            .name
-            .clone()
-            .unwrap_or_else(|| "unnamed step".into());
+        let step_name = request.step().name().unwrap_or("unnamed step");
 
         let mut relay = |stream: OutputStream, text: &str| {
-            self.relay_output(&step_name, stream, text);
+            self.relay_output(step_name, stream, text);
         };
 
         request
-            .container
+            .container()
             .exec_streaming(
                 command.argv(),
                 command.working_directory(),

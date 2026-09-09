@@ -20,12 +20,12 @@ mod tests {
 
     impl ShowProjectBrandingInfoPort for FakeShowProjectBrandingInfoPort {
         fn execute(&self) -> Result<ShowProjectBrandingInfoResponse, Box<dyn Error>> {
-            Ok(ShowProjectBrandingInfoResponse {
-                name: "ephact".to_string(),
-                description: "Ephemeral action runner".to_string(),
-                version: "0.1.0".to_string(),
-                emblem: "shield".to_string(),
-            })
+            Ok(ShowProjectBrandingInfoResponse::new(
+                "ephact".to_string(),
+                "Ephemeral action runner".to_string(),
+                "0.1.0".to_string(),
+                "shield".to_string(),
+            ))
         }
     }
     struct TestTerminal;
@@ -33,6 +33,14 @@ mod tests {
     impl Terminal for TestTerminal {
         fn dimensions(&self) -> (usize, usize) {
             (100, 40)
+        }
+
+        fn write_text(&self, _text: &str) -> std::io::Result<()> {
+            Ok(())
+        }
+
+        fn read_line(&self) -> std::io::Result<String> {
+            Ok(String::new())
         }
     }
 

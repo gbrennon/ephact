@@ -12,7 +12,7 @@ use crate::{
 
 const TOOLCHAIN_WORKFLOW: &str = r#"
 name: Remote Toolchain
-on: push
+on: pull_request
 jobs:
   setup:
     runs-on: ubuntu-latest
@@ -71,7 +71,6 @@ impl RemoteActionPipelineRun {
         );
 
         let outcome = application
-            .cli
             .run([
                 "ephact",
                 "run",
@@ -79,7 +78,7 @@ impl RemoteActionPipelineRun {
                 "--workflow",
                 "toolchain.yml",
                 "--event",
-                "push",
+                "pull_request",
             ])
             .map_err(|error| error.to_string());
 

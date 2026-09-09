@@ -10,7 +10,7 @@ build:
 	cargo build
 
 # Run the application without installing (pass args through)
-# Usage: just run [--help] [--workflow <path>] [--job <name>] [--event <event>] [--input KEY=VALUE] [--secret SECRET] [--extra-arg ARG] [--preserve] [repo-path]
+# Usage: just run [--help] [--interactive] [--workflow <path>] [--job <name>] [--event <event>] [--input KEY=VALUE] [--secret SECRET] [--extra-arg ARG] [--preserve] [repo-path]
 run *args:
 	cargo run -- run {{args}}
 
@@ -69,6 +69,9 @@ clean:
 # Lint Forgejo Actions workflows
 lint-workflows:
 	actionlint -config-file .actionlint.yaml .forgejo/workflows/*.yml
+
+semgrep:
+	semgrep scan --config .semgrep --error .
 
 # Install lefthook pre-commit hooks
 install-hooks:

@@ -12,11 +12,7 @@ use crate::common::fakes::{
 };
 
 fn request<'a>(repo_path: &'a Path) -> PrepareJobContainerRequest<'a> {
-    PrepareJobContainerRequest {
-        job_id: "build",
-        runs_on: Some("ubuntu-latest"),
-        repo_path,
-    }
+    PrepareJobContainerRequest::new("build", Some("ubuntu-latest"), repo_path)
 }
 
 #[test]
@@ -29,7 +25,7 @@ fn execute_names_the_container_after_the_job_and_the_process() {
     let prepared = service.execute(request(Path::new("/repo"))).unwrap();
 
     assert_eq!(
-        prepared.container_name,
+        prepared.container_name(),
         format!("ephemeral-act-build-{}", std::process::id())
     );
 }

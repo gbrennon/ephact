@@ -33,7 +33,7 @@ impl PullJobImagePort for FakePullJobImagePort {
     ) -> Result<String, Box<dyn std::error::Error>> {
         self.requested_labels
             .lock()
-            .push(request.runs_on.map(str::to_string));
+            .push(request.runs_on().map(str::to_string));
         self.result.clone().map_err(Into::into)
     }
 }

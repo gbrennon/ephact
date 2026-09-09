@@ -2,16 +2,33 @@
 /// displays it.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct WorkflowListItem {
-    /// Display name declared by the workflow, when it declares one.
-    pub name: Option<String>,
-    /// File name the workflow was read from, when it is known.
-    pub file: Option<String>,
+    name: Option<String>,
+    file: Option<String>,
+    events: Vec<String>,
 }
 
 impl WorkflowListItem {
-    /// Creates an item from the name and file name of a workflow.
-    pub fn new(name: Option<String>, file: Option<String>) -> Self {
-        Self { name, file }
+    pub fn new(name: Option<String>, file: Option<String>, events: Vec<String>) -> Self {
+        Self { name, file, events }
+    }
+
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    pub fn file(&self) -> Option<&str> {
+        self.file.as_deref()
+    }
+    pub fn events(&self) -> &[String] {
+        &self.events
+    }
+
+    pub fn has_pull_request_event(&self) -> bool {
+        self.events.iter().any(|event| event == "pull_request")
+    }
+
+    pub fn into_parts(self) -> (Option<String>, Option<String>, Vec<String>) {
+        (self.name, self.file, self.events)
     }
 }
 
@@ -21,15 +38,28 @@ mod tests {
 
     #[test]
     fn new_workflow_list_item_keeps_fields() {
-        let item = WorkflowListItem::new(Some("ci".into()), Some("ci.yml".into()));
-        assert_eq!(item.name.as_deref(), Some("ci"));
-        assert_eq!(item.file.as_deref(), Some("ci.yml"));
+        let item = WorkflowListItem::new(
+            Some("ci".into()),
+            Some("ci.yml".into()),
+            vec!["pull_request".into()],
+        );
+        assert_eq!(item.name(), Some("ci"));
+        assert_eq!(item.file(), Some("ci.yml"));
+        assert_eq!(item.events(), &["pull_request".to_string()]);
     }
 
     #[test]
     fn new_workflow_list_item_allows_missing_fields() {
-        let item = WorkflowListItem::new(None, None);
-        assert_eq!(item.name, None);
-        assert_eq!(item.file, None);
+        let item = WorkflowListItem::new(None, None, vec![]);
+        assert_eq!(item.name(), None);
+        assert_eq!(item.file(), None);
+        assert!(item.events().is_empty());
+    }
+
+    #[test]
+    fn has_pull_request_event_reports_pull_request_eligibility() {
+        let item = WorkflowListItem::new(None, None, vec!["push".into(), "pull_request".into()]);
+
+        assert!(item.has_pull_request_event());
     }
 }

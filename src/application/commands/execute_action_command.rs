@@ -6,12 +6,12 @@ use crate::domain::workflow::Step;
 
 #[derive(Clone)]
 pub struct ExecuteActionCommand {
-    pub action_ref: String,
-    pub step: Step,
-    pub repo_path: PathBuf,
-    pub env: HashMap<String, String>,
-    pub context: EvalContext,
-    pub container: Arc<dyn ContainerPort>,
+    action_ref: String,
+    step: Step,
+    repo_path: PathBuf,
+    env: HashMap<String, String>,
+    context: EvalContext,
+    container: Arc<dyn ContainerPort>,
 }
 
 impl ExecuteActionCommand {
@@ -32,8 +32,51 @@ impl ExecuteActionCommand {
             container,
         }
     }
-}
 
+    pub fn action_ref(&self) -> &str {
+        &self.action_ref
+    }
+
+    pub fn step(&self) -> &Step {
+        &self.step
+    }
+
+    pub fn repo_path(&self) -> &PathBuf {
+        &self.repo_path
+    }
+
+    pub fn env(&self) -> &HashMap<String, String> {
+        &self.env
+    }
+
+    pub fn context(&self) -> &EvalContext {
+        &self.context
+    }
+
+    pub fn container(&self) -> &Arc<dyn ContainerPort> {
+        &self.container
+    }
+
+    pub fn into_parts(
+        self,
+    ) -> (
+        String,
+        Step,
+        PathBuf,
+        HashMap<String, String>,
+        EvalContext,
+        Arc<dyn ContainerPort>,
+    ) {
+        (
+            self.action_ref,
+            self.step,
+            self.repo_path,
+            self.env,
+            self.context,
+            self.container,
+        )
+    }
+}
 impl fmt::Debug for ExecuteActionCommand {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ExecuteActionCommand")

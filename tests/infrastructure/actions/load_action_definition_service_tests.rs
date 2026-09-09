@@ -15,13 +15,11 @@ fn execute_loads_action_yml() {
     fs::write(tmp.path().join("action.yml"), COMPOSITE).unwrap();
 
     let definition = LoadActionDefinitionService::new()
-        .execute(LoadActionDefinitionRequest {
-            action_dir: tmp.path(),
-        })
+        .execute(LoadActionDefinitionRequest::new(tmp.path()))
         .unwrap();
 
-    assert_eq!(definition.name, "Greet");
-    assert!(matches!(definition.runs, ActionRuns::Composite { .. }));
+    assert_eq!(definition.name(), "Greet");
+    assert!(matches!(definition.runs(), ActionRuns::Composite { .. }));
 }
 
 #[test]
@@ -30,12 +28,10 @@ fn execute_falls_back_to_action_yaml() {
     fs::write(tmp.path().join("action.yaml"), COMPOSITE).unwrap();
 
     let definition = LoadActionDefinitionService::new()
-        .execute(LoadActionDefinitionRequest {
-            action_dir: tmp.path(),
-        })
+        .execute(LoadActionDefinitionRequest::new(tmp.path()))
         .unwrap();
 
-    assert_eq!(definition.name, "Greet");
+    assert_eq!(definition.name(), "Greet");
 }
 
 #[test]
@@ -43,13 +39,11 @@ fn execute_errors_when_no_definition_is_present() {
     let tmp = tempfile::tempdir().unwrap();
 
     let error = LoadActionDefinitionService::new()
-        .execute(LoadActionDefinitionRequest {
-            action_dir: tmp.path(),
-        })
+        .execute(LoadActionDefinitionRequest::new(tmp.path()))
         .unwrap_err();
 
     assert_eq!(
-        error.message,
+        error.message(),
         format!("action.yml not found in {}", tmp.path().display())
     );
 }
@@ -60,14 +54,12 @@ fn execute_errors_on_malformed_yaml() {
     fs::write(tmp.path().join("action.yml"), "name: [unterminated\n").unwrap();
 
     let error = LoadActionDefinitionService::new()
-        .execute(LoadActionDefinitionRequest {
-            action_dir: tmp.path(),
-        })
+        .execute(LoadActionDefinitionRequest::new(tmp.path()))
         .unwrap_err();
 
     assert!(
-        error.message.starts_with("failed to parse "),
+        error.message().starts_with("failed to parse "),
         "{}",
-        error.message
+        error.message()
     );
 }

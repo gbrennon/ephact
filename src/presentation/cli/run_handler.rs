@@ -1,13 +1,17 @@
-use super::run_args::RunArgs;
-use crate::application::{
-    dtos::{RunAllWorkflowsRequest, RunSummary, RunWorkflowRequest},
-    ports::inbound::{
-        run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
-    },
-};
-use crate::presentation::components::{
+use super::super::components::{
     box_component::BoxComponent, component::Component, run_summary::RunSummaryComponent,
     terminal::Terminal,
+};
+use super::run_args::RunArgs;
+use crate::{
+    application::{
+        dtos::{ListWorkflowsRequest, RunAllWorkflowsRequest, RunSummary, RunWorkflowRequest},
+        ports::inbound::{
+            list_workflows_port::ListWorkflowsPort, run_all_workflows_port::RunAllWorkflowsPort,
+            run_workflow_port::RunWorkflowPort,
+        },
+    },
+    domain::value_objects::{ActEvent, ActInput, ActRunConfig, ActWorkflow},
 };
 
 /// Handles the `run` subcommand by dispatching parsed CLI arguments to the
@@ -24,10 +28,16 @@ impl RunHandler {
         args: RunArgs,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
+        list_workflows_port: &dyn ListWorkflowsPort,
         terminal: &dyn Terminal,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let (rendered, success) =
-            Self::handle_with_output(args, run_workflow_port, run_all_workflows_port, terminal)?;
+        let (rendered, success) = Self::handle_with_output(
+            args,
+            run_workflow_port,
+            run_all_workflows_port,
+            list_workflows_port,
+            terminal,
+        )?;
         print!("{rendered}");
         Self::result_for(success)
     }
@@ -36,9 +46,15 @@ impl RunHandler {
         args: RunArgs,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
+        list_workflows_port: &dyn ListWorkflowsPort,
         terminal: &dyn Terminal,
     ) -> Result<(String, bool), Box<dyn std::error::Error>> {
         let (config, repository) = args.to_domain()?;
+        let config = if args.interactive() {
+            Self::prepare_interactive_config(config, &repository, list_workflows_port, terminal)?
+        } else {
+            config
+        };
         let summary = Self::execute(
             config,
             repository,
@@ -46,7 +62,7 @@ impl RunHandler {
             run_all_workflows_port,
         )?;
         let rendered = BoxComponent::new(RunSummaryComponent::new(&summary), terminal).render();
-        Ok((rendered, summary.success))
+        Ok((rendered, summary.success()))
     }
 
     fn result_for(success: bool) -> Result<(), Box<dyn std::error::Error>> {
@@ -57,8 +73,104 @@ impl RunHandler {
         }
     }
 
+    fn prepare_interactive_config(
+        mut config: ActRunConfig,
+        repository: &crate::domain::Repository,
+        list_workflows_port: &dyn ListWorkflowsPort,
+        terminal: &dyn Terminal,
+    ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
+        let response =
+            list_workflows_port.execute(ListWorkflowsRequest::new(repository.clone()))?;
+        let workflows: Vec<_> = response
+            .workflows()
+            .iter()
+            .filter(|workflow| workflow.has_pull_request_event())
+            .collect();
+        let workflow = Self::select_pull_request_workflow(&workflows, terminal)?;
+        if let Some(name) = workflow.name() {
+            config = config.with_workflow(ActWorkflow::new(name.to_string()));
+        }
+        config = config
+            .with_event(ActEvent::new("pull_request".to_string()))
+            .with_all_workflows(false);
+        Self::collect_interactive_inputs(config, terminal)
+    }
+
+    fn select_pull_request_workflow<'a>(
+        workflows: &[&'a crate::application::dtos::WorkflowListItem],
+        terminal: &dyn Terminal,
+    ) -> Result<&'a crate::application::dtos::WorkflowListItem, Box<dyn std::error::Error>> {
+        if workflows.is_empty() {
+            return Err("no pull_request workflows are available for interactive execution".into());
+        }
+        terminal.write_text(&Self::workflow_selection_form(workflows))?;
+        let selection = Self::read_workflow_selection(terminal)?;
+        workflows
+            .get(selection.saturating_sub(1))
+            .copied()
+            .ok_or_else(|| {
+                "workflow selection is outside the available pull_request workflows".into()
+            })
+    }
+
+    fn read_workflow_selection(
+        terminal: &dyn Terminal,
+    ) -> Result<usize, Box<dyn std::error::Error>> {
+        let line = terminal.read_line()?;
+        line.trim()
+            .parse::<usize>()
+            .map_err(|_| "workflow selection must be a number".into())
+    }
+
+    fn workflow_selection_form(
+        workflows: &[&crate::application::dtos::WorkflowListItem],
+    ) -> String {
+        let options = workflows
+            .iter()
+            .enumerate()
+            .map(|(index, workflow)| {
+                format!(
+                    "{}. {}",
+                    index + 1,
+                    workflow.name().unwrap_or("Unnamed workflow")
+                )
+            })
+            .collect::<Vec<String>>()
+            .join("\n");
+        format!(
+            "Interactive workflow run\n\nPull request workflows\n{options}\n\nSelect workflow: "
+        )
+    }
+
+    fn collect_interactive_inputs(
+        mut config: ActRunConfig,
+        terminal: &dyn Terminal,
+    ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
+        terminal.write_text(
+            "\nInputs\nEnter KEY=VALUE, KEY=env:VARIABLE, or a blank line to run.\nInput: ",
+        )?;
+        while let Some(input) = Self::read_interactive_input(terminal)? {
+            config = config.add_input(input);
+            terminal.write_text("Input: ")?;
+        }
+        Ok(config)
+    }
+
+    fn read_interactive_input(
+        terminal: &dyn Terminal,
+    ) -> Result<Option<ActInput>, Box<dyn std::error::Error>> {
+        let line = terminal.read_line()?;
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            return Ok(None);
+        }
+        let (key, source) = RunArgs::parse_input_source(trimmed)?;
+        let value = source.resolve()?;
+        Ok(Some(ActInput::new(key, value)))
+    }
+
     fn execute(
-        config: crate::domain::value_objects::ActRunConfig,
+        config: ActRunConfig,
         repository: crate::domain::Repository,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
@@ -86,21 +198,11 @@ mod tests {
     };
 
     fn job(job_id: &str, name: Option<&str>, success: bool) -> JobSummary {
-        JobSummary {
-            job_id: job_id.into(),
-            name: name.map(Into::into),
-            steps: vec![],
-            success,
-        }
+        JobSummary::new(job_id, name.map(Into::into), vec![], success)
     }
 
     fn summary(success: bool, jobs: Vec<JobSummary>, duration: Duration) -> RunSummary {
-        RunSummary {
-            name: "test".into(),
-            job_summaries: jobs,
-            success,
-            duration,
-        }
+        RunSummary::new("test", jobs, success, duration)
     }
 
     #[test]
@@ -126,36 +228,36 @@ mod tests {
     }
     #[test]
     fn render_includes_workflow_and_every_step_status() {
-        let summary = RunSummary {
-            name: "Build".into(),
-            job_summaries: vec![JobSummary {
-                job_id: "compile".into(),
-                name: Some("Compile".into()),
-                steps: vec![
-                    StepSummary {
-                        name: "Checkout".into(),
-                        step_type: StepType::Run,
-                        exit_code: Some(0),
-                        continue_on_error: false,
-                        duration: Duration::ZERO,
-                        stdout: String::new(),
-                        stderr: String::new(),
-                    },
-                    StepSummary {
-                        name: "Build".into(),
-                        step_type: StepType::Run,
-                        exit_code: Some(1),
-                        continue_on_error: false,
-                        duration: Duration::ZERO,
-                        stdout: String::new(),
-                        stderr: String::new(),
-                    },
+        let summary = RunSummary::new(
+            "Build",
+            vec![JobSummary::new(
+                "compile",
+                Some("Compile".to_string()),
+                vec![
+                    StepSummary::new(
+                        "Checkout",
+                        StepType::Run,
+                        Some(0),
+                        false,
+                        Duration::ZERO,
+                        String::new(),
+                        String::new(),
+                    ),
+                    StepSummary::new(
+                        "Build",
+                        StepType::Run,
+                        Some(1),
+                        false,
+                        Duration::ZERO,
+                        String::new(),
+                        String::new(),
+                    ),
                 ],
-                success: false,
-            }],
-            success: false,
-            duration: Duration::ZERO,
-        };
+                false,
+            )],
+            false,
+            Duration::ZERO,
+        );
 
         let rendered = RunHandler::render(&summary);
 
@@ -166,25 +268,25 @@ mod tests {
 
     #[test]
     fn render_reports_failed_step_status_without_output_details() {
-        let summary = RunSummary {
-            name: "test".into(),
-            job_summaries: vec![JobSummary {
-                job_id: "lint".into(),
-                name: Some("Lint".into()),
-                steps: vec![StepSummary {
-                    name: "Clippy".into(),
-                    step_type: StepType::Run,
-                    exit_code: Some(101),
-                    continue_on_error: false,
-                    duration: Duration::ZERO,
-                    stdout: String::new(),
-                    stderr: "clippy failed".into(),
-                }],
-                success: false,
-            }],
-            success: false,
-            duration: Duration::from_secs(2),
-        };
+        let summary = RunSummary::new(
+            "test",
+            vec![JobSummary::new(
+                "lint",
+                Some("Lint".to_string()),
+                vec![StepSummary::new(
+                    "Clippy",
+                    StepType::Run,
+                    Some(101),
+                    false,
+                    Duration::ZERO,
+                    String::new(),
+                    "clippy failed".to_string(),
+                )],
+                false,
+            )],
+            false,
+            Duration::from_secs(2),
+        );
 
         let rendered = RunHandler::render(&summary);
 

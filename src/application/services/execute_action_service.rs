@@ -1,3 +1,5 @@
+use std::{collections::HashMap, path::PathBuf};
+
 use crate::application::ports::{
     inbound::execute_action_port::ExecuteActionPort,
     outbound::{
@@ -15,7 +17,7 @@ use crate::{
     },
     domain::{
         errors::{ActionError, StepError},
-        workflow::ActionRuns,
+        workflow::{ActionDefinition, ActionRuns},
     },
 };
 
@@ -32,6 +34,11 @@ pub struct ExecuteActionService {
     input_resolver: Box<dyn ResolveActionInputsPort>,
     composite_runner: Box<dyn RunCompositeActionPort>,
     node_runner: Box<dyn RunNodeActionPort>,
+}
+
+enum ActionDirectoryResolution {
+    Skipped(ExecuteActionResponse),
+    Directory(PathBuf),
 }
 
 impl ExecuteActionService {
@@ -55,61 +62,92 @@ impl ExecuteActionService {
         &self,
         request: &ExecuteActionRequest,
     ) -> Result<ExecuteActionResponse, StepError> {
-        let action_dir = match self
-            .directory_resolver
-            .execute(ResolveActionDirectoryRequest {
-                action_ref: &request.action_ref,
-                repo_path: &request.repo_path,
-            })? {
-            ResolvedActionDirectory::Skipped(response) => return Ok(response),
-            ResolvedActionDirectory::Directory(directory) => directory,
+        let action_dir = match self.resolve_action_directory(request)? {
+            ActionDirectoryResolution::Skipped(response) => return Ok(response),
+            ActionDirectoryResolution::Directory(directory) => directory,
         };
+        let definition = self.load_action_definition(request, &action_dir)?;
+        let inputs = self.resolve_action_inputs(&definition, request)?;
 
-        let definition = self
-            .definition_loader
-            .execute(LoadActionDefinitionRequest {
-                action_dir: &action_dir,
-            })
+        self.execute_loaded_action(request, &definition, &inputs, &action_dir)
+    }
+
+    fn resolve_action_directory(
+        &self,
+        request: &ExecuteActionRequest,
+    ) -> Result<ActionDirectoryResolution, StepError> {
+        match self
+            .directory_resolver
+            .execute(ResolveActionDirectoryRequest::new(
+                request.action_ref(),
+                request.repo_path(),
+            ))? {
+            ResolvedActionDirectory::Skipped(response) => {
+                Ok(ActionDirectoryResolution::Skipped(response))
+            }
+            ResolvedActionDirectory::Directory(directory) => {
+                Ok(ActionDirectoryResolution::Directory(directory))
+            }
+        }
+    }
+
+    fn load_action_definition(
+        &self,
+        request: &ExecuteActionRequest,
+        action_dir: &std::path::Path,
+    ) -> Result<ActionDefinition, StepError> {
+        self.definition_loader
+            .execute(LoadActionDefinitionRequest::new(action_dir))
             .map_err(|error| {
                 StepError::new(format!(
                     "failed to load action '{}': {}",
-                    request.action_ref, error.message
+                    request.action_ref(),
+                    error.message()
                 ))
-            })?;
-        let inputs = self.input_resolver.execute(ResolveActionInputsRequest {
-            definition: &definition,
-            step: &request.step,
-        });
+            })
+    }
 
-        match &definition.runs {
+    fn resolve_action_inputs(
+        &self,
+        definition: &ActionDefinition,
+        request: &ExecuteActionRequest,
+    ) -> Result<HashMap<String, String>, StepError> {
+        self.input_resolver
+            .execute(ResolveActionInputsRequest::new(definition, request.step()))
+    }
+
+    fn execute_loaded_action(
+        &self,
+        request: &ExecuteActionRequest,
+        definition: &ActionDefinition,
+        inputs: &HashMap<String, String>,
+        action_dir: &std::path::Path,
+    ) -> Result<ExecuteActionResponse, StepError> {
+        match definition.runs() {
             ActionRuns::Composite { steps } => {
-                self.composite_runner.execute(RunCompositeActionRequest {
-                    steps,
-                    inputs: &inputs,
-                    action_dir: &action_dir,
-                    action_request: request,
-                })
+                self.composite_runner
+                    .execute(RunCompositeActionRequest::new(
+                        steps, inputs, action_dir, request,
+                    ))
             }
             ActionRuns::Node12 { main }
             | ActionRuns::Node16 { main }
             | ActionRuns::Node20 { main } => self
                 .node_runner
-                .execute(RunNodeActionRequest {
-                    action_dir: &action_dir,
-                    entry_point: main,
-                    inputs: &inputs,
-                    env: &request.env,
-                    container: request.container.as_ref(),
-                })
-                .map(|result| ExecuteActionResponse {
-                    exit_code: result.exit_code,
-                    stdout: result.stdout,
-                    stderr: result.stderr,
+                .execute(RunNodeActionRequest::new(
+                    action_dir,
+                    main,
+                    inputs,
+                    request.env(),
+                    request.container().as_ref(),
+                ))
+                .map(|result| {
+                    ExecuteActionResponse::new(result.exit_code(), result.stdout(), result.stderr())
                 }),
             ActionRuns::Docker { image } => Err(StepError::new(
                 ActionError::Unsupported(format!(
                     "action '{}' runs the container image '{image}', which cannot be executed yet",
-                    request.action_ref
+                    request.action_ref()
                 ))
                 .to_string(),
             )),

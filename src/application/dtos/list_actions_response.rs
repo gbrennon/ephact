@@ -9,12 +9,22 @@ pub struct ListActionsResponse {
     /// The action references (`uses:`) used across the workflows, e.g.
     /// `actions/checkout@v4`, `./.forgejo/actions/my-action`, or
     /// `docker://node:20`.
-    pub actions: Vec<String>,
+    actions: Vec<String>,
 }
 
 impl ListActionsResponse {
     /// Creates a new list-actions response.
     pub fn new(actions: Vec<String>) -> Self {
         Self { actions }
+    }
+
+    /// The action references (`uses:`) used across the workflows.
+    pub fn actions(&self) -> &[String] {
+        &self.actions
+    }
+
+    /// Consumes the response and returns the actions.
+    pub fn into_actions(self) -> Vec<String> {
+        self.actions
     }
 }

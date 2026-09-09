@@ -4,5 +4,26 @@
 #[derive(Debug, Clone)]
 pub struct WorkflowStartedPayload {
     /// Name declared by the workflow being run.
-    pub workflow_name: String,
+    workflow_name: String,
+}
+
+impl WorkflowStartedPayload {
+    pub fn new(workflow_name: String) -> Self {
+        Self { workflow_name }
+    }
+
+    pub fn workflow_name(&self) -> &str {
+        &self.workflow_name
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_preserves_workflow_name() {
+        let payload = WorkflowStartedPayload::new("workflow".into());
+
+        assert_eq!(payload.workflow_name(), "workflow");
+    }
 }

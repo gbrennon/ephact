@@ -25,7 +25,7 @@ impl DomainEventHandler for ContainerCleanupHandler {
         let DomainEvent::ActRunCompleted(payload) = event else {
             return;
         };
-        for name in &payload.container_names {
+        for name in payload.container_names() {
             let _ = self.runtime.stop_container(name);
             let _ = self.runtime.kill_container(name);
             let _ = self.runtime.remove_container(name);

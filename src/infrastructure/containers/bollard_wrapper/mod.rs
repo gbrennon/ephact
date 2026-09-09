@@ -14,18 +14,7 @@
 pub use bollard::{self, Docker as Client};
 
 /// Re-exported bollard types used across runtime and container adapters.
-pub mod types {
-    pub use bollard::{
-        container::LogOutput,
-        exec::{CreateExecOptions, StartExecOptions, StartExecResults},
-        models::{ContainerCreateBody, HostConfig},
-        query_parameters::{
-            CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
-            DownloadFromContainerOptionsBuilder, InspectContainerOptions, KillContainerOptions,
-            RemoveContainerOptions, StartContainerOptions, UploadToContainerOptionsBuilder,
-        },
-    };
-}
+pub mod types;
 
 /// bollard's default API version constant.
 pub use bollard::API_DEFAULT_VERSION;

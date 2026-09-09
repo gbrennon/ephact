@@ -1,10 +1,8 @@
-use crate::infrastructure::steps::read_step_env_exports_port::ReadStepEnvExportsPort;
+use super::read_step_env_exports_port::ReadStepEnvExportsPort;
 use std::collections::HashMap;
 
-use crate::{
-    application::dtos::ReadStepEnvExportsRequest,
-    infrastructure::containers::workspace::GITHUB_ENV_FILE,
-};
+use super::super::containers::workspace::GITHUB_ENV_FILE;
+use crate::application::dtos::ReadStepEnvExportsRequest;
 
 /// Service that reads the environment variables a step exported through
 /// `GITHUB_ENV`.
@@ -28,12 +26,12 @@ impl Default for ReadStepEnvExportsService {
 impl ReadStepEnvExportsPort for ReadStepEnvExportsService {
     fn execute(&self, request: ReadStepEnvExportsRequest<'_>) -> HashMap<String, String> {
         let mut exported = HashMap::new();
-        if let Ok(output) = request.container.exec(
+        if let Ok(output) = request.container().exec(
             &["cat".into(), GITHUB_ENV_FILE.into()],
             None,
             &HashMap::new(),
         ) {
-            for line in output.stdout.lines() {
+            for line in output.stdout().lines() {
                 let trimmed = line.trim();
                 if let Some((key, value)) = trimmed.split_once('=') {
                     exported.insert(key.to_string(), value.to_string());

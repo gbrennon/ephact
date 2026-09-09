@@ -33,12 +33,12 @@ impl ExecuteWorkflowPort for StubWorkflowPort {
         &self,
         _request: ephact::application::dtos::ExecuteWorkflowRequest<'_>,
     ) -> Result<WorkflowExecution, Box<dyn std::error::Error>> {
-        Ok(WorkflowExecution {
-            workflow_name: "dispatched-wf".into(),
-            job_summaries: Vec::new(),
-            container_names: vec!["c1".into()],
-            success: true,
-        })
+        Ok(WorkflowExecution::new(
+            "dispatched-wf".to_string(),
+            Vec::new(),
+            vec!["c1".to_string()],
+            true,
+        ))
     }
 }
 
@@ -48,15 +48,15 @@ impl ExecuteJobPort for StubJobPort {
         &self,
         _request: ephact::application::dtos::ExecuteJobRequest<'_>,
     ) -> Result<JobExecution, Box<dyn std::error::Error>> {
-        Ok(JobExecution {
-            job_summary: JobSummary {
-                job_id: "j1".into(),
-                name: Some("job 1".into()),
-                steps: Vec::new(),
-                success: true,
-            },
-            container_name: "c1".into(),
-        })
+        Ok(JobExecution::new(
+            JobSummary::new(
+                "j1".to_string(),
+                Some("job 1".to_string()),
+                Vec::new(),
+                true,
+            ),
+            "c1".to_string(),
+        ))
     }
 }
 
@@ -66,25 +66,21 @@ impl ExecuteStepPort for StubStepPort {
         &self,
         request: ephact::application::dtos::ExecuteStepRequest<'_>,
     ) -> Result<ExecutedStep, StepError> {
-        Ok(ExecutedStep {
-            step: request.step.clone(),
-            response: ExecuteActionResponse {
-                exit_code: 0,
-                stdout: "step out".into(),
-                stderr: String::new(),
-            },
-        })
+        Ok(ExecutedStep::new(
+            request.step().clone(),
+            ExecuteActionResponse::new(0, "step out".to_string(), String::new()),
+        ))
     }
 }
 
 struct StubActionPort;
 impl ExecuteActionPort for StubActionPort {
     fn execute(&self, _request: ExecuteActionRequest) -> Result<ExecuteActionResponse, StepError> {
-        Ok(ExecuteActionResponse {
-            exit_code: 0,
-            stdout: "action out".into(),
-            stderr: String::new(),
-        })
+        Ok(ExecuteActionResponse::new(
+            0,
+            "action out".to_string(),
+            String::new(),
+        ))
     }
 }
 
@@ -111,7 +107,7 @@ fn command_bus_dispatches_workflow_to_workflow_handler() {
     );
 
     let result = bus.dispatch_workflow(cmd).unwrap();
-    assert_eq!(result.workflow_name, "dispatched-wf");
+    assert_eq!(result.workflow_name(), "dispatched-wf");
 }
 
 #[test]
@@ -134,6 +130,6 @@ fn command_bus_dispatches_action_to_action_handler() {
     );
 
     let result = bus.dispatch_action(cmd).unwrap();
-    assert_eq!(result.stdout, "action out");
-    assert_eq!(result.exit_code, 0);
+    assert_eq!(result.stdout(), "action out");
+    assert_eq!(result.exit_code(), 0);
 }

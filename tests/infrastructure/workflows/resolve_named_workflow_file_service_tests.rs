@@ -19,10 +19,10 @@ fn execute_resolves_a_path_relative_to_the_repository_root() {
     let service = ResolveNamedWorkflowFileService::new();
 
     let path = service
-        .execute(ResolveNamedWorkflowFileRequest {
-            workflow_name: ".forgejo/workflows/ci.yml",
-            repo_path: tmp.path(),
-        })
+        .execute(ResolveNamedWorkflowFileRequest::new(
+            ".forgejo/workflows/ci.yml",
+            tmp.path(),
+        ))
         .unwrap();
 
     assert_eq!(path, tmp.path().join(".forgejo/workflows/ci.yml"));
@@ -35,10 +35,7 @@ fn execute_resolves_a_bare_name_under_the_forgejo_directory() {
     let service = ResolveNamedWorkflowFileService::new();
 
     let path = service
-        .execute(ResolveNamedWorkflowFileRequest {
-            workflow_name: "ci.yml",
-            repo_path: tmp.path(),
-        })
+        .execute(ResolveNamedWorkflowFileRequest::new("ci.yml", tmp.path()))
         .unwrap();
 
     assert_eq!(path, tmp.path().join(".forgejo/workflows/ci.yml"));
@@ -51,10 +48,7 @@ fn execute_falls_back_to_the_github_directory() {
     let service = ResolveNamedWorkflowFileService::new();
 
     let path = service
-        .execute(ResolveNamedWorkflowFileRequest {
-            workflow_name: "ci.yml",
-            repo_path: tmp.path(),
-        })
+        .execute(ResolveNamedWorkflowFileRequest::new("ci.yml", tmp.path()))
         .unwrap();
 
     assert_eq!(path, tmp.path().join(".github/workflows/ci.yml"));
@@ -68,10 +62,7 @@ fn execute_prefers_the_forgejo_directory_when_both_hold_the_name() {
     let service = ResolveNamedWorkflowFileService::new();
 
     let path = service
-        .execute(ResolveNamedWorkflowFileRequest {
-            workflow_name: "ci.yml",
-            repo_path: tmp.path(),
-        })
+        .execute(ResolveNamedWorkflowFileRequest::new("ci.yml", tmp.path()))
         .unwrap();
 
     assert_eq!(path, tmp.path().join(".forgejo/workflows/ci.yml"));
@@ -83,10 +74,10 @@ fn execute_errors_when_the_named_workflow_is_absent() {
     let service = ResolveNamedWorkflowFileService::new();
 
     let error = service
-        .execute(ResolveNamedWorkflowFileRequest {
-            workflow_name: "missing.yml",
-            repo_path: tmp.path(),
-        })
+        .execute(ResolveNamedWorkflowFileRequest::new(
+            "missing.yml",
+            tmp.path(),
+        ))
         .unwrap_err()
         .to_string();
 

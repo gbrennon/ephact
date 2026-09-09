@@ -10,7 +10,7 @@ use crate::common::fakes::fake_workflow_source::FakeWorkflowSource;
 
 fn make_repo() -> Repository {
     let repo_path = RepoPath::new(env!("CARGO_MANIFEST_DIR")).unwrap();
-    let name = RepositoryName::new("test-repo".into()).unwrap();
+    let name = RepositoryName::new("test-repo".to_string()).unwrap();
     Repository::new(repo_path, name)
 }
 
@@ -27,7 +27,7 @@ fn execute_returns_the_actions_reported_by_the_source() {
 
     let response = service.execute(request).unwrap();
 
-    assert_eq!(response.actions, actions);
+    assert_eq!(response.actions(), actions);
 }
 
 #[test]
@@ -43,7 +43,7 @@ fn execute_returns_the_actions_untransformed() {
 
     let response = service.execute(request).unwrap();
 
-    assert_eq!(response.actions, actions);
+    assert_eq!(response.actions(), actions);
 }
 
 #[test]
@@ -65,7 +65,7 @@ fn execute_returns_an_empty_response_when_the_source_finds_no_actions() {
 
     let response = service.execute(request).unwrap();
 
-    assert!(response.actions.is_empty());
+    assert!(response.actions().is_empty());
 }
 
 #[test]

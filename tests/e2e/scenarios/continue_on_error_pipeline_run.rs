@@ -10,7 +10,7 @@ use crate::{
 
 const AUDIT_WORKFLOW: &str = r#"
 name: Audit
-on: schedule
+on: pull_request
 jobs:
   audit:
     runs-on: ubuntu-latest
@@ -48,7 +48,6 @@ impl ContinueOnErrorPipelineRun {
         );
 
         let outcome = application
-            .cli
             .run([
                 "ephact",
                 "run",

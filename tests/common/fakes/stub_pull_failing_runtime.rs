@@ -58,10 +58,6 @@ impl ContainerRuntimePort for StubPullFailingRuntime {
     }
 
     fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
-        Ok(HostInfo {
-            os: "linux".into(),
-            arch: "amd64".into(),
-            engine_version: "1.0".into(),
-        })
+        Ok(HostInfo::new("linux", "amd64", "1.0"))
     }
 }

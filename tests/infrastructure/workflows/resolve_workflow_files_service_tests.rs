@@ -32,14 +32,14 @@ fn execute_lists_every_workflow_when_all_workflows_is_configured() {
     let config = ActRunConfig::new().with_all_workflows(true);
 
     let response = service
-        .execute(ResolveWorkflowFilesRequest {
-            config: &config,
-            repo_path: Path::new("/repo"),
-        })
+        .execute(ResolveWorkflowFilesRequest::new(
+            &config,
+            Path::new("/repo"),
+        ))
         .unwrap();
 
     assert_eq!(
-        response.workflow_files,
+        response.workflow_files(),
         vec![PathBuf::from("a.yml"), PathBuf::from("b.yml")]
     );
 }
@@ -57,13 +57,13 @@ fn execute_resolves_the_configured_workflow_by_name() {
     let config = ActRunConfig::new().with_workflow(ActWorkflow::new("ci.yml".into()));
 
     let response = service
-        .execute(ResolveWorkflowFilesRequest {
-            config: &config,
-            repo_path: Path::new("/repo"),
-        })
+        .execute(ResolveWorkflowFilesRequest::new(
+            &config,
+            Path::new("/repo"),
+        ))
         .unwrap();
 
-    assert_eq!(response.workflow_files, vec![PathBuf::from("named.yml")]);
+    assert_eq!(response.workflow_files(), vec![PathBuf::from("named.yml")]);
 }
 
 #[test]
@@ -80,13 +80,16 @@ fn execute_detects_the_workflow_when_none_is_configured() {
     let config = ActRunConfig::new();
 
     let response = service
-        .execute(ResolveWorkflowFilesRequest {
-            config: &config,
-            repo_path: Path::new("/repo"),
-        })
+        .execute(ResolveWorkflowFilesRequest::new(
+            &config,
+            Path::new("/repo"),
+        ))
         .unwrap();
 
-    assert_eq!(response.workflow_files, vec![PathBuf::from("detected.yml")]);
+    assert_eq!(
+        response.workflow_files(),
+        vec![PathBuf::from("detected.yml")]
+    );
 }
 
 #[test]
@@ -102,10 +105,10 @@ fn execute_does_not_consult_the_detector_for_a_named_workflow() {
     );
 
     service
-        .execute(ResolveWorkflowFilesRequest {
-            config: &config,
-            repo_path: Path::new("/repo"),
-        })
+        .execute(ResolveWorkflowFilesRequest::new(
+            &config,
+            Path::new("/repo"),
+        ))
         .unwrap();
 }
 
@@ -123,10 +126,10 @@ fn execute_propagates_a_collaborator_error() {
     let config = ActRunConfig::new().with_workflow(ActWorkflow::new("ci.yml".into()));
 
     let error = service
-        .execute(ResolveWorkflowFilesRequest {
-            config: &config,
-            repo_path: Path::new("/repo"),
-        })
+        .execute(ResolveWorkflowFilesRequest::new(
+            &config,
+            Path::new("/repo"),
+        ))
         .unwrap_err()
         .to_string();
 

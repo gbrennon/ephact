@@ -2,9 +2,9 @@
 /// produced before the failure so it can be surfaced in the run summary.
 #[derive(Debug)]
 pub struct StepError {
-    pub message: String,
-    pub stdout: String,
-    pub stderr: String,
+    message: String,
+    stdout: String,
+    stderr: String,
 }
 
 impl StepError {
@@ -14,6 +14,31 @@ impl StepError {
             stdout: String::new(),
             stderr: String::new(),
         }
+    }
+
+    #[must_use]
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    #[must_use]
+    pub fn stdout(&self) -> &str {
+        &self.stdout
+    }
+
+    #[must_use]
+    pub fn stderr(&self) -> &str {
+        &self.stderr
+    }
+
+    pub fn with_stdout(mut self, stdout: impl Into<String>) -> Self {
+        self.stdout = stdout.into();
+        self
+    }
+
+    pub fn with_stderr(mut self, stderr: impl Into<String>) -> Self {
+        self.stderr = stderr.into();
+        self
     }
 }
 
@@ -25,26 +50,26 @@ mod test {
     fn new_initializes_message_and_empty_buffers() {
         let err = StepError::new("foo");
 
-        assert_eq!(err.message, "foo");
-        assert!(err.stdout.is_empty(), "stdout should be emtpy");
-        assert!(err.stderr.is_empty(), "stderr should be empty");
+        assert_eq!(err.message(), "foo");
+        assert!(err.stdout().is_empty(), "stdout should be emtpy");
+        assert!(err.stderr().is_empty(), "stderr should be empty");
     }
 
     #[test]
     fn new_accepts_string() {
         let err = StepError::new(String::from("bar"));
 
-        assert_eq!(err.message, "bar");
+        assert_eq!(err.message(), "bar");
     }
 
     #[test]
-    fn stdout_and_stderr_are_mutable() {
-        let mut err = StepError::new("test");
-        err.stdout = "output".to_string();
-        err.stderr = "error".to_string();
+    fn with_stdout_and_with_stderr_attach_output() {
+        let err = StepError::new("test")
+            .with_stdout("output")
+            .with_stderr("error");
 
-        assert_eq!(err.stdout, "output");
-        assert_eq!(err.stderr, "error");
+        assert_eq!(err.stdout(), "output");
+        assert_eq!(err.stderr(), "error");
     }
 
     #[test]

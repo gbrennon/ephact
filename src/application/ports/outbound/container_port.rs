@@ -34,11 +34,11 @@ pub trait ContainerPort: Send + Sync {
         on_output: &mut dyn FnMut(OutputStream, &str),
     ) -> Result<ExecResult, ContainerError> {
         let result = self.exec(cmd, workdir, env)?;
-        if !result.stdout.is_empty() {
-            on_output(OutputStream::StandardOutput, &result.stdout);
+        if !result.stdout().is_empty() {
+            on_output(OutputStream::StandardOutput, result.stdout());
         }
-        if !result.stderr.is_empty() {
-            on_output(OutputStream::StandardError, &result.stderr);
+        if !result.stderr().is_empty() {
+            on_output(OutputStream::StandardError, result.stderr());
         }
         Ok(result)
     }

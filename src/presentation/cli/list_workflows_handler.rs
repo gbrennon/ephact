@@ -17,14 +17,9 @@ impl ListWorkflowsHandler {
 
     fn render(response: &ListWorkflowsResponse) -> String {
         response
-            .workflows
+            .workflows()
             .iter()
-            .map(|workflow| {
-                workflow
-                    .name
-                    .clone()
-                    .unwrap_or_else(|| "Unnamed workflow".to_string())
-            })
+            .map(|workflow| workflow.name().unwrap_or("Unnamed workflow").to_string())
             .collect::<Vec<String>>()
             .join("\n")
     }

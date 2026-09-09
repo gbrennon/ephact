@@ -27,8 +27,8 @@ impl LoadActionDefinitionPort for LoadActionDefinitionService {
         request: LoadActionDefinitionRequest<'_>,
     ) -> Result<ActionDefinition, StepError> {
         let candidates = [
-            request.action_dir.join("action.yml"),
-            request.action_dir.join("action.yaml"),
+            request.action_dir().join("action.yml"),
+            request.action_dir().join("action.yaml"),
         ];
         let path = candidates
             .iter()
@@ -36,7 +36,7 @@ impl LoadActionDefinitionPort for LoadActionDefinitionService {
             .ok_or_else(|| {
                 StepError::new(format!(
                     "action.yml not found in {}",
-                    request.action_dir.display()
+                    request.action_dir().display()
                 ))
             })?;
 

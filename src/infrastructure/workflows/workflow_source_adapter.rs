@@ -1,7 +1,9 @@
+use super::workflow_directories::WORKFLOW_DIRECTORIES;
 use std::{collections::BTreeSet, error::Error, fs};
 
 use crate::{
-    application::ports::outbound::WorkflowSourcePort, domain::entities::repository::Repository,
+    application::ports::outbound::WorkflowSourcePort,
+    domain::{entities::repository::Repository, workflow::Workflow},
 };
 
 /// Infrastructure adapter that reads workflow definitions from the filesystem.
@@ -20,6 +22,30 @@ impl FilesystemWorkflowSource {
         }
     }
 
+    fn is_yaml_workflow(path: &std::path::Path) -> bool {
+        path.extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| ext == "yml" || ext == "yaml")
+            .unwrap_or(false)
+    }
+
+    fn collect_dir_workflows(
+        workflows_dir: &std::path::Path,
+        workflows: &mut Vec<std::path::PathBuf>,
+    ) -> Result<(), Box<dyn Error>> {
+        if !workflows_dir.exists() {
+            return Ok(());
+        }
+        let entries = fs::read_dir(workflows_dir)?;
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if Self::is_yaml_workflow(&path) {
+                workflows.push(path);
+            }
+        }
+        Ok(())
+    }
+
     fn find_workflow_files(
         &self,
         repo: &Repository,
@@ -28,17 +54,7 @@ impl FilesystemWorkflowSource {
         let mut workflows = Vec::new();
 
         for dir in &self.workflow_dirs {
-            let workflows_dir = repo_path.join(dir);
-            if workflows_dir.exists() {
-                for entry in fs::read_dir(&workflows_dir)? {
-                    let path = entry?.path();
-                    if let Some(ext) = path.extension()
-                        && (ext == "yml" || ext == "yaml")
-                    {
-                        workflows.push(path);
-                    }
-                }
-            }
+            Self::collect_dir_workflows(&repo_path.join(dir), &mut workflows)?;
         }
 
         workflows.sort();
@@ -61,6 +77,74 @@ impl FilesystemWorkflowSource {
         }
         None
     }
+
+    fn extract_events(content: &str) -> Vec<String> {
+        serde_yaml::from_str::<Workflow>(content)
+            .map(|workflow| {
+                workflow
+                    .on()
+                    .event_names()
+                    .iter()
+                    .map(|event| (*event).to_string())
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    fn matches_workflow_name(content: &str, target_name: &str) -> bool {
+        Self::extract_name(content).as_deref() == Some(target_name)
+    }
+
+    fn find_matching_workflow(
+        files: &[std::path::PathBuf],
+        name: &str,
+    ) -> Result<Option<String>, Box<dyn Error>> {
+        for file in files {
+            let content = Self::read_file_content(file)?;
+            if Self::matches_workflow_name(&content, name) {
+                return Ok(Some(content));
+            }
+        }
+        Ok(None)
+    }
+
+    fn extract_uses_action(line: &str) -> Option<String> {
+        let trimmed = line.trim();
+        let rest = trimmed
+            .strip_prefix("- uses:")
+            .or_else(|| trimmed.strip_prefix("uses:"))?
+            .trim();
+        if !rest.is_empty() && !rest.starts_with('#') {
+            Some(rest.to_string())
+        } else {
+            None
+        }
+    }
+
+    fn collect_actions_from_content(content: &str, actions: &mut BTreeSet<String>) {
+        for line in content.lines() {
+            if let Some(action) = Self::extract_uses_action(line) {
+                actions.insert(action);
+            }
+        }
+    }
+
+    fn read_first_workflow(files: &[std::path::PathBuf]) -> Result<String, Box<dyn Error>> {
+        match files.first() {
+            Some(file) => Self::read_file_content(file),
+            None => Err("no workflow files found".into()),
+        }
+    }
+
+    fn read_named_workflow(
+        files: &[std::path::PathBuf],
+        name: &str,
+    ) -> Result<String, Box<dyn Error>> {
+        match Self::find_matching_workflow(files, name)? {
+            Some(content) => Ok(content),
+            None => Err(format!("workflow {:?} not found", name).into()),
+        }
+    }
 }
 
 impl WorkflowSourcePort for FilesystemWorkflowSource {
@@ -70,24 +154,9 @@ impl WorkflowSourcePort for FilesystemWorkflowSource {
         workflow_name: Option<&str>,
     ) -> Result<String, Box<dyn Error>> {
         let files = self.find_workflow_files(repository)?;
-
-        if let Some(name) = workflow_name {
-            // First try matching by workflow name (the `name:` field in YAML)
-            for file in &files {
-                let content = Self::read_file_content(file)?;
-                if let Some(wf_name) = Self::extract_name(&content)
-                    && wf_name == name
-                {
-                    return Ok(content);
-                }
-            }
-            return Err(format!("workflow {:?} not found", name).into());
-        }
-
-        if let Some(file) = files.first() {
-            Self::read_file_content(file)
-        } else {
-            Err("no workflow files found".into())
+        match workflow_name {
+            Some(name) => Self::read_named_workflow(&files, name),
+            None => Self::read_first_workflow(&files),
         }
     }
 
@@ -109,20 +178,7 @@ impl WorkflowSourcePort for FilesystemWorkflowSource {
 
         for file in files {
             let content = Self::read_file_content(&file)?;
-            for line in content.lines() {
-                let trimmed = line.trim();
-                let rest = if let Some(r) = trimmed.strip_prefix("- uses:") {
-                    r
-                } else if let Some(r) = trimmed.strip_prefix("uses:") {
-                    r
-                } else {
-                    continue;
-                };
-                let action = rest.trim();
-                if !action.is_empty() && !action.starts_with('#') {
-                    actions.insert(action.to_string());
-                }
-            }
+            Self::collect_actions_from_content(&content, &mut actions);
         }
 
         Ok(actions.into_iter().collect())
@@ -141,6 +197,7 @@ impl WorkflowSourcePort for FilesystemWorkflowSource {
                 items.push(crate::application::dtos::WorkflowListItem::new(
                     Some(name),
                     Some(file.to_string_lossy().to_string()),
+                    Self::extract_events(&content),
                 ));
             }
         }
@@ -152,7 +209,6 @@ impl WorkflowSourcePort for FilesystemWorkflowSource {
 /// Convenience constructor matching the old FilesystemWorkflowFileParser pattern.
 impl Default for FilesystemWorkflowSource {
     fn default() -> Self {
-        use crate::infrastructure::workflows::workflow_directories::WORKFLOW_DIRECTORIES;
         Self::new(&WORKFLOW_DIRECTORIES)
     }
 }
