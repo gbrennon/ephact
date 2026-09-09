@@ -1,5 +1,5 @@
-use crate::application::ports::outbound::run_composite_action_port::RunCompositeActionPort;
 use super::super::steps::run_composite_step_port::RunCompositeStepPort;
+use crate::application::ports::outbound::run_composite_action_port::RunCompositeActionPort;
 use std::collections::HashMap;
 
 use serde_json::Value;
@@ -43,10 +43,14 @@ impl RunCompositeActionService {
     ) -> Result<Option<ExecuteActionResponse>, StepError> {
         match outcome {
             Ok(result) => {
-                stdout.push_str(&result.stdout());
-                stderr.push_str(&result.stderr());
+                stdout.push_str(result.stdout());
+                stderr.push_str(result.stderr());
                 if result.exit_code() != 0 {
-                    Ok(Some(ExecuteActionResponse::new(result.exit_code(), stdout.clone(), stderr.clone())))
+                    Ok(Some(ExecuteActionResponse::new(
+                        result.exit_code(),
+                        stdout.clone(),
+                        stderr.clone(),
+                    )))
                 } else {
                     Ok(None)
                 }
@@ -63,22 +67,26 @@ impl RunCompositeActionPort for RunCompositeActionService {
         &self,
         request: RunCompositeActionRequest<'_>,
     ) -> Result<ExecuteActionResponse, StepError> {
-        let context = Self::context_with_inputs(&request.action_request().context(), request.inputs());
+        let context =
+            Self::context_with_inputs(request.action_request().context(), request.inputs());
         let mut stdout = String::new();
         let mut stderr = String::new();
 
         for step in request.steps() {
-            let interpolated =
-                StepInterpolator::interpolate(step, &context).map_err(|error| {
-                    StepError::new(format!("failed to resolve expressions: {error:?}"))
-                        .with_stdout(stdout.clone())
-                        .with_stderr(stderr.clone())
-                })?;
+            let interpolated = StepInterpolator::interpolate(step, &context).map_err(|error| {
+                StepError::new(format!("failed to resolve expressions: {error:?}"))
+                    .with_stdout(stdout.clone())
+                    .with_stderr(stderr.clone())
+            })?;
 
-            let outcome = self.step_runner.execute(RunCompositeStepRequest::new(&interpolated, request.action_dir(), request.action_request(), &context));
+            let outcome = self.step_runner.execute(RunCompositeStepRequest::new(
+                &interpolated,
+                request.action_dir(),
+                request.action_request(),
+                &context,
+            ));
 
-            if let Some(early_exit) =
-                Self::process_step_outcome(outcome, &mut stdout, &mut stderr)?
+            if let Some(early_exit) = Self::process_step_outcome(outcome, &mut stdout, &mut stderr)?
             {
                 return Ok(early_exit);
             }
