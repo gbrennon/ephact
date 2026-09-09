@@ -60,3 +60,25 @@ impl WorkflowDispatchInput {
         &self.options
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_exposes_fields() {
+        let input = WorkflowDispatchInput::new(
+            Some("description".into()),
+            true,
+            Some("default".into()),
+            Some("choice".into()),
+            vec!["one".into()],
+        );
+
+        assert_eq!(input.description(), Some("description"));
+        assert!(input.required());
+        assert_eq!(input.default_value(), Some("default"));
+        assert_eq!(input.default(), Some("default"));
+        assert_eq!(input.input_type(), Some("choice"));
+        assert_eq!(input.options(), &["one".to_string()]);
+    }
+}
