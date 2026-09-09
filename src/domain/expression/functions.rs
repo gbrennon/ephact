@@ -100,7 +100,7 @@ impl Functions {
     ) -> Result<(), EvalError> {
         match ch {
             '{' => {
-                let (end, idx) = Self::parse_placeholder(chars, *rest, i + 1)?;
+                let (end, idx) = Self::parse_placeholder(chars, rest, i + 1)?;
                 Self::append_formatted_arg(result, args, idx)?;
                 *rest = &rest[end + 1..];
                 *chars = rest.char_indices();
