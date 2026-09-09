@@ -2,9 +2,9 @@
 /// produced before the failure so it can be surfaced in the run summary.
 #[derive(Debug)]
 pub struct StepError {
-    message: String,
-    stdout: String,
-    stderr: String,
+    pub message: String,
+    pub stdout: String,
+    pub stderr: String,
 }
 
 impl StepError {
