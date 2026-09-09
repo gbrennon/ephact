@@ -33,17 +33,24 @@ fn service(shell: FakeRunShellStepPort, command_bus: FakeCommandBus) -> ExecuteS
 
 #[test]
 fn execute_runs_a_run_step_through_the_shell_runner() {
-    let shell = FakeRunShellStepPort::returning(ExecResult::new(3, "out".into(), "err".into()));
+    let shell =
+        FakeRunShellStepPort::returning(ExecResult::new(3, "out".to_string(), "err".to_string()));
     let service = service(shell.clone(), FakeCommandBus::new());
     let step = step_from("run: echo hi\n");
 
     let executed = service
-        .execute(ExecuteStepRequest::new(&step, &EvalContext::new(), Arc::new(StubContainer), Path::new("/repo"), &HashMap::new()))
+        .execute(ExecuteStepRequest::new(
+            &step,
+            &EvalContext::new(),
+            Arc::new(StubContainer),
+            Path::new("/repo"),
+            &HashMap::new(),
+        ))
         .unwrap();
 
-    assert_eq!(executed.response.exit_code, 3);
-    assert_eq!(executed.response.stdout, "out");
-    assert_eq!(executed.response.stderr, "err");
+    assert_eq!(executed.response().exit_code(), 3);
+    assert_eq!(executed.response().stdout(), "out");
+    assert_eq!(executed.response().stderr(), "err");
     assert_eq!(shell.steps().len(), 1);
 }
 
@@ -59,10 +66,16 @@ fn execute_publishes_an_action_command_for_a_uses_step() {
     env.insert("MODE".to_string(), "staging".to_string());
 
     let executed = service
-        .execute(ExecuteStepRequest::new(&step, &EvalContext::new(), Arc::new(StubContainer), Path::new("/repo"), &env))
+        .execute(ExecuteStepRequest::new(
+            &step,
+            &EvalContext::new(),
+            Arc::new(StubContainer),
+            Path::new("/repo"),
+            &env,
+        ))
         .unwrap();
 
-    assert_eq!(executed.response.stdout, "action\n");
+    assert_eq!(executed.response().stdout(), "action\n");
     let dispatched = command_bus.dispatched_actions.lock();
     assert_eq!(dispatched.len(), 1);
     assert_eq!(dispatched[0].action_ref(), "./actions/greet");
@@ -80,7 +93,13 @@ fn execute_does_not_publish_an_action_command_for_a_run_step() {
     let step = step_from("run: echo hi\n");
 
     service
-        .execute(ExecuteStepRequest::new(&step, &EvalContext::new(), Arc::new(StubContainer), Path::new("/repo"), &HashMap::new()))
+        .execute(ExecuteStepRequest::new(
+            &step,
+            &EvalContext::new(),
+            Arc::new(StubContainer),
+            Path::new("/repo"),
+            &HashMap::new(),
+        ))
         .unwrap();
 
     assert!(command_bus.dispatched_actions.lock().is_empty());
@@ -93,14 +112,20 @@ fn execute_resolves_expressions_before_running_the_step() {
     let step = step_from("run: deploy ${{ inputs.mode }}\n");
     let mut context = EvalContext::new();
     let mut inputs = serde_json::Map::new();
-    inputs.insert("mode".into(), Value::String("staging".into()));
+    inputs.insert("mode".to_string(), Value::String("staging".into()));
     context = context.with_inputs(Value::Object(inputs));
 
     service
-        .execute(ExecuteStepRequest::new(&step, &context, Arc::new(StubContainer), Path::new("/repo"), &HashMap::new()))
+        .execute(ExecuteStepRequest::new(
+            &step,
+            &context,
+            Arc::new(StubContainer),
+            Path::new("/repo"),
+            &HashMap::new(),
+        ))
         .unwrap();
 
-    assert_eq!(shell.steps()[0].run.as_deref(), Some("deploy staging"));
+    assert_eq!(shell.steps()[0].run().as_deref(), Some("deploy staging"));
 }
 
 #[test]
@@ -112,11 +137,19 @@ fn execute_reports_an_interpolation_failure() {
     let step = step_from("run: deploy ${{ }}\n");
 
     let error = service
-        .execute(ExecuteStepRequest::new(&step, &EvalContext::new(), Arc::new(StubContainer), Path::new("/repo"), &HashMap::new()))
+        .execute(ExecuteStepRequest::new(
+            &step,
+            &EvalContext::new(),
+            Arc::new(StubContainer),
+            Path::new("/repo"),
+            &HashMap::new(),
+        ))
         .unwrap_err();
 
     assert!(
-        error.message().starts_with("failed to resolve expressions:"),
+        error
+            .message()
+            .starts_with("failed to resolve expressions:"),
         "{}",
         error.message()
     );
@@ -135,7 +168,13 @@ fn execute_propagates_a_collaborator_error_unchanged() {
     let step = step_from("run: echo hi\n");
 
     let error = service
-        .execute(ExecuteStepRequest::new(&step, &EvalContext::new(), Arc::new(StubContainer), Path::new("/repo"), &HashMap::new()))
+        .execute(ExecuteStepRequest::new(
+            &step,
+            &EvalContext::new(),
+            Arc::new(StubContainer),
+            Path::new("/repo"),
+            &HashMap::new(),
+        ))
         .unwrap_err();
 
     assert_eq!(error.message(), "boom");
