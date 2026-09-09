@@ -7,13 +7,13 @@ use crate::domain::{expression::EvalContext, planner::Run, workflow::Workflow};
 /// inbound port.
 pub struct ExecuteJobRequest<'a> {
     /// Planned job to run.
-    run: &'a Run,
+    pub run: &'a Run,
     /// Workflow the job belongs to.
-    workflow: &'a Workflow,
+    pub workflow: &'a Workflow,
     /// Repository directory the run executes against.
-    repo_path: &'a Path,
+    pub repo_path: &'a Path,
     /// Context the job's steps are evaluated against.
-    context: &'a EvalContext,
+    pub context: &'a EvalContext,
 }
 
 impl<'a> ExecuteJobRequest<'a> {
