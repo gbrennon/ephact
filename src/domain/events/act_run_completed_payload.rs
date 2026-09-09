@@ -12,7 +12,10 @@ pub struct ActRunCompletedPayload {
 
 impl ActRunCompletedPayload {
     pub fn new(container_names: Vec<String>, success: bool) -> Self {
-        Self { container_names, success }
+        Self {
+            container_names,
+            success,
+        }
     }
 
     pub fn container_names(&self) -> &[String] {
