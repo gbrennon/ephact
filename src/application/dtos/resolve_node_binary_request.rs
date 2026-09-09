@@ -5,7 +5,7 @@ use crate::application::ports::outbound::container_port::ContainerPort;
 /// inbound port.
 pub struct ResolveNodeBinaryRequest<'a> {
     /// Container the JavaScript action will run in.
-    container: &'a dyn ContainerPort,
+    pub container: &'a dyn ContainerPort,
 }
 
 impl<'a> ResolveNodeBinaryRequest<'a> {
