@@ -38,3 +38,17 @@ impl ActionInput {
         self.default.as_deref()
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_exposes_fields() {
+        let input = ActionInput::new(Some("description".into()), true, Some("default".into()));
+
+        assert_eq!(input.description(), Some("description"));
+        assert!(input.required());
+        assert_eq!(input.default_value(), Some("default"));
+        assert_eq!(input.default(), Some("default"));
+    }
+}
