@@ -94,10 +94,15 @@ impl Cli {
         terminal: &dyn Terminal,
         output: &mut String,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        if args.interactive() {
+            print!("{output}");
+            output.clear();
+        }
         let (summary, success) = RunHandler::handle_with_output(
             args,
             &*self.run_workflow_port,
             &*self.run_all_workflows_port,
+            &*self.list_workflows_port,
             terminal,
         )?;
         output.push_str(&summary);

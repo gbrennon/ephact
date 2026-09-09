@@ -34,6 +34,14 @@ mod tests {
         fn dimensions(&self) -> (usize, usize) {
             (100, 40)
         }
+
+        fn write_text(&self, _text: &str) -> std::io::Result<()> {
+            Ok(())
+        }
+
+        fn read_line(&self) -> std::io::Result<String> {
+            Ok(String::new())
+        }
     }
 
     fn make_cli() -> Cli {

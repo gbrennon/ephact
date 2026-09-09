@@ -27,6 +27,14 @@ mod tests {
         fn dimensions(&self) -> (usize, usize) {
             (100, 40)
         }
+
+        fn write_text(&self, _text: &str) -> std::io::Result<()> {
+            Ok(())
+        }
+
+        fn read_line(&self) -> std::io::Result<String> {
+            Ok(String::new())
+        }
     }
 
     struct BrandingFake;
@@ -50,8 +58,16 @@ mod tests {
             _request: ListWorkflowsRequest,
         ) -> Result<ListWorkflowsResponse, Box<dyn std::error::Error>> {
             Ok(ListWorkflowsResponse::new(vec![
-                WorkflowListItem::new(Some("Build".into()), Some("build.yml".into())),
-                WorkflowListItem::new(Some("Release".into()), Some("release.yml".into())),
+                WorkflowListItem::new(
+                    Some("Build".into()),
+                    Some("build.yml".into()),
+                    vec!["pull_request".into()],
+                ),
+                WorkflowListItem::new(
+                    Some("Release".into()),
+                    Some("release.yml".into()),
+                    vec!["push".into()],
+                ),
             ]))
         }
     }

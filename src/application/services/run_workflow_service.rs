@@ -1,6 +1,11 @@
 use std::{error::Error, sync::Arc, time::Instant};
 
-use crate::application::commands::ExecuteWorkflowCommand;
+use crate::application::{
+    commands::ExecuteWorkflowCommand,
+    services::pull_request_workflow::{
+        config_for_pull_request_event, content_has_pull_request_event,
+    },
+};
 use crate::{
     application::{
         dtos::{RunSummary, RunWorkflowRequest},
@@ -48,6 +53,10 @@ impl RunWorkflowPort for RunWorkflowService {
         let workflow_content = self
             .workflow_source
             .read_workflow(&repository, config.workflow().map(|w| w.as_str()))?;
+        if !content_has_pull_request_event(&workflow_content) {
+            return Err("workflow does not define a pull_request event".into());
+        }
+        let config = config_for_pull_request_event(config);
 
         let execution = self
             .command_bus

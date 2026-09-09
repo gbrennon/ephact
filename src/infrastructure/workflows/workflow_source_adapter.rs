@@ -1,7 +1,9 @@
+use super::workflow_directories::WORKFLOW_DIRECTORIES;
 use std::{collections::BTreeSet, error::Error, fs};
 
 use crate::{
-    application::ports::outbound::WorkflowSourcePort, domain::entities::repository::Repository,
+    application::ports::outbound::WorkflowSourcePort,
+    domain::{entities::repository::Repository, workflow::Workflow},
 };
 
 /// Infrastructure adapter that reads workflow definitions from the filesystem.
@@ -74,6 +76,19 @@ impl FilesystemWorkflowSource {
             }
         }
         None
+    }
+
+    fn extract_events(content: &str) -> Vec<String> {
+        serde_yaml::from_str::<Workflow>(content)
+            .map(|workflow| {
+                workflow
+                    .on()
+                    .event_names()
+                    .iter()
+                    .map(|event| (*event).to_string())
+                    .collect()
+            })
+            .unwrap_or_default()
     }
 
     fn matches_workflow_name(content: &str, target_name: &str) -> bool {
@@ -182,6 +197,7 @@ impl WorkflowSourcePort for FilesystemWorkflowSource {
                 items.push(crate::application::dtos::WorkflowListItem::new(
                     Some(name),
                     Some(file.to_string_lossy().to_string()),
+                    Self::extract_events(&content),
                 ));
             }
         }
@@ -193,7 +209,6 @@ impl WorkflowSourcePort for FilesystemWorkflowSource {
 /// Convenience constructor matching the old FilesystemWorkflowFileParser pattern.
 impl Default for FilesystemWorkflowSource {
     fn default() -> Self {
-        use super::workflow_directories::WORKFLOW_DIRECTORIES;
         Self::new(&WORKFLOW_DIRECTORIES)
     }
 }
