@@ -9,7 +9,7 @@ pub struct ListActionsResponse {
     /// The action references (`uses:`) used across the workflows, e.g.
     /// `actions/checkout@v4`, `./.forgejo/actions/my-action`, or
     /// `docker://node:20`.
-    actions: Vec<String>,
+    pub actions: Vec<String>,
 }
 
 impl ListActionsResponse {
