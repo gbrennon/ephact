@@ -44,10 +44,12 @@ impl RunNodeActionPort for RunNodeActionService {
         &self,
         request: RunNodeActionRequest<'_>,
     ) -> Result<RunNodeActionResponse, StepError> {
-        let container_dir = self.action_copier.execute(CopyActionToContainerRequest::new(
-            request.action_dir(),
-            request.container(),
-        ))?;
+        let container_dir = self
+            .action_copier
+            .execute(CopyActionToContainerRequest::new(
+                request.action_dir(),
+                request.container(),
+            ))?;
 
         let action_request = BuildActionInputEnvironmentRequest::new(
             request.env(),
@@ -55,9 +57,9 @@ impl RunNodeActionPort for RunNodeActionService {
             &container_dir,
         );
         let action_response = self.environment_builder.execute(action_request);
-        let binary = self.node_binary_resolver.execute(ResolveNodeBinaryRequest::new(
-            request.container(),
-        ));
+        let binary = self
+            .node_binary_resolver
+            .execute(ResolveNodeBinaryRequest::new(request.container()));
 
         let entry_point = request.entry_point();
         let command = ShellCommand::new(
@@ -69,11 +71,13 @@ impl RunNodeActionPort for RunNodeActionService {
         request
             .container()
             .exec(command.argv(), command.working_directory(), command.env())
-            .map(|result| RunNodeActionResponse::new(
-                result.exit_code(),
-                result.stdout().to_string(),
-                result.stderr().to_string(),
-            ))
+            .map(|result| {
+                RunNodeActionResponse::new(
+                    result.exit_code(),
+                    result.stdout().to_string(),
+                    result.stderr().to_string(),
+                )
+            })
             .map_err(|error| StepError::new(format!("failed to run node action: {error:?}")))
     }
 }
