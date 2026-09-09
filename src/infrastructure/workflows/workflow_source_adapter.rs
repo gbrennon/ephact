@@ -34,10 +34,7 @@ impl FilesystemWorkflowSource {
         if !workflows_dir.exists() {
             return Ok(());
         }
-        let entries = match fs::read_dir(workflows_dir) {
-            Ok(entries) => entries,
-            Err(e) => return Err(e.into()),
-        };
+        let entries = fs::read_dir(workflows_dir)?;
         for entry in entries.flatten() {
             let path = entry.path();
             if Self::is_yaml_workflow(&path) {
