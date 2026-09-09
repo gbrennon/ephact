@@ -153,7 +153,10 @@ jobs:
 "#;
         let wf: Workflow = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(wf.name(), Some("CI"));
-        assert_eq!(wf.env().get("RUST_BACKTRACE").map(|s| s.as_str()), Some("1"));
+        assert_eq!(
+            wf.env().get("RUST_BACKTRACE").map(|s| s.as_str()),
+            Some("1")
+        );
     }
 
     #[test]
@@ -175,5 +178,28 @@ jobs:
         let run_defaults = defaults.run().unwrap();
         assert_eq!(run_defaults.shell(), Some("bash"));
         assert_eq!(run_defaults.working_directory(), Some("./src"));
+    }
+    #[test]
+    fn new_and_with_file_preserve_fields() {
+        let workflow = Workflow::new(
+            Some("CI".into()),
+            None,
+            On::default(),
+            HashMap::from([("KEY".into(), "value".into())]),
+            HashMap::new(),
+            None,
+            None,
+            None,
+        )
+        .with_file("workflow.yml");
+
+        assert_eq!(workflow.name(), Some("CI"));
+        assert_eq!(workflow.file(), Some("workflow.yml"));
+        assert_eq!(workflow.env()["KEY"], "value");
+        assert!(workflow.jobs().is_empty());
+        assert!(workflow.defaults().is_none());
+        assert_eq!(workflow.on(), &On::default());
+        assert!(workflow.permissions().is_none());
+        assert!(workflow.concurrency().is_none());
     }
 }
