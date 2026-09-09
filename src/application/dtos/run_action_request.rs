@@ -1,4 +1,9 @@
-use std::{collections::HashMap, fmt, path::{Path, PathBuf}, sync::Arc};
+use std::{
+    collections::HashMap,
+    fmt,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use crate::application::ports::outbound::container_port::ContainerPort;
 use crate::domain::expression::EvalContext;
@@ -6,12 +11,12 @@ use crate::domain::workflow::Step;
 
 #[derive(Clone)]
 pub struct RunActionRequest {
-    action_ref: String,
-    step: Step,
-    repo_path: PathBuf,
-    env: HashMap<String, String>,
-    context: EvalContext,
-    container: Arc<dyn ContainerPort>,
+    pub action_ref: String,
+    pub step: Step,
+    pub repo_path: PathBuf,
+    pub env: HashMap<String, String>,
+    pub context: EvalContext,
+    pub container: Arc<dyn ContainerPort>,
 }
 
 impl RunActionRequest {
