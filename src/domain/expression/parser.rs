@@ -235,10 +235,7 @@ pub fn parse_expr(input: &str) -> Result<Expr, ParseError> {
             Ok(Token::Eof) => break,
             Ok(tok) => tokens.push(tok),
             Err(e) => {
-                return Err(ParseError::new(
-                    format!("lexer error: {:?}", e),
-                    0,
-                ));
+                return Err(ParseError::new(format!("lexer error: {:?}", e), 0));
             }
         }
     }
