@@ -2,8 +2,8 @@
 /// displays it.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct WorkflowListItem {
-    name: Option<String>,
-    file: Option<String>,
+    pub name: Option<String>,
+    pub file: Option<String>,
 }
 
 impl WorkflowListItem {
