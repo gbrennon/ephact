@@ -36,7 +36,9 @@ impl ResolveWorkflowFilesService {
         &self,
         repo_path: &std::path::Path,
     ) -> Result<Vec<std::path::PathBuf>, Box<dyn Error>> {
-        let response = self.all_lister.execute(ListAllWorkflowFilesRequest::new(repo_path))?;
+        let response = self
+            .all_lister
+            .execute(ListAllWorkflowFilesRequest::new(repo_path))?;
         Ok(response.workflow_files().to_vec().to_vec())
     }
 
@@ -45,7 +47,9 @@ impl ResolveWorkflowFilesService {
         workflow: &str,
         repo_path: &std::path::Path,
     ) -> Result<Vec<std::path::PathBuf>, Box<dyn Error>> {
-        let file = self.named_resolver.execute(ResolveNamedWorkflowFileRequest::new(workflow, repo_path))?;
+        let file = self
+            .named_resolver
+            .execute(ResolveNamedWorkflowFileRequest::new(workflow, repo_path))?;
         Ok(vec![file])
     }
 
@@ -53,7 +57,9 @@ impl ResolveWorkflowFilesService {
         &self,
         repo_path: &std::path::Path,
     ) -> Result<Vec<std::path::PathBuf>, Box<dyn Error>> {
-        let file = self.detector.execute(DetectWorkflowFileRequest::new(repo_path))?;
+        let file = self
+            .detector
+            .execute(DetectWorkflowFileRequest::new(repo_path))?;
         Ok(vec![file])
     }
 
