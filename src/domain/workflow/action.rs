@@ -145,4 +145,20 @@ runs:
         let action: ActionDefinition = serde_yaml::from_str(yaml).unwrap();
         assert!(matches!(action.runs(), ActionRuns::Docker { .. }));
     }
+    #[test]
+    fn new_preserves_fields() {
+        let action = ActionDefinition::new(
+            "Action",
+            Some("Description".into()),
+            std::collections::HashMap::from([("input".into(), ActionInput::new(None, true, None))]),
+            ActionRuns::Node20 {
+                main: "index.js".into(),
+            },
+        );
+
+        assert_eq!(action.name(), "Action");
+        assert_eq!(action.description(), Some("Description"));
+        assert!(action.inputs()["input"].required());
+        assert!(matches!(action.runs(), ActionRuns::Node20 { .. }));
+    }
 }
