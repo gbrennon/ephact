@@ -100,3 +100,33 @@ impl EventConfig {
         &self.cron
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_exposes_all_filters() {
+        let input = WorkflowDispatchInput::new(None, false, None, None, Vec::new());
+        let config = EventConfig::new(
+            vec!["main".into()],
+            vec!["dev".into()],
+            vec!["v1".into()],
+            vec!["v2".into()],
+            vec!["src/**".into()],
+            vec!["docs/**".into()],
+            vec!["opened".into()],
+            HashMap::from([("name".into(), input)]),
+            vec!["0 0 * * *".into()],
+        );
+
+        assert_eq!(config.branches(), &["main".to_string()]);
+        assert_eq!(config.branches_ignore(), &["dev".to_string()]);
+        assert_eq!(config.tags(), &["v1".to_string()]);
+        assert_eq!(config.tags_ignore(), &["v2".to_string()]);
+        assert_eq!(config.paths(), &["src/**".to_string()]);
+        assert_eq!(config.paths_ignore(), &["docs/**".to_string()]);
+        assert_eq!(config.types(), &["opened".to_string()]);
+        assert!(config.inputs().contains_key("name"));
+        assert_eq!(config.cron(), &["0 0 * * *".to_string()]);
+    }
+}
