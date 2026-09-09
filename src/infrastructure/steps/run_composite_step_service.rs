@@ -47,14 +47,24 @@ impl RunCompositeStepPort for RunCompositeStepService {
                     request.context().clone(),
                     action_request.container().clone(),
                 ))
-                .map(|response| ExecResult::new(response.exit_code(), response.stdout().to_string().to_string(), response.stderr().to_string().to_string())),
+                .map(|response| {
+                    ExecResult::new(
+                        response.exit_code(),
+                        response.stdout().to_string().to_string(),
+                        response.stderr().to_string().to_string(),
+                    )
+                }),
             None => {
                 let mut action_env = action_request.env().clone();
                 action_env.insert(
                     "GITHUB_ACTION_PATH".into(),
                     request.action_dir().display().to_string(),
                 );
-                self.shell_runner.execute(RunShellStepRequest::new(request.step(), action_request.container().as_ref(), &action_env))
+                self.shell_runner.execute(RunShellStepRequest::new(
+                    request.step(),
+                    action_request.container().as_ref(),
+                    &action_env,
+                ))
             }
         }
     }
