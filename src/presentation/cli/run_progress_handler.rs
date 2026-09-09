@@ -2,8 +2,7 @@ use std::io::Write;
 
 use crate::application::ports::outbound::DomainEventHandler;
 use crate::domain::events::{
-    DomainEvent, JobStartedPayload,
-    StepFinishedPayload, StepOutputPayload,
+    DomainEvent, JobStartedPayload, StepFinishedPayload, StepOutputPayload,
 };
 /// Presentation handler that renders workflow run progress to the terminal.
 ///
