@@ -3,8 +3,8 @@ use crate::{application::dtos::ExecuteActionResponse, domain::workflow::Step};
 /// Outcome of executing one step, with the step its expressions resolved to.
 #[derive(Debug)]
 pub struct ExecutedStep {
-    step: Step,
-    response: ExecuteActionResponse,
+    pub step: Step,
+    pub response: ExecuteActionResponse,
 }
 
 impl ExecutedStep {
