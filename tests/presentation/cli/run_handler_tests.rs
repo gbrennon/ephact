@@ -15,7 +15,12 @@ mod tests {
     fn summary(success: bool) -> RunSummary {
         RunSummary {
             name: "test".into(),
-            job_summaries: vec![JobSummary::new("job".into(), None, vec![], success)],
+            job_summaries: vec![JobSummary {
+                job_id: "job".into(),
+                name: None,
+                steps: vec![],
+                success,
+            }],
             success,
             duration: std::time::Duration::ZERO,
         }

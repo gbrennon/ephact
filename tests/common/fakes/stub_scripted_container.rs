@@ -29,7 +29,11 @@ impl ContainerPort for StubScriptedContainer {
         _workdir: Option<&str>,
         _env: &HashMap<String, String>,
     ) -> Result<ExecResult, ContainerError> {
-        Ok(ExecResult::new(self.exit_code, self.stdout.clone(), String::new()))
+        Ok(ExecResult {
+            exit_code: self.exit_code,
+            stdout: self.stdout.clone(),
+            stderr: String::new(),
+        })
     }
 
     fn copy_to(&self, _path: &str, _entries: &[FileEntry]) -> Result<(), ContainerError> {

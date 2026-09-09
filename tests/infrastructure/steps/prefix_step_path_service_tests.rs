@@ -16,7 +16,10 @@ fn env_with_path(path: &str) -> HashMap<String, String> {
 fn execute_leaves_the_path_untouched_without_additions() {
     let env = env_with_path("/usr/bin");
 
-    let result = PrefixStepPathService::new().execute(PrefixStepPathRequest::new(&env, &[]));
+    let result = PrefixStepPathService::new().execute(PrefixStepPathRequest {
+        env: &env,
+        path_additions: &[],
+    });
 
     assert_eq!(result.get("PATH").map(String::as_str), Some("/usr/bin"));
 }
@@ -25,7 +28,10 @@ fn execute_leaves_the_path_untouched_without_additions() {
 fn execute_prefixes_the_additions_before_the_existing_path() {
     let env = env_with_path("/usr/bin");
 
-    let result = PrefixStepPathService::new().execute(PrefixStepPathRequest::new(&env, &["/opt/bin".to_string(), "/opt/tools".to_string()]));
+    let result = PrefixStepPathService::new().execute(PrefixStepPathRequest {
+        env: &env,
+        path_additions: &["/opt/bin".to_string(), "/opt/tools".to_string()],
+    });
 
     assert_eq!(
         result.get("PATH").map(String::as_str),
@@ -35,7 +41,10 @@ fn execute_prefixes_the_additions_before_the_existing_path() {
 
 #[test]
 fn execute_appends_an_empty_segment_when_the_environment_has_no_path() {
-    let result = PrefixStepPathService::new().execute(PrefixStepPathRequest::new(&HashMap::new(), &["/opt/bin".to_string()]));
+    let result = PrefixStepPathService::new().execute(PrefixStepPathRequest {
+        env: &HashMap::new(),
+        path_additions: &["/opt/bin".to_string()],
+    });
 
     assert_eq!(result.get("PATH").map(String::as_str), Some("/opt/bin:"));
 }
@@ -45,7 +54,10 @@ fn execute_preserves_the_other_environment_entries() {
     let mut env = env_with_path("/usr/bin");
     env.insert("MODE".to_string(), "staging".to_string());
 
-    let result = PrefixStepPathService::new().execute(PrefixStepPathRequest::new(&env, &["/opt/bin".to_string()]));
+    let result = PrefixStepPathService::new().execute(PrefixStepPathRequest {
+        env: &env,
+        path_additions: &["/opt/bin".to_string()],
+    });
 
     assert_eq!(result.get("MODE").map(String::as_str), Some("staging"));
 }

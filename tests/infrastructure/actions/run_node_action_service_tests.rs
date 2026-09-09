@@ -33,7 +33,13 @@ fn execute_runs_the_entry_point_with_the_resolved_binary() {
     service(FakeCopyActionToContainerPort::returning(
         "/tmp/actions/cache",
     ))
-    .execute(RunNodeActionRequest::new(Path::new("/repo/actions/cache"), "dist/index.js", &HashMap::new(), &HashMap::new(), &container))
+    .execute(RunNodeActionRequest {
+        action_dir: Path::new("/repo/actions/cache"),
+        entry_point: "dist/index.js",
+        inputs: &HashMap::new(),
+        env: &HashMap::new(),
+        container: &container,
+    })
     .unwrap();
 
     assert_eq!(
@@ -52,7 +58,13 @@ fn execute_passes_the_built_environment_to_the_container() {
     service(FakeCopyActionToContainerPort::returning(
         "/tmp/actions/cache",
     ))
-    .execute(RunNodeActionRequest::new(Path::new("/repo/actions/cache"), "dist/index.js", &HashMap::new(), &HashMap::new(), &container))
+    .execute(RunNodeActionRequest {
+        action_dir: Path::new("/repo/actions/cache"),
+        entry_point: "dist/index.js",
+        inputs: &HashMap::new(),
+        env: &HashMap::new(),
+        container: &container,
+    })
     .unwrap();
 
     assert_eq!(
@@ -68,10 +80,16 @@ fn execute_propagates_a_copy_failure() {
     let error = service(FakeCopyActionToContainerPort::failing(
         "failed to copy action files",
     ))
-    .execute(RunNodeActionRequest::new(Path::new("/repo/actions/cache"), "dist/index.js", &HashMap::new(), &HashMap::new(), &StubRecordingContainer::new()))
+    .execute(RunNodeActionRequest {
+        action_dir: Path::new("/repo/actions/cache"),
+        entry_point: "dist/index.js",
+        inputs: &HashMap::new(),
+        env: &HashMap::new(),
+        container: &StubRecordingContainer::new(),
+    })
     .unwrap_err();
 
-    assert_eq!(error.message(), "failed to copy action files");
+    assert_eq!(error.message, "failed to copy action files");
 }
 
 #[test]
@@ -79,12 +97,18 @@ fn execute_reports_a_failing_entry_point() {
     let error = service(FakeCopyActionToContainerPort::returning(
         "/tmp/actions/cache",
     ))
-    .execute(RunNodeActionRequest::new(Path::new("/repo/actions/cache"), "dist/index.js", &HashMap::new(), &HashMap::new(), &StubFailingContainer))
+    .execute(RunNodeActionRequest {
+        action_dir: Path::new("/repo/actions/cache"),
+        entry_point: "dist/index.js",
+        inputs: &HashMap::new(),
+        env: &HashMap::new(),
+        container: &StubFailingContainer,
+    })
     .unwrap_err();
 
     assert!(
-        error.message().starts_with("failed to run node action"),
+        error.message.starts_with("failed to run node action"),
         "{}",
-        error.message()
+        error.message
     );
 }

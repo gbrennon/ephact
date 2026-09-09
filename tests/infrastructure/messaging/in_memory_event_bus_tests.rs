@@ -14,10 +14,10 @@ fn publish_act_run_completed_stops_kills_and_removes_containers() {
     let cleanup_handler = Box::new(ContainerCleanupHandler::new(runtime.clone()));
     let bus = InMemoryEventBus::new(vec![cleanup_handler]);
 
-    let event = DomainEvent::ActRunCompleted(ActRunCompletedPayload::new(
-        vec!["container-a".into(), "container-b".into()],
-        true,
-    ));
+    let event = DomainEvent::ActRunCompleted(ActRunCompletedPayload {
+        container_names: vec!["container-a".into(), "container-b".into()],
+        success: true,
+    });
 
     bus.publish(event);
 

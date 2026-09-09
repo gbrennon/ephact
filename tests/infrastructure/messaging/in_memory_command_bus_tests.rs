@@ -33,7 +33,12 @@ impl ExecuteWorkflowPort for StubWorkflowPort {
         &self,
         _request: ephact::application::dtos::ExecuteWorkflowRequest<'_>,
     ) -> Result<WorkflowExecution, Box<dyn std::error::Error>> {
-        Ok(WorkflowExecution::new("dispatched-wf".into(), Vec::new(), vec!["c1".into()], true))
+        Ok(WorkflowExecution {
+            workflow_name: "dispatched-wf".into(),
+            job_summaries: Vec::new(),
+            container_names: vec!["c1".into()],
+            success: true,
+        })
     }
 }
 
@@ -44,7 +49,12 @@ impl ExecuteJobPort for StubJobPort {
         _request: ephact::application::dtos::ExecuteJobRequest<'_>,
     ) -> Result<JobExecution, Box<dyn std::error::Error>> {
         Ok(JobExecution {
-            job_summary: JobSummary::new("j1".into(), Some("job 1".into()), Vec::new(), true),
+            job_summary: JobSummary {
+                job_id: "j1".into(),
+                name: Some("job 1".into()),
+                steps: Vec::new(),
+                success: true,
+            },
             container_name: "c1".into(),
         })
     }
@@ -58,7 +68,11 @@ impl ExecuteStepPort for StubStepPort {
     ) -> Result<ExecutedStep, StepError> {
         Ok(ExecutedStep {
             step: request.step.clone(),
-            response: ExecuteActionResponse::new(0, "step out".into(), String::new()),
+            response: ExecuteActionResponse {
+                exit_code: 0,
+                stdout: "step out".into(),
+                stderr: String::new(),
+            },
         })
     }
 }
@@ -66,7 +80,11 @@ impl ExecuteStepPort for StubStepPort {
 struct StubActionPort;
 impl ExecuteActionPort for StubActionPort {
     fn execute(&self, _request: ExecuteActionRequest) -> Result<ExecuteActionResponse, StepError> {
-        Ok(ExecuteActionResponse::new(0, "action out".into(), String::new()))
+        Ok(ExecuteActionResponse {
+            exit_code: 0,
+            stdout: "action out".into(),
+            stderr: String::new(),
+        })
     }
 }
 

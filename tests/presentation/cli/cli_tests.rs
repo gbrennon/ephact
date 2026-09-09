@@ -20,7 +20,12 @@ mod tests {
 
     impl ShowProjectBrandingInfoPort for FakeShowProjectBrandingInfoPort {
         fn execute(&self) -> Result<ShowProjectBrandingInfoResponse, Box<dyn Error>> {
-            Ok(ShowProjectBrandingInfoResponse::new("ephact".to_string(), "Ephemeral action runner".to_string(), "0.1.0".to_string(), "shield".to_string()))
+            Ok(ShowProjectBrandingInfoResponse {
+                name: "ephact".to_string(),
+                description: "Ephemeral action runner".to_string(),
+                version: "0.1.0".to_string(),
+                emblem: "shield".to_string(),
+            })
         }
     }
     struct TestTerminal;

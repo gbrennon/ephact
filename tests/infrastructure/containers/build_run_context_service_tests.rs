@@ -23,7 +23,10 @@ fn context(config: ActRunConfig) -> ephact::domain::expression::EvalContext {
     std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
     let repo = repository(tmp.path());
     BuildRunContextService::new()
-        .execute(BuildRunContextRequest::new(&config, &repo))
+        .execute(BuildRunContextRequest {
+            config: &config,
+            repository: &repo,
+        })
         .context
 }
 
@@ -33,7 +36,7 @@ fn execute_exposes_configured_secrets_under_the_secrets_context() {
 
     let context = context(config);
 
-    assert_eq!(context.secrets()["TOKEN"], "secret-value");
+    assert_eq!(context.secrets["TOKEN"], "secret-value");
 }
 
 #[test]
@@ -42,15 +45,15 @@ fn execute_exposes_inputs_under_both_inputs_and_the_github_event() {
 
     let context = context(config);
 
-    assert_eq!(context.inputs()["mode"], "staging");
-    assert_eq!(context.github()["event"]["inputs"]["mode"], "staging");
+    assert_eq!(context.inputs["mode"], "staging");
+    assert_eq!(context.github["event"]["inputs"]["mode"], "staging");
 }
 
 #[test]
 fn execute_defaults_the_event_name_to_workflow_dispatch() {
     let context = context(ActRunConfig::new());
 
-    assert_eq!(context.github()["event_name"], "workflow_dispatch");
+    assert_eq!(context.github["event_name"], "workflow_dispatch");
 }
 
 #[test]
@@ -59,22 +62,22 @@ fn execute_honours_the_configured_event_name() {
 
     let context = context(config);
 
-    assert_eq!(context.github()["event_name"], "pull_request");
+    assert_eq!(context.github["event_name"], "pull_request");
 }
 
 #[test]
 fn execute_reports_the_repository_name_and_mounted_workspace() {
     let context = context(ActRunConfig::new());
 
-    assert_eq!(context.github()["repository"], "test-repo");
-    assert_eq!(context.github()["workspace"], "/workspace");
+    assert_eq!(context.github["repository"], "test-repo");
+    assert_eq!(context.github["workspace"], "/workspace");
 }
 
 #[test]
 fn execute_reports_the_runner_platform() {
     let context = context(ActRunConfig::new());
 
-    assert_eq!(context.runner()["os"], "Linux");
-    assert_eq!(context.runner()["arch"], "X64");
-    assert_eq!(context.runner()["temp"], "/tmp");
+    assert_eq!(context.runner["os"], "Linux");
+    assert_eq!(context.runner["arch"], "X64");
+    assert_eq!(context.runner["temp"], "/tmp");
 }

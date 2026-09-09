@@ -48,6 +48,7 @@ impl ContinueOnErrorPipelineRun {
         );
 
         let outcome = application
+            .cli
             .run([
                 "ephact",
                 "run",

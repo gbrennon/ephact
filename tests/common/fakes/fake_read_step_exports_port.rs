@@ -36,9 +36,15 @@ impl ReadStepExportsPort for FakeReadStepExportsPort {
         *self.calls.lock() += 1;
         let mut queued = self.queued.lock();
         if queued.is_empty() {
-            return StepExports::new(Vec::new(), HashMap::new());
+            return StepExports {
+                path_additions: Vec::new(),
+                env: HashMap::new(),
+            };
         }
         let (path_additions, env) = queued.remove(0);
-        StepExports::new(path_additions, env)
+        StepExports {
+            path_additions,
+            env,
+        }
     }
 }

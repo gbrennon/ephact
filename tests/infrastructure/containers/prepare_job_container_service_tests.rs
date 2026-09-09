@@ -12,7 +12,11 @@ use crate::common::fakes::{
 };
 
 fn request<'a>(repo_path: &'a Path) -> PrepareJobContainerRequest<'a> {
-    PrepareJobContainerRequest::new("build", Some("ubuntu-latest"), repo_path)
+    PrepareJobContainerRequest {
+        job_id: "build",
+        runs_on: Some("ubuntu-latest"),
+        repo_path,
+    }
 }
 
 #[test]

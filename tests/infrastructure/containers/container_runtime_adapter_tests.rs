@@ -14,7 +14,18 @@ mod tests {
     use super::*;
 
     fn make_config(name: &str) -> ContainerConfig {
-        ContainerConfig::new("alpine:latest".into(), None, HashMap::new(), vec![], None, Some(vec!["sleep".into(), "infinity".into()]), None, None, Some(name.into()), Default::default())
+        ContainerConfig {
+            image: "alpine:latest".into(),
+            platform: None,
+            env: HashMap::new(),
+            binds: vec![],
+            workdir: None,
+            cmd: Some(vec!["sleep".into(), "infinity".into()]),
+            entrypoint: None,
+            network: None,
+            name: Some(name.into()),
+            runner_context: Default::default(),
+        }
     }
 
     #[test]

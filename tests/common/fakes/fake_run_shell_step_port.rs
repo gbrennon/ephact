@@ -28,11 +28,7 @@ impl FakeRunShellStepPort {
 
     pub fn failing(error: StepError) -> Self {
         Self {
-            result: Err((
-                error.message().to_string(),
-                error.stdout().to_string(),
-                error.stderr().to_string(),
-            )),
+            result: Err((error.message, error.stdout, error.stderr)),
             steps: Arc::new(Mutex::new(Vec::new())),
             environments: Arc::new(Mutex::new(Vec::new())),
         }
@@ -53,9 +49,11 @@ impl RunShellStepPort for FakeRunShellStepPort {
         self.environments.lock().push(request.env.clone());
         match &self.result {
             Ok(result) => Ok(result.clone()),
-            Err((message, stdout, stderr)) => Err(StepError::new(message.clone())
-                .with_stdout(stdout.clone())
-                .with_stderr(stderr.clone())),
+            Err((message, stdout, stderr)) => Err(StepError {
+                message: message.clone(),
+                stdout: stdout.clone(),
+                stderr: stderr.clone(),
+            }),
         }
     }
 }

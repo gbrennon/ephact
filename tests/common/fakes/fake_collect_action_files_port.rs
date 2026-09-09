@@ -46,7 +46,9 @@ impl CollectActionFilesPort for FakeCollectActionFilesPort {
         self.walked.lock().push(request.action_dir.to_path_buf());
         match &self.failure {
             Some(message) => Err(StepError::new(message.clone())),
-            None => Ok(CollectActionFilesResponse::new(self.files.clone())),
+            None => Ok(CollectActionFilesResponse {
+                files: self.files.clone(),
+            }),
         }
     }
 }

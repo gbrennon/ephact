@@ -46,6 +46,9 @@ impl PrepareJobContainerPort for FakePrepareJobContainerPort {
         if let Some(message) = &self.failure {
             return Err(message.clone().into());
         }
-        Ok(PreparedJobContainer::new(Arc::new(StubContainer), self.container_name.clone()))
+        Ok(PreparedJobContainer {
+            container: Arc::new(StubContainer),
+            container_name: self.container_name.clone(),
+        })
     }
 }

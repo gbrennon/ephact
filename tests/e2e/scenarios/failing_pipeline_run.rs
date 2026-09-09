@@ -60,6 +60,7 @@ impl FailingPipelineRun {
         );
 
         let outcome = application
+            .cli
             .run([
                 "ephact",
                 "run",

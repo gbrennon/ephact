@@ -11,7 +11,12 @@ use crate::common::fakes::{
 };
 
 fn request<'a>(repo_path: &'a Path) -> CreateJobContainerRequest<'a> {
-    CreateJobContainerRequest::new("ubuntu:latest", "ephemeral-act-build-42", "ephemeral-act-build", repo_path)
+    CreateJobContainerRequest {
+        image: "ubuntu:latest",
+        container_name: "ephemeral-act-build-42",
+        legacy_container_name: "ephemeral-act-build",
+        repo_path,
+    }
 }
 
 #[test]

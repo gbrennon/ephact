@@ -24,7 +24,10 @@ fn execute_resolves_a_local_reference_under_the_repository_root() {
     let resolved = service(FakeFetchRemoteActionPort::returning(PathBuf::from(
         "/cache",
     )))
-    .execute(ResolveActionDirectoryRequest::new("./actions/greet", Path::new("/repo")))
+    .execute(ResolveActionDirectoryRequest {
+        action_ref: "./actions/greet",
+        repo_path: Path::new("/repo"),
+    })
     .unwrap();
 
     assert_eq!(directory_of(resolved), Path::new("/repo/actions/greet"));
@@ -35,7 +38,10 @@ fn execute_skips_a_checkout_action_because_the_workspace_is_mounted() {
     let resolved = service(FakeFetchRemoteActionPort::returning(PathBuf::from(
         "/cache",
     )))
-    .execute(ResolveActionDirectoryRequest::new("actions/checkout@v4", Path::new("/repo")))
+    .execute(ResolveActionDirectoryRequest {
+        action_ref: "actions/checkout@v4",
+        repo_path: Path::new("/repo"),
+    })
     .unwrap();
 
     let ResolvedActionDirectory::Skipped(response) = resolved else {
@@ -54,13 +60,16 @@ fn execute_reports_container_actions_as_unsupported() {
     let error = service(FakeFetchRemoteActionPort::returning(PathBuf::from(
         "/cache",
     )))
-    .execute(ResolveActionDirectoryRequest::new("docker://node:20", Path::new("/repo")))
+    .execute(ResolveActionDirectoryRequest {
+        action_ref: "docker://node:20",
+        repo_path: Path::new("/repo"),
+    })
     .unwrap_err();
 
     assert!(
-        error.message().contains("cannot be executed yet"),
+        error.message.contains("cannot be executed yet"),
         "{}",
-        error.message()
+        error.message
     );
 }
 
@@ -69,7 +78,10 @@ fn execute_delegates_a_remote_reference_to_the_fetcher() {
     let fetcher = FakeFetchRemoteActionPort::returning(PathBuf::from("/cache/cache-v4"));
 
     let resolved = service(fetcher.clone())
-        .execute(ResolveActionDirectoryRequest::new("https://data.forgejo.org/actions/cache@v4", Path::new("/repo")))
+        .execute(ResolveActionDirectoryRequest {
+            action_ref: "https://data.forgejo.org/actions/cache@v4",
+            repo_path: Path::new("/repo"),
+        })
         .unwrap();
 
     assert_eq!(directory_of(resolved), Path::new("/cache/cache-v4"));
@@ -80,10 +92,13 @@ fn execute_delegates_a_remote_reference_to_the_fetcher() {
 #[test]
 fn execute_surfaces_a_fetch_failure_as_a_step_error() {
     let error = service(FakeFetchRemoteActionPort::failing("network down"))
-        .execute(ResolveActionDirectoryRequest::new("https://data.forgejo.org/actions/cache@v4", Path::new("/repo")))
+        .execute(ResolveActionDirectoryRequest {
+            action_ref: "https://data.forgejo.org/actions/cache@v4",
+            repo_path: Path::new("/repo"),
+        })
         .unwrap_err();
 
-    assert!(error.message().contains("network down"), "{}", error.message());
+    assert!(error.message.contains("network down"), "{}", error.message);
 }
 
 #[test]
@@ -91,12 +106,15 @@ fn execute_reports_an_unparseable_reference() {
     let error = service(FakeFetchRemoteActionPort::returning(PathBuf::from(
         "/cache",
     )))
-    .execute(ResolveActionDirectoryRequest::new("", Path::new("/repo")))
+    .execute(ResolveActionDirectoryRequest {
+        action_ref: "",
+        repo_path: Path::new("/repo"),
+    })
     .unwrap_err();
 
     assert!(
-        error.message().contains("invalid action reference"),
+        error.message.contains("invalid action reference"),
         "{}",
-        error.message()
+        error.message
     );
 }

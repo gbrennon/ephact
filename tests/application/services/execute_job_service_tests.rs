@@ -53,14 +53,19 @@ fn single_job_workflow(steps: &str) -> Workflow {
 fn execute_summarizes_a_single_run_step_and_reports_the_job_successful() {
     let wf = single_job_workflow("      - run: echo hi\n");
     let plan = Planner.plan(&wf).unwrap();
-    let run = &plan.stages()[0].runs()[0];
+    let run = &plan.stages[0].runs[0];
 
     let execution = service(
         FakePrepareJobContainerPort::named("job-container"),
         FakeCommandBus::new(),
         FakeReadStepExportsPort::new(),
     )
-    .execute(ExecuteJobRequest::new(run, &wf, Path::new("/repo"), &EvalContext::new()))
+    .execute(ExecuteJobRequest {
+        run,
+        workflow: &wf,
+        repo_path: Path::new("/repo"),
+        context: &EvalContext::new(),
+    })
     .unwrap();
 
     assert_eq!(execution.job_summary.steps.len(), 1);
@@ -72,7 +77,7 @@ fn execute_summarizes_a_single_run_step_and_reports_the_job_successful() {
 fn execute_publishes_one_step_command_per_step_with_the_prepared_container() {
     let wf = single_job_workflow("      - run: one\n      - run: two\n");
     let plan = Planner.plan(&wf).unwrap();
-    let run = &plan.stages()[0].runs()[0];
+    let run = &plan.stages[0].runs[0];
     let command_bus = FakeCommandBus::new();
 
     service(
@@ -80,19 +85,24 @@ fn execute_publishes_one_step_command_per_step_with_the_prepared_container() {
         command_bus.clone(),
         FakeReadStepExportsPort::new(),
     )
-    .execute(ExecuteJobRequest::new(run, &wf, Path::new("/repo"), &EvalContext::new()))
+    .execute(ExecuteJobRequest {
+        run,
+        workflow: &wf,
+        repo_path: Path::new("/repo"),
+        context: &EvalContext::new(),
+    })
     .unwrap();
 
     let dispatched = command_bus.dispatched_steps.lock();
     assert_eq!(dispatched.len(), 2);
-    assert_eq!(dispatched[0].repo_path(), Path::new("/repo"));
+    assert_eq!(dispatched[0].repo_path, Path::new("/repo"));
 }
 
 #[test]
 fn execute_fails_the_job_but_still_runs_the_later_steps() {
     let wf = single_job_workflow("      - run: exit 1\n      - run: echo after\n");
     let plan = Planner.plan(&wf).unwrap();
-    let run = &plan.stages()[0].runs()[0];
+    let run = &plan.stages[0].runs[0];
     let command_bus = FakeCommandBus::new().queueing_step_exit_codes(vec![1, 0]);
 
     let execution = service(
@@ -100,7 +110,12 @@ fn execute_fails_the_job_but_still_runs_the_later_steps() {
         command_bus.clone(),
         FakeReadStepExportsPort::new(),
     )
-    .execute(ExecuteJobRequest::new(run, &wf, Path::new("/repo"), &EvalContext::new()))
+    .execute(ExecuteJobRequest {
+        run,
+        workflow: &wf,
+        repo_path: Path::new("/repo"),
+        context: &EvalContext::new(),
+    })
     .unwrap();
 
     assert!(!execution.job_summary.success);
@@ -114,7 +129,7 @@ fn execute_passes_the_workflow_and_job_environment_to_every_step() {
         "name: Ci\non: push\nenv:\n  MODE: workflow\njobs:\n  build:\n    runs-on: ubuntu-latest\n    env:\n      SCOPE: job\n    steps:\n      - run: echo hi\n",
     );
     let plan = Planner.plan(&wf).unwrap();
-    let run = &plan.stages()[0].runs()[0];
+    let run = &plan.stages[0].runs[0];
     let command_bus = FakeCommandBus::new();
 
     service(
@@ -122,7 +137,12 @@ fn execute_passes_the_workflow_and_job_environment_to_every_step() {
         command_bus.clone(),
         FakeReadStepExportsPort::new(),
     )
-    .execute(ExecuteJobRequest::new(run, &wf, Path::new("/repo"), &EvalContext::new()))
+    .execute(ExecuteJobRequest {
+        run,
+        workflow: &wf,
+        repo_path: Path::new("/repo"),
+        context: &EvalContext::new(),
+    })
     .unwrap();
 
     let environments = command_bus.dispatched_step_environments();
@@ -139,7 +159,7 @@ fn execute_passes_the_workflow_and_job_environment_to_every_step() {
 fn execute_reads_the_exports_once_per_step() {
     let wf = single_job_workflow("      - run: one\n      - run: two\n");
     let plan = Planner.plan(&wf).unwrap();
-    let run = &plan.stages()[0].runs()[0];
+    let run = &plan.stages[0].runs[0];
     let exports = FakeReadStepExportsPort::new();
 
     service(
@@ -147,7 +167,12 @@ fn execute_reads_the_exports_once_per_step() {
         FakeCommandBus::new(),
         exports.clone(),
     )
-    .execute(ExecuteJobRequest::new(run, &wf, Path::new("/repo"), &EvalContext::new()))
+    .execute(ExecuteJobRequest {
+        run,
+        workflow: &wf,
+        repo_path: Path::new("/repo"),
+        context: &EvalContext::new(),
+    })
     .unwrap();
 
     assert_eq!(exports.calls(), 2);
@@ -157,7 +182,7 @@ fn execute_reads_the_exports_once_per_step() {
 fn execute_carries_exported_path_additions_and_env_into_the_next_step() {
     let wf = single_job_workflow("      - run: one\n      - run: two\n");
     let plan = Planner.plan(&wf).unwrap();
-    let run = &plan.stages()[0].runs()[0];
+    let run = &plan.stages[0].runs[0];
     let mut exported_env = HashMap::new();
     exported_env.insert("EXPORTED".to_string(), "yes".to_string());
     let exports =
@@ -169,7 +194,12 @@ fn execute_carries_exported_path_additions_and_env_into_the_next_step() {
         command_bus.clone(),
         exports,
     )
-    .execute(ExecuteJobRequest::new(run, &wf, Path::new("/repo"), &EvalContext::new()))
+    .execute(ExecuteJobRequest {
+        run,
+        workflow: &wf,
+        repo_path: Path::new("/repo"),
+        context: &EvalContext::new(),
+    })
     .unwrap();
 
     let environments = command_bus.dispatched_step_environments();
@@ -186,14 +216,19 @@ fn execute_carries_exported_path_additions_and_env_into_the_next_step() {
 fn execute_propagates_a_container_preparation_failure() {
     let wf = single_job_workflow("      - run: echo hi\n");
     let plan = Planner.plan(&wf).unwrap();
-    let run = &plan.stages()[0].runs()[0];
+    let run = &plan.stages[0].runs[0];
 
     let Err(error) = service(
         FakePrepareJobContainerPort::failing("no runtime"),
         FakeCommandBus::new(),
         FakeReadStepExportsPort::new(),
     )
-    .execute(ExecuteJobRequest::new(run, &wf, Path::new("/repo"), &EvalContext::new())) else {
+    .execute(ExecuteJobRequest {
+        run,
+        workflow: &wf,
+        repo_path: Path::new("/repo"),
+        context: &EvalContext::new(),
+    }) else {
         panic!("a failing container preparation should fail the job");
     };
 

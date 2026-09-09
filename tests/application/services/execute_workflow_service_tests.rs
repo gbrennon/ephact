@@ -27,7 +27,11 @@ fn execute(
         Arc::new(command_bus),
         Arc::new(FakeEventBus::new()),
     )
-    .execute(ExecuteWorkflowRequest::new(REQUESTED_CONTENT, Path::new("/repo"), &EvalContext::new()))
+    .execute(ExecuteWorkflowRequest {
+        workflow_content: REQUESTED_CONTENT,
+        repo_path: Path::new("/repo"),
+        context: &EvalContext::new(),
+    })
 }
 
 #[test]
@@ -48,8 +52,8 @@ fn execute_publishes_job_commands_carrying_the_loaded_workflow_and_repo_path() {
 
     let dispatched = command_bus.dispatched_jobs.lock();
     let first = dispatched.first().expect("a job command");
-    assert_eq!(first.workflow().name.as_deref(), Some("Ci"));
-    assert_eq!(first.repo_path(), Path::new("/repo"));
+    assert_eq!(first.workflow.name.as_deref(), Some("Ci"));
+    assert_eq!(first.repo_path, Path::new("/repo"));
 }
 
 #[test]

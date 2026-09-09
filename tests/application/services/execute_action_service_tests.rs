@@ -34,7 +34,18 @@ mod tests {
     fn container(runtime: &FakeRuntime) -> Arc<dyn ContainerPort> {
         Arc::from(
             runtime
-                .create_container(&ContainerConfig::new("image".into(), None, HashMap::new(), vec![], None, None, None, None, None, RunnerContext::default()))
+                .create_container(&ContainerConfig {
+                    image: "image".into(),
+                    platform: None,
+                    env: HashMap::new(),
+                    binds: vec![],
+                    workdir: None,
+                    cmd: None,
+                    entrypoint: None,
+                    network: None,
+                    name: None,
+                    runner_context: RunnerContext::default(),
+                })
                 .unwrap(),
         )
     }
@@ -50,7 +61,14 @@ mod tests {
         container: Arc<dyn ContainerPort>,
         context: EvalContext,
     ) -> ExecuteActionRequest {
-        ExecuteActionRequest::new(action_ref.to_string(), step, repo_path.to_path_buf(), HashMap::new(), context, container)
+        ExecuteActionRequest {
+            action_ref: action_ref.to_string(),
+            step,
+            repo_path: repo_path.to_path_buf(),
+            env: HashMap::new(),
+            context,
+            container,
+        }
     }
 
     fn write_action(dir: &Path, body: &str) {
@@ -59,7 +77,11 @@ mod tests {
     }
 
     fn push_result(runtime: &FakeRuntime, exit_code: i64, stdout: &str) {
-        runtime.exec_results.lock().push(ExecResult::new(exit_code, stdout.into(), String::new()));
+        runtime.exec_results.lock().push(ExecResult {
+            exit_code,
+            stdout: stdout.into(),
+            stderr: String::new(),
+        });
     }
 
     #[test]
@@ -152,7 +174,7 @@ mod tests {
         let mut context = EvalContext::new();
         let mut secrets = serde_json::Map::new();
         secrets.insert("TOKEN".into(), Value::String("abc123".into()));
-        context = context.with_secrets(Value::Object(secrets));
+        context.secrets = Value::Object(secrets);
 
         service
             .execute(request(
@@ -348,9 +370,9 @@ mod tests {
             .unwrap_err();
 
         assert!(
-            error.message().contains("failed to fetch action"),
+            error.message.contains("failed to fetch action"),
             "{}",
-            error.message()
+            error.message
         );
     }
 
@@ -371,9 +393,9 @@ mod tests {
             .unwrap_err();
 
         assert!(
-            error.message().contains("unsupported action"),
+            error.message.contains("unsupported action"),
             "{}",
-            error.message()
+            error.message
         );
     }
 
@@ -394,9 +416,9 @@ mod tests {
             .unwrap_err();
 
         assert!(
-            error.message().contains("action.yml not found"),
+            error.message.contains("action.yml not found"),
             "{}",
-            error.message()
+            error.message
         );
     }
 

@@ -30,7 +30,9 @@ fn execute_returns_the_fetched_directory() {
         FetchRemoteActionService::new(Box::new(FakeActionFetcher::returning(fetched.clone())));
 
     let directory = service
-        .execute(FetchRemoteActionRequest::new(&reference(None)))
+        .execute(FetchRemoteActionRequest {
+            reference: &reference(None),
+        })
         .unwrap();
 
     assert_eq!(directory, fetched);
@@ -43,7 +45,9 @@ fn execute_narrows_to_the_referenced_subdirectory() {
         FetchRemoteActionService::new(Box::new(FakeActionFetcher::returning(fetched.clone())));
 
     let directory = service
-        .execute(FetchRemoteActionRequest::new(&reference(Some("save"))))
+        .execute(FetchRemoteActionRequest {
+            reference: &reference(Some("save")),
+        })
         .unwrap();
 
     assert_eq!(directory, fetched.join("save"));
@@ -54,7 +58,9 @@ fn execute_propagates_a_fetch_failure() {
     let service = FetchRemoteActionService::new(Box::new(StubFailingActionFetcher));
 
     let error = service
-        .execute(FetchRemoteActionRequest::new(&reference(None)))
+        .execute(FetchRemoteActionRequest {
+            reference: &reference(None),
+        })
         .unwrap_err()
         .to_string();
 

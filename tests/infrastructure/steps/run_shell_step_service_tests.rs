@@ -21,7 +21,18 @@ use crate::common::fakes::{
 
 fn container(runtime: &dyn ContainerRuntimePort) -> Box<dyn ContainerPort> {
     runtime
-        .create_container(&ContainerConfig::new("image".into(), None, HashMap::new(), vec![], None, None, None, None, None, RunnerContext::default()))
+        .create_container(&ContainerConfig {
+            image: "image".into(),
+            platform: None,
+            env: HashMap::new(),
+            binds: vec![],
+            workdir: None,
+            cmd: None,
+            entrypoint: None,
+            network: None,
+            name: None,
+            runner_context: RunnerContext::default(),
+        })
         .unwrap()
 }
 
@@ -32,12 +43,20 @@ fn step_from(yaml: &str) -> Step {
 #[test]
 fn execute_runs_the_steps_script_through_bash() {
     let runtime = FakeRuntime::new();
-    runtime.exec_results.lock().push(ExecResult::new(0, "hi\n".into(), String::new()));
+    runtime.exec_results.lock().push(ExecResult {
+        exit_code: 0,
+        stdout: "hi\n".into(),
+        stderr: String::new(),
+    });
     let container = container(&runtime);
     let step = step_from("run: echo hi\n");
 
     let result = RunShellStepService::new(Arc::new(FakeEventBus::new()))
-        .execute(RunShellStepRequest::new(&step, container.as_ref(), &HashMap::new()))
+        .execute(RunShellStepRequest {
+            step: &step,
+            container: container.as_ref(),
+            env: &HashMap::new(),
+        })
         .unwrap();
 
     assert_eq!(result.exit_code, 0);
@@ -54,7 +73,11 @@ fn execute_lets_the_steps_own_env_override_the_passed_env() {
     env.insert("MODE".to_string(), "job".to_string());
 
     RunShellStepService::new(Arc::new(FakeEventBus::new()))
-        .execute(RunShellStepRequest::new(&step, container.as_ref(), &env))
+        .execute(RunShellStepRequest {
+            step: &step,
+            container: container.as_ref(),
+            env: &env,
+        })
         .unwrap();
 
     let environments = runtime.exec_environments.lock();
@@ -71,10 +94,14 @@ fn execute_errors_when_the_step_has_neither_run_nor_uses() {
     let step = step_from("name: nothing to run\n");
 
     let error = RunShellStepService::new(Arc::new(FakeEventBus::new()))
-        .execute(RunShellStepRequest::new(&step, container.as_ref(), &HashMap::new()))
+        .execute(RunShellStepRequest {
+            step: &step,
+            container: container.as_ref(),
+            env: &HashMap::new(),
+        })
         .unwrap_err();
 
-    assert_eq!(error.message(), "step has neither `run` nor `uses` defined");
+    assert_eq!(error.message, "step has neither `run` nor `uses` defined");
 }
 
 #[test]
@@ -83,8 +110,12 @@ fn execute_reports_a_container_failure_as_a_step_error() {
     let container = StubFailingContainer;
 
     let error = RunShellStepService::new(Arc::new(FakeEventBus::new()))
-        .execute(RunShellStepRequest::new(&step, &container, &HashMap::new()))
+        .execute(RunShellStepRequest {
+            step: &step,
+            container: &container,
+            env: &HashMap::new(),
+        })
         .unwrap_err();
 
-    assert!(error.message().contains("exec refused"), "{}", error.message());
+    assert!(error.message.contains("exec refused"), "{}", error.message);
 }

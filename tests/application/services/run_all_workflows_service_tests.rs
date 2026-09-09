@@ -34,7 +34,12 @@ fn execute_runs_all_workflows_and_merges_summary() {
         "name: B\non: push\njobs: {}".into(),
     ]);
     let command_bus = Arc::new(
-        FakeCommandBus::new().with_workflow_result(WorkflowExecution::new("TestWF".into(), Vec::new(), vec!["c-all".into()], true)),
+        FakeCommandBus::new().with_workflow_result(WorkflowExecution {
+            workflow_name: "TestWF".into(),
+            job_summaries: Vec::new(),
+            container_names: vec!["c-all".into()],
+            success: true,
+        }),
     );
     let event_bus = Arc::new(FakeEventBus::new());
 
@@ -56,6 +61,6 @@ fn execute_runs_all_workflows_and_merges_summary() {
     let DomainEvent::ActRunCompleted(payload) = &events[0] else {
         panic!("expected ActRunCompleted event");
     };
-    assert!(payload.success());
-    assert_eq!(payload.container_names(), vec!["c-all", "c-all"]);
+    assert!(payload.success);
+    assert_eq!(payload.container_names, vec!["c-all", "c-all"]);
 }

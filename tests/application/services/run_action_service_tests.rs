@@ -14,7 +14,11 @@ use crate::common::fakes::{fake_command_bus::FakeCommandBus, stub_container::Stu
 #[test]
 fn execute_delegates_action_execution_to_command_bus() {
     let command_bus = Arc::new(
-        FakeCommandBus::new().with_action_result(ExecuteActionResponse::new(0, "action executed".into(), String::new())),
+        FakeCommandBus::new().with_action_result(ExecuteActionResponse {
+            exit_code: 0,
+            stdout: "action executed".into(),
+            stderr: String::new(),
+        }),
     );
 
     let service = RunActionService::new(command_bus.clone());
