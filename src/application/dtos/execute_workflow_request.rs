@@ -4,9 +4,9 @@ use crate::domain::expression::EvalContext;
 
 /// Infrastructure-facing request carrying already-resolved workflow content.
 pub struct ExecuteWorkflowRequest<'a> {
-    workflow_content: &'a str,
-    repo_path: &'a Path,
-    context: &'a EvalContext,
+    pub workflow_content: &'a str,
+    pub repo_path: &'a Path,
+    pub context: &'a EvalContext,
 }
 
 impl<'a> ExecuteWorkflowRequest<'a> {
