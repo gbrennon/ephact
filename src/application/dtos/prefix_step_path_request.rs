@@ -5,9 +5,9 @@ use std::collections::HashMap;
 /// inbound port.
 pub struct PrefixStepPathRequest<'a> {
     /// Environment whose `PATH` is prefixed.
-    env: &'a HashMap<String, String>,
+    pub env: &'a HashMap<String, String>,
     /// Directories earlier steps exported through `GITHUB_PATH`.
-    path_additions: &'a [String],
+    pub path_additions: &'a [String],
 }
 
 impl<'a> PrefixStepPathRequest<'a> {
