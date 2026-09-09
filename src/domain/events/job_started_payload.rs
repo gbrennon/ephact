@@ -13,7 +13,11 @@ pub struct JobStartedPayload {
 
 impl JobStartedPayload {
     pub fn new(workflow_name: String, job_id: String, job_name: Option<String>) -> Self {
-        Self { workflow_name, job_id, job_name }
+        Self {
+            workflow_name,
+            job_id,
+            job_name,
+        }
     }
 
     pub fn workflow_name(&self) -> &str {
@@ -26,5 +30,18 @@ impl JobStartedPayload {
 
     pub fn job_name(&self) -> Option<&str> {
         self.job_name.as_deref()
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_preserves_fields() {
+        let payload = JobStartedPayload::new("workflow".into(), "job".into(), Some("build".into()));
+
+        assert_eq!(payload.workflow_name(), "workflow");
+        assert_eq!(payload.job_id(), "job");
+        assert_eq!(payload.job_name(), Some("build"));
     }
 }
