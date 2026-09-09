@@ -23,3 +23,15 @@ impl ContainerCredentials {
         &self.password
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_preserves_fields() {
+        let credentials = ContainerCredentials::new("user", "password");
+
+        assert_eq!(credentials.username(), "user");
+        assert_eq!(credentials.password(), "password");
+    }
+}
