@@ -19,12 +19,7 @@ impl ListWorkflowsHandler {
         response
             .workflows()
             .iter()
-            .map(|workflow| {
-                workflow
-                    .name()
-                    .unwrap_or("Unnamed workflow")
-                    .to_string()
-            })
+            .map(|workflow| workflow.name().unwrap_or("Unnamed workflow").to_string())
             .collect::<Vec<String>>()
             .join("\n")
     }
