@@ -4,11 +4,11 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RunNodeActionResponse {
     /// Process exit code.
-    exit_code: i64,
+    pub exit_code: i64,
     /// Captured stdout.
-    stdout: String,
+    pub stdout: String,
     /// Captured stderr.
-    stderr: String,
+    pub stderr: String,
 }
 
 impl RunNodeActionResponse {
