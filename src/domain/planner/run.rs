@@ -57,3 +57,17 @@ impl Run {
         self.matrix_values.as_ref()
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_exposes_fields() {
+        let run = Run::new(Some("workflow".into()), "job".into(), Job::default(), None);
+
+        assert_eq!(run.workflow_name(), Some("workflow"));
+        assert_eq!(run.job_id(), "job");
+        assert!(run.job().steps().is_empty());
+        assert!(run.matrix_values().is_none());
+    }
+}
