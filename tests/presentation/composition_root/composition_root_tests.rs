@@ -20,12 +20,12 @@ mod tests {
 
     impl ShowProjectBrandingInfoPort for FakeShowProjectBrandingInfoPort {
         fn execute(&self) -> Result<ShowProjectBrandingInfoResponse, Box<dyn std::error::Error>> {
-            Ok(ShowProjectBrandingInfoResponse {
-                name: "ephact".to_string(),
-                description: "Ephemeral action runner".to_string(),
-                version: "0.1.0".to_string(),
-                emblem: "shield".to_string(),
-            })
+            Ok(ShowProjectBrandingInfoResponse::new(
+                "ephact".to_string(),
+                "Ephemeral action runner".to_string(),
+                "0.1.0".to_string(),
+                "shield".to_string(),
+            ))
         }
     }
 
@@ -42,14 +42,14 @@ mod tests {
 
     #[test]
     fn compose_creates_app_with_container_services() {
-        let container = AppContainer {
-            show_project_branding_info_port: Box::new(FakeShowProjectBrandingInfoPort),
-            run_workflow_port: Box::new(FakeRunWorkflowPort::new(true)),
-            run_all_workflows_port: Box::new(FakeRunAllWorkflowsPort::new(true)),
-            run_action_port: Box::new(FakeRunActionPort),
-            list_workflows_port: Box::new(FakeListWorkflowsPort::new()),
-            list_actions_port: Box::new(FakeListActionsPort::new()),
-        };
+        let container = AppContainer::new(
+            Box::new(FakeShowProjectBrandingInfoPort),
+            Box::new(FakeRunAllWorkflowsPort::new(true)),
+            Box::new(FakeRunWorkflowPort::new(true)),
+            Box::new(FakeRunActionPort),
+            Box::new(FakeListWorkflowsPort::new()),
+            Box::new(FakeListActionsPort::new()),
+        );
 
         let _app = CompositionRoot::compose(container);
     }
