@@ -51,7 +51,8 @@ impl ExpressionResolver {
         let expression = parse_expr(body).map_err(|error| {
             EvalError::TypeError(format!(
                 "invalid expression '{body}': {} at position {}",
-                error.message(), error.position()
+                error.message(),
+                error.position()
             ))
         })?;
 
