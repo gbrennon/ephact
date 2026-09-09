@@ -4,11 +4,11 @@ use crate::application::ports::outbound::container_port::ContainerPort;
 use crate::domain::workflow::Step;
 
 pub struct RunShellStepRequest<'a> {
-    step: &'a Step,
+    pub step: &'a Step,
 
-    container: &'a dyn ContainerPort,
+    pub container: &'a dyn ContainerPort,
 
-    env: &'a HashMap<String, String>,
+    pub env: &'a HashMap<String, String>,
 }
 
 impl<'a> RunShellStepRequest<'a> {
