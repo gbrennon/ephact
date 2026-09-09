@@ -5,11 +5,11 @@ use std::path::Path;
 /// inbound port.
 pub struct PrepareJobContainerRequest<'a> {
     /// Identifier of the job the container is prepared for.
-    job_id: &'a str,
+    pub job_id: &'a str,
     /// Runner label the job declared, when it declared one.
-    runs_on: Option<&'a str>,
+    pub runs_on: Option<&'a str>,
     /// Repository directory mounted into the container as the workspace.
-    repo_path: &'a Path,
+    pub repo_path: &'a Path,
 }
 
 impl<'a> PrepareJobContainerRequest<'a> {
