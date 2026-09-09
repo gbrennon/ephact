@@ -1,8 +1,8 @@
 use super::read_step_path_exports_port::ReadStepPathExportsPort;
 use std::collections::HashMap;
 
-use crate::application::dtos::ReadStepPathExportsRequest;
 use super::super::containers::workspace::GITHUB_PATH_FILE;
+use crate::application::dtos::ReadStepPathExportsRequest;
 
 /// Service that reads the directories a step exported through `GITHUB_PATH`.
 ///
