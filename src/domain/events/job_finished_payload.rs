@@ -14,8 +14,18 @@ pub struct JobFinishedPayload {
 }
 
 impl JobFinishedPayload {
-    pub fn new(workflow_name: String, job_id: String, job_name: Option<String>, success: bool) -> Self {
-        Self { workflow_name, job_id, job_name, success }
+    pub fn new(
+        workflow_name: String,
+        job_id: String,
+        job_name: Option<String>,
+        success: bool,
+    ) -> Self {
+        Self {
+            workflow_name,
+            job_id,
+            job_name,
+            success,
+        }
     }
 
     pub fn workflow_name(&self) -> &str {
@@ -32,5 +42,20 @@ impl JobFinishedPayload {
 
     pub fn success(&self) -> bool {
         self.success
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_preserves_fields() {
+        let payload =
+            JobFinishedPayload::new("workflow".into(), "job".into(), Some("build".into()), true);
+
+        assert_eq!(payload.workflow_name(), "workflow");
+        assert_eq!(payload.job_id(), "job");
+        assert_eq!(payload.job_name(), Some("build"));
+        assert!(payload.success());
     }
 }
