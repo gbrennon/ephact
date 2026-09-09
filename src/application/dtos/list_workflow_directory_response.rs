@@ -6,7 +6,7 @@ use std::path::PathBuf;
 #[derive(Debug)]
 pub struct ListWorkflowDirectoryResponse {
     /// Workflow files found directly inside the directory, sorted by path.
-    workflow_files: Vec<PathBuf>,
+    pub workflow_files: Vec<PathBuf>,
 }
 
 impl ListWorkflowDirectoryResponse {
