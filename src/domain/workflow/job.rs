@@ -255,4 +255,43 @@ steps:
         let job: Job = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(job.timeout_minutes(), Some(30.0));
     }
+    #[test]
+    fn new_and_accessors_preserve_fields() {
+        let job = Job::new(
+            Some("Build".into()),
+            Some("ubuntu".into()),
+            Vec::new(),
+            vec!["setup".into()],
+            Some("always()".into()),
+            None,
+            HashMap::from([("KEY".into(), "value".into())]),
+            None,
+            HashMap::new(),
+            HashMap::from([("output".into(), "value".into())]),
+            Some(serde_yaml::Value::Null),
+            Some(serde_yaml::Value::Null),
+            Some(10.0),
+            Some("true".into()),
+            None,
+            None,
+        );
+
+        assert_eq!(job.name(), Some("Build"));
+        assert_eq!(job.runs_on(), Some("ubuntu"));
+        assert!(job.steps().is_empty());
+        assert_eq!(job.needs(), &["setup".to_string()]);
+        assert_eq!(job.r#if(), Some("always()"));
+        assert_eq!(job.if_condition(), Some("always()"));
+        assert_eq!(job.env()["KEY"], "value");
+        assert!(job.services().is_empty());
+        assert_eq!(job.outputs()["output"], "value");
+        assert!(job.with().is_some());
+        assert!(job.secrets().is_some());
+        assert_eq!(job.timeout_minutes(), Some(10.0));
+        assert_eq!(job.continue_on_error(), Some("true"));
+        assert!(job.strategy().is_none());
+        assert!(job.container().is_none());
+        assert!(job.permissions().is_none());
+        assert!(job.concurrency().is_none());
+    }
 }
