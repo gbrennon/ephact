@@ -43,8 +43,7 @@ impl StepInterpolator {
     ) -> Result<(Option<String>, Option<String>, Option<String>), EvalError> {
         let name = Self::interpolate_field(step.name(), context)?;
         let run = Self::interpolate_field(step.run(), context)?;
-        let working_directory =
-            Self::interpolate_field(step.working_directory(), context)?;
+        let working_directory = Self::interpolate_field(step.working_directory(), context)?;
         Ok((name, run, working_directory))
     }
 
