@@ -4,7 +4,7 @@
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ContainerCleanupRequest {
     /// Containers created during the run that should be cleaned up.
-    pub container_names: Vec<String>,
+    container_names: Vec<String>,
 }
 
 impl ContainerCleanupRequest {

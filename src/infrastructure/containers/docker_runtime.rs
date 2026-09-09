@@ -164,8 +164,6 @@ impl ContainerRuntimePort for DockerRuntime {
 
     fn kill_container(&self, name: &str) -> Result<(), ContainerError> {
         self.runtime.block_on(async {
-            // A missing or already-stopped container needs no killing; treat
-            // both as success so cleanup stays idempotent.
             match self
                 .docker
                 .inspect_container(name, None::<InspectContainerOptions>)

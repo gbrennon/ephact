@@ -15,9 +15,8 @@ fn execute_returns_the_non_empty_trimmed_lines_of_the_path_file() {
         "/opt/bin\n\n/opt/tools\n".to_string(),
     )]);
 
-    let additions = ReadStepPathExportsService::new().execute(ReadStepPathExportsRequest {
-        container: &container,
-    });
+    let additions =
+        ReadStepPathExportsService::new().execute(ReadStepPathExportsRequest::new(&container));
 
     assert_eq!(additions, vec!["/opt/bin", "/opt/tools"]);
 }
@@ -26,9 +25,8 @@ fn execute_returns_the_non_empty_trimmed_lines_of_the_path_file() {
 fn execute_returns_no_additions_when_the_file_was_never_written() {
     let container = StubExportingContainer::empty();
 
-    let additions = ReadStepPathExportsService::new().execute(ReadStepPathExportsRequest {
-        container: &container,
-    });
+    let additions =
+        ReadStepPathExportsService::new().execute(ReadStepPathExportsRequest::new(&container));
 
     assert!(additions.is_empty());
 }

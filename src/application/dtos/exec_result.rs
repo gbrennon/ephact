@@ -1,9 +1,9 @@
 /// Result of a container exec command.
 #[derive(Debug, Clone)]
 pub struct ExecResult {
-    pub exit_code: i64,
-    pub stdout: String,
-    pub stderr: String,
+    exit_code: i64,
+    stdout: String,
+    stderr: String,
 }
 
 impl ExecResult {

@@ -26,10 +26,10 @@ fn job_env(pairs: &[(&str, &str)]) -> HashMap<String, String> {
 fn execute_lets_the_job_environment_override_the_workflow_one() {
     let workflow = workflow("name: Ci\non: push\nenv:\n  MODE: workflow\njobs: {}\n");
 
-    let response = GitHubJobEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest {
-        workflow: &workflow,
-        job_env: &job_env(&[("MODE", "job")]),
-    });
+    let response = GitHubJobEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest::new(
+        &workflow,
+        &job_env(&[("MODE", "job")]),
+    ));
 
     assert_eq!(response.env().get("MODE").map(String::as_str), Some("job"));
 }
@@ -38,10 +38,8 @@ fn execute_lets_the_job_environment_override_the_workflow_one() {
 fn execute_sets_the_runners_own_variables() {
     let workflow = workflow("name: Ci\non: push\njobs: {}\n");
 
-    let response = GitHubJobEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest {
-        workflow: &workflow,
-        job_env: &HashMap::new(),
-    });
+    let response = GitHubJobEnvironmentAdapter::new()
+        .execute(BuildJobEnvironmentRequest::new(&workflow, &HashMap::new()));
 
     assert_eq!(
         response.env().get("GITHUB_PATH").map(String::as_str),
@@ -61,10 +59,8 @@ fn execute_sets_the_runners_own_variables() {
 fn execute_defaults_the_path_when_neither_workflow_nor_job_declares_one() {
     let workflow = workflow("name: Ci\non: push\njobs: {}\n");
 
-    let response = GitHubJobEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest {
-        workflow: &workflow,
-        job_env: &HashMap::new(),
-    });
+    let response = GitHubJobEnvironmentAdapter::new()
+        .execute(BuildJobEnvironmentRequest::new(&workflow, &HashMap::new()));
 
     assert_eq!(
         response.env().get("PATH").map(String::as_str),
@@ -76,10 +72,8 @@ fn execute_defaults_the_path_when_neither_workflow_nor_job_declares_one() {
 fn execute_keeps_a_declared_path() {
     let workflow = workflow("name: Ci\non: push\nenv:\n  PATH: /custom/bin\njobs: {}\n");
 
-    let response = GitHubJobEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest {
-        workflow: &workflow,
-        job_env: &HashMap::new(),
-    });
+    let response = GitHubJobEnvironmentAdapter::new()
+        .execute(BuildJobEnvironmentRequest::new(&workflow, &HashMap::new()));
 
     assert_eq!(
         response.env().get("PATH").map(String::as_str),
@@ -91,10 +85,10 @@ fn execute_keeps_a_declared_path() {
 fn execute_keeps_a_job_declared_path() {
     let workflow = workflow("name: Ci\non: push\njobs: {}\n");
 
-    let response = GitHubJobEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest {
-        workflow: &workflow,
-        job_env: &job_env(&[("PATH", "/job/bin")]),
-    });
+    let response = GitHubJobEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest::new(
+        &workflow,
+        &job_env(&[("PATH", "/job/bin")]),
+    ));
 
     assert_eq!(
         response.env().get("PATH").map(String::as_str),

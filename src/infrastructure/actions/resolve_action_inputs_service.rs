@@ -1,7 +1,12 @@
-use crate::application::ports::outbound::resolve_action_inputs_port::ResolveActionInputsPort;
 use std::collections::HashMap;
 
-use crate::application::dtos::ResolveActionInputsRequest;
+use crate::{
+    application::{
+        dtos::ResolveActionInputsRequest,
+        ports::outbound::resolve_action_inputs_port::ResolveActionInputsPort,
+    },
+    domain::errors::StepError,
+};
 
 /// Service that resolves the inputs an action runs with, overlaying the step's
 /// `with:` values on the defaults the action declared.
@@ -20,7 +25,10 @@ impl Default for ResolveActionInputsService {
 }
 
 impl ResolveActionInputsPort for ResolveActionInputsService {
-    fn execute(&self, request: ResolveActionInputsRequest<'_>) -> HashMap<String, String> {
+    fn execute(
+        &self,
+        request: ResolveActionInputsRequest<'_>,
+    ) -> Result<HashMap<String, String>, StepError> {
         let mut inputs: HashMap<String, String> = request
             .definition()
             .inputs()
@@ -38,6 +46,16 @@ impl ResolveActionInputsPort for ResolveActionInputsService {
                 .iter()
                 .map(|(name, value)| (name.clone(), value.clone())),
         );
-        inputs
+        let missing = request
+            .definition()
+            .inputs()
+            .iter()
+            .find(|(name, input)| input.required() && !inputs.contains_key(*name));
+        if let Some((name, _input)) = missing {
+            return Err(StepError::new(format!(
+                "required action input '{name}' was not supplied"
+            )));
+        }
+        Ok(inputs)
     }
 }

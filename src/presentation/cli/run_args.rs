@@ -2,9 +2,14 @@ use std::path::PathBuf;
 
 use clap::Args;
 
-use crate::domain::{
-    ActRunConfig, Repository,
-    value_objects::{ActEvent, ActInput, ActJob, ActWorkflow, RepoPath, RepositoryName, Secret},
+use crate::{
+    application::dtos::WorkflowInputSource,
+    domain::{
+        ActRunConfig, Repository,
+        value_objects::{
+            ActEvent, ActInput, ActJob, ActWorkflow, RepoPath, RepositoryName, Secret,
+        },
+    },
 };
 
 /// CLI arguments for the `run` subcommand.
@@ -38,6 +43,9 @@ pub struct RunArgs {
     /// the environment (repeatable).
     #[arg(long = "secret", value_name = "KEY[=VALUE]")]
     secrets: Vec<String>,
+
+    #[arg(long)]
+    interactive: bool,
 
     /// Force running every workflow found in the repository. Running all
     /// workflows is already the default; passing `--workflow` narrows the run
@@ -137,6 +145,10 @@ impl RunArgs {
         Ok(config)
     }
 
+    pub fn interactive(&self) -> bool {
+        self.interactive
+    }
+
     /// Reports whether verbose output was requested.
     pub fn verbose(&self) -> bool {
         self.verbose
@@ -147,13 +159,19 @@ impl RunArgs {
         arg == std::ffi::OsStr::new("--verbose")
     }
 
-    /// Splits a `KEY=VALUE` string into its key and value components.
-    ///
-    /// Returns an error string if the input doesn't contain `=`.
     pub fn parse_key_value(s: &str) -> Result<(String, String), String> {
         s.split_once('=')
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .ok_or_else(|| format!("expected KEY=VALUE, got '{}'", s))
+    }
+
+    pub fn parse_input_source(s: &str) -> Result<(String, WorkflowInputSource), String> {
+        let (key, value) = Self::parse_key_value(s)?;
+        let source = value
+            .strip_prefix("env:")
+            .map(WorkflowInputSource::environment_variable)
+            .unwrap_or_else(|| WorkflowInputSource::literal(value));
+        Ok((key, source))
     }
 
     /// Splits a secret argument into its name and value.

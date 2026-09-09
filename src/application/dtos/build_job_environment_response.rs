@@ -5,7 +5,7 @@ use std::collections::HashMap;
 /// outbound port.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BuildJobEnvironmentResponse {
-    pub env: HashMap<String, String>,
+    env: HashMap<String, String>,
 }
 
 impl BuildJobEnvironmentResponse {

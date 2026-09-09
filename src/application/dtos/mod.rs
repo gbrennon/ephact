@@ -63,6 +63,7 @@ pub mod step_exports;
 pub mod summarize_step_request;
 pub mod summarized_step;
 pub mod workflow_execution;
+pub mod workflow_input_source;
 pub mod workflow_list_item;
 pub use show_project_branding_info_response::ShowProjectBrandingInfoResponse;
 
@@ -130,4 +131,5 @@ pub use step_exports::StepExports;
 pub use summarize_step_request::SummarizeStepRequest;
 pub use summarized_step::SummarizedStep;
 pub use workflow_execution::WorkflowExecution;
+pub use workflow_input_source::WorkflowInputSource;
 pub use workflow_list_item::WorkflowListItem;

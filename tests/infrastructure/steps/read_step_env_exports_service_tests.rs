@@ -19,9 +19,7 @@ fn container(contents: &str) -> StubExportingContainer {
 fn execute_returns_the_assignments_and_skips_lines_without_an_equals() {
     let container = container("A=1\nnot-an-assignment\nB=2\n");
 
-    let env = ReadStepEnvExportsService::new().execute(ReadStepEnvExportsRequest {
-        container: &container,
-    });
+    let env = ReadStepEnvExportsService::new().execute(ReadStepEnvExportsRequest::new(&container));
 
     assert_eq!(env.len(), 2);
     assert_eq!(env.get("A").map(String::as_str), Some("1"));
@@ -32,9 +30,7 @@ fn execute_returns_the_assignments_and_skips_lines_without_an_equals() {
 fn execute_keeps_everything_after_the_first_equals_in_the_value() {
     let container = container("QUERY=a=b=c\n");
 
-    let env = ReadStepEnvExportsService::new().execute(ReadStepEnvExportsRequest {
-        container: &container,
-    });
+    let env = ReadStepEnvExportsService::new().execute(ReadStepEnvExportsRequest::new(&container));
 
     assert_eq!(env.get("QUERY").map(String::as_str), Some("a=b=c"));
 }
@@ -43,9 +39,7 @@ fn execute_keeps_everything_after_the_first_equals_in_the_value() {
 fn execute_returns_no_variables_when_the_file_was_never_written() {
     let container = StubExportingContainer::empty();
 
-    let env = ReadStepEnvExportsService::new().execute(ReadStepEnvExportsRequest {
-        container: &container,
-    });
+    let env = ReadStepEnvExportsService::new().execute(ReadStepEnvExportsRequest::new(&container));
 
     assert!(env.is_empty());
 }

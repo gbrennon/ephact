@@ -176,8 +176,6 @@ impl ContainerRuntimePort for PodmanRuntime {
 
     fn kill_container(&self, name: &str) -> Result<(), ContainerError> {
         self.runtime.block_on(async {
-            // A missing or already-stopped container needs no killing; treat
-            // both as success so cleanup stays idempotent.
             match self
                 .client
                 .inspect_container(name, None::<InspectContainerOptions>)

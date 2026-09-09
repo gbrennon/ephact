@@ -1,3 +1,5 @@
+use std::ffi::OsStr;
+
 use ephact::presentation::cli::{RunArgs, parse_run_test_args};
 
 #[cfg(test)]
@@ -162,8 +164,36 @@ mod tests {
     }
 
     #[test]
+    fn interactive_flag_is_reported() {
+        let args = parse_run_test_args(&["--interactive"]);
+
+        assert!(args.interactive());
+    }
+
+    #[test]
+    fn parse_input_source_keeps_literal_values() {
+        let (key, source) = RunArgs::parse_input_source("environment=staging").unwrap();
+
+        assert_eq!(key, "environment");
+        assert_eq!(source.resolve().unwrap(), "staging");
+    }
+
+    #[test]
+    fn parse_input_source_reads_env_prefixed_values_from_environment() {
+        unsafe {
+            std::env::set_var("EPHACT_RUN_ARGS_INPUT_SOURCE_TEST", "production");
+        }
+
+        let (key, source) =
+            RunArgs::parse_input_source("environment=env:EPHACT_RUN_ARGS_INPUT_SOURCE_TEST")
+                .unwrap();
+
+        assert_eq!(key, "environment");
+        assert_eq!(source.resolve().unwrap(), "production");
+    }
+
+    #[test]
     fn verbose_flag_recognizes_only_the_exact_flag() {
-        use std::ffi::OsStr;
         assert!(RunArgs::is_verbose_flag(OsStr::new("--verbose")));
         assert!(!RunArgs::is_verbose_flag(OsStr::new("--verbose=1")));
         assert!(!RunArgs::is_verbose_flag(OsStr::new("--workflows")));

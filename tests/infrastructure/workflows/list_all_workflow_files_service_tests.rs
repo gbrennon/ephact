@@ -22,9 +22,7 @@ fn execute_returns_files_from_both_platform_directories_forgejo_first() {
     fs::write(tmp.path().join(".github/workflows/beta.yml"), "").unwrap();
 
     let response = service()
-        .execute(ListAllWorkflowFilesRequest {
-            repo_path: tmp.path(),
-        })
+        .execute(ListAllWorkflowFilesRequest::new(tmp.path()))
         .unwrap();
 
     assert_eq!(
@@ -43,9 +41,7 @@ fn execute_returns_github_files_when_the_repository_has_only_those() {
     fs::write(tmp.path().join(".github/workflows/beta.yml"), "").unwrap();
 
     let response = service()
-        .execute(ListAllWorkflowFilesRequest {
-            repo_path: tmp.path(),
-        })
+        .execute(ListAllWorkflowFilesRequest::new(tmp.path()))
         .unwrap();
 
     assert_eq!(
@@ -59,9 +55,7 @@ fn execute_errors_when_the_repository_holds_no_workflow_files() {
     let tmp = tempfile::tempdir().unwrap();
 
     let error = service()
-        .execute(ListAllWorkflowFilesRequest {
-            repo_path: tmp.path(),
-        })
+        .execute(ListAllWorkflowFilesRequest::new(tmp.path()))
         .unwrap_err()
         .to_string();
 

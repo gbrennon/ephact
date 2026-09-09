@@ -6,7 +6,7 @@ use std::path::PathBuf;
 #[derive(Debug)]
 pub struct ListAllWorkflowFilesResponse {
     /// Every workflow file in the repository, `.forgejo` before `.github`.
-    pub workflow_files: Vec<PathBuf>,
+    workflow_files: Vec<PathBuf>,
 }
 
 impl ListAllWorkflowFilesResponse {

@@ -7,9 +7,9 @@ use crate::domain::expression::EvalContext;
 /// inbound port.
 pub struct BuildStepContextRequest<'a> {
     /// Context of the run the step belongs to.
-    pub context: &'a EvalContext,
+    context: &'a EvalContext,
     /// Environment the step will run with.
-    pub env: &'a HashMap<String, String>,
+    env: &'a HashMap<String, String>,
 }
 
 impl<'a> BuildStepContextRequest<'a> {

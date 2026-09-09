@@ -4,6 +4,7 @@ pub mod execute_step_service;
 pub mod execute_workflow_service;
 pub mod list_actions_service;
 pub mod list_workflows_service;
+pub mod pull_request_workflow;
 pub mod run_action_service;
 pub mod run_all_workflows_service;
 pub mod run_workflow_service;

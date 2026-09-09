@@ -3,7 +3,7 @@
 /// inbound port.
 pub struct PullJobImageRequest<'a> {
     /// Runner label the job declared, when it declared one.
-    pub runs_on: Option<&'a str>,
+    runs_on: Option<&'a str>,
 }
 
 impl<'a> PullJobImageRequest<'a> {

@@ -1,6 +1,11 @@
 use std::{error::Error, sync::Arc, time::Instant};
 
-use crate::application::commands::ExecuteWorkflowCommand;
+use crate::application::{
+    commands::ExecuteWorkflowCommand,
+    services::pull_request_workflow::{
+        config_for_pull_request_event, content_has_pull_request_event,
+    },
+};
 use crate::{
     application::{
         dtos::{JobSummary, RunAllWorkflowsRequest, RunSummary, WorkflowExecution},
@@ -67,12 +72,13 @@ impl RunAllWorkflowsService {
             .workflow_source
             .read_all_workflows(request.repository())?;
         workflow_contents
-            .iter()
+            .into_iter()
+            .filter(|content| content_has_pull_request_event(content))
             .map(|content| {
                 self.command_bus
                     .dispatch_workflow(ExecuteWorkflowCommand::new(
-                        content.clone(),
-                        request.config().clone(),
+                        content,
+                        config_for_pull_request_event(request.config().clone()),
                         request.repository().clone(),
                     ))
             })

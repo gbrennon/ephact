@@ -51,11 +51,11 @@ fn execute_runs_the_steps_script_through_bash() {
     let step = step_from("run: echo hi\n");
 
     let result = RunShellStepService::new(Arc::new(FakeEventBus::new()))
-        .execute(RunShellStepRequest {
-            step: &step,
-            container: container.as_ref(),
-            env: &HashMap::new(),
-        })
+        .execute(RunShellStepRequest::new(
+            &step,
+            container.as_ref(),
+            &HashMap::new(),
+        ))
         .unwrap();
 
     assert_eq!(result.exit_code(), 0);
@@ -72,11 +72,7 @@ fn execute_lets_the_steps_own_env_override_the_passed_env() {
     env.insert("MODE".to_string(), "job".to_string());
 
     RunShellStepService::new(Arc::new(FakeEventBus::new()))
-        .execute(RunShellStepRequest {
-            step: &step,
-            container: container.as_ref(),
-            env: &env,
-        })
+        .execute(RunShellStepRequest::new(&step, container.as_ref(), &env))
         .unwrap();
 
     let environments = runtime.exec_environments.lock();
@@ -93,11 +89,11 @@ fn execute_errors_when_the_step_has_neither_run_nor_uses() {
     let step = step_from("name: nothing to run\n");
 
     let error = RunShellStepService::new(Arc::new(FakeEventBus::new()))
-        .execute(RunShellStepRequest {
-            step: &step,
-            container: container.as_ref(),
-            env: &HashMap::new(),
-        })
+        .execute(RunShellStepRequest::new(
+            &step,
+            container.as_ref(),
+            &HashMap::new(),
+        ))
         .unwrap_err();
 
     assert_eq!(error.message(), "step has neither `run` nor `uses` defined");
@@ -109,11 +105,7 @@ fn execute_reports_a_container_failure_as_a_step_error() {
     let container = StubFailingContainer;
 
     let error = RunShellStepService::new(Arc::new(FakeEventBus::new()))
-        .execute(RunShellStepRequest {
-            step: &step,
-            container: &container,
-            env: &HashMap::new(),
-        })
+        .execute(RunShellStepRequest::new(&step, &container, &HashMap::new()))
         .unwrap_err();
 
     assert!(
