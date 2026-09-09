@@ -60,7 +60,7 @@ impl CopyActionToContainerPort for CopyActionToContainerService {
             })?;
         request
             .container()
-            .copy_to(&container_dir, &files)
+            .copy_to(&container_dir, files)
             .map_err(|error| StepError::new(format!("failed to copy action files: {error:?}")))?;
 
         Ok(container_dir)
