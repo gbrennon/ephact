@@ -16,3 +16,14 @@ impl WorkflowStartedPayload {
         &self.workflow_name
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_preserves_workflow_name() {
+        let payload = WorkflowStartedPayload::new("workflow".into());
+
+        assert_eq!(payload.workflow_name(), "workflow");
+    }
+}
