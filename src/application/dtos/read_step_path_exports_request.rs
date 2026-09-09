@@ -5,7 +5,7 @@ use crate::application::ports::outbound::container_port::ContainerPort;
 /// inbound port.
 pub struct ReadStepPathExportsRequest<'a> {
     /// Container the step just ran in.
-    container: &'a dyn ContainerPort,
+    pub container: &'a dyn ContainerPort,
 }
 
 impl<'a> ReadStepPathExportsRequest<'a> {
