@@ -2,10 +2,10 @@ use crate::application::dtos::JobSummary;
 
 #[derive(Debug, Clone)]
 pub struct WorkflowExecution {
-    workflow_name: String,
-    job_summaries: Vec<JobSummary>,
-    container_names: Vec<String>,
-    success: bool,
+    pub workflow_name: String,
+    pub job_summaries: Vec<JobSummary>,
+    pub container_names: Vec<String>,
+    pub success: bool,
 }
 
 impl WorkflowExecution {
