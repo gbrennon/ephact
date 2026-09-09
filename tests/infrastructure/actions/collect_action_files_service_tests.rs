@@ -17,9 +17,9 @@ fn execute_returns_files_with_action_relative_paths_and_contents() {
         })
         .unwrap();
 
-    assert_eq!(response.files.len(), 1);
-    assert_eq!(response.files[0].path, "action.yml");
-    assert_eq!(response.files[0].content, b"name: Greet\n");
+    assert_eq!(response.files().len(), 1);
+    assert_eq!(response.files()[0].path(), "action.yml");
+    assert_eq!(response.files()[0].content(), b"name: Greet\n");
 }
 
 #[test]
@@ -34,7 +34,7 @@ fn execute_walks_nested_directories() {
         })
         .unwrap();
 
-    assert_eq!(response.files[0].path, "dist/index.js");
+    assert_eq!(response.files()[0].path(), "dist/index.js");
 }
 
 #[test]
@@ -50,8 +50,8 @@ fn execute_skips_the_git_directory() {
         })
         .unwrap();
 
-    assert_eq!(response.files.len(), 1);
-    assert_eq!(response.files[0].path, "action.yml");
+    assert_eq!(response.files().len(), 1);
+    assert_eq!(response.files()[0].path(), "action.yml");
 }
 
 #[test]
@@ -67,7 +67,7 @@ fn execute_keeps_an_executables_mode_bits() {
         })
         .unwrap();
 
-    assert_eq!(response.files[0].mode, 0o755);
+    assert_eq!(response.files()[0].mode(), 0o755);
 }
 
 #[test]
@@ -81,8 +81,10 @@ fn execute_errors_for_a_missing_action_directory() {
         .unwrap_err();
 
     assert!(
-        error.message.starts_with("failed to read action directory"),
+        error
+            .message()
+            .starts_with("failed to read action directory"),
         "{}",
-        error.message
+        error.message()
     );
 }
