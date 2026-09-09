@@ -40,3 +40,20 @@ impl Matrix {
         &self.exclude
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_exposes_variables_and_exceptions() {
+        let matrix = Matrix::new(
+            HashMap::from([("os".into(), vec![serde_yaml::Value::String("linux".into())])]),
+            vec![HashMap::new()],
+            vec![HashMap::new()],
+        );
+
+        assert_eq!(matrix.variables()["os"].len(), 1);
+        assert_eq!(matrix.include().len(), 1);
+        assert_eq!(matrix.exclude().len(), 1);
+    }
+}
