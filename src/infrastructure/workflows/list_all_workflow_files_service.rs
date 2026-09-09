@@ -4,10 +4,10 @@ use super::{
 };
 use std::error::Error;
 
+use super::workflow_directories::WORKFLOW_DIRECTORIES;
 use crate::application::dtos::{
     ListAllWorkflowFilesRequest, ListAllWorkflowFilesResponse, ListWorkflowDirectoryRequest,
 };
-use super::workflow_directories::WORKFLOW_DIRECTORIES;
 
 /// Service that lists every workflow file of a repository, `.forgejo` first.
 pub struct ListAllWorkflowFilesService {
