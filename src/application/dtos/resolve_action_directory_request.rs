@@ -5,9 +5,9 @@ use std::path::Path;
 /// inbound port.
 pub struct ResolveActionDirectoryRequest<'a> {
     /// The `uses:` value naming the action.
-    action_ref: &'a str,
+    pub action_ref: &'a str,
     /// Root of the repository under test.
-    repo_path: &'a Path,
+    pub repo_path: &'a Path,
 }
 
 impl<'a> ResolveActionDirectoryRequest<'a> {
