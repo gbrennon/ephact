@@ -7,9 +7,9 @@ use crate::application::ports::outbound::container_port::ContainerPort;
 /// inbound port.
 pub struct CopyActionToContainerRequest<'a> {
     /// Directory holding the action on the host.
-    action_dir: &'a Path,
+    pub action_dir: &'a Path,
     /// Container the action is copied into.
-    container: &'a dyn ContainerPort,
+    pub container: &'a dyn ContainerPort,
 }
 
 impl<'a> CopyActionToContainerRequest<'a> {
