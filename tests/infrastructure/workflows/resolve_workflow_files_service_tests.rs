@@ -39,7 +39,7 @@ fn execute_lists_every_workflow_when_all_workflows_is_configured() {
         .unwrap();
 
     assert_eq!(
-        response.workflow_files,
+        response.workflow_files(),
         vec![PathBuf::from("a.yml"), PathBuf::from("b.yml")]
     );
 }
@@ -63,7 +63,7 @@ fn execute_resolves_the_configured_workflow_by_name() {
         })
         .unwrap();
 
-    assert_eq!(response.workflow_files, vec![PathBuf::from("named.yml")]);
+    assert_eq!(response.workflow_files(), vec![PathBuf::from("named.yml")]);
 }
 
 #[test]
@@ -86,7 +86,10 @@ fn execute_detects_the_workflow_when_none_is_configured() {
         })
         .unwrap();
 
-    assert_eq!(response.workflow_files, vec![PathBuf::from("detected.yml")]);
+    assert_eq!(
+        response.workflow_files(),
+        vec![PathBuf::from("detected.yml")]
+    );
 }
 
 #[test]
