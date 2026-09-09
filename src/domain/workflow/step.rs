@@ -232,10 +232,14 @@ timeout-minutes: 10
         assert_eq!(step.id(), Some("test-step"));
         assert_eq!(step.name(), Some("Run tests"));
         assert_eq!(step.r#if(), Some("success()"));
+        assert_eq!(step.if_condition(), Some("success()"));
         assert_eq!(step.run(), Some("cargo test"));
         assert_eq!(step.shell(), Some("bash"));
         assert_eq!(step.working_directory(), Some("./src"));
-        assert_eq!(step.env().get("RUST_LOG").map(|s| s.as_str()), Some("debug"));
+        assert_eq!(
+            step.env().get("RUST_LOG").map(|s| s.as_str()),
+            Some("debug")
+        );
         assert_eq!(step.continue_on_error(), Some("true"));
         assert_eq!(step.timeout_minutes(), Some(10.0));
     }
