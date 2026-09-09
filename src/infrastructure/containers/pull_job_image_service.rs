@@ -1,10 +1,8 @@
 use super::pull_job_image_port::PullJobImagePort;
 use std::{error::Error, sync::Arc};
 
-use crate::{
-    application::{dtos::PullJobImageRequest, ports::outbound::ContainerRuntimePort},
-};
 use super::super::images::ImageMapperPort;
+use crate::application::{dtos::PullJobImageRequest, ports::outbound::ContainerRuntimePort};
 
 /// Runner label assumed when a job declares none.
 const DEFAULT_RUNNER_LABEL: &str = "ubuntu-latest";
