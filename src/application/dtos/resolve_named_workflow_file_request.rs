@@ -5,9 +5,9 @@ use std::path::Path;
 /// inbound port.
 pub struct ResolveNamedWorkflowFileRequest<'a> {
     /// Workflow the run was asked to execute, as named on the command line.
-    workflow_name: &'a str,
+    pub workflow_name: &'a str,
     /// Path to the repository the workflow is looked up in.
-    repo_path: &'a Path,
+    pub repo_path: &'a Path,
 }
 
 impl<'a> ResolveNamedWorkflowFileRequest<'a> {
