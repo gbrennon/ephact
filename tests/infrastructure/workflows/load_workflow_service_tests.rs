@@ -15,12 +15,12 @@ fn execute_parses_valid_workflow_content() {
         })
         .unwrap();
 
-    assert_eq!(workflow.name.as_deref(), Some("Ci"));
+    assert_eq!(workflow.name().as_deref(), Some("Ci"));
     assert_eq!(
-        workflow.env.get("MODE").map(String::as_str),
+        workflow.env().get("MODE").map(String::as_str),
         Some("staging")
     );
-    assert!(workflow.jobs.contains_key("build"));
+    assert!(workflow.jobs().contains_key("build"));
 }
 
 #[test]
