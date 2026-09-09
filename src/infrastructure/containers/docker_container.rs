@@ -1,19 +1,17 @@
 use std::collections::HashMap;
 
+use super::bollard_wrapper::Client;
+use super::bollard_wrapper::types::RemoveContainerOptions;
+use super::exec_streaming_support::{
+    exec_options, run_streaming_exec, runner_context_with_container_env,
+};
+use super::tar_transfer::{download_archive, pack_entries, unpack_entries, upload_archive};
 use crate::application::dtos::ExecResult;
 use crate::application::dtos::FileEntry;
 use crate::application::dtos::RunnerContext;
 use crate::application::ports::outbound::container_port::ContainerPort;
 use crate::domain::errors::ContainerError;
 use crate::domain::events::OutputStream;
-use super::bollard_wrapper::Client;
-use super::bollard_wrapper::types::RemoveContainerOptions;
-use super::exec_streaming_support::{
-    exec_options, run_streaming_exec, runner_context_with_container_env,
-};
-use super::tar_transfer::{
-    download_archive, pack_entries, unpack_entries, upload_archive,
-};
 
 /// A running Docker container, created by [`DockerRuntime`].
 pub(super) struct DockerContainer {
