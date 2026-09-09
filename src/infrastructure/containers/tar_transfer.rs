@@ -31,7 +31,7 @@ fn append_entry(
 ) -> Result<(), ContainerError> {
     let mut header = tar::Header::new_gnu();
     header
-        .set_path(&entry.path())
+        .set_path(entry.path())
         .map_err(|error| copy_failed(container_id, error))?;
     header.set_size(entry.content().len() as u64);
     header.set_mode(entry.mode());
