@@ -12,8 +12,18 @@ pub struct DeletePayload {
 }
 
 impl DeletePayload {
-    pub fn new(ref_type: String, r#ref: String, repository: RepositoryInfo, sender: UserInfo) -> Self {
-        Self { ref_type, r#ref, repository, sender }
+    pub fn new(
+        ref_type: String,
+        r#ref: String,
+        repository: RepositoryInfo,
+        sender: UserInfo,
+    ) -> Self {
+        Self {
+            ref_type,
+            r#ref,
+            repository,
+            sender,
+        }
     }
 
     pub fn ref_type(&self) -> &str {
@@ -30,5 +40,37 @@ impl DeletePayload {
 
     pub fn sender(&self) -> &UserInfo {
         &self.sender
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn repository() -> RepositoryInfo {
+        RepositoryInfo::new(
+            "repo".into(),
+            "owner/repo".into(),
+            UserInfo::new("name".into(), "email".into(), "login".into()),
+            false,
+            "html".into(),
+            "main".into(),
+            "clone".into(),
+            "ssh".into(),
+        )
+    }
+
+    #[test]
+    fn new_preserves_fields() {
+        let payload = DeletePayload::new(
+            "branch".into(),
+            "main".into(),
+            repository(),
+            UserInfo::new("name".into(), "email".into(), "login".into()),
+        );
+
+        assert_eq!(payload.ref_type(), "branch");
+        assert_eq!(payload.r#ref(), "main");
+        assert_eq!(payload.repository().name(), "repo");
+        assert_eq!(payload.sender().login(), "login");
     }
 }
