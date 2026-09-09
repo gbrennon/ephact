@@ -5,9 +5,9 @@ use crate::application::ports::outbound::container_port::ContainerPort;
 /// Container a job's steps run in, with the name it was created under.
 pub struct PreparedJobContainer {
     /// Handle to the running container.
-    container: Arc<dyn ContainerPort>,
+    pub container: Arc<dyn ContainerPort>,
     /// Name the container was created with.
-    container_name: String,
+    pub container_name: String,
 }
 
 impl PreparedJobContainer {
