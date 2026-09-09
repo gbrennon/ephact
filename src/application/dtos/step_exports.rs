@@ -3,8 +3,8 @@ use std::collections::HashMap;
 /// What a step exported to the steps that follow it.
 #[derive(Debug, Clone, Default)]
 pub struct StepExports {
-    path_additions: Vec<String>,
-    env: HashMap<String, String>,
+    pub path_additions: Vec<String>,
+    pub env: HashMap<String, String>,
 }
 
 impl StepExports {
