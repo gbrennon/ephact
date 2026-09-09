@@ -42,14 +42,14 @@ fn execute_mounts_the_repository_as_the_container_workspace() {
 
     let created = runtime.created_containers.lock();
     let config = created.first().unwrap();
-    assert_eq!(config.image, "ubuntu:latest");
-    assert_eq!(config.binds, vec!["/repo:/workspace:Z".to_string()]);
-    assert_eq!(config.workdir.as_deref(), Some("/workspace"));
+    assert_eq!(config.image(), "ubuntu:latest");
+    assert_eq!(config.binds(), vec!["/repo:/workspace:Z".to_string()]);
+    assert_eq!(config.workdir().as_deref(), Some("/workspace"));
     assert_eq!(
-        config.cmd.clone().unwrap(),
+        config.cmd().clone().unwrap(),
         vec!["sleep".to_string(), "infinity".to_string()]
     );
-    assert_eq!(config.name.as_deref(), Some("ephemeral-act-build-42"));
+    assert_eq!(config.name().as_deref(), Some("ephemeral-act-build-42"));
 }
 
 #[test]
