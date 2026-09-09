@@ -65,7 +65,7 @@ impl RunAllWorkflowsService {
     ) -> Result<Vec<WorkflowExecution>, Box<dyn Error>> {
         let workflow_contents = self
             .workflow_source
-            .read_all_workflows(&request.repository())?;
+            .read_all_workflows(request.repository())?;
         workflow_contents
             .iter()
             .map(|content| {
