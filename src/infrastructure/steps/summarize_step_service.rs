@@ -16,10 +16,9 @@ impl SummarizeStepService {
     /// Names a step the way the run summary reports it.
     fn step_label(step: &Step) -> String {
         step.name()
-            .as_deref()
-            .or(step.id().as_deref())
-            .or(step.run().as_deref())
-            .or(step.uses().as_deref())
+            .or(step.id())
+            .or(step.run())
+            .or(step.uses())
             .unwrap_or("unnamed step")
             .to_string()
     }
@@ -57,7 +56,15 @@ impl SummarizeStepPort for SummarizeStepService {
         };
 
         SummarizedStep::new(
-            StepSummary::new(name, step_type, exit_code, continue_on_error, request.duration(), stdout, stderr),
+            StepSummary::new(
+                name,
+                step_type,
+                exit_code,
+                continue_on_error,
+                request.duration(),
+                stdout,
+                stderr,
+            ),
             fails_job,
         )
     }
