@@ -34,7 +34,7 @@ impl FakeCopyActionToContainerPort {
 
 impl CopyActionToContainerPort for FakeCopyActionToContainerPort {
     fn execute(&self, request: CopyActionToContainerRequest<'_>) -> Result<String, StepError> {
-        self.copied.lock().push(request.action_dir.to_path_buf());
+        self.copied.lock().push(request.action_dir().to_path_buf());
         self.result.clone().map_err(StepError::new)
     }
 }
