@@ -26,3 +26,15 @@ impl Stage {
         self.runs
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_exposes_and_consumes_runs() {
+        let stage = Stage::new(Vec::new());
+
+        assert!(stage.runs().is_empty());
+        assert!(stage.into_runs().is_empty());
+    }
+}
