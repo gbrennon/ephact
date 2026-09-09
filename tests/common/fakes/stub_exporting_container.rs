@@ -34,20 +34,12 @@ impl ContainerPort for StubExportingContainer {
         _env: &HashMap<String, String>,
     ) -> Result<ExecResult, ContainerError> {
         if cmd.first().map(String::as_str) != Some("cat") {
-            return Ok(ExecResult {
-                exit_code: 0,
-                stdout: String::new(),
-                stderr: String::new(),
-            });
+            return Ok(ExecResult::new(0, String::new(), String::new()));
         }
 
         let path = cmd.get(1).cloned().unwrap_or_default();
         match self.files.iter().find(|(name, _)| name == &path) {
-            Some((_, contents)) => Ok(ExecResult {
-                exit_code: 0,
-                stdout: contents.clone(),
-                stderr: String::new(),
-            }),
+            Some((_, contents)) => Ok(ExecResult::new(0, contents.clone(), String::new())),
             None => Err(ContainerError::ExecutionFailed(
                 "stub".into(),
                 "No such file or directory".into(),
