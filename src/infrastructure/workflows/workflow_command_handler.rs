@@ -1,11 +1,11 @@
 use crate::application::ports::inbound::execute_workflow_port::ExecuteWorkflowPort;
 use std::error::Error;
 
+use super::super::containers::workspace::CONTAINER_WORKSPACE;
 use crate::application::commands::ExecuteWorkflowCommand;
 use crate::application::dtos::ExecuteWorkflowRequest;
 use crate::application::dtos::WorkflowExecution;
 use crate::domain::expression::EvalContext;
-use super::super::containers::workspace::CONTAINER_WORKSPACE;
 use serde_json::{Map, Value};
 
 pub struct WorkflowCommandHandler {
@@ -66,7 +66,11 @@ impl WorkflowCommandHandler {
     }
     pub fn handle(&self, cmd: ExecuteWorkflowCommand) -> Result<WorkflowExecution, Box<dyn Error>> {
         let context = Self::build_context(&cmd);
-        let req = ExecuteWorkflowRequest::new(cmd.workflow_content(), cmd.repository().path().as_path(), &context);
+        let req = ExecuteWorkflowRequest::new(
+            cmd.workflow_content(),
+            cmd.repository().path().as_path(),
+            &context,
+        );
         self.executor.execute(req)
     }
 }
