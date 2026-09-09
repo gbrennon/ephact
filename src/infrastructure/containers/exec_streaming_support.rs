@@ -142,7 +142,11 @@ pub(super) async fn run_streaming_exec(
     match started {
         bollard::exec::StartExecResults::Attached { output, .. } => {
             let (stdout, stderr) = consume_exec_output(output, on_output, container_id).await?;
-            Ok(ExecResult::new(exec_exit_code(client, &exec.id).await, stdout, stderr))
+            Ok(ExecResult::new(
+                exec_exit_code(client, &exec.id).await,
+                stdout,
+                stderr,
+            ))
         }
         bollard::exec::StartExecResults::Detached => Ok(detached_result()),
     }
@@ -153,7 +157,8 @@ pub(super) fn runner_context_with_container_env(
     base: &crate::application::dtos::RunnerContext,
     container_env: Vec<String>,
 ) -> crate::application::dtos::RunnerContext {
-    base.clone().with_env_extension(parse_env_entries(container_env))
+    base.clone()
+        .with_env_extension(parse_env_entries(container_env))
 }
 
 fn parse_env_entries(entries: Vec<String>) -> HashMap<String, String> {
