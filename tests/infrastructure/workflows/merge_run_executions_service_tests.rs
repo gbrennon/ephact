@@ -13,7 +13,15 @@ fn job(job_id: &str, name: Option<&str>, success: bool) -> JobSummary {
     JobSummary {
         job_id: job_id.to_string(),
         name: name.map(str::to_string),
-        steps: vec![StepSummary::new("step".into(), StepType::Run, Some(0), false, Duration::from_secs(0), String::new(), String::new())],
+        steps: vec![StepSummary::new(
+            "step".to_string(),
+            StepType::Run,
+            Some(0),
+            false,
+            Duration::from_secs(0),
+            String::new(),
+            String::new(),
+        )],
         success,
     }
 }
@@ -24,29 +32,39 @@ fn execution(
     containers: &[&str],
     success: bool,
 ) -> WorkflowExecution {
-    WorkflowExecution::new(name.to_string(), jobs, containers.iter().map(|c| c.to_string()).collect(), success)
+    WorkflowExecution::new(
+        name.to_string(),
+        jobs,
+        containers.iter().map(|c| c.to_string()).collect(),
+        success,
+    )
 }
 
 #[test]
 fn execute_returns_a_single_run_unchanged() {
     let merged = MergeRunExecutionsService::new()
-        .execute(MergeRunExecutionsRequest::new(vec![execution(
+        .execute(MergeRunExecutionsRequest::new(
+            vec![execution(
                 "ci",
                 vec![job("build", Some("Build"), true)],
                 &["container-build"],
                 true,
-            )], false))
+            )],
+            false,
+        ))
         .unwrap();
 
-    assert_eq!(merged.workflow_name, "ci");
-    assert_eq!(merged.job_summaries[0].name.as_deref(), Some("Build"));
-    assert_eq!(merged.container_names, vec!["container-build".to_string()]);
-    assert!(merged.success);
+    assert_eq!(merged.workflow_name(), "ci");
+    assert_eq!(merged.job_summaries()[0].name(), Some("Build"));
+    assert_eq!(merged.container_names(), &["container-build".to_string()]);
+    assert!(merged.success());
 }
 
 #[test]
 fn execute_errors_for_a_single_run_with_no_execution() {
-    let Err(error) = MergeRunExecutionsService::new().execute(MergeRunExecutionsRequest::new(Vec::new(), false)) else {
+    let Err(error) =
+        MergeRunExecutionsService::new().execute(MergeRunExecutionsRequest::new(Vec::new(), false))
+    else {
         panic!("merging no executions should fail");
     };
 
@@ -56,7 +74,8 @@ fn execute_errors_for_a_single_run_with_no_execution() {
 #[test]
 fn execute_names_an_all_workflows_run_and_prefixes_every_job_name() {
     let merged = MergeRunExecutionsService::new()
-        .execute(MergeRunExecutionsRequest::new(vec![
+        .execute(MergeRunExecutionsRequest::new(
+            vec![
                 execution(
                     "ci",
                     vec![job("build", Some("build"), true)],
@@ -69,15 +88,17 @@ fn execute_names_an_all_workflows_run_and_prefixes_every_job_name() {
                     &["c-2"],
                     true,
                 ),
-            ], true))
+            ],
+            true,
+        ))
         .unwrap();
 
-    assert_eq!(merged.workflow_name, "all-workflows");
+    assert_eq!(merged.workflow_name(), "all-workflows");
     assert_eq!(
         merged
-            .job_summaries
+            .job_summaries()
             .iter()
-            .map(|job| job.name.clone())
+            .map(|job| job.name().map(str::to_string))
             .collect::<Vec<_>>(),
         vec![
             Some("ci / build".to_string()),
@@ -85,16 +106,17 @@ fn execute_names_an_all_workflows_run_and_prefixes_every_job_name() {
         ]
     );
     assert_eq!(
-        merged.container_names,
-        vec!["c-1".to_string(), "c-2".to_string()]
+        merged.container_names(),
+        &["c-1".to_string(), "c-2".to_string()]
     );
-    assert!(merged.success);
+    assert!(merged.success());
 }
 
 #[test]
 fn execute_fails_an_all_workflows_run_when_any_execution_failed() {
     let merged = MergeRunExecutionsService::new()
-        .execute(MergeRunExecutionsRequest::new(vec![
+        .execute(MergeRunExecutionsRequest::new(
+            vec![
                 execution(
                     "ci",
                     vec![job("build", Some("build"), true)],
@@ -107,22 +129,27 @@ fn execute_fails_an_all_workflows_run_when_any_execution_failed() {
                     &["c-2"],
                     false,
                 ),
-            ], true))
+            ],
+            true,
+        ))
         .unwrap();
 
-    assert!(!merged.success);
+    assert!(!merged.success());
 }
 
 #[test]
 fn execute_leaves_an_unnamed_job_unnamed() {
     let merged = MergeRunExecutionsService::new()
-        .execute(MergeRunExecutionsRequest::new(vec![execution(
+        .execute(MergeRunExecutionsRequest::new(
+            vec![execution(
                 "ci",
                 vec![job("build", None, true)],
                 &["c-1"],
                 true,
-            )], true))
+            )],
+            true,
+        ))
         .unwrap();
 
-    assert_eq!(merged.job_summaries[0].name, None);
+    assert_eq!(merged.job_summaries()[0].name(), None);
 }
