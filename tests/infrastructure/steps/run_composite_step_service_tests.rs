@@ -26,11 +26,18 @@ fn step_from(yaml: &str) -> Step {
 fn action_request(
     container: Arc<dyn ephact::application::ports::outbound::container_port::ContainerPort>,
 ) -> ExecuteActionRequest {
-    ExecuteActionRequest::new("./actions/outer".into(), step_from("uses: ./actions/outer\n"), PathBuf::from("/repo"), HashMap::new(), EvalContext::new(), container)
+    ExecuteActionRequest::new(
+        "./actions/outer".to_string(),
+        step_from("uses: ./actions/outer\n"),
+        PathBuf::from("/repo"),
+        HashMap::new(),
+        EvalContext::new(),
+        container,
+    )
 }
 
 fn action_response() -> ExecuteActionResponse {
-    ExecuteActionResponse::new(0, "nested\n".into(), String::new())
+    ExecuteActionResponse::new(0, "nested\n".to_string(), String::new())
 }
 
 fn service(command_bus: FakeCommandBus) -> RunCompositeStepService {
@@ -48,7 +55,12 @@ fn execute_runs_a_run_step_with_the_action_path_exposed() {
     let service = service(FakeCommandBus::new());
 
     service
-        .execute(RunCompositeStepRequest::new(&step, Path::new("/repo/actions/outer"), &request, &EvalContext::new()))
+        .execute(RunCompositeStepRequest::new(
+            &step,
+            Path::new("/repo/actions/outer"),
+            &request,
+            &EvalContext::new(),
+        ))
         .unwrap();
 
     assert_eq!(
@@ -68,10 +80,15 @@ fn execute_publishes_an_action_command_for_a_uses_step() {
     let service = service(command_bus.clone());
 
     let result = service
-        .execute(RunCompositeStepRequest::new(&step, Path::new("/repo/actions/outer"), &request, &EvalContext::new()))
+        .execute(RunCompositeStepRequest::new(
+            &step,
+            Path::new("/repo/actions/outer"),
+            &request,
+            &EvalContext::new(),
+        ))
         .unwrap();
 
-    assert_eq!(result.stdout, "nested\n");
+    assert_eq!(result.stdout(), "nested\n");
     let dispatched = command_bus.dispatched_actions.lock();
     assert_eq!(dispatched.len(), 1);
     assert_eq!(dispatched[0].action_ref(), "./actions/inner");
@@ -86,8 +103,17 @@ fn execute_propagates_a_shell_runner_failure() {
     let service = service(FakeCommandBus::new());
 
     let error = service
-        .execute(RunCompositeStepRequest::new(&step, Path::new("/repo/actions/outer"), &request, &EvalContext::new()))
+        .execute(RunCompositeStepRequest::new(
+            &step,
+            Path::new("/repo/actions/outer"),
+            &request,
+            &EvalContext::new(),
+        ))
         .unwrap_err();
 
-    assert!(error.message().contains("exec refused"), "{}", error.message());
+    assert!(
+        error.message().contains("exec refused"),
+        "{}",
+        error.message()
+    );
 }
