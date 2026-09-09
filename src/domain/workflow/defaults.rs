@@ -17,3 +17,14 @@ impl Defaults {
         self.run.as_ref()
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_exposes_run_defaults() {
+        let defaults = Defaults::new(Some(RunDefaults::new(Some("bash".into()), None)));
+
+        assert_eq!(defaults.run().and_then(RunDefaults::shell), Some("bash"));
+    }
+}
