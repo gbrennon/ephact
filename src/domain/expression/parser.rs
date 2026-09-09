@@ -74,42 +74,55 @@ impl<'a> Parser<'a> {
 
     fn parse_postfix(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.parse_primary()?;
-        loop {
-            match self.peek() {
-                Some(Token::Dot) => {
-                    self.advance();
-                    if self.peek() == Some(&Token::Star) {
-                        self.advance();
-                        expr = Expr::ArrayDeref(Box::new(expr));
-                    } else {
-                        let ident = self.expect_ident("property name after '.'")?;
-                        expr = Expr::PropertyAccess(Box::new(expr), ident);
-                    }
-                }
-                Some(Token::LBracket) => {
-                    self.advance();
-                    let idx = self.parse_expr()?;
-                    self.expect(Token::RBracket, "expected ']'")?;
-                    expr = Expr::IndexAccess(Box::new(expr), Box::new(idx));
-                }
-                Some(Token::LParen) => {
-                    self.advance();
-                    let args = self.parse_args()?;
-                    self.expect(Token::RParen, "expected ')'")?;
-                    let name = match &expr {
-                        Expr::Variable(n) => n.clone(),
-                        _ => {
-                            return Err(
-                                self.error("function call requires a function name before '('")
-                            );
-                        }
-                    };
-                    expr = Expr::FuncCall(name, args);
-                }
-                _ => break,
-            }
+        while self.has_postfix_token() {
+            expr = self.parse_next_postfix(expr)?;
         }
         Ok(expr)
+    }
+
+    fn has_postfix_token(&self) -> bool {
+        matches!(
+            self.peek(),
+            Some(Token::Dot | Token::LBracket | Token::LParen)
+        )
+    }
+
+    fn parse_next_postfix(&mut self, expr: Expr) -> Result<Expr, ParseError> {
+        match self.peek() {
+            Some(Token::Dot) => self.parse_dot_postfix(expr),
+            Some(Token::LBracket) => self.parse_index_postfix(expr),
+            Some(Token::LParen) => self.parse_call_postfix(expr),
+            _ => Ok(expr),
+        }
+    }
+
+    fn parse_dot_postfix(&mut self, expr: Expr) -> Result<Expr, ParseError> {
+        self.advance();
+        if self.peek() == Some(&Token::Star) {
+            self.advance();
+            Ok(Expr::ArrayDeref(Box::new(expr)))
+        } else {
+            let ident = self.expect_ident("property name after '.'")?;
+            Ok(Expr::PropertyAccess(Box::new(expr), ident))
+        }
+    }
+
+    fn parse_index_postfix(&mut self, expr: Expr) -> Result<Expr, ParseError> {
+        self.advance();
+        let idx = self.parse_expr()?;
+        self.expect(Token::RBracket, "expected ']'")?;
+        Ok(Expr::IndexAccess(Box::new(expr), Box::new(idx)))
+    }
+
+    fn parse_call_postfix(&mut self, expr: Expr) -> Result<Expr, ParseError> {
+        self.advance();
+        let args = self.parse_args()?;
+        self.expect(Token::RParen, "expected ')'")?;
+        let name = match &expr {
+            Expr::Variable(n) => n.clone(),
+            _ => return Err(self.error("function call requires a function name before '('")),
+        };
+        Ok(Expr::FuncCall(name, args))
     }
 
     fn parse_primary(&mut self) -> Result<Expr, ParseError> {
@@ -205,10 +218,7 @@ impl<'a> Parser<'a> {
     }
 
     fn error(&self, msg: &str) -> ParseError {
-        ParseError {
-            message: msg.to_string(),
-            position: self.pos,
-        }
+        ParseError::new(msg.to_string(), self.pos)
     }
 }
 
@@ -225,10 +235,10 @@ pub fn parse_expr(input: &str) -> Result<Expr, ParseError> {
             Ok(Token::Eof) => break,
             Ok(tok) => tokens.push(tok),
             Err(e) => {
-                return Err(ParseError {
-                    message: format!("lexer error: {:?}", e),
-                    position: 0,
-                });
+                return Err(ParseError::new(
+                    format!("lexer error: {:?}", e),
+                    0,
+                ));
             }
         }
     }

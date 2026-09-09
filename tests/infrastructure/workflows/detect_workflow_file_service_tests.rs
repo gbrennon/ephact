@@ -21,9 +21,7 @@ fn execute_returns_the_first_forgejo_workflow_file() {
     fs::write(tmp.path().join(".forgejo/workflows/a.yml"), "").unwrap();
 
     let path = service()
-        .execute(DetectWorkflowFileRequest {
-            repo_path: tmp.path(),
-        })
+        .execute(DetectWorkflowFileRequest::new(tmp.path()))
         .unwrap();
 
     assert_eq!(path, tmp.path().join(".forgejo/workflows/a.yml"));
@@ -38,9 +36,7 @@ fn execute_prefers_forgejo_over_github() {
     fs::write(tmp.path().join(".github/workflows/github.yml"), "").unwrap();
 
     let path = service()
-        .execute(DetectWorkflowFileRequest {
-            repo_path: tmp.path(),
-        })
+        .execute(DetectWorkflowFileRequest::new(tmp.path()))
         .unwrap();
 
     assert_eq!(path, tmp.path().join(".forgejo/workflows/forgejo.yml"));
@@ -54,9 +50,7 @@ fn execute_errors_for_an_empty_forgejo_directory_without_trying_github() {
     fs::write(tmp.path().join(".github/workflows/github.yml"), "").unwrap();
 
     let error = service()
-        .execute(DetectWorkflowFileRequest {
-            repo_path: tmp.path(),
-        })
+        .execute(DetectWorkflowFileRequest::new(tmp.path()))
         .unwrap_err()
         .to_string();
 
@@ -68,9 +62,7 @@ fn execute_errors_when_the_repository_has_no_workflows_directory() {
     let tmp = tempfile::tempdir().unwrap();
 
     let error = service()
-        .execute(DetectWorkflowFileRequest {
-            repo_path: tmp.path(),
-        })
+        .execute(DetectWorkflowFileRequest::new(tmp.path()))
         .unwrap_err()
         .to_string();
 

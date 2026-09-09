@@ -1,10 +1,8 @@
-use crate::infrastructure::workflows::resolve_named_workflow_file_port::ResolveNamedWorkflowFilePort;
+use super::resolve_named_workflow_file_port::ResolveNamedWorkflowFilePort;
 use std::{error::Error, path::PathBuf};
 
-use crate::{
-    application::dtos::ResolveNamedWorkflowFileRequest,
-    infrastructure::workflows::workflow_directories::WORKFLOW_DIRECTORIES,
-};
+use crate::application::dtos::ResolveNamedWorkflowFileRequest;
+use super::workflow_directories::WORKFLOW_DIRECTORIES;
 
 /// Service that resolves the file of a workflow the caller named.
 ///
@@ -29,19 +27,19 @@ impl ResolveNamedWorkflowFilePort for ResolveNamedWorkflowFileService {
         &self,
         request: ResolveNamedWorkflowFileRequest<'_>,
     ) -> Result<PathBuf, Box<dyn Error>> {
-        let direct = request.repo_path.join(request.workflow_name);
+        let direct = request.repo_path().join(request.workflow_name());
         if direct.exists() {
             return Ok(direct);
         }
         for platform_dir in &WORKFLOW_DIRECTORIES {
             let path = request
-                .repo_path
+                .repo_path()
                 .join(platform_dir)
-                .join(request.workflow_name);
+                .join(request.workflow_name());
             if path.exists() {
                 return Ok(path);
             }
         }
-        Err(format!("workflow file not found: {}", request.workflow_name).into())
+        Err(format!("workflow file not found: {}", request.workflow_name()).into())
     }
 }

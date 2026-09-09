@@ -93,28 +93,25 @@ impl EventPayload for Event {
 impl Event {
     /// Creates a push event with sensible defaults for local execution.
     pub fn push_default(branch: &str, repo: &super::repository_info::RepositoryInfo) -> Self {
-        Event::Push(Box::new(PushPayload {
-            r#ref: format!("refs/heads/{}", branch),
-            before: "0000000000000000000000000000000000000000".to_owned(),
-            after: "0000000000000000000000000000000000000000".to_owned(),
-            repository: repo.clone(),
-            pusher: super::user_info::UserInfo {
-                name: "act".to_owned(),
-                email: "act@localhost".to_owned(),
-                login: "act".to_owned(),
-            },
-            sender: super::user_info::UserInfo {
-                name: "act".to_owned(),
-                email: "act@localhost".to_owned(),
-                login: "act".to_owned(),
-            },
-            created: false,
-            deleted: false,
-            forced: false,
-            commits: vec![],
-            head_commit: None,
-            compare: String::new(),
-        }))
+        let act_user = super::user_info::UserInfo::new(
+            "act".to_owned(),
+            "act@localhost".to_owned(),
+            "act".to_owned(),
+        );
+        Event::Push(Box::new(PushPayload::new(
+            format!("refs/heads/{}", branch),
+            "0000000000000000000000000000000000000000".to_owned(),
+            "0000000000000000000000000000000000000000".to_owned(),
+            repo.clone(),
+            act_user.clone(),
+            act_user,
+            false,
+            false,
+            false,
+            vec![],
+            None,
+            String::new(),
+        )))
     }
 
     /// Creates a pull_request event with sensible defaults for local execution.
@@ -122,42 +119,42 @@ impl Event {
         number: u64,
         repo: &super::repository_info::RepositoryInfo,
     ) -> Self {
-        Event::PullRequest(Box::new(PullRequestPayload {
-            action: "opened".to_owned(),
+        let head = super::branch_ref::BranchRef::new(
+            "refs/heads/feature".to_owned(),
+            "0000000000000000000000000000000000000000".to_owned(),
+            repo.clone(),
+            "feature".to_owned(),
+        );
+        let base = super::branch_ref::BranchRef::new(
+            "refs/heads/main".to_owned(),
+            "0000000000000000000000000000000000000000".to_owned(),
+            repo.clone(),
+            "main".to_owned(),
+        );
+        let user = super::user_info::UserInfo::new(
+            "act".to_owned(),
+            "act@localhost".to_owned(),
+            "act".to_owned(),
+        );
+        let pull_request = super::pull_request_info::PullRequestInfo::new(
             number,
-            pull_request: super::pull_request_info::PullRequestInfo {
-                number,
-                title: "Local PR".to_owned(),
-                body: None,
-                head: super::branch_ref::BranchRef {
-                    r#ref: "refs/heads/feature".to_owned(),
-                    sha: "0000000000000000000000000000000000000000".to_owned(),
-                    repo: repo.clone(),
-                    label: "feature".to_owned(),
-                },
-                base: super::branch_ref::BranchRef {
-                    r#ref: "refs/heads/main".to_owned(),
-                    sha: "0000000000000000000000000000000000000000".to_owned(),
-                    repo: repo.clone(),
-                    label: "main".to_owned(),
-                },
-                user: super::user_info::UserInfo {
-                    name: "act".to_owned(),
-                    email: "act@localhost".to_owned(),
-                    login: "act".to_owned(),
-                },
-                html_url: String::new(),
-                draft: false,
-                merged: false,
-                mergeable: None,
-            },
-            repository: repo.clone(),
-            sender: super::user_info::UserInfo {
-                name: "act".to_owned(),
-                email: "act@localhost".to_owned(),
-                login: "act".to_owned(),
-            },
-        }))
+            "Local PR".to_owned(),
+            None,
+            head,
+            base,
+            user.clone(),
+            String::new(),
+            false,
+            false,
+            None,
+        );
+        Event::PullRequest(Box::new(PullRequestPayload::new(
+            "opened".to_owned(),
+            number,
+            pull_request,
+            repo.clone(),
+            user,
+        )))
     }
 
     /// Creates a workflow_dispatch event with the given inputs.
@@ -165,17 +162,18 @@ impl Event {
         inputs: HashMap<String, String>,
         repo: &super::repository_info::RepositoryInfo,
     ) -> Self {
-        Event::WorkflowDispatch(Box::new(WorkflowDispatchPayload {
+        let sender = super::user_info::UserInfo::new(
+            "act".to_owned(),
+            "act@localhost".to_owned(),
+            "act".to_owned(),
+        );
+        Event::WorkflowDispatch(Box::new(WorkflowDispatchPayload::new(
             inputs,
-            repository: repo.clone(),
-            sender: super::user_info::UserInfo {
-                name: "act".to_owned(),
-                email: "act@localhost".to_owned(),
-                login: "act".to_owned(),
-            },
-            workflow: String::new(),
-            r#ref: "refs/heads/main".to_owned(),
-        }))
+            repo.clone(),
+            sender,
+            String::new(),
+            "refs/heads/main".to_owned(),
+        )))
     }
 }
 
@@ -187,20 +185,21 @@ mod tests {
     };
 
     fn test_repo() -> RepositoryInfo {
-        RepositoryInfo {
-            name: "test-repo".to_owned(),
-            full_name: "owner/test-repo".to_owned(),
-            owner: UserInfo {
-                name: "owner".to_owned(),
-                email: "owner@example.com".to_owned(),
-                login: "owner".to_owned(),
-            },
-            private: false,
-            html_url: "https://github.com/owner/test-repo".to_owned(),
-            default_branch: "main".to_owned(),
-            clone_url: "https://github.com/owner/test-repo.git".to_owned(),
-            ssh_url: "git@github.com:owner/test-repo.git".to_owned(),
-        }
+        let owner = UserInfo::new(
+            "owner".to_owned(),
+            "owner@example.com".to_owned(),
+            "owner".to_owned(),
+        );
+        RepositoryInfo::new(
+            "test-repo".to_owned(),
+            "owner/test-repo".to_owned(),
+            owner,
+            false,
+            "https://github.com/owner/test-repo".to_owned(),
+            "main".to_owned(),
+            "https://github.com/owner/test-repo.git".to_owned(),
+            "git@github.com:owner/test-repo.git".to_owned(),
+        )
     }
 
     #[test]

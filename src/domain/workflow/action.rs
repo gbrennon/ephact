@@ -21,24 +21,55 @@ use super::{ActionInput, ActionRuns};
 ///       shell: bash
 /// "#;
 /// let action: ActionDefinition = serde_yaml::from_str(yaml).unwrap();
-/// assert_eq!(action.name, "My Action");
-/// assert!(matches!(action.runs, ActionRuns::Composite { .. }));
+/// assert_eq!(action.name(), "My Action");
+/// assert!(matches!(action.runs(), ActionRuns::Composite { .. }));
 /// ```
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 pub struct ActionDefinition {
-    /// Display name for the action.
-    pub name: String,
+    name: String,
 
     /// Optional description of what the action does.
     #[serde(default)]
-    pub description: Option<String>,
+    description: Option<String>,
 
     /// Input parameters declared by the action.
     #[serde(default)]
-    pub inputs: std::collections::HashMap<String, ActionInput>,
+    inputs: std::collections::HashMap<String, ActionInput>,
 
     /// How the action executes.
-    pub runs: ActionRuns,
+    runs: ActionRuns,
+}
+
+impl ActionDefinition {
+    pub fn new(
+        name: impl Into<String>,
+        description: Option<String>,
+        inputs: std::collections::HashMap<String, ActionInput>,
+        runs: ActionRuns,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            description,
+            inputs,
+            runs,
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    pub fn inputs(&self) -> &std::collections::HashMap<String, ActionInput> {
+        &self.inputs
+    }
+
+    pub fn runs(&self) -> &ActionRuns {
+        &self.runs
+    }
 }
 
 #[cfg(test)]
@@ -59,13 +90,13 @@ runs:
       run: cargo test
 "#;
         let action: ActionDefinition = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(action.name, "Test Action");
-        assert_eq!(action.description.as_deref(), Some("Does stuff"));
-        assert!(matches!(action.runs, ActionRuns::Composite { .. }));
-        if let ActionRuns::Composite { steps } = &action.runs {
+        assert_eq!(action.name(), "Test Action");
+        assert_eq!(action.description(), Some("Does stuff"));
+        assert!(matches!(action.runs(), ActionRuns::Composite { .. }));
+        if let ActionRuns::Composite { steps } = action.runs() {
             assert_eq!(steps.len(), 2);
             assert_eq!(steps[0].run(), Some("echo hello"));
-            assert_eq!(steps[1].name.as_deref(), Some("Check"));
+            assert_eq!(steps[1].name(), Some("Check"));
         }
     }
 
@@ -86,9 +117,9 @@ runs:
     - run: echo done
 "#;
         let action: ActionDefinition = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(action.inputs.len(), 2);
-        assert!(action.inputs["path"].required);
-        assert_eq!(action.inputs["key"].default.as_deref(), Some("default-key"));
+        assert_eq!(action.inputs().len(), 2);
+        assert!(action.inputs()["path"].required());
+        assert_eq!(action.inputs()["key"].default(), Some("default-key"));
     }
 
     #[test]
@@ -100,7 +131,7 @@ runs:
   main: index.js
 "#;
         let action: ActionDefinition = serde_yaml::from_str(yaml).unwrap();
-        assert!(matches!(action.runs, ActionRuns::Node16 { .. }));
+        assert!(matches!(action.runs(), ActionRuns::Node16 { .. }));
     }
 
     #[test]
@@ -112,6 +143,6 @@ runs:
   image: Dockerfile
 "#;
         let action: ActionDefinition = serde_yaml::from_str(yaml).unwrap();
-        assert!(matches!(action.runs, ActionRuns::Docker { .. }));
+        assert!(matches!(action.runs(), ActionRuns::Docker { .. }));
     }
 }

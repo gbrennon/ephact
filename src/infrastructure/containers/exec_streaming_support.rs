@@ -118,11 +118,7 @@ pub(super) async fn exec_exit_code(client: &Client, exec_id: &str) -> i64 {
 
 /// The result reported for a detached exec, which carries no output.
 pub(super) fn detached_result() -> ExecResult {
-    ExecResult {
-        exit_code: 0,
-        stdout: String::new(),
-        stderr: String::new(),
-    }
+    ExecResult::new(0, String::new(), String::new())
 }
 
 /// Creates the exec, streams its output, then reports the accumulated result
@@ -146,11 +142,7 @@ pub(super) async fn run_streaming_exec(
     match started {
         bollard::exec::StartExecResults::Attached { output, .. } => {
             let (stdout, stderr) = consume_exec_output(output, on_output, container_id).await?;
-            Ok(ExecResult {
-                exit_code: exec_exit_code(client, &exec.id).await,
-                stdout,
-                stderr,
-            })
+            Ok(ExecResult::new(exec_exit_code(client, &exec.id).await, stdout, stderr))
         }
         bollard::exec::StartExecResults::Detached => Ok(detached_result()),
     }
@@ -161,9 +153,7 @@ pub(super) fn runner_context_with_container_env(
     base: &crate::application::dtos::RunnerContext,
     container_env: Vec<String>,
 ) -> crate::application::dtos::RunnerContext {
-    let mut context = base.clone();
-    context.env.extend(parse_env_entries(container_env));
-    context
+    base.clone().with_env_extension(parse_env_entries(container_env))
 }
 
 fn parse_env_entries(entries: Vec<String>) -> HashMap<String, String> {

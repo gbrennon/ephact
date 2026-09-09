@@ -7,17 +7,12 @@ use crate::application::dtos::HostInfo;
 use crate::application::ports::outbound::ContainerRuntimePort;
 use crate::application::ports::outbound::container_port::ContainerPort;
 use crate::domain::errors::ContainerError;
-use crate::infrastructure::containers::bollard_wrapper::API_DEFAULT_VERSION;
-use crate::infrastructure::containers::bollard_wrapper::AuthCredentials;
-use crate::infrastructure::containers::bollard_wrapper::Client;
-use crate::infrastructure::containers::bollard_wrapper::types::ContainerCreateBody;
-use crate::infrastructure::containers::bollard_wrapper::types::CreateContainerOptionsBuilder;
-use crate::infrastructure::containers::bollard_wrapper::types::CreateImageOptionsBuilder;
-use crate::infrastructure::containers::bollard_wrapper::types::HostConfig;
-use crate::infrastructure::containers::bollard_wrapper::types::InspectContainerOptions;
-use crate::infrastructure::containers::bollard_wrapper::types::KillContainerOptions;
-use crate::infrastructure::containers::bollard_wrapper::types::RemoveContainerOptions;
-use crate::infrastructure::containers::bollard_wrapper::types::StartContainerOptions;
+use super::bollard_wrapper::{API_DEFAULT_VERSION, AuthCredentials, Client};
+use super::bollard_wrapper::types::{
+    ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
+    HostConfig, InspectContainerOptions, KillContainerOptions, RemoveContainerOptions,
+    StartContainerOptions,
+};
 
 /// Podman-based container runtime adapter using the bollard crate.
 ///
@@ -82,28 +77,28 @@ impl ContainerRuntimePort for PodmanRuntime {
         config: &ContainerConfig,
     ) -> Result<Box<dyn ContainerPort>, ContainerError> {
         let env_list: Vec<String> = config
-            .env
+            .env()
             .iter()
             .map(|(k, v)| format!("{}={}", k, v))
             .collect();
 
         let host_config = HostConfig {
-            binds: Some(config.binds.clone()),
-            network_mode: config.network.clone(),
+            binds: Some(config.binds().to_vec()),
+            network_mode: config.network().map(str::to_string),
             ..Default::default()
         };
 
         let create_options = CreateContainerOptionsBuilder::new()
-            .name(config.name.as_deref().unwrap_or(""))
-            .platform(config.platform.as_deref().unwrap_or(""))
+            .name(config.name().unwrap_or(""))
+            .platform(config.platform().unwrap_or(""))
             .build();
 
         let container_config = ContainerCreateBody {
-            image: Some(config.image.clone()),
+            image: Some(config.image().to_string()),
             env: Some(env_list),
-            cmd: config.cmd.clone(),
-            entrypoint: config.entrypoint.clone(),
-            working_dir: config.workdir.clone(),
+            cmd: config.cmd().map(<[String]>::to_vec),
+            entrypoint: config.entrypoint().map(<[String]>::to_vec),
+            working_dir: config.workdir().map(str::to_string),
             host_config: Some(host_config),
             ..Default::default()
         };
@@ -114,7 +109,7 @@ impl ContainerRuntimePort for PodmanRuntime {
                 .await
                 .map_err(|e| {
                     ContainerError::CreationFailed(
-                        config.name.clone().unwrap_or_default(),
+                        config.name().clone().unwrap_or_default().to_string().to_string(),
                         e.to_string(),
                     )
                 })
@@ -126,18 +121,18 @@ impl ContainerRuntimePort for PodmanRuntime {
                 .await
                 .map_err(|e| {
                     ContainerError::CreationFailed(
-                        config.name.clone().unwrap_or_default(),
+                        config.name().clone().unwrap_or_default().to_string().to_string(),
                         e.to_string(),
                     )
                 })
         })?;
 
-        Ok(Box::new(PodmanContainer {
-            client: self.client.clone(),
-            container_id: container.id,
-            runner_context: config.runner_context.clone(),
-            runtime: self.runtime.handle().clone(),
-        }))
+        Ok(Box::new(PodmanContainer::new(
+            self.client.clone(),
+            container.id,
+            self.runtime.handle().clone(),
+            config.runner_context().clone(),
+        )))
     }
 
     fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
@@ -207,11 +202,7 @@ impl ContainerRuntimePort for PodmanRuntime {
                 .await
                 .map_err(|_| ContainerError::NotAvailable)?;
 
-            Ok(HostInfo {
-                os: info.os.unwrap_or_else(|| "linux".to_string()),
-                arch: info.arch.unwrap_or_else(|| "amd64".to_string()),
-                engine_version: info.version.unwrap_or_else(|| "unknown".to_string()),
-            })
+            Ok(HostInfo::new(info.os.unwrap_or_else(|| "linux".to_string()), info.arch.unwrap_or_else(|| "amd64".to_string()), info.version.unwrap_or_else(|| "unknown".to_string())))
         })
     }
 }

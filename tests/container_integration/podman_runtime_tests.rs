@@ -10,18 +10,7 @@ mod tests {
     use super::*;
 
     fn make_config(name: &str) -> ContainerConfig {
-        ContainerConfig {
-            image: "alpine:latest".into(),
-            platform: None,
-            env: HashMap::new(),
-            binds: vec![],
-            workdir: None,
-            cmd: Some(vec!["sleep".into(), "infinity".into()]),
-            entrypoint: None,
-            network: None,
-            name: Some(name.into()),
-            runner_context: Default::default(),
-        }
+        ContainerConfig::new("alpine:latest".into(), None, HashMap::new(), vec![], None, Some(vec!["sleep".into(), "infinity".into()]), None, None, Some(name.into()), Default::default())
     }
 
     macro_rules! runtime {
@@ -170,11 +159,7 @@ mod tests {
         let _ = runtime.remove_container("ephemeral-act-test-podman-copyto");
         let container = runtime.create_container(&config).unwrap();
 
-        let entries = vec![FileEntry {
-            path: "test.txt".into(),
-            content: b"hello copy_to".to_vec(),
-            mode: 0o644,
-        }];
+        let entries = vec![FileEntry::new("test.txt".into(), b"hello copy_to".to_vec(), 0o644)];
         container.copy_to("/tmp", &entries).unwrap();
 
         let result = container
@@ -223,11 +208,7 @@ mod tests {
         let container = runtime.create_container(&config).unwrap();
 
         let original = b"roundtrip data 12345";
-        let entries = vec![FileEntry {
-            path: "roundtrip.bin".into(),
-            content: original.to_vec(),
-            mode: 0o644,
-        }];
+        let entries = vec![FileEntry::new("roundtrip.bin".into(), original.to_vec(), 0o644)];
         container.copy_to("/tmp", &entries).unwrap();
 
         let retrieved = container.copy_from("/tmp/roundtrip.bin").unwrap();

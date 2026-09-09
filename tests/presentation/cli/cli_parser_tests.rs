@@ -16,12 +16,7 @@ mod tests {
     };
 
     fn ok_summary() -> RunSummary {
-        RunSummary {
-            name: "test".into(),
-            job_summaries: vec![],
-            success: true,
-            duration: Duration::ZERO,
-        }
+        RunSummary::new("test".into(), vec![], true, Duration::ZERO)
     }
 
     #[test]

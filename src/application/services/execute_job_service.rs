@@ -69,70 +69,69 @@ impl ExecuteJobPort for ExecuteJobService {
     fn execute(&self, request: ExecuteJobRequest<'_>) -> Result<JobExecution, Box<dyn Error>> {
         let mut step_env = self
             .job_environment_builder
-            .execute(BuildJobEnvironmentRequest {
-                workflow: request.workflow,
-                job_env: &request.run.job.env,
-            })
-            .env;
+            .execute(BuildJobEnvironmentRequest::new(
+                request.workflow(),
+                request.run().job().env(),
+            ))
+            .into_env();
 
         let prepared = self
             .container_preparer
-            .execute(PrepareJobContainerRequest {
-                job_id: &request.run.job_id,
-                runs_on: request.run.job.runs_on.as_deref(),
-                repo_path: request.repo_path,
-            })?;
+            .execute(PrepareJobContainerRequest::new(
+                request.run().job_id(),
+                request.run().job().runs_on(),
+                request.repo_path(),
+            ))?;
 
         let mut extra_path: Vec<String> = Vec::new();
         let mut job_success = true;
         let mut steps: Vec<StepSummary> = Vec::new();
 
-        for step in &request.run.job.steps {
-            step_env = self.step_path_prefixer.execute(PrefixStepPathRequest {
-                env: &step_env,
-                path_additions: &extra_path,
-            });
+        for step in request.run().job().steps() {
+            step_env = self.step_path_prefixer.execute(PrefixStepPathRequest::new(
+                &step_env,
+                &extra_path,
+            ));
 
             let started_at = Instant::now();
-            let step_context = self.step_context_builder.execute(BuildStepContextRequest {
-                context: request.context,
-                env: &step_env,
-            });
+            let step_context = self.step_context_builder.execute(BuildStepContextRequest::new(
+                request.context(),
+                &step_env,
+            ));
 
             self.announce_step_started(&request, step);
             let outcome = self.command_bus.dispatch_step(ExecuteStepCommand::new(
                 step.clone(),
                 step_env.clone(),
                 step_context,
-                prepared.container.clone(),
-                request.repo_path.to_path_buf(),
+                prepared.container().clone(),
+                request.repo_path().to_path_buf(),
             ));
 
-            let summarized = self.step_summarizer.execute(SummarizeStepRequest {
+            let summarized = self.step_summarizer.execute(SummarizeStepRequest::new(
                 step,
                 outcome,
-                duration: started_at.elapsed(),
-            });
-            job_success &= !summarized.fails_job;
-            self.announce_step_finished(&request, &summarized.summary, !summarized.fails_job);
-            steps.push(summarized.summary);
+                started_at.elapsed(),
+            ));
+            job_success &= !summarized.fails_job();
+            self.announce_step_finished(&request, summarized.summary(), !summarized.fails_job());
+            steps.push(summarized.summary().clone());
 
-            let exports = self.step_exports_reader.execute(ReadStepExportsRequest {
-                container: prepared.container.as_ref(),
-            });
-            extra_path.extend(exports.path_additions);
-            step_env.extend(exports.env);
+            let exports = self.step_exports_reader.execute(ReadStepExportsRequest::new(
+                prepared.container().as_ref(),
+            ));
+            let (path_additions, env) = exports.into_parts();
+            extra_path.extend(path_additions);
+            step_env.extend(env);
         }
 
-        Ok(JobExecution {
-            job_summary: JobSummary {
-                job_id: request.run.job_id.clone(),
-                name: request.run.job.name.clone(),
-                steps,
-                success: job_success,
-            },
-            container_name: prepared.container_name,
-        })
+        let job_summary = JobSummary::new(
+            request.run().job_id().to_string(),
+            request.run().job().name().map(str::to_string),
+            steps,
+            job_success,
+        );
+        Ok(JobExecution::new(job_summary, prepared.container_name().to_string()))
     }
 }
 
@@ -143,15 +142,15 @@ impl ExecuteJobService {
         step: &crate::domain::workflow::Step,
     ) {
         self.event_bus
-            .publish(DomainEvent::StepStarted(StepStartedPayload {
-                workflow_name: request
-                    .workflow
-                    .name
-                    .clone()
-                    .unwrap_or_else(|| "unnamed".into()),
-                job_id: request.run.job_id.clone(),
-                step_name: step.name.clone().unwrap_or_else(|| "unnamed step".into()),
-            }));
+            .publish(DomainEvent::StepStarted(StepStartedPayload::new(
+                request
+                    .workflow()
+                    .name()
+                    .unwrap_or("unnamed")
+                    .to_string(),
+                request.run().job_id().to_string(),
+                step.name().unwrap_or("unnamed step").to_string(),
+            )));
     }
 
     fn announce_step_finished(
@@ -161,18 +160,18 @@ impl ExecuteJobService {
         step_success: bool,
     ) {
         self.event_bus
-            .publish(DomainEvent::StepFinished(StepFinishedPayload {
-                workflow_name: request
-                    .workflow
-                    .name
-                    .clone()
-                    .unwrap_or_else(|| "unnamed".into()),
-                job_id: request.run.job_id.clone(),
-                step_name: summary.name.clone(),
-                success: step_success,
-                exit_code: summary.exit_code,
-                stdout: summary.stdout.clone(),
-                stderr: summary.stderr.clone(),
-            }));
+            .publish(DomainEvent::StepFinished(StepFinishedPayload::new(
+                request
+                    .workflow()
+                    .name()
+                    .unwrap_or("unnamed")
+                    .to_string(),
+                request.run().job_id().to_string(),
+                summary.name().to_string(),
+                step_success,
+                summary.exit_code(),
+                summary.stdout().to_string(),
+                summary.stderr().to_string(),
+            )));
     }
 }

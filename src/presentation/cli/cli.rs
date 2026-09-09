@@ -9,9 +9,9 @@ use crate::application::ports::inbound::{
     run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
     show_project_branding_info_port::ShowProjectBrandingInfoPort,
 };
-use crate::presentation::components::{
+use super::super::components::{
     banner::Banner, box_component::BoxComponent, content::ContentComponent,
-    terminal::SystemTerminal,
+    terminal::{SystemTerminal, Terminal},
 };
 
 pub struct Cli {
@@ -55,7 +55,7 @@ impl Cli {
     pub fn run_with_terminal<I, T>(
         self,
         args: I,
-        terminal: &dyn crate::presentation::components::terminal::Terminal,
+        terminal: &dyn Terminal,
     ) -> Result<String, Box<dyn std::error::Error>>
     where
         I: IntoIterator<Item = T>,
@@ -69,14 +69,14 @@ impl Cli {
             Ok(cli) => cli,
             Err(e) => return render_parse_error(e),
         };
-        self.execute_command(cli.command, terminal, &mut output)?;
+        self.execute_command(cli.command(), terminal, &mut output)?;
         Ok(output)
     }
 
     fn execute_command(
         &self,
         command: Command,
-        terminal: &dyn crate::presentation::components::terminal::Terminal,
+        terminal: &dyn Terminal,
         output: &mut String,
     ) -> Result<(), Box<dyn std::error::Error>> {
         match command {
@@ -89,7 +89,7 @@ impl Cli {
     fn execute_run(
         &self,
         args: super::run_args::RunArgs,
-        terminal: &dyn crate::presentation::components::terminal::Terminal,
+        terminal: &dyn Terminal,
         output: &mut String,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let (summary, success) = RunHandler::handle_with_output(
@@ -109,7 +109,7 @@ impl Cli {
     fn execute_list_workflows(
         &self,
         args: super::list_workflows_args::ListWorkflowsArgs,
-        terminal: &dyn crate::presentation::components::terminal::Terminal,
+        terminal: &dyn Terminal,
         output: &mut String,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let content = ListWorkflowsHandler::handle(args, &*self.list_workflows_port)?;
@@ -126,7 +126,7 @@ impl Cli {
     fn execute_list_actions(
         &self,
         args: super::list_actions_args::ListActionsArgs,
-        terminal: &dyn crate::presentation::components::terminal::Terminal,
+        terminal: &dyn Terminal,
         output: &mut String,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let content = ListActionsHandler::handle(args, &*self.list_actions_port)?;

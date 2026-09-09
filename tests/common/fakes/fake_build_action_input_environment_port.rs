@@ -34,9 +34,7 @@ impl BuildActionInputEnvironmentPort for FakeBuildActionInputEnvironmentPort {
     ) -> BuildActionInputEnvironmentResponse {
         self.action_paths
             .lock()
-            .push(request.action_path.to_string());
-        BuildActionInputEnvironmentResponse {
-            env: self.env.clone(),
-        }
+            .push(request.action_path().to_string());
+        BuildActionInputEnvironmentResponse::new(self.env.clone())
     }
 }

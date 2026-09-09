@@ -1,8 +1,7 @@
 use clap::Parser;
 
-use crate::infrastructure::workflows::workflow_directories::{
-    supported_platforms_display, supported_workflows_display,
-};
+const SUPPORTED_PLATFORMS: &str = "Forgejo, GitHub";
+const SUPPORTED_WORKFLOWS: &str = ".forgejo/workflows, .github/workflows";
 
 #[derive(Parser)]
 #[command(
@@ -18,14 +17,18 @@ CI host from the repository layout and manages ephemeral copies internally."#
 )]
 pub struct CliParser {
     #[command(subcommand)]
-    pub(crate) command: super::command::Command,
+    command: super::command::Command,
 }
 
 impl CliParser {
+    pub fn command(self) -> super::command::Command {
+        self.command
+    }
+
     /// Builds the base CLI command with dynamic platform and workflow descriptions.
     pub fn build_command() -> clap::Command {
-        let platforms = supported_platforms_display();
-        let workflows = supported_workflows_display();
+        let platforms = SUPPORTED_PLATFORMS;
+        let workflows = SUPPORTED_WORKFLOWS;
         <Self as clap::CommandFactory>::command()
             .about(format!(
                 "Run CI workflows locally in ephemeral repositories ({platforms})"
@@ -66,7 +69,7 @@ pub fn parse_run_test_args(args: &[&str]) -> super::run_args::RunArgs {
     let mut full: Vec<&str> = vec!["ephact", "run"];
     full.extend_from_slice(args);
     let cli = CliParser::parse_from(&full);
-    match cli.command {
+    match cli.command() {
         super::command::Command::Run(args) => *args,
         _ => unreachable!(),
     }
@@ -81,7 +84,7 @@ pub fn parse_list_workflows_test_args(
     let mut full: Vec<&str> = vec!["ephact", "list-workflows"];
     full.extend_from_slice(args);
     let cli = CliParser::parse_from(&full);
-    match cli.command {
+    match cli.command() {
         super::command::Command::ListWorkflows(args) => *args,
         _ => unreachable!(),
     }
@@ -94,7 +97,7 @@ pub fn parse_list_actions_test_args(args: &[&str]) -> super::list_actions_args::
     let mut full: Vec<&str> = vec!["ephact", "list-actions"];
     full.extend_from_slice(args);
     let cli = CliParser::parse_from(&full);
-    match cli.command {
+    match cli.command() {
         super::command::Command::ListActions(args) => *args,
         _ => unreachable!(),
     }

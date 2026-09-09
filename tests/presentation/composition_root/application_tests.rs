@@ -25,12 +25,7 @@ mod tests {
             ephact::application::dtos::ShowProjectBrandingInfoResponse,
             Box<dyn std::error::Error>,
         > {
-            Ok(ephact::application::dtos::ShowProjectBrandingInfoResponse {
-                name: "ephact".to_string(),
-                description: "Ephemeral action runner".to_string(),
-                version: "0.1.0".to_string(),
-                emblem: "shield".to_string(),
-            })
+            Ok(ephact::application::dtos::ShowProjectBrandingInfoResponse::new("ephact".to_string(), "Ephemeral action runner".to_string(), "0.1.0".to_string(), "shield".to_string()))
         }
     }
 
@@ -46,21 +41,21 @@ mod tests {
     }
 
     fn compose_application() -> Application {
-        CompositionRoot::compose(AppContainer {
-            show_project_branding_info_port: Box::new(FakeShowProjectBrandingInfoPort),
-            run_workflow_port: Box::new(FakeRunWorkflowPort::new(true)),
-            run_all_workflows_port: Box::new(FakeRunAllWorkflowsPort::new(true)),
-            run_action_port: Box::new(FakeRunActionPort),
-            list_workflows_port: Box::new(FakeListWorkflowsPort::new()),
-            list_actions_port: Box::new(FakeListActionsPort::new()),
-        })
+        CompositionRoot::compose(AppContainer::new(
+            Box::new(FakeShowProjectBrandingInfoPort),
+            Box::new(FakeRunAllWorkflowsPort::new(true)),
+            Box::new(FakeRunWorkflowPort::new(true)),
+            Box::new(FakeRunActionPort),
+            Box::new(FakeListWorkflowsPort::new()),
+            Box::new(FakeListActionsPort::new()),
+        ))
     }
 
     #[test]
     fn composed_application_runs_help_through_cli_field() {
         let app = compose_application();
 
-        let result = app.cli.run(["ephact"]);
+        let result = app.run(["ephact"]);
 
         assert!(result.is_ok());
     }
@@ -69,7 +64,7 @@ mod tests {
     fn composed_application_dispatches_list_actions_through_injected_fakes() {
         let app = compose_application();
 
-        let result = app.cli.run(["ephact", "list-actions"]);
+        let result = app.run(["ephact", "list-actions"]);
 
         assert!(result.is_ok());
     }

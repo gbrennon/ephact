@@ -51,7 +51,7 @@ impl ExpressionResolver {
         let expression = parse_expr(body).map_err(|error| {
             EvalError::TypeError(format!(
                 "invalid expression '{body}': {} at position {}",
-                error.message, error.position
+                error.message(), error.position()
             ))
         })?;
 
@@ -75,11 +75,9 @@ mod tests {
     use super::*;
 
     fn context_with_secret(name: &str, value: &str) -> EvalContext {
-        let mut context = EvalContext::new();
         let mut secrets = serde_json::Map::new();
         secrets.insert(name.into(), Value::String(value.into()));
-        context.secrets = Value::Object(secrets);
-        context
+        EvalContext::new().with_secrets(Value::Object(secrets))
     }
 
     #[test]
@@ -95,10 +93,9 @@ mod tests {
 
     #[test]
     fn resolve_text_substitutes_multiple_expressions() {
-        let mut context = context_with_secret("TOKEN", "abc");
         let mut inputs = serde_json::Map::new();
         inputs.insert("mode".into(), Value::String("staging".into()));
-        context.inputs = Value::Object(inputs);
+        let context = context_with_secret("TOKEN", "abc").with_inputs(Value::Object(inputs));
 
         let resolved = ExpressionResolver::resolve_text(
             "${{ inputs.mode }}:${{ secrets.TOKEN }}:${{ inputs.mode }}",

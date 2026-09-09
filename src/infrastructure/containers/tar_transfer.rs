@@ -31,14 +31,14 @@ fn append_entry(
 ) -> Result<(), ContainerError> {
     let mut header = tar::Header::new_gnu();
     header
-        .set_path(&entry.path)
+        .set_path(&entry.path())
         .map_err(|error| copy_failed(container_id, error))?;
-    header.set_size(entry.content.len() as u64);
-    header.set_mode(entry.mode);
+    header.set_size(entry.content().len() as u64);
+    header.set_mode(entry.mode());
     header.set_cksum();
 
     builder
-        .append(&header, entry.content.as_slice())
+        .append(&header, entry.content())
         .map_err(|error| copy_failed(container_id, error))
 }
 
@@ -118,11 +118,7 @@ fn read_entry<R: std::io::Read>(
     let mut content = Vec::new();
     std::io::Read::read_to_end(&mut entry, &mut content)
         .map_err(|error| copy_failed(container_id, error))?;
-    Ok(FileEntry {
-        path,
-        content,
-        mode,
-    })
+    Ok(FileEntry::new(path, content, mode))
 }
 
 fn copy_failed(container_id: &str, error: impl Display) -> ContainerError {

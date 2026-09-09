@@ -10,9 +10,44 @@ use crate::{
 /// inbound port.
 pub struct SummarizeStepRequest<'a> {
     /// The step as declared, before its expressions were resolved.
-    pub step: &'a Step,
+    step: &'a Step,
     /// What executing the step produced.
-    pub outcome: Result<ExecutedStep, StepError>,
+    outcome: Result<ExecutedStep, StepError>,
     /// How long the step took.
-    pub duration: Duration,
+    duration: Duration,
+}
+
+impl<'a> SummarizeStepRequest<'a> {
+    /// Creates a new request.
+    pub fn new(
+        step: &'a Step,
+        outcome: Result<ExecutedStep, StepError>,
+        duration: Duration,
+    ) -> Self {
+        Self {
+            step,
+            outcome,
+            duration,
+        }
+    }
+
+    /// The step as declared, before its expressions were resolved.
+    pub fn step(&self) -> &'a Step {
+        self.step
+    }
+
+    /// What executing the step produced.
+    pub fn outcome(&self) -> &Result<ExecutedStep, StepError> {
+        &self.outcome
+    }
+
+    /// Consumes the request and returns what executing the step produced.
+    pub fn into_outcome(self) -> Result<ExecutedStep, StepError> {
+        self.outcome
+    }
+
+    /// How long the step took.
+    pub fn duration(&self) -> Duration {
+        self.duration
+    }
 }

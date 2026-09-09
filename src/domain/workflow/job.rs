@@ -20,73 +20,182 @@ use super::{Concurrency, ContainerConfig, JobNeedsVisitor, Permissions, Step, St
 ///   - run: echo hello
 /// "#;
 /// let job: Job = serde_yaml::from_str(yaml).unwrap();
-/// assert_eq!(job.runs_on.as_deref(), Some("ubuntu-latest"));
+/// assert_eq!(job.runs_on(), Some("ubuntu-latest"));
 /// ```
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "kebab-case")]
 pub struct Job {
     /// The name of the job displayed on GitHub.
-    pub name: Option<String>,
+    name: Option<String>,
 
     /// The type of machine to run the job on (e.g. `ubuntu-latest`).
     #[serde(rename = "runs-on")]
-    pub runs_on: Option<String>,
+    runs_on: Option<String>,
 
     /// The sequence of steps to execute.
     #[serde(default)]
-    pub steps: Vec<Step>,
+    steps: Vec<Step>,
 
     /// Jobs that must complete successfully before this job runs.
     #[serde(default, deserialize_with = "JobNeedsVisitor::deserialize")]
-    pub needs: Vec<String>,
+    needs: Vec<String>,
 
     /// An expression that determines whether the job runs.
     #[serde(rename = "if")]
-    pub r#if: Option<String>,
+    r#if: Option<String>,
 
     /// A matrix strategy to generate multiple job runs.
     #[serde(default)]
-    pub strategy: Option<Strategy>,
+    strategy: Option<Strategy>,
 
     /// Environment variables scoped to this job.
     #[serde(default)]
-    pub env: HashMap<String, String>,
+    env: HashMap<String, String>,
 
     /// Container to run the job inside.
     #[serde(default)]
-    pub container: Option<ContainerConfig>,
+    container: Option<ContainerConfig>,
 
     /// Service containers to run alongside the job.
     #[serde(default)]
-    pub services: HashMap<String, ContainerConfig>,
+    services: HashMap<String, ContainerConfig>,
 
     /// Outputs produced by this job (for dependent jobs).
     #[serde(default)]
-    pub outputs: HashMap<String, String>,
+    outputs: HashMap<String, String>,
 
     /// Input parameters passed via `workflow_call`.
     #[serde(default)]
-    pub with: Option<serde_yaml::Value>,
+    with: Option<serde_yaml::Value>,
 
     /// Secrets available to this job.
     #[serde(default)]
-    pub secrets: Option<serde_yaml::Value>,
+    secrets: Option<serde_yaml::Value>,
 
     /// Maximum number of minutes to let the job run.
     #[serde(rename = "timeout-minutes")]
-    pub timeout_minutes: Option<f64>,
+    timeout_minutes: Option<f64>,
 
     /// Whether to continue the workflow even if this job fails.
     #[serde(rename = "continue-on-error")]
-    pub continue_on_error: Option<String>,
+    continue_on_error: Option<String>,
 
     /// Permissions override for this job.
     #[serde(default)]
-    pub permissions: Option<Permissions>,
+    permissions: Option<Permissions>,
 
     /// Concurrency override for this job.
     #[serde(default)]
-    pub concurrency: Option<Concurrency>,
+    concurrency: Option<Concurrency>,
+}
+
+impl Job {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        name: Option<String>,
+        runs_on: Option<String>,
+        steps: Vec<Step>,
+        needs: Vec<String>,
+        r#if: Option<String>,
+        strategy: Option<Strategy>,
+        env: HashMap<String, String>,
+        container: Option<ContainerConfig>,
+        services: HashMap<String, ContainerConfig>,
+        outputs: HashMap<String, String>,
+        with: Option<serde_yaml::Value>,
+        secrets: Option<serde_yaml::Value>,
+        timeout_minutes: Option<f64>,
+        continue_on_error: Option<String>,
+        permissions: Option<Permissions>,
+        concurrency: Option<Concurrency>,
+    ) -> Self {
+        Self {
+            name,
+            runs_on,
+            steps,
+            needs,
+            r#if,
+            strategy,
+            env,
+            container,
+            services,
+            outputs,
+            with,
+            secrets,
+            timeout_minutes,
+            continue_on_error,
+            permissions,
+            concurrency,
+        }
+    }
+
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    pub fn runs_on(&self) -> Option<&str> {
+        self.runs_on.as_deref()
+    }
+
+    pub fn steps(&self) -> &[Step] {
+        &self.steps
+    }
+
+    pub fn needs(&self) -> &[String] {
+        &self.needs
+    }
+
+    pub fn r#if(&self) -> Option<&str> {
+        self.r#if.as_deref()
+    }
+
+    pub fn if_condition(&self) -> Option<&str> {
+        self.r#if.as_deref()
+    }
+
+    pub fn strategy(&self) -> Option<&Strategy> {
+        self.strategy.as_ref()
+    }
+
+    pub fn env(&self) -> &HashMap<String, String> {
+        &self.env
+    }
+
+    pub fn container(&self) -> Option<&ContainerConfig> {
+        self.container.as_ref()
+    }
+
+    pub fn services(&self) -> &HashMap<String, ContainerConfig> {
+        &self.services
+    }
+
+    pub fn outputs(&self) -> &HashMap<String, String> {
+        &self.outputs
+    }
+
+    pub fn with(&self) -> Option<&serde_yaml::Value> {
+        self.with.as_ref()
+    }
+
+    pub fn secrets(&self) -> Option<&serde_yaml::Value> {
+        self.secrets.as_ref()
+    }
+
+    pub fn timeout_minutes(&self) -> Option<f64> {
+        self.timeout_minutes
+    }
+
+    pub fn continue_on_error(&self) -> Option<&str> {
+        self.continue_on_error.as_deref()
+    }
+
+    pub fn permissions(&self) -> Option<&Permissions> {
+        self.permissions.as_ref()
+    }
+
+    pub fn concurrency(&self) -> Option<&Concurrency> {
+        self.concurrency.as_ref()
+    }
 }
 
 #[cfg(test)]
@@ -97,8 +206,8 @@ mod tests {
     fn parse_minimal_job() {
         let yaml = "runs-on: ubuntu-latest\nsteps:\n  - run: echo hello\n";
         let job: Job = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(job.runs_on.as_deref(), Some("ubuntu-latest"));
-        assert_eq!(job.steps.len(), 1);
+        assert_eq!(job.runs_on(), Some("ubuntu-latest"));
+        assert_eq!(job.steps().len(), 1);
     }
 
     #[test]
@@ -111,8 +220,8 @@ steps:
   - run: echo deploy
 "#;
         let job: Job = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(job.needs, vec!["build", "lint"]);
-        assert_eq!(job.r#if.as_deref(), Some("github.ref == 'refs/heads/main'"));
+        assert_eq!(job.needs(), &["build", "lint"]);
+        assert_eq!(job.r#if(), Some("github.ref == 'refs/heads/main'"));
     }
 
     #[test]
@@ -127,10 +236,10 @@ steps:
   - run: npm test
 "#;
         let job: Job = serde_yaml::from_str(yaml).unwrap();
-        let container = job.container.unwrap();
-        assert_eq!(container.image, "node:18");
+        let container = job.container().unwrap();
+        assert_eq!(container.image(), "node:18");
         assert_eq!(
-            container.env.get("NODE_ENV").map(|s| s.as_str()),
+            container.env().get("NODE_ENV").map(|s| s.as_str()),
             Some("test")
         );
     }
@@ -144,6 +253,6 @@ steps:
   - run: sleep 9999
 "#;
         let job: Job = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(job.timeout_minutes, Some(30.0));
+        assert_eq!(job.timeout_minutes(), Some(30.0));
     }
 }

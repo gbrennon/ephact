@@ -5,7 +5,27 @@ use std::collections::HashMap;
 /// inbound port.
 pub struct PrefixStepPathRequest<'a> {
     /// Environment whose `PATH` is prefixed.
-    pub env: &'a HashMap<String, String>,
+    env: &'a HashMap<String, String>,
     /// Directories earlier steps exported through `GITHUB_PATH`.
-    pub path_additions: &'a [String],
+    path_additions: &'a [String],
+}
+
+impl<'a> PrefixStepPathRequest<'a> {
+    /// Creates a new request.
+    pub fn new(env: &'a HashMap<String, String>, path_additions: &'a [String]) -> Self {
+        Self {
+            env,
+            path_additions,
+        }
+    }
+
+    /// Environment whose `PATH` is prefixed.
+    pub fn env(&self) -> &'a HashMap<String, String> {
+        self.env
+    }
+
+    /// Directories earlier steps exported through `GITHUB_PATH`.
+    pub fn path_additions(&self) -> &'a [String] {
+        self.path_additions
+    }
 }

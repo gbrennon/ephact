@@ -35,15 +35,15 @@ impl Planner {
     /// "#;
     /// let wf: Workflow = serde_yaml::from_str(yaml).unwrap();
     /// let plan = Planner.plan(&wf).unwrap();
-    /// assert_eq!(plan.stages.len(), 2);
+    /// assert_eq!(plan.stages().len(), 2);
     /// ```
     pub fn plan(&self, workflow: &Workflow) -> Result<Plan, PlanError> {
-        let job_ids: Vec<&String> = workflow.jobs.keys().collect();
+        let job_ids: Vec<&String> = workflow.jobs().keys().collect();
 
         let mut dependencies: HashMap<&str, Vec<&str>> = HashMap::new();
         for id in &job_ids {
-            let job = &workflow.jobs[*id];
-            let deps: Vec<&str> = job.needs.iter().map(|n| n.as_str()).collect();
+            let job = &workflow.jobs()[*id];
+            let deps: Vec<&str> = job.needs().iter().map(|n| n.as_str()).collect();
             dependencies.insert(id.as_str(), deps);
         }
 
@@ -51,7 +51,7 @@ impl Planner {
 
         let stages = self.topological_sort(&dependencies, workflow)?;
 
-        Ok(Plan { stages })
+        Ok(Plan::new(stages))
     }
 
     /// Detects cycles in the dependency graph.
@@ -79,18 +79,30 @@ impl Planner {
 
         if let Some(neighbors) = deps.get(node) {
             for &neighbor in neighbors {
-                if !visited.contains(neighbor) {
-                    self.dfs_cycle(neighbor, deps, visited, in_stack)?;
-                } else if in_stack.contains(neighbor) {
-                    return Err(PlanError::CycleDetected {
-                        job: node.to_owned(),
-                        dependency: neighbor.to_owned(),
-                    });
-                }
+                self.check_neighbor(node, neighbor, deps, visited, in_stack)?;
             }
         }
 
         in_stack.remove(node);
+        Ok(())
+    }
+
+    fn check_neighbor<'a>(
+        &self,
+        node: &'a str,
+        neighbor: &'a str,
+        deps: &HashMap<&'a str, Vec<&'a str>>,
+        visited: &mut HashSet<&'a str>,
+        in_stack: &mut HashSet<&'a str>,
+    ) -> Result<(), PlanError> {
+        if !visited.contains(neighbor) {
+            self.dfs_cycle(neighbor, deps, visited, in_stack)?;
+        } else if in_stack.contains(neighbor) {
+            return Err(PlanError::CycleDetected {
+                job: node.to_owned(),
+                dependency: neighbor.to_owned(),
+            });
+        }
         Ok(())
     }
 
@@ -103,23 +115,7 @@ impl Planner {
         deps: &HashMap<&str, Vec<&str>>,
         workflow: &Workflow,
     ) -> Result<Vec<Stage>, PlanError> {
-        let mut in_degree: HashMap<&str, usize> = HashMap::new();
-        let mut dependents: HashMap<&str, Vec<&str>> = HashMap::new();
-
-        for (&job_id, job_deps) in deps {
-            in_degree.entry(job_id).or_insert(0);
-            for &dep in job_deps {
-                if !deps.contains_key(dep) {
-                    return Err(PlanError::MissingDependency {
-                        job: job_id.to_owned(),
-                        dependency: dep.to_owned(),
-                    });
-                }
-                *in_degree.entry(job_id).or_insert(0) += 1;
-                dependents.entry(dep).or_default().push(job_id);
-            }
-        }
-
+        let (mut in_degree, dependents) = Self::compute_dependencies(deps)?;
         let mut queue: VecDeque<&str> = in_degree
             .iter()
             .filter(|(_, deg)| **deg == 0)
@@ -132,34 +128,10 @@ impl Planner {
 
         while !queue.is_empty() {
             let stage_jobs: Vec<&str> = queue.drain(..).collect();
-            let runs: Vec<Run> = stage_jobs
-                .iter()
-                .map(|&id| {
-                    let job = workflow.jobs[id].clone();
-                    Run {
-                        workflow_name: workflow.name.clone(),
-                        job_id: id.to_owned(),
-                        job,
-                        matrix_values: None,
-                    }
-                })
-                .collect();
-
-            stages.push(Stage { runs });
+            let runs = Self::build_runs_for_stage(&stage_jobs, workflow);
+            stages.push(Stage::new(runs));
             processed += stage_jobs.len();
-
-            for &job_id in &stage_jobs {
-                if let Some(deps) = dependents.get(job_id) {
-                    for &dep_id in deps {
-                        if let Some(deg) = in_degree.get_mut(dep_id) {
-                            *deg -= 1;
-                            if *deg == 0 {
-                                queue.push_back(dep_id);
-                            }
-                        }
-                    }
-                }
-            }
+            Self::release_dependents(&stage_jobs, &dependents, &mut in_degree, &mut queue);
         }
 
         if processed != total {
@@ -167,6 +139,82 @@ impl Planner {
         }
 
         Ok(stages)
+    }
+
+    fn compute_dependencies<'a>(
+        deps: &HashMap<&'a str, Vec<&'a str>>,
+    ) -> Result<(HashMap<&'a str, usize>, HashMap<&'a str, Vec<&'a str>>), PlanError> {
+        let mut in_degree: HashMap<&'a str, usize> = HashMap::new();
+        let mut dependents: HashMap<&'a str, Vec<&'a str>> = HashMap::new();
+
+        for (&job_id, job_deps) in deps {
+            in_degree.entry(job_id).or_insert(0);
+            Self::record_job_dependencies(job_id, job_deps, deps, &mut in_degree, &mut dependents)?;
+        }
+
+        Ok((in_degree, dependents))
+    }
+
+    fn record_job_dependencies<'a>(
+        job_id: &'a str,
+        job_deps: &[&'a str],
+        deps: &HashMap<&'a str, Vec<&'a str>>,
+        in_degree: &mut HashMap<&'a str, usize>,
+        dependents: &mut HashMap<&'a str, Vec<&'a str>>,
+    ) -> Result<(), PlanError> {
+        for &dep in job_deps {
+            if !deps.contains_key(dep) {
+                return Err(PlanError::MissingDependency {
+                    job: job_id.to_owned(),
+                    dependency: dep.to_owned(),
+                });
+            }
+            *in_degree.entry(job_id).or_insert(0) += 1;
+            dependents.entry(dep).or_default().push(job_id);
+        }
+        Ok(())
+    }
+
+    fn build_runs_for_stage(stage_jobs: &[&str], workflow: &Workflow) -> Vec<Run> {
+        stage_jobs
+            .iter()
+            .map(|&id| {
+                Run::new(
+                    workflow.name().map(str::to_string),
+                    id.to_owned(),
+                    workflow.jobs()[id].clone(),
+                    None,
+                )
+            })
+            .collect()
+    }
+
+    fn release_dependents<'a>(
+        stage_jobs: &[&'a str],
+        dependents: &HashMap<&'a str, Vec<&'a str>>,
+        in_degree: &mut HashMap<&'a str, usize>,
+        queue: &mut VecDeque<&'a str>,
+    ) {
+        for &job_id in stage_jobs {
+            if let Some(deps) = dependents.get(job_id) {
+                Self::decrement_dependents(deps, in_degree, queue);
+            }
+        }
+    }
+
+    fn decrement_dependents<'a>(
+        deps: &[&'a str],
+        in_degree: &mut HashMap<&'a str, usize>,
+        queue: &mut VecDeque<&'a str>,
+    ) {
+        for &dep_id in deps {
+            if let Some(deg) = in_degree.get_mut(dep_id) {
+                *deg -= 1;
+                if *deg == 0 {
+                    queue.push_back(dep_id);
+                }
+            }
+        }
     }
 }
 
@@ -183,9 +231,9 @@ mod tests {
     fn plan_single_job() {
         let wf = make_workflow("  build:\n    runs-on: ubuntu-latest\n    steps: [{run: echo}]");
         let plan = Planner.plan(&wf).unwrap();
-        assert_eq!(plan.stages.len(), 1);
-        assert_eq!(plan.stages[0].runs.len(), 1);
-        assert_eq!(plan.stages[0].runs[0].job_id, "build");
+        assert_eq!(plan.stages().len(), 1);
+        assert_eq!(plan.stages()[0].runs().len(), 1);
+        assert_eq!(plan.stages()[0].runs()[0].job_id(), "build");
     }
 
     #[test]
@@ -194,8 +242,8 @@ mod tests {
             "  build:\n    runs-on: ubuntu-latest\n    steps: [{run: make}]\n  lint:\n    runs-on: ubuntu-latest\n    steps: [{run: cargo clippy}]",
         );
         let plan = Planner.plan(&wf).unwrap();
-        assert_eq!(plan.stages.len(), 1);
-        assert_eq!(plan.stages[0].runs.len(), 2);
+        assert_eq!(plan.stages().len(), 1);
+        assert_eq!(plan.stages()[0].runs().len(), 2);
     }
 
     #[test]
@@ -204,9 +252,9 @@ mod tests {
             "  build:\n    runs-on: ubuntu-latest\n    steps: [{run: make}]\n  test:\n    runs-on: ubuntu-latest\n    needs: [build]\n    steps: [{run: make test}]",
         );
         let plan = Planner.plan(&wf).unwrap();
-        assert_eq!(plan.stages.len(), 2);
-        assert_eq!(plan.stages[0].runs[0].job_id, "build");
-        assert_eq!(plan.stages[1].runs[0].job_id, "test");
+        assert_eq!(plan.stages().len(), 2);
+        assert_eq!(plan.stages()[0].runs()[0].job_id(), "build");
+        assert_eq!(plan.stages()[1].runs()[0].job_id(), "test");
     }
 
     #[test]
@@ -215,10 +263,10 @@ mod tests {
             "  build:\n    runs-on: ubuntu-latest\n    steps: [{run: make}]\n  test:\n    runs-on: ubuntu-latest\n    needs: [build]\n    steps: [{run: make test}]\n  lint:\n    runs-on: ubuntu-latest\n    needs: [build]\n    steps: [{run: cargo clippy}]\n  deploy:\n    runs-on: ubuntu-latest\n    needs: [test, lint]\n    steps: [{run: deploy}]",
         );
         let plan = Planner.plan(&wf).unwrap();
-        assert_eq!(plan.stages.len(), 3);
-        assert_eq!(plan.stages[0].runs.len(), 1);
-        assert_eq!(plan.stages[1].runs.len(), 2);
-        assert_eq!(plan.stages[2].runs.len(), 1);
+        assert_eq!(plan.stages().len(), 3);
+        assert_eq!(plan.stages()[0].runs()[0].job_id(), "build");
+        assert_eq!(plan.stages()[1].runs().len(), 2);
+        assert_eq!(plan.stages()[2].runs().len(), 1);
     }
 
     #[test]

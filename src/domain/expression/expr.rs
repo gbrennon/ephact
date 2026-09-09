@@ -41,17 +41,15 @@ impl fmt::Display for Expr {
             Expr::Not(expr) => write!(f, "!{}", expr),
             Expr::Compare(op, lhs, rhs) => write!(f, "{} {} {}", lhs, op, rhs),
             Expr::Logical(op, lhs, rhs) => write!(f, "{} {} {}", lhs, op, rhs),
-            Expr::FuncCall(name, args) => {
-                write!(f, "{}(", name)?;
-                for (i, arg) in args.iter().enumerate() {
-                    if i > 0 {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "{}", arg)?;
-                }
-                write!(f, ")")
-            }
+            Expr::FuncCall(name, args) => Self::format_func_call(f, name, args),
         }
+    }
+}
+
+impl Expr {
+    fn format_func_call(f: &mut fmt::Formatter<'_>, name: &str, args: &[Expr]) -> fmt::Result {
+        let rendered_args: Vec<String> = args.iter().map(|a| a.to_string()).collect();
+        write!(f, "{}({})", name, rendered_args.join(", "))
     }
 }
 

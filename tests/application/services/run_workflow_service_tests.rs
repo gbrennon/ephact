@@ -32,12 +32,7 @@ fn execute_runs_workflow_and_publishes_event() {
     let workflow_source =
         FakeWorkflowSource::new().with_workflow_content("name: CI\non: push\njobs: {}");
     let command_bus = Arc::new(
-        FakeCommandBus::new().with_workflow_result(WorkflowExecution {
-            workflow_name: "CI".into(),
-            job_summaries: Vec::new(),
-            container_names: vec!["test-container-1".into()],
-            success: true,
-        }),
+        FakeCommandBus::new().with_workflow_result(WorkflowExecution::new("CI".into(), Vec::new(), vec!["test-container-1".into()], true)),
     );
     let event_bus = Arc::new(FakeEventBus::new());
 
@@ -59,6 +54,6 @@ fn execute_runs_workflow_and_publishes_event() {
     let DomainEvent::ActRunCompleted(payload) = &events[0] else {
         panic!("expected ActRunCompleted event");
     };
-    assert!(payload.success);
-    assert_eq!(payload.container_names, vec!["test-container-1"]);
+    assert!(payload.success());
+    assert_eq!(payload.container_names(), vec!["test-container-1"]);
 }

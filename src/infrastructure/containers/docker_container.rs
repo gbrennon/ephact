@@ -6,21 +6,37 @@ use crate::application::dtos::RunnerContext;
 use crate::application::ports::outbound::container_port::ContainerPort;
 use crate::domain::errors::ContainerError;
 use crate::domain::events::OutputStream;
-use crate::infrastructure::containers::bollard_wrapper::Client;
-use crate::infrastructure::containers::bollard_wrapper::types::RemoveContainerOptions;
-use crate::infrastructure::containers::exec_streaming_support::{
+use super::bollard_wrapper::Client;
+use super::bollard_wrapper::types::RemoveContainerOptions;
+use super::exec_streaming_support::{
     exec_options, run_streaming_exec, runner_context_with_container_env,
 };
-use crate::infrastructure::containers::tar_transfer::{
+use super::tar_transfer::{
     download_archive, pack_entries, unpack_entries, upload_archive,
 };
 
 /// A running Docker container, created by [`DockerRuntime`].
 pub(super) struct DockerContainer {
-    pub(super) docker: Client,
-    pub(super) container_id: String,
-    pub(super) runtime: tokio::runtime::Handle,
-    pub(super) runner_context: RunnerContext,
+    docker: Client,
+    container_id: String,
+    runtime: tokio::runtime::Handle,
+    runner_context: RunnerContext,
+}
+
+impl DockerContainer {
+    pub(super) fn new(
+        docker: Client,
+        container_id: String,
+        runtime: tokio::runtime::Handle,
+        runner_context: RunnerContext,
+    ) -> Self {
+        Self {
+            docker,
+            container_id,
+            runtime,
+            runner_context,
+        }
+    }
 }
 
 impl ContainerPort for DockerContainer {

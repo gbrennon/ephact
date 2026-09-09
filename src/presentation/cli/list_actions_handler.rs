@@ -17,7 +17,7 @@ impl ListActionsHandler {
 
     fn render(response: &ListActionsResponse) -> String {
         response
-            .actions
+            .actions()
             .iter()
             .map(|action| action.rsplit('/').next().unwrap_or(action).to_string())
             .collect::<Vec<String>>()

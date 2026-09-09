@@ -19,6 +19,6 @@ impl Default for LoadWorkflowService {
 
 impl LoadWorkflowPort for LoadWorkflowService {
     fn execute(&self, request: LoadWorkflowRequest<'_>) -> Result<Workflow, Box<dyn Error>> {
-        Ok(serde_yaml::from_str(request.workflow_content)?)
+        Ok(serde_yaml::from_str(request.workflow_content())?)
     }
 }

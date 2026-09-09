@@ -1,10 +1,10 @@
-use crate::infrastructure::containers::pull_job_image_port::PullJobImagePort;
+use super::pull_job_image_port::PullJobImagePort;
 use std::{error::Error, sync::Arc};
 
 use crate::{
     application::{dtos::PullJobImageRequest, ports::outbound::ContainerRuntimePort},
-    infrastructure::images::ImageMapperPort,
 };
+use super::super::images::ImageMapperPort;
 
 /// Runner label assumed when a job declares none.
 const DEFAULT_RUNNER_LABEL: &str = "ubuntu-latest";
@@ -30,7 +30,7 @@ impl PullJobImageService {
 
 impl PullJobImagePort for PullJobImageService {
     fn execute(&self, request: PullJobImageRequest<'_>) -> Result<String, Box<dyn Error>> {
-        let runs_on = request.runs_on.unwrap_or(DEFAULT_RUNNER_LABEL);
+        let runs_on = request.runs_on().unwrap_or(DEFAULT_RUNNER_LABEL);
         let mut image = self.image_mapper.map(runs_on);
 
         if self.runtime.pull_image(&image, None).is_err() {

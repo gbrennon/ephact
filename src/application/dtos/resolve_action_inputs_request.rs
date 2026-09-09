@@ -5,7 +5,24 @@ use crate::domain::workflow::{ActionDefinition, Step};
 /// inbound port.
 pub struct ResolveActionInputsRequest<'a> {
     /// Definition declaring the action's inputs and their defaults.
-    pub definition: &'a ActionDefinition,
+    definition: &'a ActionDefinition,
     /// Step that referenced the action, for its `with:` values.
-    pub step: &'a Step,
+    step: &'a Step,
+}
+
+impl<'a> ResolveActionInputsRequest<'a> {
+    /// Creates a new request.
+    pub fn new(definition: &'a ActionDefinition, step: &'a Step) -> Self {
+        Self { definition, step }
+    }
+
+    /// Definition declaring the action's inputs and their defaults.
+    pub fn definition(&self) -> &'a ActionDefinition {
+        self.definition
+    }
+
+    /// Step that referenced the action, for its `with:` values.
+    pub fn step(&self) -> &'a Step {
+        self.step
+    }
 }

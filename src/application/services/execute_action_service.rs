@@ -57,59 +57,43 @@ impl ExecuteActionService {
     ) -> Result<ExecuteActionResponse, StepError> {
         let action_dir = match self
             .directory_resolver
-            .execute(ResolveActionDirectoryRequest {
-                action_ref: &request.action_ref,
-                repo_path: &request.repo_path,
-            })? {
+            .execute(ResolveActionDirectoryRequest::new(request.action_ref(), request.repo_path()))? {
             ResolvedActionDirectory::Skipped(response) => return Ok(response),
             ResolvedActionDirectory::Directory(directory) => directory,
         };
 
         let definition = self
             .definition_loader
-            .execute(LoadActionDefinitionRequest {
-                action_dir: &action_dir,
-            })
+            .execute(LoadActionDefinitionRequest::new(&action_dir))
             .map_err(|error| {
                 StepError::new(format!(
                     "failed to load action '{}': {}",
-                    request.action_ref, error.message
+                    request.action_ref(),
+                    error.message()
                 ))
             })?;
-        let inputs = self.input_resolver.execute(ResolveActionInputsRequest {
-            definition: &definition,
-            step: &request.step,
-        });
+        let inputs = self.input_resolver.execute(ResolveActionInputsRequest::new(&definition, request.step()));
 
-        match &definition.runs {
+        match &definition.runs() {
             ActionRuns::Composite { steps } => {
-                self.composite_runner.execute(RunCompositeActionRequest {
-                    steps,
-                    inputs: &inputs,
-                    action_dir: &action_dir,
-                    action_request: request,
-                })
+                self.composite_runner.execute(RunCompositeActionRequest::new(&steps, &inputs, &action_dir, request))
             }
             ActionRuns::Node12 { main }
             | ActionRuns::Node16 { main }
             | ActionRuns::Node20 { main } => self
                 .node_runner
-                .execute(RunNodeActionRequest {
-                    action_dir: &action_dir,
-                    entry_point: main,
-                    inputs: &inputs,
-                    env: &request.env,
-                    container: request.container.as_ref(),
-                })
-                .map(|result| ExecuteActionResponse {
-                    exit_code: result.exit_code,
-                    stdout: result.stdout,
-                    stderr: result.stderr,
+                .execute(RunNodeActionRequest::new(&action_dir, &main, &inputs, request.env(), request.container().as_ref()))
+                .map(|result| {
+                    ExecuteActionResponse::new(
+                        result.exit_code(),
+                        result.stdout(),
+                        result.stderr(),
+                    )
                 }),
             ActionRuns::Docker { image } => Err(StepError::new(
                 ActionError::Unsupported(format!(
                     "action '{}' runs the container image '{image}', which cannot be executed yet",
-                    request.action_ref
+                    request.action_ref()
                 ))
                 .to_string(),
             )),

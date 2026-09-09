@@ -30,8 +30,8 @@ impl Default for GitHubJobEnvironmentAdapter {
 
 impl BuildJobEnvironmentPort for GitHubJobEnvironmentAdapter {
     fn execute(&self, request: BuildJobEnvironmentRequest<'_>) -> BuildJobEnvironmentResponse {
-        let mut env = request.workflow.env.clone();
-        for (key, value) in request.job_env {
+        let mut env = request.workflow().env().clone();
+        for (key, value) in request.job_env() {
             env.insert(key.clone(), value.clone());
         }
 
@@ -40,6 +40,6 @@ impl BuildJobEnvironmentPort for GitHubJobEnvironmentAdapter {
         env.insert("GITHUB_WORKSPACE".into(), CONTAINER_WORKSPACE.into());
         env.entry("PATH".to_string())
             .or_insert_with(|| DEFAULT_PATH.to_string());
-        BuildJobEnvironmentResponse { env }
+        BuildJobEnvironmentResponse::new(env)
     }
 }

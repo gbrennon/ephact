@@ -7,26 +7,64 @@ use super::ContainerCredentials;
 /// Configuration for a container used by a job or service.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 pub struct ContainerConfig {
-    /// The Docker image to use.
-    pub image: String,
+    image: String,
 
-    /// Credentials for pulling the image from a private registry.
     #[serde(default)]
-    pub credentials: Option<ContainerCredentials>,
+    credentials: Option<ContainerCredentials>,
 
-    /// Environment variables for the container.
     #[serde(default)]
-    pub env: HashMap<String, String>,
+    env: HashMap<String, String>,
 
-    /// Ports to expose on the container.
     #[serde(default)]
-    pub ports: Vec<String>,
+    ports: Vec<String>,
 
-    /// Volumes to mount in the container.
     #[serde(default)]
-    pub volumes: Vec<String>,
+    volumes: Vec<String>,
 
-    /// Additional options passed to `docker create`.
     #[serde(default)]
-    pub options: Option<String>,
+    options: Option<String>,
+}
+
+impl ContainerConfig {
+    pub fn new(
+        image: impl Into<String>,
+        credentials: Option<ContainerCredentials>,
+        env: HashMap<String, String>,
+        ports: Vec<String>,
+        volumes: Vec<String>,
+        options: Option<String>,
+    ) -> Self {
+        Self {
+            image: image.into(),
+            credentials,
+            env,
+            ports,
+            volumes,
+            options,
+        }
+    }
+
+    pub fn image(&self) -> &str {
+        &self.image
+    }
+
+    pub fn credentials(&self) -> Option<&ContainerCredentials> {
+        self.credentials.as_ref()
+    }
+
+    pub fn env(&self) -> &HashMap<String, String> {
+        &self.env
+    }
+
+    pub fn ports(&self) -> &[String] {
+        &self.ports
+    }
+
+    pub fn volumes(&self) -> &[String] {
+        &self.volumes
+    }
+
+    pub fn options(&self) -> Option<&str> {
+        self.options.as_deref()
+    }
 }

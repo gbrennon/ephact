@@ -33,12 +33,7 @@ mod tests {
 
     impl ShowProjectBrandingInfoPort for BrandingFake {
         fn execute(&self) -> Result<ShowProjectBrandingInfoResponse, Box<dyn std::error::Error>> {
-            Ok(ShowProjectBrandingInfoResponse {
-                name: "ephact".into(),
-                description: "test runner".into(),
-                version: "test".into(),
-                emblem: "*".into(),
-            })
+            Ok(ShowProjectBrandingInfoResponse::new("ephact".into(), "test runner".into(), "test".into(), "*".into()))
         }
     }
 
@@ -119,24 +114,8 @@ mod tests {
                 job_id: "build".into(),
                 name: Some("Build job".into()),
                 steps: vec![
-                    StepSummary {
-                        name: "Checkout".into(),
-                        step_type: StepType::Run,
-                        exit_code: Some(0),
-                        continue_on_error: false,
-                        duration: Duration::ZERO,
-                        stdout: String::new(),
-                        stderr: String::new(),
-                    },
-                    StepSummary {
-                        name: "Compile".into(),
-                        step_type: StepType::Run,
-                        exit_code: Some(0),
-                        continue_on_error: false,
-                        duration: Duration::ZERO,
-                        stdout: String::new(),
-                        stderr: String::new(),
-                    },
+                    StepSummary::new("Checkout".into(), StepType::Run, Some(0), false, Duration::ZERO, String::new(), String::new()),
+                    StepSummary::new("Compile".into(), StepType::Run, Some(0), false, Duration::ZERO, String::new(), String::new()),
                 ],
                 success: true,
             }],

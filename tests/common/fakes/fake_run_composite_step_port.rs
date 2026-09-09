@@ -29,7 +29,11 @@ impl FakeRunCompositeStepPort {
     pub fn failing(error: StepError) -> Self {
         Self {
             results: Arc::new(Mutex::new(Vec::new())),
-            failure: Some((error.message, error.stdout, error.stderr)),
+            failure: Some((
+                error.message().to_string(),
+                error.stdout().to_string(),
+                error.stderr().to_string(),
+            )),
             steps: Arc::new(Mutex::new(Vec::new())),
         }
     }
@@ -44,20 +48,14 @@ impl RunCompositeStepPort for FakeRunCompositeStepPort {
         self.steps.lock().push(request.step.clone());
 
         if let Some((message, stdout, stderr)) = &self.failure {
-            return Err(StepError {
-                message: message.clone(),
-                stdout: stdout.clone(),
-                stderr: stderr.clone(),
-            });
+            return Err(StepError::new(message.clone())
+                .with_stdout(stdout.clone())
+                .with_stderr(stderr.clone()));
         }
 
         let mut queued = self.results.lock();
         if queued.is_empty() {
-            return Ok(ExecResult {
-                exit_code: 0,
-                stdout: String::new(),
-                stderr: String::new(),
-            });
+            return Ok(ExecResult::new(0, String::new(), String::new()));
         }
         Ok(queued.remove(0))
     }

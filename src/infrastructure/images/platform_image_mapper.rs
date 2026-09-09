@@ -1,4 +1,4 @@
-use crate::infrastructure::images::ImageMapperPort;
+use super::ImageMapperPort;
 
 /// Maps CI platform `runs-on` labels to container image names.
 ///

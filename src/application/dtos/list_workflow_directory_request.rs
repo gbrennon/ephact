@@ -5,5 +5,17 @@ use std::path::Path;
 /// inbound port.
 pub struct ListWorkflowDirectoryRequest<'a> {
     /// Directory whose workflow files are listed.
-    pub directory: &'a Path,
+    directory: &'a Path,
+}
+
+impl<'a> ListWorkflowDirectoryRequest<'a> {
+    /// Creates a new request.
+    pub fn new(directory: &'a Path) -> Self {
+        Self { directory }
+    }
+
+    /// Directory whose workflow files are listed.
+    pub fn directory(&self) -> &'a Path {
+        self.directory
+    }
 }

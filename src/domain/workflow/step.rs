@@ -24,52 +24,121 @@ use crate::domain::workflow::StepType;
 /// let step: Step = serde_yaml::from_str(yaml).unwrap();
 /// assert_eq!(step.uses(), Some("actions/checkout@v4"));
 /// ```
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Default)]
 pub struct Step {
     /// An identifier for the step (used for output references).
-    pub id: Option<String>,
+    id: Option<String>,
 
     /// A display name for the step.
-    pub name: Option<String>,
+    name: Option<String>,
 
     /// An expression that determines whether the step runs.
     #[serde(rename = "if")]
-    pub r#if: Option<String>,
+    r#if: Option<String>,
 
     /// Shell command(s) to execute.
     #[serde(default)]
-    pub run: Option<String>,
+    run: Option<String>,
 
     /// The shell to use for `run` commands.
     #[serde(default)]
-    pub shell: Option<String>,
+    shell: Option<String>,
 
     /// The working directory for `run` commands.
     #[serde(rename = "working-directory")]
-    pub working_directory: Option<String>,
+    working_directory: Option<String>,
 
     /// An action reference (`./`, `docker://`, or `owner/repo@ref`).
     #[serde(default)]
-    pub uses: Option<String>,
+    uses: Option<String>,
 
     /// Input parameters for a `uses` action.
     #[serde(default)]
-    pub with: HashMap<String, String>,
+    with: HashMap<String, String>,
 
     /// Environment variables scoped to this step.
     #[serde(default)]
-    pub env: HashMap<String, String>,
+    env: HashMap<String, String>,
 
     /// Whether to continue the job even if this step fails.
     #[serde(rename = "continue-on-error")]
-    pub continue_on_error: Option<String>,
+    continue_on_error: Option<String>,
 
     /// Maximum number of minutes to let the step run.
     #[serde(rename = "timeout-minutes")]
-    pub timeout_minutes: Option<f64>,
+    timeout_minutes: Option<f64>,
 }
 
 impl Step {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        id: Option<String>,
+        name: Option<String>,
+        r#if: Option<String>,
+        run: Option<String>,
+        shell: Option<String>,
+        working_directory: Option<String>,
+        uses: Option<String>,
+        with: HashMap<String, String>,
+        env: HashMap<String, String>,
+        continue_on_error: Option<String>,
+        timeout_minutes: Option<f64>,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            r#if,
+            run,
+            shell,
+            working_directory,
+            uses,
+            with,
+            env,
+            continue_on_error,
+            timeout_minutes,
+        }
+    }
+
+    pub fn id(&self) -> Option<&str> {
+        self.id.as_deref()
+    }
+
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    pub fn r#if(&self) -> Option<&str> {
+        self.r#if.as_deref()
+    }
+
+    pub fn if_condition(&self) -> Option<&str> {
+        self.r#if.as_deref()
+    }
+
+    pub fn shell(&self) -> Option<&str> {
+        self.shell.as_deref()
+    }
+
+    pub fn working_directory(&self) -> Option<&str> {
+        self.working_directory.as_deref()
+    }
+
+    pub fn with(&self) -> &HashMap<String, String> {
+        &self.with
+    }
+
+    pub fn env(&self) -> &HashMap<String, String> {
+        &self.env
+    }
+
+    pub fn continue_on_error(&self) -> Option<&str> {
+        self.continue_on_error.as_deref()
+    }
+
+    pub fn timeout_minutes(&self) -> Option<f64> {
+        self.timeout_minutes
+    }
+
     /// Returns the `run` command if this is a run step.
     pub fn run(&self) -> Option<&str> {
         self.run.as_deref()
@@ -160,15 +229,15 @@ continue-on-error: true
 timeout-minutes: 10
 "#;
         let step: Step = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(step.id.as_deref(), Some("test-step"));
-        assert_eq!(step.name.as_deref(), Some("Run tests"));
-        assert_eq!(step.r#if.as_deref(), Some("success()"));
+        assert_eq!(step.id(), Some("test-step"));
+        assert_eq!(step.name(), Some("Run tests"));
+        assert_eq!(step.r#if(), Some("success()"));
         assert_eq!(step.run(), Some("cargo test"));
-        assert_eq!(step.shell.as_deref(), Some("bash"));
-        assert_eq!(step.working_directory.as_deref(), Some("./src"));
-        assert_eq!(step.env.get("RUST_LOG").map(|s| s.as_str()), Some("debug"));
-        assert_eq!(step.continue_on_error.as_deref(), Some("true"));
-        assert_eq!(step.timeout_minutes, Some(10.0));
+        assert_eq!(step.shell(), Some("bash"));
+        assert_eq!(step.working_directory(), Some("./src"));
+        assert_eq!(step.env().get("RUST_LOG").map(|s| s.as_str()), Some("debug"));
+        assert_eq!(step.continue_on_error(), Some("true"));
+        assert_eq!(step.timeout_minutes(), Some(10.0));
     }
 
     #[test]

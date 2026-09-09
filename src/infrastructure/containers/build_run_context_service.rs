@@ -25,7 +25,7 @@ impl Default for BuildRunContextService {
 impl BuildRunContextPort for BuildRunContextService {
     fn execute(&self, request: BuildRunContextRequest<'_>) -> BuildRunContextResponse {
         let secrets: Map<String, Value> = request
-            .config
+            .config()
             .secrets()
             .iter()
             .map(|secret| {
@@ -36,13 +36,13 @@ impl BuildRunContextPort for BuildRunContextService {
             })
             .collect();
         let inputs: Map<String, Value> = request
-            .config
+            .config()
             .inputs()
             .iter()
             .map(|input| (input.key().to_string(), Value::String(input.value().into())))
             .collect();
         let event_name = request
-            .config
+            .config()
             .event()
             .map_or("workflow_dispatch", |event| event.as_str());
 
@@ -53,7 +53,7 @@ impl BuildRunContextPort for BuildRunContextService {
         github.insert("event_name".into(), Value::String(event_name.into()));
         github.insert(
             "repository".into(),
-            Value::String(request.repository.name().as_str().into()),
+            Value::String(request.repository().name().as_str().into()),
         );
         github.insert(
             "workspace".into(),
@@ -66,11 +66,11 @@ impl BuildRunContextPort for BuildRunContextService {
         runner.insert("arch".into(), Value::String("X64".into()));
         runner.insert("temp".into(), Value::String("/tmp".into()));
 
-        let mut context = EvalContext::new();
-        context.secrets = Value::Object(secrets);
-        context.inputs = Value::Object(inputs);
-        context.github = Value::Object(github);
-        context.runner = Value::Object(runner);
-        BuildRunContextResponse { context }
+        let context = EvalContext::new()
+            .with_secrets(Value::Object(secrets))
+            .with_inputs(Value::Object(inputs))
+            .with_github(Value::Object(github))
+            .with_runner(Value::Object(runner));
+        BuildRunContextResponse::new(context)
     }
 }

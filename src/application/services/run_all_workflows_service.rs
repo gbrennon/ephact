@@ -45,16 +45,16 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
     fn execute(&self, request: RunAllWorkflowsRequest) -> Result<RunSummary, Box<dyn Error>> {
         let started_at = Instant::now();
         let executions = self.execute_all_workflows(&request)?;
-        let success = executions.iter().all(|execution| execution.success);
+        let success = executions.iter().all(|execution| execution.success());
 
         self.announce_run_completed(&executions, success);
 
-        Ok(RunSummary {
-            name: ALL_WORKFLOWS_SUMMARY_NAME.into(),
+        Ok(RunSummary::new(
+            ALL_WORKFLOWS_SUMMARY_NAME,
+            collect_job_summaries(&executions),
             success,
-            duration: started_at.elapsed(),
-            job_summaries: collect_job_summaries(&executions),
-        })
+            started_at.elapsed(),
+        ))
     }
 }
 
@@ -65,15 +65,15 @@ impl RunAllWorkflowsService {
     ) -> Result<Vec<WorkflowExecution>, Box<dyn Error>> {
         let workflow_contents = self
             .workflow_source
-            .read_all_workflows(&request.repository)?;
+            .read_all_workflows(&request.repository())?;
         workflow_contents
             .iter()
             .map(|content| {
                 self.command_bus
                     .dispatch_workflow(ExecuteWorkflowCommand::new(
                         content.clone(),
-                        request.config.clone(),
-                        request.repository.clone(),
+                        request.config().clone(),
+                        request.repository().clone(),
                     ))
             })
             .collect()
@@ -82,13 +82,13 @@ impl RunAllWorkflowsService {
     fn announce_run_completed(&self, executions: &[WorkflowExecution], success: bool) {
         let container_names: Vec<String> = executions
             .iter()
-            .flat_map(|execution| execution.container_names.clone())
+            .flat_map(|execution| execution.container_names().to_vec())
             .collect();
         self.event_bus
-            .publish(DomainEvent::ActRunCompleted(ActRunCompletedPayload {
+            .publish(DomainEvent::ActRunCompleted(ActRunCompletedPayload::new(
                 container_names,
                 success,
-            }));
+            )));
     }
 }
 
@@ -97,7 +97,7 @@ fn collect_job_summaries(executions: &[WorkflowExecution]) -> Vec<JobSummary> {
         .iter()
         .flat_map(|execution| {
             execution
-                .job_summaries
+                .job_summaries()
                 .iter()
                 .map(move |job| qualified_job_summary(execution, job))
         })
@@ -105,10 +105,8 @@ fn collect_job_summaries(executions: &[WorkflowExecution]) -> Vec<JobSummary> {
 }
 
 fn qualified_job_summary(execution: &WorkflowExecution, job: &JobSummary) -> JobSummary {
-    let mut summary = job.clone();
-    summary.name = job
-        .name
-        .as_ref()
-        .map(|name| format!("{} / {}", execution.workflow_name, name));
-    summary
+    let qualified = job
+        .name()
+        .map(|name| format!("{} / {}", execution.workflow_name(), name));
+    job.clone().with_name(qualified)
 }

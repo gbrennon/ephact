@@ -19,40 +19,28 @@ fn step(yaml: &str) -> Step {
 
 #[test]
 fn execute_returns_the_declared_defaults() {
-    let inputs = ResolveActionInputsService::new().execute(ResolveActionInputsRequest {
-        definition: &definition(),
-        step: &step("uses: ./actions/deploy\n"),
-    });
+    let inputs = ResolveActionInputsService::new().execute(ResolveActionInputsRequest::new(&definition(), &step("uses: ./actions/deploy\n")));
 
     assert_eq!(inputs.get("mode").map(String::as_str), Some("production"));
 }
 
 #[test]
 fn execute_lets_with_override_a_default() {
-    let inputs = ResolveActionInputsService::new().execute(ResolveActionInputsRequest {
-        definition: &definition(),
-        step: &step("uses: ./actions/deploy\nwith:\n  mode: staging\n"),
-    });
+    let inputs = ResolveActionInputsService::new().execute(ResolveActionInputsRequest::new(&definition(), &step("uses: ./actions/deploy\nwith:\n  mode: staging\n")));
 
     assert_eq!(inputs.get("mode").map(String::as_str), Some("staging"));
 }
 
 #[test]
 fn execute_omits_an_input_with_neither_default_nor_with() {
-    let inputs = ResolveActionInputsService::new().execute(ResolveActionInputsRequest {
-        definition: &definition(),
-        step: &step("uses: ./actions/deploy\n"),
-    });
+    let inputs = ResolveActionInputsService::new().execute(ResolveActionInputsRequest::new(&definition(), &step("uses: ./actions/deploy\n")));
 
     assert!(!inputs.contains_key("token"));
 }
 
 #[test]
 fn execute_passes_undeclared_with_keys_through() {
-    let inputs = ResolveActionInputsService::new().execute(ResolveActionInputsRequest {
-        definition: &definition(),
-        step: &step("uses: ./actions/deploy\nwith:\n  extra: value\n"),
-    });
+    let inputs = ResolveActionInputsService::new().execute(ResolveActionInputsRequest::new(&definition(), &step("uses: ./actions/deploy\nwith:\n  extra: value\n")));
 
     assert_eq!(inputs.get("extra").map(String::as_str), Some("value"));
 }

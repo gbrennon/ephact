@@ -13,11 +13,7 @@ use crate::common::fakes::{
 };
 
 fn entry() -> FileEntry {
-    FileEntry {
-        path: "action.yml".into(),
-        content: b"name: Greet\n".to_vec(),
-        mode: 0o644,
-    }
+    FileEntry::new("action.yml".into(), b"name: Greet\n".to_vec(), 0o644)
 }
 
 #[test]
@@ -29,10 +25,7 @@ fn execute_returns_the_slugged_container_directory() {
         ])));
 
     let directory = service
-        .execute(CopyActionToContainerRequest {
-            action_dir: Path::new("/repo/actions/greet"),
-            container: &container,
-        })
+        .execute(CopyActionToContainerRequest::new(Path::new("/repo/actions/greet"), &container))
         .unwrap();
 
     assert_eq!(directory, "/tmp/ephemeral-act-actions/_repo_actions_greet");
@@ -47,10 +40,7 @@ fn execute_creates_the_directory_before_copying_the_files() {
         ])));
 
     service
-        .execute(CopyActionToContainerRequest {
-            action_dir: Path::new("/repo/actions/greet"),
-            container: &container,
-        })
+        .execute(CopyActionToContainerRequest::new(Path::new("/repo/actions/greet"), &container))
         .unwrap();
 
     assert_eq!(
@@ -76,18 +66,15 @@ fn execute_reports_a_failing_copy() {
         ])));
 
     let error = service
-        .execute(CopyActionToContainerRequest {
-            action_dir: Path::new("/repo/actions/greet"),
-            container: &StubFailingContainer,
-        })
+        .execute(CopyActionToContainerRequest::new(Path::new("/repo/actions/greet"), &StubFailingContainer))
         .unwrap_err();
 
     assert!(
         error
-            .message
+            .message()
             .starts_with("failed to create action directory"),
         "{}",
-        error.message
+        error.message()
     );
 }
 
@@ -98,11 +85,8 @@ fn execute_propagates_a_collection_failure() {
     )));
 
     let error = service
-        .execute(CopyActionToContainerRequest {
-            action_dir: Path::new("/repo/actions/greet"),
-            container: &StubRecordingContainer::new(),
-        })
+        .execute(CopyActionToContainerRequest::new(Path::new("/repo/actions/greet"), &StubRecordingContainer::new()))
         .unwrap_err();
 
-    assert_eq!(error.message, "failed to read action directory /repo");
+    assert_eq!(error.message(), "failed to read action directory /repo");
 }

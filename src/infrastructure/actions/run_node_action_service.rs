@@ -44,38 +44,36 @@ impl RunNodeActionPort for RunNodeActionService {
         &self,
         request: RunNodeActionRequest<'_>,
     ) -> Result<RunNodeActionResponse, StepError> {
-        let container_dir = self.action_copier.execute(CopyActionToContainerRequest {
-            action_dir: request.action_dir,
-            container: request.container,
-        })?;
+        let container_dir = self.action_copier.execute(CopyActionToContainerRequest::new(
+            request.action_dir(),
+            request.container(),
+        ))?;
 
-        let action_response =
-            self.environment_builder
-                .execute(BuildActionInputEnvironmentRequest {
-                    env: request.env,
-                    inputs: request.inputs,
-                    action_path: &container_dir,
-                });
+        let action_request = BuildActionInputEnvironmentRequest::new(
+            request.env(),
+            request.inputs(),
+            &container_dir,
+        );
+        let action_response = self.environment_builder.execute(action_request);
+        let binary = self.node_binary_resolver.execute(ResolveNodeBinaryRequest::new(
+            request.container(),
+        ));
 
-        let binary = self.node_binary_resolver.execute(ResolveNodeBinaryRequest {
-            container: request.container,
-        });
-
-        let entry_point = request.entry_point;
+        let entry_point = request.entry_point();
         let command = ShellCommand::new(
             vec![binary, format!("{container_dir}/{entry_point}")],
             Some(CONTAINER_WORKSPACE.into()),
-            action_response.env,
+            action_response.into_env(),
         );
 
         request
-            .container
+            .container()
             .exec(command.argv(), command.working_directory(), command.env())
-            .map(|result| RunNodeActionResponse {
-                exit_code: result.exit_code,
-                stdout: result.stdout,
-                stderr: result.stderr,
-            })
+            .map(|result| RunNodeActionResponse::new(
+                result.exit_code(),
+                result.stdout().to_string(),
+                result.stderr().to_string(),
+            ))
             .map_err(|error| StepError::new(format!("failed to run node action: {error:?}")))
     }
 }

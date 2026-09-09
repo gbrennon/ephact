@@ -6,5 +6,22 @@ use super::stage::Stage;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Plan {
     /// The ordered stages of execution.
-    pub stages: Vec<Stage>,
+    stages: Vec<Stage>,
+}
+
+impl Plan {
+    #[must_use]
+    pub fn new(stages: Vec<Stage>) -> Self {
+        Self { stages }
+    }
+
+    #[must_use]
+    pub fn stages(&self) -> &[Stage] {
+        &self.stages
+    }
+
+    #[must_use]
+    pub fn into_stages(self) -> Vec<Stage> {
+        self.stages
+    }
 }

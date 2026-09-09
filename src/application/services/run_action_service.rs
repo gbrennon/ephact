@@ -25,12 +25,12 @@ impl RunActionService {
 impl RunActionPort for RunActionService {
     fn execute(&self, request: RunActionRequest) -> Result<ExecuteActionResponse, StepError> {
         let cmd = ExecuteActionCommand::new(
-            request.action_ref,
-            request.step,
-            request.repo_path,
-            request.env,
-            request.context,
-            request.container,
+            request.action_ref().to_string().to_string(),
+            request.step().clone().clone(),
+            request.repo_path().to_path_buf().to_path_buf(),
+            request.env().clone().clone(),
+            request.context().clone().clone(),
+            request.container().clone().clone(),
         );
         self.command_bus.dispatch_action(cmd)
     }

@@ -41,7 +41,8 @@ impl RunWorkflowService {
 
 impl RunWorkflowPort for RunWorkflowService {
     fn execute(&self, request: RunWorkflowRequest) -> Result<RunSummary, Box<dyn Error>> {
-        let RunWorkflowRequest { config, repository } = request;
+        let repository = request.repository().clone();
+        let config = request.into_config();
         let started_at = Instant::now();
 
         let workflow_content = self
@@ -56,17 +57,19 @@ impl RunWorkflowPort for RunWorkflowService {
                 repository,
             ))?;
 
-        self.event_bus
-            .publish(DomainEvent::ActRunCompleted(ActRunCompletedPayload {
-                container_names: execution.container_names,
-                success: execution.success,
-            }));
+        let (workflow_name, job_summaries, container_names, success) = execution.into_parts();
 
-        Ok(RunSummary {
-            name: execution.workflow_name,
-            success: execution.success,
-            duration: started_at.elapsed(),
-            job_summaries: execution.job_summaries,
-        })
+        self.event_bus
+            .publish(DomainEvent::ActRunCompleted(ActRunCompletedPayload::new(
+                container_names,
+                success,
+            )));
+
+        Ok(RunSummary::new(
+            workflow_name,
+            job_summaries,
+            success,
+            started_at.elapsed(),
+        ))
     }
 }

@@ -18,23 +18,45 @@ use super::Matrix;
 ///   rust: [stable, nightly]
 /// "#;
 /// let strategy: Strategy = serde_yaml::from_str(yaml).unwrap();
-/// assert_eq!(strategy.matrix.as_ref().unwrap().variables.len(), 2);
+/// assert_eq!(strategy.matrix().as_ref().unwrap().variables().len(), 2);
 /// ```
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 pub struct Strategy {
     /// The matrix of variables to expand.
     #[serde(default)]
-    pub matrix: Option<Matrix>,
+    matrix: Option<Matrix>,
 
     /// Whether to cancel all in-progress jobs if any matrix job fails.
     #[serde(rename = "fail-fast")]
     #[serde(default = "default_fail_fast")]
-    pub fail_fast: bool,
+    fail_fast: bool,
 
     /// Maximum number of jobs to run in parallel.
     #[serde(rename = "max-parallel")]
     #[serde(default)]
-    pub max_parallel: Option<usize>,
+    max_parallel: Option<usize>,
+}
+
+impl Strategy {
+    pub fn new(matrix: Option<Matrix>, fail_fast: bool, max_parallel: Option<usize>) -> Self {
+        Self {
+            matrix,
+            fail_fast,
+            max_parallel,
+        }
+    }
+
+    pub fn matrix(&self) -> Option<&Matrix> {
+        self.matrix.as_ref()
+    }
+
+    pub fn fail_fast(&self) -> bool {
+        self.fail_fast
+    }
+
+    pub fn max_parallel(&self) -> Option<usize> {
+        self.max_parallel
+    }
 }
 
 fn default_fail_fast() -> bool {
@@ -52,10 +74,10 @@ impl Strategy {
         self.matrix
             .as_ref()
             .map(|m| {
-                if m.variables.is_empty() {
+                if m.variables().is_empty() {
                     0
                 } else {
-                    m.variables.values().map(|v| v.len()).product()
+                    m.variables().values().map(|v| v.len()).product()
                 }
             })
             .unwrap_or(1)
@@ -77,8 +99,8 @@ max-parallel: 2
 "#;
         let strategy: Strategy = serde_yaml::from_str(yaml).unwrap();
         assert!(strategy.has_matrix());
-        assert!(!strategy.fail_fast);
-        assert_eq!(strategy.max_parallel, Some(2));
+        assert!(!strategy.fail_fast());
+        assert_eq!(strategy.max_parallel(), Some(2));
         assert_eq!(strategy.combination_count(), 4);
     }
 
@@ -96,17 +118,17 @@ matrix:
       rust: stable
 "#;
         let strategy: Strategy = serde_yaml::from_str(yaml).unwrap();
-        let matrix = strategy.matrix.unwrap();
-        assert_eq!(matrix.include.len(), 1);
-        assert_eq!(matrix.exclude.len(), 1);
+        let matrix = strategy.matrix().unwrap();
+        assert_eq!(matrix.include().len(), 1);
+        assert_eq!(matrix.exclude().len(), 1);
     }
 
     #[test]
     fn parse_strategy_defaults() {
         let yaml = "matrix:\n  os: [ubuntu-latest]\n";
         let strategy: Strategy = serde_yaml::from_str(yaml).unwrap();
-        assert!(strategy.fail_fast);
-        assert_eq!(strategy.max_parallel, None);
+        assert!(strategy.fail_fast());
+        assert_eq!(strategy.max_parallel(), None);
     }
 
     #[test]
@@ -118,11 +140,7 @@ matrix:
 
     #[test]
     fn combination_count_no_matrix() {
-        let strategy = Strategy {
-            matrix: None,
-            fail_fast: true,
-            max_parallel: None,
-        };
+        let strategy = Strategy::new(None, true, None);
         assert_eq!(strategy.combination_count(), 1);
     }
 }

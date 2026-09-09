@@ -4,9 +4,27 @@
 #[derive(Debug, Clone)]
 pub struct StepStartedPayload {
     /// Name of the workflow the step belongs to.
-    pub workflow_name: String,
+    workflow_name: String,
     /// Identifier of the job the step belongs to.
-    pub job_id: String,
+    job_id: String,
     /// Name declared by the step being run.
-    pub step_name: String,
+    step_name: String,
+}
+
+impl StepStartedPayload {
+    pub fn new(workflow_name: String, job_id: String, step_name: String) -> Self {
+        Self { workflow_name, job_id, step_name }
+    }
+
+    pub fn workflow_name(&self) -> &str {
+        &self.workflow_name
+    }
+
+    pub fn job_id(&self) -> &str {
+        &self.job_id
+    }
+
+    pub fn step_name(&self) -> &str {
+        &self.step_name
+    }
 }

@@ -34,35 +34,27 @@ impl RunCompositeStepService {
 
 impl RunCompositeStepPort for RunCompositeStepService {
     fn execute(&self, request: RunCompositeStepRequest<'_>) -> Result<ExecResult, StepError> {
-        let action_request = request.action_request;
+        let action_request = request.action_request();
 
-        match request.step.uses() {
+        match request.step().uses() {
             Some(nested) => self
                 .command_bus
                 .dispatch_action(ExecuteActionCommand::new(
                     nested.to_string(),
-                    request.step.clone(),
-                    action_request.repo_path.clone(),
-                    action_request.env.clone(),
-                    request.context.clone(),
-                    action_request.container.clone(),
+                    request.step().clone(),
+                    action_request.repo_path().to_path_buf(),
+                    action_request.env().clone(),
+                    request.context().clone(),
+                    action_request.container().clone(),
                 ))
-                .map(|response| ExecResult {
-                    exit_code: response.exit_code,
-                    stdout: response.stdout,
-                    stderr: response.stderr,
-                }),
+                .map(|response| ExecResult::new(response.exit_code(), response.stdout().to_string().to_string(), response.stderr().to_string().to_string())),
             None => {
-                let mut action_env = action_request.env.clone();
+                let mut action_env = action_request.env().clone();
                 action_env.insert(
                     "GITHUB_ACTION_PATH".into(),
-                    request.action_dir.display().to_string(),
+                    request.action_dir().display().to_string(),
                 );
-                self.shell_runner.execute(RunShellStepRequest {
-                    step: request.step,
-                    container: action_request.container.as_ref(),
-                    env: &action_env,
-                })
+                self.shell_runner.execute(RunShellStepRequest::new(request.step(), action_request.container().as_ref(), &action_env))
             }
         }
     }

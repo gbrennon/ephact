@@ -22,20 +22,19 @@ impl Default for ResolveActionInputsService {
 impl ResolveActionInputsPort for ResolveActionInputsService {
     fn execute(&self, request: ResolveActionInputsRequest<'_>) -> HashMap<String, String> {
         let mut inputs: HashMap<String, String> = request
-            .definition
-            .inputs
+            .definition()
+            .inputs()
             .iter()
             .filter_map(|(name, input)| {
                 input
-                    .default
-                    .as_ref()
-                    .map(|default| (name.clone(), default.clone()))
+                    .default()
+                    .map(|default| (name.clone(), default.to_string()))
             })
             .collect();
         inputs.extend(
             request
-                .step
-                .with
+                .step()
+                .with()
                 .iter()
                 .map(|(name, value)| (name.clone(), value.clone())),
         );

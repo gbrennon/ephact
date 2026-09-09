@@ -4,6 +4,11 @@ use super::{LexerError, token::Token};
 ///
 /// Tokenizes the input stream one token at a time. Supports single-character
 /// lookahead via [`peek_token`](Lexer::peek_token).
+enum StringChunk {
+    Char(char),
+    Terminated,
+}
+
 pub struct Lexer<'a> {
     /// Remaining characters to tokenize.
     chars: &'a str,
@@ -61,102 +66,131 @@ impl<'a> Lexer<'a> {
     /// current character to produce the next token.
     fn advance(&mut self) -> Result<Token, LexerError> {
         self.skip_whitespace();
-
-        let Some(ch) = self.current_char() else {
-            return Ok(Token::Eof);
+        let ch = match self.current_char() {
+            Some(ch) => ch,
+            None => return Ok(Token::Eof),
         };
+        self.dispatch_char(ch)
+    }
 
+    fn dispatch_char(&mut self, ch: char) -> Result<Token, LexerError> {
+        if ch == '\x27' {
+            return self.lex_string();
+        }
+        if let Some(op) = self.lex_operator(ch) {
+            return op;
+        }
+        if self.is_number_start(ch) {
+            return self.lex_number();
+        }
+        if Self::is_ident_start(ch) {
+            return self.lex_ident_or_keyword();
+        }
+        Err(LexerError::UnexpectedChar(ch, self.pos))
+    }
+
+    fn is_ident_start(ch: char) -> bool {
+        ch.is_ascii_alphabetic() || ch == '_'
+    }
+
+    fn is_number_start(&self, ch: char) -> bool {
+        ch.is_ascii_digit() || (ch == '-' && self.peek_is_digit())
+    }
+
+    fn peek_is_digit(&self) -> bool {
+        match self.peek_next_char() {
+            Some(n) => n.is_ascii_digit(),
+            None => false,
+        }
+    }
+
+    fn lex_operator(&mut self, ch: char) -> Option<Result<Token, LexerError>> {
         match ch {
-            '\'' => self.lex_string(),
-            '.' => {
-                self.bump();
-                Ok(Token::Dot)
-            }
-            '[' => {
-                self.bump();
-                Ok(Token::LBracket)
-            }
-            ']' => {
-                self.bump();
-                Ok(Token::RBracket)
-            }
-            '(' => {
-                self.bump();
-                Ok(Token::LParen)
-            }
-            ')' => {
-                self.bump();
-                Ok(Token::RParen)
-            }
-            '*' => {
-                self.bump();
-                Ok(Token::Star)
-            }
-            ',' => {
-                self.bump();
-                Ok(Token::Comma)
-            }
-            '!' => {
-                self.bump();
-                if self.current_char() == Some('=') {
-                    self.bump();
-                    Ok(Token::Neq)
-                } else {
-                    Ok(Token::Not)
-                }
-            }
-            '=' => {
-                self.bump();
-                if self.current_char() == Some('=') {
-                    self.bump();
-                    Ok(Token::Eq)
-                } else {
-                    Err(LexerError::UnexpectedChar('=', self.pos - 1))
-                }
-            }
-            '<' => {
-                self.bump();
-                if self.current_char() == Some('=') {
-                    self.bump();
-                    Ok(Token::Lte)
-                } else {
-                    Ok(Token::Lt)
-                }
-            }
-            '>' => {
-                self.bump();
-                if self.current_char() == Some('=') {
-                    self.bump();
-                    Ok(Token::Gte)
-                } else {
-                    Ok(Token::Gt)
-                }
-            }
-            '&' => {
-                self.bump();
-                if self.current_char() == Some('&') {
-                    self.bump();
-                    Ok(Token::And)
-                } else {
-                    Err(LexerError::UnexpectedChar('&', self.pos - 1))
-                }
-            }
-            '|' => {
-                self.bump();
-                if self.current_char() == Some('|') {
-                    self.bump();
-                    Ok(Token::Or)
-                } else {
-                    Err(LexerError::UnexpectedChar('|', self.pos - 1))
-                }
-            }
-            c if c.is_ascii_digit()
-                || (c == '-' && self.peek_next_char().is_some_and(|n| n.is_ascii_digit())) =>
-            {
-                self.lex_number()
-            }
-            c if c.is_ascii_alphabetic() || c == '_' => self.lex_ident_or_keyword(),
-            other => Err(LexerError::UnexpectedChar(other, self.pos)),
+            '.' => Some(self.bump_token(Token::Dot)),
+            '[' => Some(self.bump_token(Token::LBracket)),
+            ']' => Some(self.bump_token(Token::RBracket)),
+            '(' => Some(self.bump_token(Token::LParen)),
+            ')' => Some(self.bump_token(Token::RParen)),
+            '*' => Some(self.bump_token(Token::Star)),
+            ',' => Some(self.bump_token(Token::Comma)),
+            _ => self.lex_compound_operator(ch),
+        }
+    }
+
+    fn bump_token(&mut self, tok: Token) -> Result<Token, LexerError> {
+        self.bump();
+        Ok(tok)
+    }
+
+    fn lex_compound_operator(&mut self, ch: char) -> Option<Result<Token, LexerError>> {
+        match ch {
+            '!' => Some(self.lex_exclamation()),
+            '=' => Some(self.lex_equals()),
+            '<' => Some(self.lex_less_than()),
+            '>' => Some(self.lex_greater_than()),
+            '&' => Some(self.lex_ampersand()),
+            '|' => Some(self.lex_pipe()),
+            _ => None,
+        }
+    }
+
+    fn lex_exclamation(&mut self) -> Result<Token, LexerError> {
+        self.bump();
+        if self.current_char() == Some('=') {
+            self.bump();
+            Ok(Token::Neq)
+        } else {
+            Ok(Token::Not)
+        }
+    }
+
+    fn lex_equals(&mut self) -> Result<Token, LexerError> {
+        self.bump();
+        if self.current_char() == Some('=') {
+            self.bump();
+            Ok(Token::Eq)
+        } else {
+            Err(LexerError::UnexpectedChar('=', self.pos - 1))
+        }
+    }
+
+    fn lex_less_than(&mut self) -> Result<Token, LexerError> {
+        self.bump();
+        if self.current_char() == Some('=') {
+            self.bump();
+            Ok(Token::Lte)
+        } else {
+            Ok(Token::Lt)
+        }
+    }
+
+    fn lex_greater_than(&mut self) -> Result<Token, LexerError> {
+        self.bump();
+        if self.current_char() == Some('=') {
+            self.bump();
+            Ok(Token::Gte)
+        } else {
+            Ok(Token::Gt)
+        }
+    }
+
+    fn lex_ampersand(&mut self) -> Result<Token, LexerError> {
+        self.bump();
+        if self.current_char() == Some('&') {
+            self.bump();
+            Ok(Token::And)
+        } else {
+            Err(LexerError::UnexpectedChar('&', self.pos - 1))
+        }
+    }
+
+    fn lex_pipe(&mut self) -> Result<Token, LexerError> {
+        self.bump();
+        if self.current_char() == Some('|') {
+            self.bump();
+            Ok(Token::Or)
+        } else {
+            Err(LexerError::UnexpectedChar('|', self.pos - 1))
         }
     }
 
@@ -171,22 +205,30 @@ impl<'a> Lexer<'a> {
         let mut value = String::new();
 
         loop {
-            match self.current_char() {
-                None => return Err(LexerError::UnterminatedString(start)),
-                Some('\'') => {
-                    self.bump();
-                    if self.current_char() == Some('\'') {
-                        self.bump();
-                        value.push('\'');
-                    } else {
-                        return Ok(Token::String(value));
-                    }
-                }
-                Some(ch) => {
-                    value.push(ch);
-                    self.bump();
-                }
+            match self.next_string_char(start)? {
+                StringChunk::Char(c) => value.push(c),
+                StringChunk::Terminated => return Ok(Token::String(value)),
             }
+        }
+    }
+
+    fn next_string_char(&mut self, start: usize) -> Result<StringChunk, LexerError> {
+        let ch = match self.current_char() {
+            Some(ch) => ch,
+            None => return Err(LexerError::UnterminatedString(start)),
+        };
+
+        if ch == '\x27' {
+            self.bump();
+            if self.current_char() == Some('\x27') {
+                self.bump();
+                Ok(StringChunk::Char('\x27'))
+            } else {
+                Ok(StringChunk::Terminated)
+            }
+        } else {
+            self.bump();
+            Ok(StringChunk::Char(ch))
         }
     }
 
@@ -197,30 +239,35 @@ impl<'a> Lexer<'a> {
     /// the result is a [`Token::Int`].
     fn lex_number(&mut self) -> Result<Token, LexerError> {
         let mut num_str = String::new();
-        let mut is_float = false;
-
         if self.current_char() == Some('-') {
             num_str.push('-');
             self.bump();
         }
+        self.consume_digits(&mut num_str);
+        let is_float = self.consume_fractional_part(&mut num_str);
+        Self::parse_number_token(&num_str, is_float)
+    }
 
+    fn consume_digits(&mut self, num_str: &mut String) {
         while self.current_char().is_some_and(|c| c.is_ascii_digit()) {
             num_str.push(self.current_char().unwrap());
             self.bump();
         }
+    }
 
+    fn consume_fractional_part(&mut self, num_str: &mut String) -> bool {
         if self.current_char() == Some('.')
             && self.peek_next_char().is_some_and(|c| c.is_ascii_digit())
         {
-            is_float = true;
             num_str.push('.');
             self.bump();
-            while self.current_char().is_some_and(|c| c.is_ascii_digit()) {
-                num_str.push(self.current_char().unwrap());
-                self.bump();
-            }
+            self.consume_digits(num_str);
+            true
+        } else {
+            false
         }
-
+    }
+    fn parse_number_token(num_str: &str, is_float: bool) -> Result<Token, LexerError> {
         if is_float {
             let value: f64 = num_str
                 .parse()

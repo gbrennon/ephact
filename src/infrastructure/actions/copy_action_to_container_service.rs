@@ -1,4 +1,4 @@
-use crate::infrastructure::actions::{
+use super::{
     collect_action_files_port::CollectActionFilesPort,
     copy_action_to_container_port::CopyActionToContainerPort,
 };
@@ -42,16 +42,14 @@ impl CopyActionToContainerService {
 
 impl CopyActionToContainerPort for CopyActionToContainerService {
     fn execute(&self, request: CopyActionToContainerRequest<'_>) -> Result<String, StepError> {
-        let container_dir = Self::container_action_dir(request.action_dir);
-        let files = self
+        let container_dir = Self::container_action_dir(request.action_dir());
+        let files_response = self
             .file_collector
-            .execute(CollectActionFilesRequest {
-                action_dir: request.action_dir,
-            })?
-            .files;
+            .execute(CollectActionFilesRequest::new(request.action_dir()))?;
+        let files = files_response.files();
 
         request
-            .container
+            .container()
             .exec(
                 &["mkdir".into(), "-p".into(), container_dir.clone()],
                 None,
@@ -61,7 +59,7 @@ impl CopyActionToContainerPort for CopyActionToContainerService {
                 StepError::new(format!("failed to create action directory: {error:?}"))
             })?;
         request
-            .container
+            .container()
             .copy_to(&container_dir, &files)
             .map_err(|error| StepError::new(format!("failed to copy action files: {error:?}")))?;
 

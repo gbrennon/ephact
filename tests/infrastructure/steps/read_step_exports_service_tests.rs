@@ -22,9 +22,7 @@ fn execute_carries_both_collaborators_results_through() {
         ReadStepExportsService::new(Box::new(path_reader.clone()), Box::new(env_reader.clone()));
     let container = StubExportingContainer::empty();
 
-    let exports = service.execute(ReadStepExportsRequest {
-        container: &container,
-    });
+    let exports = service.execute(ReadStepExportsRequest::new(&container));
 
     assert_eq!(exports.path_additions, vec!["/opt/bin".to_string()]);
     assert_eq!(exports.env.get("A").map(String::as_str), Some("1"));

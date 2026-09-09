@@ -22,7 +22,7 @@ impl ListActionsService {
 
 impl ListActionsPort for ListActionsService {
     fn execute(&self, request: ListActionsRequest) -> Result<ListActionsResponse, Box<dyn Error>> {
-        let actions = self.workflow_source.list_actions(&request.repository)?;
+        let actions = self.workflow_source.list_actions(&request.repository())?;
         Ok(ListActionsResponse::new(actions))
     }
 }

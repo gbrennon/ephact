@@ -9,14 +9,51 @@ use crate::domain::workflow::Job;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Run {
     /// The workflow this run belongs to.
-    pub workflow_name: Option<String>,
+    workflow_name: Option<String>,
 
-    /// The job ID (key in the workflow's `jobs` map).
-    pub job_id: String,
+    /// The identifier of the job within the workflow.
+    job_id: String,
 
-    /// The job definition.
-    pub job: Job,
+    /// The job definition to execute.
+    job: Job,
 
-    /// Matrix combination values, if this run is part of a matrix expansion.
-    pub matrix_values: Option<HashMap<String, String>>,
+    /// Optional matrix values for this specific run.
+    matrix_values: Option<HashMap<String, String>>,
+}
+
+impl Run {
+    #[must_use]
+    pub fn new(
+        workflow_name: Option<String>,
+        job_id: String,
+        job: Job,
+        matrix_values: Option<HashMap<String, String>>,
+    ) -> Self {
+        Self {
+            workflow_name,
+            job_id,
+            job,
+            matrix_values,
+        }
+    }
+
+    #[must_use]
+    pub fn workflow_name(&self) -> Option<&str> {
+        self.workflow_name.as_deref()
+    }
+
+    #[must_use]
+    pub fn job_id(&self) -> &str {
+        &self.job_id
+    }
+
+    #[must_use]
+    pub fn job(&self) -> &Job {
+        &self.job
+    }
+
+    #[must_use]
+    pub fn matrix_values(&self) -> Option<&HashMap<String, String>> {
+        self.matrix_values.as_ref()
+    }
 }

@@ -7,5 +7,22 @@ use super::run::Run;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Stage {
     /// The runs in this stage (execute in parallel).
-    pub runs: Vec<Run>,
+    runs: Vec<Run>,
+}
+
+impl Stage {
+    #[must_use]
+    pub fn new(runs: Vec<Run>) -> Self {
+        Self { runs }
+    }
+
+    #[must_use]
+    pub fn runs(&self) -> &[Run] {
+        &self.runs
+    }
+
+    #[must_use]
+    pub fn into_runs(self) -> Vec<Run> {
+        self.runs
+    }
 }

@@ -4,10 +4,33 @@ use std::collections::HashMap;
 /// `BuildActionInputEnvironmentPort`
 /// inbound port.
 pub struct BuildActionInputEnvironmentRequest<'a> {
-    /// Environment the action runs with.
-    pub env: &'a HashMap<String, String>,
-    /// Inputs the action was called with.
-    pub inputs: &'a HashMap<String, String>,
-    /// Directory the action was copied to inside the container.
-    pub action_path: &'a str,
+    env: &'a HashMap<String, String>,
+    inputs: &'a HashMap<String, String>,
+    action_path: &'a str,
+}
+
+impl<'a> BuildActionInputEnvironmentRequest<'a> {
+    pub fn new(
+        env: &'a HashMap<String, String>,
+        inputs: &'a HashMap<String, String>,
+        action_path: &'a str,
+    ) -> Self {
+        Self {
+            env,
+            inputs,
+            action_path,
+        }
+    }
+
+    pub fn env(&self) -> &'a HashMap<String, String> {
+        self.env
+    }
+
+    pub fn inputs(&self) -> &'a HashMap<String, String> {
+        self.inputs
+    }
+
+    pub fn action_path(&self) -> &'a str {
+        self.action_path
+    }
 }

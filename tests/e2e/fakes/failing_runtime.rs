@@ -48,10 +48,6 @@ impl ContainerRuntimePort for FailingRuntime {
     }
 
     fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
-        Ok(HostInfo {
-            os: "linux".into(),
-            arch: "x86_64".into(),
-            engine_version: "e2e".into(),
-        })
+        Ok(HostInfo::new("linux".into(), "x86_64".into(), "e2e".into()))
     }
 }

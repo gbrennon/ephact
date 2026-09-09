@@ -34,9 +34,7 @@ impl ListAllWorkflowFilesPort for FakeListAllWorkflowFilesPort {
     ) -> Result<ListAllWorkflowFilesResponse, Box<dyn std::error::Error>> {
         self.calls.lock().push(request.repo_path.to_path_buf());
         match &self.result {
-            Ok(files) => Ok(ListAllWorkflowFilesResponse {
-                workflow_files: files.clone(),
-            }),
+            Ok(files) => Ok(ListAllWorkflowFilesResponse::new(files.clone())),
             Err(message) => Err(message.clone().into()),
         }
     }

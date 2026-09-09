@@ -1,25 +1,62 @@
 use serde::Deserialize;
 
 /// An input parameter for `workflow_dispatch` events.
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Default)]
 pub struct WorkflowDispatchInput {
-    /// Description of the input.
-    pub description: Option<String>,
+    description: Option<String>,
 
-    /// Whether the input is required.
     #[serde(default)]
-    pub required: bool,
+    required: bool,
 
-    /// Default value for the input.
     #[serde(default)]
-    pub default: Option<String>,
+    default: Option<String>,
 
-    /// The type of the input (string, choice, boolean, environment).
     #[serde(rename = "type")]
     #[serde(default)]
-    pub input_type: Option<String>,
+    input_type: Option<String>,
 
-    /// Available options for `choice` type inputs.
     #[serde(default)]
-    pub options: Vec<String>,
+    options: Vec<String>,
+}
+
+impl WorkflowDispatchInput {
+    pub fn new(
+        description: Option<String>,
+        required: bool,
+        default: Option<String>,
+        input_type: Option<String>,
+        options: Vec<String>,
+    ) -> Self {
+        Self {
+            description,
+            required,
+            default,
+            input_type,
+            options,
+        }
+    }
+
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    pub fn required(&self) -> bool {
+        self.required
+    }
+
+    pub fn default_value(&self) -> Option<&str> {
+        self.default.as_deref()
+    }
+
+    pub fn default(&self) -> Option<&str> {
+        self.default.as_deref()
+    }
+
+    pub fn input_type(&self) -> Option<&str> {
+        self.input_type.as_deref()
+    }
+
+    pub fn options(&self) -> &[String] {
+        &self.options
+    }
 }

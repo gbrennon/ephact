@@ -1,4 +1,4 @@
-use crate::infrastructure::actions::collect_action_files_port::CollectActionFilesPort;
+use super::collect_action_files_port::CollectActionFilesPort;
 use std::{
     fs::{read, read_dir},
     os::unix::fs::PermissionsExt,
@@ -23,6 +23,40 @@ impl CollectActionFilesService {
     }
 
     /// Walks `directory`, reading each file it holds into `files`.
+    fn file_mode(path: &Path) -> u32 {
+        path.metadata()
+            .map(|metadata| metadata.permissions().mode() & 0o7777)
+            .unwrap_or(0o644)
+    }
+
+    fn read_file_entry(root: &Path, path: &Path) -> Result<FileEntry, StepError> {
+        let relative = path
+            .strip_prefix(root)
+            .map_err(|error| StepError::new(format!("action file outside action: {error}")))?;
+        let content = read(path).map_err(|error| {
+            StepError::new(format!("failed to read {}: {error}", path.display()))
+        })?;
+        let mode = Self::file_mode(path);
+
+        Ok(FileEntry::new(relative.display().to_string(), content, mode))
+    }
+
+    fn process_entry(
+        root: &Path,
+        path: PathBuf,
+        files: &mut Vec<FileEntry>,
+    ) -> Result<(), StepError> {
+        if path.file_name().is_some_and(|name| name == GIT_DIRECTORY) {
+            return Ok(());
+        }
+        if path.is_dir() {
+            return Self::collect_files_into(root, &path, files);
+        }
+        files.push(Self::read_file_entry(root, &path)?);
+        Ok(())
+    }
+
+    /// Walks `directory`, reading each file it holds into `files`.
     fn collect_files_into(
         root: &Path,
         directory: &Path,
@@ -39,31 +73,7 @@ impl CollectActionFilesService {
             let path: PathBuf = entry
                 .map_err(|error| StepError::new(format!("failed to read action entry: {error}")))?
                 .path();
-
-            if path.file_name().is_some_and(|name| name == GIT_DIRECTORY) {
-                continue;
-            }
-            if path.is_dir() {
-                Self::collect_files_into(root, &path, files)?;
-                continue;
-            }
-
-            let relative = path
-                .strip_prefix(root)
-                .map_err(|error| StepError::new(format!("action file outside action: {error}")))?;
-            let content = read(&path).map_err(|error| {
-                StepError::new(format!("failed to read {}: {error}", path.display()))
-            })?;
-            let mode = path
-                .metadata()
-                .map(|metadata| metadata.permissions().mode() & 0o7777)
-                .unwrap_or(0o644);
-
-            files.push(FileEntry {
-                path: relative.display().to_string(),
-                content,
-                mode,
-            });
+            Self::process_entry(root, path, files)?;
         }
 
         Ok(())
@@ -82,7 +92,7 @@ impl CollectActionFilesPort for CollectActionFilesService {
         request: CollectActionFilesRequest<'_>,
     ) -> Result<CollectActionFilesResponse, StepError> {
         let mut files = Vec::new();
-        Self::collect_files_into(request.action_dir, request.action_dir, &mut files)?;
-        Ok(CollectActionFilesResponse { files })
+        Self::collect_files_into(request.action_dir(), request.action_dir(), &mut files)?;
+        Ok(CollectActionFilesResponse::new(files))
     }
 }

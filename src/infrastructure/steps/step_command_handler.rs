@@ -16,13 +16,8 @@ impl StepCommandHandler {
     }
 
     pub fn handle(&self, cmd: ExecuteStepCommand) -> Result<ExecutedStep, StepError> {
-        let req = ExecuteStepRequest {
-            step: &cmd.step,
-            context: &cmd.context,
-            container: cmd.container,
-            repo_path: &cmd.repo_path,
-            env: &cmd.env,
-        };
+        let (step, env, context, container, repo_path) = cmd.into_parts();
+        let req = ExecuteStepRequest::new(&step, &context, container, &repo_path, &env);
         self.executor.execute(req)
     }
 }

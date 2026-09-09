@@ -3,8 +3,8 @@ use crate::application::dtos::HostInfo;
 use crate::application::ports::outbound::ContainerRuntimePort;
 use crate::application::ports::outbound::container_port::ContainerPort;
 use crate::domain::errors::ContainerError;
-use crate::infrastructure::containers::docker_runtime::DockerRuntime;
-use crate::infrastructure::containers::podman_runtime::PodmanRuntime;
+use super::docker_runtime::DockerRuntime;
+use super::podman_runtime::PodmanRuntime;
 
 /// Strategy-pattern context over a container runtime.
 ///

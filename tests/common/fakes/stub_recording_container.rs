@@ -49,11 +49,7 @@ impl ContainerPort for StubRecordingContainer {
     ) -> Result<ExecResult, ContainerError> {
         self.executed_commands.lock().push(cmd.to_vec());
         self.exec_environments.lock().push(env.clone());
-        Ok(ExecResult {
-            exit_code: 0,
-            stdout: String::new(),
-            stderr: String::new(),
-        })
+        Ok(ExecResult::new(0, String::new(), String::new()))
     }
 
     fn copy_to(&self, path: &str, entries: &[FileEntry]) -> Result<(), ContainerError> {
