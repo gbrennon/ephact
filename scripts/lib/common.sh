@@ -14,48 +14,101 @@ abort_if_coverage_json_is_missing() {
 }
 
 extract_coverage_totals_from_json() {
-  lines_count=$(jq -r '.data[0].totals.lines.count' cov.json)
-  lines_covered=$(jq -r '.data[0].totals.lines.covered' cov.json)
-  lines_percent=$(jq -r '.data[0].totals.lines.percent' cov.json)
-  functions_percent=$(jq -r '.data[0].totals.functions.percent' cov.json)
-  regions_percent=$(jq -r '.data[0].totals.regions.percent' cov.json)
+  local totals
+  totals=$(coverage_rows_from_json | awk -F'\t' '
+    {
+      lines_count += $2
+      lines_covered += $2 - $3
+      functions_count += $7
+      functions_covered += $8
+      regions_count += $9
+      regions_covered += $10
+    }
+    END {
+      printf "%d\t%d\t%d\t%d\t%d\t%d\n", \
+        lines_count, lines_covered, functions_count, functions_covered, \
+        regions_count, regions_covered
+    }
+  ')
+  IFS=$'\t' read -r lines_count lines_covered functions_count \
+    functions_covered regions_count regions_covered <<< "$totals"
 
-  lines_percent=${lines_percent:-0}
-  functions_percent=${functions_percent:-0}
-  regions_percent=${regions_percent:-0}
+  lines_count=${lines_count:-0}
+  lines_covered=${lines_covered:-0}
+  functions_count=${functions_count:-0}
+  functions_covered=${functions_covered:-0}
+  regions_count=${regions_count:-0}
+  regions_covered=${regions_covered:-0}
+  lines_percent=$(awk -v covered="$lines_covered" -v count="$lines_count" \
+    'BEGIN { if (count > 0) printf "%.1f", covered / count * 100; else print "0" }')
+  functions_percent=$(awk -v covered="$functions_covered" -v count="$functions_count" \
+    'BEGIN { if (count > 0) printf "%.1f", covered / count * 100; else print "0" }')
+  regions_percent=$(awk -v covered="$regions_covered" -v count="$regions_count" \
+    'BEGIN { if (count > 0) printf "%.1f", covered / count * 100; else print "0" }')
 
   export lines_count lines_covered lines_percent functions_percent regions_percent
 }
 
 normalize_path() {
   local path="$1"
-  path="${path##*/src/}"
-  [[ "$path" == src/* ]] || path="src/${path}"
-  echo "$path"
+  case "$path" in
+    */src/*) printf 'src/%s\n' "${path##*/src/}" ;;
+    */tests/*) printf 'tests/%s\n' "${path##*/tests/}" ;;
+    src/*|tests/*) printf '%s\n' "$path" ;;
+    *) printf '%s\n' "$path" ;;
+  esac
 }
 
-extract_missing_lines() {
-  local file_path="$1"
-
-  jq -r --arg fp "$file_path" '
+coverage_rows_from_json() {
+  jq -r '
+    def missing_lines:
+      .segments as $segs
+      | [
+          range(0; $segs | length)
+          | . as $i
+          | $segs[$i]
+          | select(.[2] == 0 and .[3] == false)
+          | { start: .[0], end: ($segs[$i + 1] // .[0:1])[0] }
+        ]
+      | group_by(.start)
+      | map(.[0])
+      | map(
+          if .start == .end then (.start | tostring)
+          else "\(.start)-\(.end)"
+          end
+        )
+      | join(", ");
     .data[0].files[]
-    | select(.filename == $fp)
-    | .segments as $segs
-    | [ range(0; $segs | length)
-        | . as $i
-        | $segs[$i]
-        | select(.[2] == 0 and .[3] == false)
-        | { start: .[0], end: ($segs[$i+1] // .[0:1])[0] }
+    | select(.filename | test("(^|/)src/"))
+    | select(.summary.lines.count > 0)
+    | [
+        .filename,
+        (.summary.lines.count | tostring),
+        ((.summary.lines.count - .summary.lines.covered) | tostring),
+        ((.summary.lines.covered / .summary.lines.count * 100) | tostring),
+        (.summary.functions.count | tostring),
+        (.summary.functions.covered | tostring),
+        (.summary.regions.count | tostring),
+        (.summary.regions.covered | tostring),
+        (if .summary.lines.count > .summary.lines.covered then missing_lines else "" end)
       ]
-    | group_by(.start)
-    | map(.[0])
-    | map(
-        if .start == .end then (.start | tostring)
-        else "\(.start)-\(.end)"
-        end
-      )
-    | join(", ")
-  ' cov.json
+    | @tsv
+  ' cov.json | while IFS=$'\t' read -r raw_path stmts miss pct function_count \
+    function_covered region_count region_covered missing_lines; do
+    local norm
+    norm=$(normalize_path "$raw_path")
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+      "$norm" "$stmts" "$miss" "$pct" "$raw_path" "$missing_lines" \
+      "$function_count" "$function_covered" "$region_count" "$region_covered"
+  done | awk -F'\t' '
+    !($1 in best_miss) || $3 + 0 < best_miss[$1] {
+      best_miss[$1] = $3 + 0
+      best_row[$1] = $0
+    }
+    END {
+      for (path in best_row) print best_row[path]
+    }
+  '
 }
 
 print_coverage_table() {
@@ -63,41 +116,23 @@ print_coverage_table() {
 
   printf "\n"
 
-
   local tmp_rows
   tmp_rows=$(mktemp)
 
-  jq -r '
-    .data[0].files[]
-    | select(.summary.lines.count > 0)
-    | [
-        .filename,
-        (.summary.lines.count | tostring),
-        ((.summary.lines.count - .summary.lines.covered) | tostring),
-        ((.summary.lines.covered / .summary.lines.count * 100) | tostring)
-      ]
-    | @tsv
-  ' cov.json | while IFS=$'\t' read -r raw_path stmts miss pct; do
-    local norm
-    norm=$(normalize_path "$raw_path")
-    printf '%s\t%s\t%s\t%s\t%s\n' "$norm" "$stmts" "$miss" "$pct" "$raw_path"
-  done | sort > "$tmp_rows"
-
+  coverage_rows_from_json | sort > "$tmp_rows"
 
   local max_name_len
   max_name_len=$(awk -F'\t' '{print length($1)}' "$tmp_rows" | sort -n | tail -1)
   local name_col=$(( max_name_len > 4 ? max_name_len : 4 ))
 
-  local max_missing_len=7  # minimum width for "Missing" header
-  while IFS=$'\t' read -r norm stmts miss pct raw_path; do
+  local max_missing_len=7
+  while IFS=$'\t' read -r norm stmts miss pct raw_path missing_lines \
+    function_count function_covered region_count region_covered; do
     if [ "$miss" -gt 0 ]; then
-      local mlines
-      mlines=$(extract_missing_lines "$raw_path")
-      local mlen=${#mlines}
+      local mlen=${#missing_lines}
       [ "$mlen" -gt "$max_missing_len" ] && max_missing_len=$mlen
     fi
   done < "$tmp_rows"
-
 
   if [ "$max_missing_len" -gt 80 ]; then
     max_missing_len=80
@@ -110,14 +145,10 @@ print_coverage_table() {
     "Name" "Stmts" "Miss" "Cover" "Missing"
   echo "$sep"
 
-  while IFS=$'\t' read -r norm stmts miss pct raw_path; do
-    local missing_lines=""
-    if [ "$miss" -gt 0 ]; then
-      missing_lines=$(extract_missing_lines "$raw_path")
-
-      if [ "${#missing_lines}" -gt "$max_missing_len" ]; then
-        missing_lines="${missing_lines:0:$((max_missing_len-4))} ..."
-      fi
+  while IFS=$'\t' read -r norm stmts miss pct raw_path missing_lines \
+    function_count function_covered region_count region_covered; do
+    if [ "$miss" -gt 0 ] && [ "${#missing_lines}" -gt "$max_missing_len" ]; then
+      missing_lines="${missing_lines:0:$((max_missing_len-4))} ..."
     fi
     printf "%-${name_col}s  %6s  %4s  %5.1f%%  %-${max_missing_len}s\n" \
       "$norm" "$stmts" "$miss" "$pct" "$missing_lines"
