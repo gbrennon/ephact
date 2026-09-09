@@ -115,7 +115,10 @@ impl RunArgs {
         config
     }
 
-    fn apply_inputs(&self, mut config: ActRunConfig) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
+    fn apply_inputs(
+        &self,
+        mut config: ActRunConfig,
+    ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
         for input_str in &self.inputs {
             let (k, v) = Self::parse_key_value(input_str)?;
             config = config.add_input(ActInput::new(k, v));
@@ -123,7 +126,10 @@ impl RunArgs {
         Ok(config)
     }
 
-    fn apply_secrets(&self, mut config: ActRunConfig) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
+    fn apply_secrets(
+        &self,
+        mut config: ActRunConfig,
+    ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
         for secret_str in &self.secrets {
             let (name, value) = Self::parse_secret(secret_str)?;
             config = config.add_secret(Secret::new(name, value));
