@@ -10,9 +10,7 @@ const VALID_WORKFLOW: &str = "name: Ci\non: push\nenv:\n  MODE: staging\njobs:\n
 #[test]
 fn execute_parses_valid_workflow_content() {
     let workflow = LoadWorkflowService::new()
-        .execute(LoadWorkflowRequest {
-            workflow_content: VALID_WORKFLOW,
-        })
+        .execute(LoadWorkflowRequest::new(VALID_WORKFLOW))
         .unwrap();
 
     assert_eq!(workflow.name().as_deref(), Some("Ci"));
@@ -25,18 +23,16 @@ fn execute_parses_valid_workflow_content() {
 
 #[test]
 fn execute_errors_for_content_that_is_not_a_workflow_document() {
-    let result = LoadWorkflowService::new().execute(LoadWorkflowRequest {
-        workflow_content: "- push\n- pull_request\n",
-    });
+    let result =
+        LoadWorkflowService::new().execute(LoadWorkflowRequest::new("- push\n- pull_request\n"));
 
     assert!(result.is_err());
 }
 
 #[test]
 fn execute_errors_for_malformed_yaml() {
-    let result = LoadWorkflowService::new().execute(LoadWorkflowRequest {
-        workflow_content: "name: [unterminated\n",
-    });
+    let result =
+        LoadWorkflowService::new().execute(LoadWorkflowRequest::new("name: [unterminated\n"));
 
     assert!(result.is_err());
 }

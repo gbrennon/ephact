@@ -23,10 +23,7 @@ fn context(config: ActRunConfig) -> ephact::domain::expression::EvalContext {
     std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
     let repo = repository(tmp.path());
     BuildRunContextService::new()
-        .execute(BuildRunContextRequest {
-            config: &config,
-            repository: &repo,
-        })
+        .execute(BuildRunContextRequest::new(&config, &repo))
         .context()
         .clone()
 }

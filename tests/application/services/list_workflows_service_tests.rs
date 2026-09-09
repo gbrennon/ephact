@@ -18,9 +18,17 @@ fn make_repo() -> Repository {
 #[test]
 fn execute_returns_the_workflows_reported_by_the_source() {
     let workflows = vec![
-        WorkflowListItem::new(Some("CI".to_string()), Some("ci.yml".to_string())),
-        WorkflowListItem::new(Some("Release".to_string()), Some("release.yml".to_string())),
-        WorkflowListItem::new(None, Some("unnamed.yml".to_string())),
+        WorkflowListItem::new(
+            Some("CI".to_string()),
+            Some("ci.yml".to_string()),
+            vec!["pull_request".to_string()],
+        ),
+        WorkflowListItem::new(
+            Some("Release".to_string()),
+            Some("release.yml".to_string()),
+            vec!["push".to_string()],
+        ),
+        WorkflowListItem::new(None, Some("unnamed.yml".to_string()), vec![]),
     ];
     let source = FakeWorkflowSource::new().with_workflows(workflows.clone());
     let service = ListWorkflowsService::new(Box::new(source));

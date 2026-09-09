@@ -6,7 +6,7 @@ use super::{repository_info::RepositoryInfo, user_info::UserInfo};
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct DeletePayload {
     ref_type: String,
-    pub r#ref: String,
+    r#ref: String,
     repository: RepositoryInfo,
     sender: UserInfo,
 }

@@ -10,10 +10,10 @@ use ephact::application::dtos::{
 use ephact::domain::workflow::StepType;
 
 fn job(job_id: &str, name: Option<&str>, success: bool) -> JobSummary {
-    JobSummary {
-        job_id: job_id.to_string(),
-        name: name.map(str::to_string),
-        steps: vec![StepSummary::new(
+    JobSummary::new(
+        job_id,
+        name.map(str::to_string),
+        vec![StepSummary::new(
             "step".to_string(),
             StepType::Run,
             Some(0),
@@ -23,7 +23,7 @@ fn job(job_id: &str, name: Option<&str>, success: bool) -> JobSummary {
             String::new(),
         )],
         success,
-    }
+    )
 }
 
 fn execution(

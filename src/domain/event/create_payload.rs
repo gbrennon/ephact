@@ -6,7 +6,7 @@ use super::{repository_info::RepositoryInfo, user_info::UserInfo};
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct CreatePayload {
     ref_type: String,
-    pub r#ref: String,
+    r#ref: String,
     master_branch: String,
     repository: RepositoryInfo,
     sender: UserInfo,

@@ -6,7 +6,7 @@ use crate::domain::entities::repository::Repository;
 /// application layer.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListWorkflowsRequest {
-    pub repository: Repository,
+    repository: Repository,
 }
 
 impl ListWorkflowsRequest {

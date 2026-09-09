@@ -5,7 +5,7 @@ use super::{commit_info::CommitInfo, repository_info::RepositoryInfo, user_info:
 /// Payload for `push` events.
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct PushPayload {
-    pub r#ref: String,
+    r#ref: String,
     before: String,
     after: String,
     repository: RepositoryInfo,

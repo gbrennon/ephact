@@ -15,9 +15,7 @@ fn execute_loads_action_yml() {
     fs::write(tmp.path().join("action.yml"), COMPOSITE).unwrap();
 
     let definition = LoadActionDefinitionService::new()
-        .execute(LoadActionDefinitionRequest {
-            action_dir: tmp.path(),
-        })
+        .execute(LoadActionDefinitionRequest::new(tmp.path()))
         .unwrap();
 
     assert_eq!(definition.name(), "Greet");
@@ -30,9 +28,7 @@ fn execute_falls_back_to_action_yaml() {
     fs::write(tmp.path().join("action.yaml"), COMPOSITE).unwrap();
 
     let definition = LoadActionDefinitionService::new()
-        .execute(LoadActionDefinitionRequest {
-            action_dir: tmp.path(),
-        })
+        .execute(LoadActionDefinitionRequest::new(tmp.path()))
         .unwrap();
 
     assert_eq!(definition.name(), "Greet");
@@ -43,9 +39,7 @@ fn execute_errors_when_no_definition_is_present() {
     let tmp = tempfile::tempdir().unwrap();
 
     let error = LoadActionDefinitionService::new()
-        .execute(LoadActionDefinitionRequest {
-            action_dir: tmp.path(),
-        })
+        .execute(LoadActionDefinitionRequest::new(tmp.path()))
         .unwrap_err();
 
     assert_eq!(
@@ -60,9 +54,7 @@ fn execute_errors_on_malformed_yaml() {
     fs::write(tmp.path().join("action.yml"), "name: [unterminated\n").unwrap();
 
     let error = LoadActionDefinitionService::new()
-        .execute(LoadActionDefinitionRequest {
-            action_dir: tmp.path(),
-        })
+        .execute(LoadActionDefinitionRequest::new(tmp.path()))
         .unwrap_err();
 
     assert!(

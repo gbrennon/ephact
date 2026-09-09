@@ -5,9 +5,9 @@ use crate::domain::{ActRunConfig, Repository};
 /// outbound port.
 pub struct BuildRunContextRequest<'a> {
     /// Configuration the run was started with.
-    pub config: &'a ActRunConfig,
+    config: &'a ActRunConfig,
     /// Repository the run executes against.
-    pub repository: &'a Repository,
+    repository: &'a Repository,
 }
 
 impl<'a> BuildRunContextRequest<'a> {

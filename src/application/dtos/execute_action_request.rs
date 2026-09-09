@@ -6,12 +6,12 @@ use crate::domain::workflow::Step;
 
 #[derive(Clone)]
 pub struct ExecuteActionRequest {
-    pub action_ref: String,
-    pub step: Step,
-    pub repo_path: PathBuf,
-    pub env: HashMap<String, String>,
-    pub context: EvalContext,
-    pub container: Arc<dyn ContainerPort>,
+    action_ref: String,
+    step: Step,
+    repo_path: PathBuf,
+    env: HashMap<String, String>,
+    context: EvalContext,
+    container: Arc<dyn ContainerPort>,
 }
 
 impl ExecuteActionRequest {

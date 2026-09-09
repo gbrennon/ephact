@@ -11,7 +11,7 @@ pub struct WorkflowDispatchPayload {
     repository: RepositoryInfo,
     sender: UserInfo,
     workflow: String,
-    pub r#ref: String,
+    r#ref: String,
 }
 
 impl WorkflowDispatchPayload {

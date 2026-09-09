@@ -1,5 +1,5 @@
 pub struct LoadWorkflowRequest<'a> {
-    pub workflow_content: &'a str,
+    workflow_content: &'a str,
 }
 
 impl<'a> LoadWorkflowRequest<'a> {

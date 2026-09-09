@@ -4,9 +4,9 @@ use std::collections::HashMap;
 /// `BuildActionInputEnvironmentPort`
 /// inbound port.
 pub struct BuildActionInputEnvironmentRequest<'a> {
-    pub env: &'a HashMap<String, String>,
-    pub inputs: &'a HashMap<String, String>,
-    pub action_path: &'a str,
+    env: &'a HashMap<String, String>,
+    inputs: &'a HashMap<String, String>,
+    action_path: &'a str,
 }
 
 impl<'a> BuildActionInputEnvironmentRequest<'a> {

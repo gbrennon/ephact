@@ -7,13 +7,13 @@ use crate::{
 
 /// Everything needed to run a single step of a composite action.
 pub struct RunCompositeStepRequest<'a> {
-    pub step: &'a Step,
+    step: &'a Step,
 
-    pub action_dir: &'a Path,
+    action_dir: &'a Path,
 
-    pub action_request: &'a ExecuteActionRequest,
+    action_request: &'a ExecuteActionRequest,
 
-    pub context: &'a EvalContext,
+    context: &'a EvalContext,
 }
 
 impl<'a> RunCompositeStepRequest<'a> {

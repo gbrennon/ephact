@@ -61,14 +61,14 @@ mod tests {
         container: Arc<dyn ContainerPort>,
         context: EvalContext,
     ) -> ExecuteActionRequest {
-        ExecuteActionRequest {
-            action_ref: action_ref.to_string(),
+        ExecuteActionRequest::new(
+            action_ref,
             step,
-            repo_path: repo_path.to_path_buf(),
-            env: HashMap::new(),
+            repo_path.to_path_buf(),
+            HashMap::new(),
             context,
             container,
-        }
+        )
     }
 
     fn write_action(dir: &Path, body: &str) {
@@ -77,11 +77,10 @@ mod tests {
     }
 
     fn push_result(runtime: &FakeRuntime, exit_code: i64, stdout: &str) {
-        runtime.exec_results.lock().push(ExecResult {
-            exit_code,
-            stdout: stdout.into(),
-            stderr: String::new(),
-        });
+        runtime
+            .exec_results
+            .lock()
+            .push(ExecResult::new(exit_code, stdout, String::new()));
     }
 
     #[test]

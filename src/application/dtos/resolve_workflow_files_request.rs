@@ -7,9 +7,9 @@ use crate::domain::ActRunConfig;
 /// inbound port.
 pub struct ResolveWorkflowFilesRequest<'a> {
     /// Configuration naming which workflows the run executes.
-    pub config: &'a ActRunConfig,
+    config: &'a ActRunConfig,
     /// Path to the repository the workflows are resolved in.
-    pub repo_path: &'a Path,
+    repo_path: &'a Path,
 }
 
 impl<'a> ResolveWorkflowFilesRequest<'a> {

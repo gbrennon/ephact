@@ -6,7 +6,7 @@ use crate::domain::expression::EvalContext;
 #[derive(Debug, Clone)]
 pub struct BuildRunContextResponse {
     /// The evaluated run context.
-    pub context: EvalContext,
+    context: EvalContext,
 }
 
 impl BuildRunContextResponse {

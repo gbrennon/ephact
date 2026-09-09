@@ -5,7 +5,7 @@ use std::path::Path;
 /// inbound port.
 pub struct LoadActionDefinitionRequest<'a> {
     /// Directory holding the action's `action.yml`.
-    pub action_dir: &'a Path,
+    action_dir: &'a Path,
 }
 
 impl<'a> LoadActionDefinitionRequest<'a> {
