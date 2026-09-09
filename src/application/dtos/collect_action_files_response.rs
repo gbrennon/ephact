@@ -6,7 +6,7 @@ use crate::application::dtos::FileEntry;
 #[derive(Debug)]
 pub struct CollectActionFilesResponse {
     /// Files making up the action, with paths relative to its directory.
-    files: Vec<FileEntry>,
+    pub files: Vec<FileEntry>,
 }
 
 impl CollectActionFilesResponse {
