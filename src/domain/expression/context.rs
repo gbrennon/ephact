@@ -14,7 +14,7 @@ use serde_json::Value;
 /// use ephact::domain::expression::context::EvalContext;
 ///
 /// let ctx = EvalContext::new();
-/// assert!(ctx.github.is_object());
+/// assert!(ctx.github().is_object());
 /// ```
 #[derive(Debug, Clone)]
 pub struct EvalContext {
@@ -218,5 +218,33 @@ mod tests {
         let ctx1 = EvalContext::new();
         let ctx2 = EvalContext::default();
         assert_eq!(ctx1.github, ctx2.github);
+    }
+    #[test]
+    fn accessors_and_builders_preserve_values() {
+        let value = Value::String("value".into());
+        let context = EvalContext::new()
+            .with_github(value.clone())
+            .with_env(value.clone())
+            .with_job(value.clone())
+            .with_steps(value.clone())
+            .with_runner(value.clone())
+            .with_secrets(value.clone())
+            .with_vars(value.clone())
+            .with_strategy(value.clone())
+            .with_matrix(value.clone())
+            .with_needs(value.clone())
+            .with_inputs(value.clone());
+
+        assert_eq!(context.github(), &value);
+        assert_eq!(context.env(), &value);
+        assert_eq!(context.job(), &value);
+        assert_eq!(context.steps(), &value);
+        assert_eq!(context.runner(), &value);
+        assert_eq!(context.secrets(), &value);
+        assert_eq!(context.vars(), &value);
+        assert_eq!(context.strategy(), &value);
+        assert_eq!(context.matrix(), &value);
+        assert_eq!(context.needs(), &value);
+        assert_eq!(context.inputs(), &value);
     }
 }
