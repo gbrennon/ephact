@@ -5,7 +5,7 @@ use crate::domain::value_objects::RemoteActionReference;
 /// inbound port.
 pub struct FetchRemoteActionRequest<'a> {
     /// Reference naming the action to retrieve.
-    reference: &'a RemoteActionReference,
+    pub reference: &'a RemoteActionReference,
 }
 
 impl<'a> FetchRemoteActionRequest<'a> {
