@@ -5,15 +5,15 @@ use crate::domain::expression::EvalContext;
 use crate::domain::workflow::Step;
 
 pub struct ExecuteStepRequest<'a> {
-    step: &'a Step,
+    pub step: &'a Step,
 
-    context: &'a EvalContext,
+    pub context: &'a EvalContext,
 
-    container: Arc<dyn ContainerPort>,
+    pub container: Arc<dyn ContainerPort>,
 
-    repo_path: &'a Path,
+    pub repo_path: &'a Path,
 
-    env: &'a HashMap<String, String>,
+    pub env: &'a HashMap<String, String>,
 }
 
 impl<'a> ExecuteStepRequest<'a> {
