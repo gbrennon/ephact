@@ -3,9 +3,9 @@
 /// inbound port.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecuteActionResponse {
-    exit_code: i64,
-    stdout: String,
-    stderr: String,
+    pub exit_code: i64,
+    pub stdout: String,
+    pub stderr: String,
 }
 
 impl ExecuteActionResponse {
