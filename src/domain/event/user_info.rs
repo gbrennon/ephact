@@ -25,3 +25,16 @@ impl UserInfo {
         &self.login
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_preserves_fields() {
+        let user = UserInfo::new("name".into(), "email".into(), "login".into());
+
+        assert_eq!(user.name(), "name");
+        assert_eq!(user.email(), "email");
+        assert_eq!(user.login(), "login");
+    }
+}
