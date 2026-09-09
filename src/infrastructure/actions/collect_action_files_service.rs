@@ -38,7 +38,11 @@ impl CollectActionFilesService {
         })?;
         let mode = Self::file_mode(path);
 
-        Ok(FileEntry::new(relative.display().to_string(), content, mode))
+        Ok(FileEntry::new(
+            relative.display().to_string(),
+            content,
+            mode,
+        ))
     }
 
     fn process_entry(
