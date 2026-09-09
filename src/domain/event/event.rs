@@ -179,6 +179,10 @@ impl Event {
 
 #[cfg(test)]
 mod tests {
+    use super::super::{
+        branch_ref::BranchRef, comment_info::CommentInfo, issue_info::IssueInfo,
+        pull_request_info::PullRequestInfo, release_info::ReleaseInfo,
+    };
     use super::{
         super::{repository_info::RepositoryInfo, user_info::UserInfo},
         *,
@@ -266,5 +270,103 @@ mod tests {
             assert_eq!(event.event_name(), name);
             assert_eq!(event.to_payload(), serde_json::json!({}));
         }
+    }
+    #[test]
+    fn payload_variants_have_names_and_payloads() {
+        let repo = test_repo();
+        let user = UserInfo::new("name".into(), "email".into(), "login".into());
+        let release = ReleaseInfo::new("v1".into(), None, None, false, false, "url".into());
+        let events = [
+            Event::Release(Box::new(ReleasePayload::new(
+                "published".into(),
+                release,
+                repo.clone(),
+                user.clone(),
+            ))),
+            Event::RepositoryDispatch(Box::new(RepositoryDispatchPayload::new(
+                "custom".into(),
+                serde_json::json!({}),
+                repo.clone(),
+                user.clone(),
+            ))),
+            Event::WorkflowCall(Box::new(WorkflowCallPayload::new(
+                HashMap::new(),
+                HashMap::new(),
+            ))),
+        ];
+
+        assert_eq!(events[0].event_name(), "release");
+        assert_eq!(events[1].event_name(), "repository_dispatch");
+        assert_eq!(events[2].event_name(), "workflow_call");
+        assert!(events.iter().all(|event| event.to_payload().is_object()));
+        let issue = IssueInfo::new(
+            1,
+            "title".into(),
+            None,
+            "open".into(),
+            user.clone(),
+            Vec::new(),
+            "url".into(),
+        );
+        let comment = CommentInfo::new(2, "body".into(), user.clone(), "url".into());
+        let branch = BranchRef::new("ref".into(), "sha".into(), repo.clone(), "main".into());
+        let pull_request = PullRequestInfo::new(
+            1,
+            "title".into(),
+            None,
+            branch.clone(),
+            branch,
+            user.clone(),
+            "url".into(),
+            false,
+            false,
+            None,
+        );
+        let extra_events = [
+            Event::Issues(Box::new(IssuesPayload::new(
+                "opened".into(),
+                issue.clone(),
+                repo.clone(),
+                user.clone(),
+            ))),
+            Event::IssueComment(Box::new(IssueCommentPayload::new(
+                "created".into(),
+                issue,
+                comment,
+                repo.clone(),
+                user.clone(),
+            ))),
+            Event::Create(Box::new(CreatePayload::new(
+                "branch".into(),
+                "main".into(),
+                "main".into(),
+                repo.clone(),
+                user.clone(),
+            ))),
+            Event::Delete(Box::new(DeletePayload::new(
+                "branch".into(),
+                "main".into(),
+                repo.clone(),
+                user.clone(),
+            ))),
+            Event::Fork(Box::new(ForkPayload::new(
+                repo.clone(),
+                repo.clone(),
+                user.clone(),
+            ))),
+            Event::PullRequest(Box::new(PullRequestPayload::new(
+                "opened".into(),
+                1,
+                pull_request,
+                repo,
+                user,
+            ))),
+        ];
+        assert_eq!(extra_events[0].event_name(), "issues");
+        assert_eq!(extra_events[1].event_name(), "issue_comment");
+        assert_eq!(extra_events[2].event_name(), "create");
+        assert_eq!(extra_events[3].event_name(), "delete");
+        assert_eq!(extra_events[4].event_name(), "fork");
+        assert_eq!(extra_events[5].event_name(), "pull_request");
     }
 }
