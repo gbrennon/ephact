@@ -49,12 +49,12 @@ impl ExecuteStepPort for ExecuteStepService {
                 request.container().clone().clone(),
             ))?,
             None => {
-                let result = self.shell_runner.execute(RunShellStepRequest::new(&interpolated, request.container().as_ref(), request.env()))?;
-                ExecuteActionResponse::new(
-                    result.exit_code(),
-                    result.stdout(),
-                    result.stderr(),
-                )
+                let result = self.shell_runner.execute(RunShellStepRequest::new(
+                    &interpolated,
+                    request.container().as_ref(),
+                    request.env(),
+                ))?;
+                ExecuteActionResponse::new(result.exit_code(), result.stdout(), result.stderr())
             }
         };
 
