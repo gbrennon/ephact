@@ -7,15 +7,15 @@ use crate::application::ports::outbound::container_port::ContainerPort;
 /// outbound port.
 pub struct RunNodeActionRequest<'a> {
     /// Directory holding the action on the host.
-    action_dir: &'a Path,
+    pub action_dir: &'a Path,
     /// Entry point the action declared.
-    entry_point: &'a str,
+    pub entry_point: &'a str,
     /// Inputs the action was called with.
-    inputs: &'a HashMap<String, String>,
+    pub inputs: &'a HashMap<String, String>,
     /// Environment the action runs with.
-    env: &'a HashMap<String, String>,
+    pub env: &'a HashMap<String, String>,
     /// Container the action runs in.
-    container: &'a dyn ContainerPort,
+    pub container: &'a dyn ContainerPort,
 }
 
 impl<'a> RunNodeActionRequest<'a> {
