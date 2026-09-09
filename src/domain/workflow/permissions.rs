@@ -93,3 +93,36 @@ impl Permissions {
         self.statuses.as_deref()
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_exposes_all_permissions() {
+        let permissions = Permissions::new(
+            Some("read".into()),
+            Some("read".into()),
+            Some("write".into()),
+            Some("none".into()),
+            Some("read".into()),
+            Some("write".into()),
+            Some("read".into()),
+            Some("write".into()),
+            Some("read".into()),
+            Some("none".into()),
+            Some("read".into()),
+        );
+
+        assert_eq!(permissions.actions(), Some("read"));
+        assert_eq!(permissions.checks(), Some("read"));
+        assert_eq!(permissions.contents(), Some("write"));
+        assert_eq!(permissions.deployments(), Some("none"));
+        assert_eq!(permissions.issues(), Some("read"));
+        assert_eq!(permissions.packages(), Some("write"));
+        assert_eq!(permissions.pages(), Some("read"));
+        assert_eq!(permissions.pull_requests(), Some("write"));
+        assert_eq!(permissions.repository_projects(), Some("read"));
+        assert_eq!(permissions.security_events(), Some("none"));
+        assert_eq!(permissions.statuses(), Some("read"));
+    }
+}
