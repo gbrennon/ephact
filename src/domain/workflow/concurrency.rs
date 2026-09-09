@@ -25,3 +25,15 @@ impl Concurrency {
         self.cancel_in_progress
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_preserves_fields() {
+        let concurrency = Concurrency::new("group", Some(true));
+
+        assert_eq!(concurrency.group(), "group");
+        assert_eq!(concurrency.cancel_in_progress(), Some(true));
+    }
+}
