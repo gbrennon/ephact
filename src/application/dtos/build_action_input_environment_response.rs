@@ -5,6 +5,19 @@ use std::collections::HashMap;
 /// outbound port.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BuildActionInputEnvironmentResponse {
-    /// Environment variables with action inputs and path populated.
     pub env: HashMap<String, String>,
+}
+
+impl BuildActionInputEnvironmentResponse {
+    pub fn new(env: HashMap<String, String>) -> Self {
+        Self { env }
+    }
+
+    pub fn env(&self) -> &HashMap<String, String> {
+        &self.env
+    }
+
+    pub fn into_env(self) -> HashMap<String, String> {
+        self.env
+    }
 }

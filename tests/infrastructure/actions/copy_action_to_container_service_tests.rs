@@ -65,7 +65,7 @@ fn execute_creates_the_directory_before_copying_the_files() {
         container.copied_paths(),
         vec!["/tmp/ephemeral-act-actions/_repo_actions_greet".to_string()]
     );
-    assert_eq!(container.copied_files()[0][0].path, "action.yml");
+    assert_eq!(container.copied_files()[0][0].path(), "action.yml");
 }
 
 #[test]
@@ -84,10 +84,10 @@ fn execute_reports_a_failing_copy() {
 
     assert!(
         error
-            .message
+            .message()
             .starts_with("failed to create action directory"),
         "{}",
-        error.message
+        error.message()
     );
 }
 
@@ -104,5 +104,5 @@ fn execute_propagates_a_collection_failure() {
         })
         .unwrap_err();
 
-    assert_eq!(error.message, "failed to read action directory /repo");
+    assert_eq!(error.message(), "failed to read action directory /repo");
 }

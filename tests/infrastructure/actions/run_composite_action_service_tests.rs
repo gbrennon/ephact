@@ -21,14 +21,14 @@ fn steps(yaml: &str) -> Vec<Step> {
 }
 
 fn action_request() -> ExecuteActionRequest {
-    ExecuteActionRequest {
-        action_ref: "./actions/outer".into(),
-        step: serde_yaml::from_str("uses: ./actions/outer\n").unwrap(),
-        repo_path: PathBuf::from("/repo"),
-        env: HashMap::new(),
-        context: EvalContext::new(),
-        container: Arc::new(StubContainer),
-    }
+    ExecuteActionRequest::new(
+        "./actions/outer",
+        serde_yaml::from_str("uses: ./actions/outer\n").unwrap(),
+        PathBuf::from("/repo"),
+        HashMap::new(),
+        EvalContext::new(),
+        Arc::new(StubContainer),
+    )
 }
 
 fn result(exit_code: i64, stdout: &str) -> ExecResult {
@@ -54,8 +54,8 @@ fn execute_runs_every_step_and_concatenates_their_output() {
         })
         .unwrap();
 
-    assert_eq!(response.exit_code, 0);
-    assert_eq!(response.stdout, "onetwo");
+    assert_eq!(response.exit_code(), 0);
+    assert_eq!(response.stdout(), "onetwo");
     assert_eq!(runner.steps().len(), 2);
 }
 
@@ -74,18 +74,18 @@ fn execute_stops_at_the_first_failing_step() {
         })
         .unwrap();
 
-    assert_eq!(response.exit_code, 3);
-    assert_eq!(response.stdout, "one");
+    assert_eq!(response.exit_code(), 3);
+    assert_eq!(response.stdout(), "one");
     assert_eq!(runner.steps().len(), 1);
 }
 
 #[test]
 fn execute_carries_earlier_output_into_a_step_error() {
-    let runner = FakeRunCompositeStepPort::failing(StepError {
-        message: "boom".into(),
-        stdout: "partial".into(),
-        stderr: "bad".into(),
-    });
+    let runner = FakeRunCompositeStepPort::failing(
+        StepError::new("boom".to_string())
+            .with_stdout("partial".to_string())
+            .with_stderr("bad".to_string()),
+    );
     let service = RunCompositeActionService::new(Box::new(runner));
     let request_owner = action_request();
 
@@ -98,9 +98,9 @@ fn execute_carries_earlier_output_into_a_step_error() {
         })
         .unwrap_err();
 
-    assert_eq!(error.message, "boom");
-    assert_eq!(error.stdout, "partial");
-    assert_eq!(error.stderr, "bad");
+    assert_eq!(error.message(), "boom");
+    assert_eq!(error.stdout(), "partial");
+    assert_eq!(error.stderr(), "bad");
 }
 
 #[test]
@@ -120,5 +120,5 @@ fn execute_exposes_the_actions_inputs_to_its_steps() {
         })
         .unwrap();
 
-    assert_eq!(runner.steps()[0].run.as_deref(), Some("deploy staging"));
+    assert_eq!(runner.steps()[0].run().as_deref(), Some("deploy staging"));
 }

@@ -1,11 +1,11 @@
-use crate::infrastructure::workflows::{
+use super::{
     detect_workflow_file_port::DetectWorkflowFilePort,
     list_workflow_directory_port::ListWorkflowDirectoryPort,
 };
 use std::{error::Error, path::PathBuf};
 
+use super::workflow_directories::WORKFLOW_DIRECTORIES;
 use crate::application::dtos::{DetectWorkflowFileRequest, ListWorkflowDirectoryRequest};
-use crate::infrastructure::workflows::workflow_directories::WORKFLOW_DIRECTORIES;
 
 /// Service that detects the workflow a repository runs when the caller names
 /// none, preferring the Forgejo layout over the GitHub one.
@@ -22,18 +22,16 @@ impl DetectWorkflowFileService {
 impl DetectWorkflowFilePort for DetectWorkflowFileService {
     fn execute(&self, request: DetectWorkflowFileRequest<'_>) -> Result<PathBuf, Box<dyn Error>> {
         for platform_dir in &WORKFLOW_DIRECTORIES {
-            let workflows_dir = request.repo_path.join(platform_dir);
+            let workflows_dir = request.repo_path().join(platform_dir);
             if workflows_dir.exists() {
                 return match self
                     .directory_lister
-                    .execute(ListWorkflowDirectoryRequest {
-                        directory: &workflows_dir,
-                    })?
-                    .workflow_files
-                    .into_iter()
+                    .execute(ListWorkflowDirectoryRequest::new(&workflows_dir))?
+                    .workflow_files()
+                    .iter()
                     .next()
                 {
-                    Some(path) => Ok(path),
+                    Some(path) => Ok(path.to_path_buf().to_path_buf()),
                     None => Err(format!("no workflow files found in {}/", platform_dir).into()),
                 };
             }

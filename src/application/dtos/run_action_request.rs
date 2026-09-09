@@ -1,4 +1,9 @@
-use std::{collections::HashMap, fmt, path::PathBuf, sync::Arc};
+use std::{
+    collections::HashMap,
+    fmt,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use crate::application::ports::outbound::container_port::ContainerPort;
 use crate::domain::expression::EvalContext;
@@ -31,6 +36,58 @@ impl RunActionRequest {
             context,
             container,
         }
+    }
+
+    pub fn action_ref(&self) -> &str {
+        &self.action_ref
+    }
+
+    pub fn into_action_ref(self) -> String {
+        self.action_ref
+    }
+
+    pub fn step(&self) -> &Step {
+        &self.step
+    }
+
+    pub fn into_step(self) -> Step {
+        self.step
+    }
+
+    pub fn repo_path(&self) -> &Path {
+        &self.repo_path
+    }
+
+    pub fn into_repo_path(self) -> PathBuf {
+        self.repo_path
+    }
+
+    pub fn env(&self) -> &HashMap<String, String> {
+        &self.env
+    }
+
+    pub fn into_env(self) -> HashMap<String, String> {
+        self.env
+    }
+
+    pub fn context(&self) -> &EvalContext {
+        &self.context
+    }
+
+    pub fn into_context(self) -> EvalContext {
+        self.context
+    }
+
+    pub fn container(&self) -> &Arc<dyn ContainerPort> {
+        &self.container
+    }
+
+    pub fn container_arc(&self) -> Arc<dyn ContainerPort> {
+        self.container.clone()
+    }
+
+    pub fn into_container(self) -> Arc<dyn ContainerPort> {
+        self.container
     }
 }
 

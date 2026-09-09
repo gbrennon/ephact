@@ -63,13 +63,13 @@ impl CommandBusPort for FakeActionRoutingCommandBus {
             .executor
             .get()
             .ok_or_else(|| StepError::new("no action executor bound"))?;
-        executor.execute(ExecuteActionRequest {
-            action_ref: cmd.action_ref,
-            step: cmd.step,
-            repo_path: cmd.repo_path,
-            env: cmd.env,
-            context: cmd.context,
-            container: cmd.container,
-        })
+        executor.execute(ExecuteActionRequest::new(
+            cmd.action_ref().to_owned(),
+            cmd.step().clone(),
+            cmd.repo_path().to_path_buf(),
+            cmd.env().clone(),
+            cmd.context().clone(),
+            cmd.container().clone(),
+        ))
     }
 }

@@ -25,7 +25,7 @@ fn execute_sets_the_action_path() {
         });
 
     assert_eq!(
-        response.env.get("GITHUB_ACTION_PATH").map(String::as_str),
+        response.env().get("GITHUB_ACTION_PATH").map(String::as_str),
         Some("/tmp/actions/greet")
     );
 }
@@ -40,7 +40,7 @@ fn execute_exposes_inputs_as_upper_snake_case_variables() {
         });
 
     assert_eq!(
-        response.env.get("INPUT_MY_INPUT").map(String::as_str),
+        response.env().get("INPUT_MY_INPUT").map(String::as_str),
         Some("value")
     );
 }
@@ -55,7 +55,7 @@ fn execute_preserves_existing_environment_entries() {
         });
 
     assert_eq!(
-        response.env.get("MODE").map(String::as_str),
+        response.env().get("MODE").map(String::as_str),
         Some("staging")
     );
 }
@@ -70,7 +70,7 @@ fn execute_lets_an_input_win_over_a_colliding_environment_entry() {
         });
 
     assert_eq!(
-        response.env.get("INPUT_MODE").map(String::as_str),
+        response.env().get("INPUT_MODE").map(String::as_str),
         Some("from-input")
     );
 }

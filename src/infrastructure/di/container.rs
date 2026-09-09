@@ -79,13 +79,13 @@ impl Container {
         let show_project_branding_info_service =
             ShowProjectBrandingInfoService::new(Box::new(CargoProjectBrandingStore));
 
-        AppContainer {
-            show_project_branding_info_port: Box::new(show_project_branding_info_service),
-            run_all_workflows_port: Box::new(run_all_workflows_service),
-            run_workflow_port: Box::new(run_workflow_service),
-            run_action_port: Box::new(run_action_service),
-            list_workflows_port: Box::new(list_workflows_service),
-            list_actions_port: Box::new(list_actions_service),
-        }
+        AppContainer::new(
+            Box::new(show_project_branding_info_service),
+            Box::new(run_all_workflows_service),
+            Box::new(run_workflow_service),
+            Box::new(run_action_service),
+            Box::new(list_workflows_service),
+            Box::new(list_actions_service),
+        )
     }
 }

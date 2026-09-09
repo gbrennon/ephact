@@ -47,11 +47,15 @@ fn execute_skips_a_checkout_action_because_the_workspace_is_mounted() {
     let ResolvedActionDirectory::Skipped(response) = resolved else {
         panic!("checkout should be skipped");
     };
-    assert!(response.stdout.contains("[skipped]"), "{}", response.stdout);
     assert!(
-        response.stdout.contains("/workspace"),
+        response.stdout().contains("[skipped]"),
         "{}",
-        response.stdout
+        response.stdout()
+    );
+    assert!(
+        response.stdout().contains("/workspace"),
+        "{}",
+        response.stdout()
     );
 }
 
@@ -67,9 +71,9 @@ fn execute_reports_container_actions_as_unsupported() {
     .unwrap_err();
 
     assert!(
-        error.message.contains("cannot be executed yet"),
+        error.message().contains("cannot be executed yet"),
         "{}",
-        error.message
+        error.message()
     );
 }
 
@@ -98,7 +102,11 @@ fn execute_surfaces_a_fetch_failure_as_a_step_error() {
         })
         .unwrap_err();
 
-    assert!(error.message.contains("network down"), "{}", error.message);
+    assert!(
+        error.message().contains("network down"),
+        "{}",
+        error.message()
+    );
 }
 
 #[test]
@@ -113,8 +121,8 @@ fn execute_reports_an_unparseable_reference() {
     .unwrap_err();
 
     assert!(
-        error.message.contains("invalid action reference"),
+        error.message().contains("invalid action reference"),
         "{}",
-        error.message
+        error.message()
     );
 }

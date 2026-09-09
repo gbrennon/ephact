@@ -13,4 +13,12 @@ impl ListWorkflowsRequest {
     pub fn new(repository: Repository) -> Self {
         Self { repository }
     }
+
+    pub fn repository(&self) -> &Repository {
+        &self.repository
+    }
+
+    pub fn into_repository(self) -> Repository {
+        self.repository
+    }
 }

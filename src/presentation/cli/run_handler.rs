@@ -1,13 +1,13 @@
+use super::super::components::{
+    box_component::BoxComponent, component::Component, run_summary::RunSummaryComponent,
+    terminal::Terminal,
+};
 use super::run_args::RunArgs;
 use crate::application::{
     dtos::{RunAllWorkflowsRequest, RunSummary, RunWorkflowRequest},
     ports::inbound::{
         run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
     },
-};
-use crate::presentation::components::{
-    box_component::BoxComponent, component::Component, run_summary::RunSummaryComponent,
-    terminal::Terminal,
 };
 
 /// Handles the `run` subcommand by dispatching parsed CLI arguments to the
@@ -46,7 +46,7 @@ impl RunHandler {
             run_all_workflows_port,
         )?;
         let rendered = BoxComponent::new(RunSummaryComponent::new(&summary), terminal).render();
-        Ok((rendered, summary.success))
+        Ok((rendered, summary.success()))
     }
 
     fn result_for(success: bool) -> Result<(), Box<dyn std::error::Error>> {
@@ -86,21 +86,11 @@ mod tests {
     };
 
     fn job(job_id: &str, name: Option<&str>, success: bool) -> JobSummary {
-        JobSummary {
-            job_id: job_id.into(),
-            name: name.map(Into::into),
-            steps: vec![],
-            success,
-        }
+        JobSummary::new(job_id, name.map(Into::into), vec![], success)
     }
 
     fn summary(success: bool, jobs: Vec<JobSummary>, duration: Duration) -> RunSummary {
-        RunSummary {
-            name: "test".into(),
-            job_summaries: jobs,
-            success,
-            duration,
-        }
+        RunSummary::new("test", jobs, success, duration)
     }
 
     #[test]
@@ -126,36 +116,36 @@ mod tests {
     }
     #[test]
     fn render_includes_workflow_and_every_step_status() {
-        let summary = RunSummary {
-            name: "Build".into(),
-            job_summaries: vec![JobSummary {
-                job_id: "compile".into(),
-                name: Some("Compile".into()),
-                steps: vec![
-                    StepSummary {
-                        name: "Checkout".into(),
-                        step_type: StepType::Run,
-                        exit_code: Some(0),
-                        continue_on_error: false,
-                        duration: Duration::ZERO,
-                        stdout: String::new(),
-                        stderr: String::new(),
-                    },
-                    StepSummary {
-                        name: "Build".into(),
-                        step_type: StepType::Run,
-                        exit_code: Some(1),
-                        continue_on_error: false,
-                        duration: Duration::ZERO,
-                        stdout: String::new(),
-                        stderr: String::new(),
-                    },
+        let summary = RunSummary::new(
+            "Build",
+            vec![JobSummary::new(
+                "compile",
+                Some("Compile".to_string()),
+                vec![
+                    StepSummary::new(
+                        "Checkout",
+                        StepType::Run,
+                        Some(0),
+                        false,
+                        Duration::ZERO,
+                        String::new(),
+                        String::new(),
+                    ),
+                    StepSummary::new(
+                        "Build",
+                        StepType::Run,
+                        Some(1),
+                        false,
+                        Duration::ZERO,
+                        String::new(),
+                        String::new(),
+                    ),
                 ],
-                success: false,
-            }],
-            success: false,
-            duration: Duration::ZERO,
-        };
+                false,
+            )],
+            false,
+            Duration::ZERO,
+        );
 
         let rendered = RunHandler::render(&summary);
 
@@ -166,25 +156,25 @@ mod tests {
 
     #[test]
     fn render_reports_failed_step_status_without_output_details() {
-        let summary = RunSummary {
-            name: "test".into(),
-            job_summaries: vec![JobSummary {
-                job_id: "lint".into(),
-                name: Some("Lint".into()),
-                steps: vec![StepSummary {
-                    name: "Clippy".into(),
-                    step_type: StepType::Run,
-                    exit_code: Some(101),
-                    continue_on_error: false,
-                    duration: Duration::ZERO,
-                    stdout: String::new(),
-                    stderr: "clippy failed".into(),
-                }],
-                success: false,
-            }],
-            success: false,
-            duration: Duration::from_secs(2),
-        };
+        let summary = RunSummary::new(
+            "test",
+            vec![JobSummary::new(
+                "lint",
+                Some("Lint".to_string()),
+                vec![StepSummary::new(
+                    "Clippy",
+                    StepType::Run,
+                    Some(101),
+                    false,
+                    Duration::ZERO,
+                    String::new(),
+                    "clippy failed".to_string(),
+                )],
+                false,
+            )],
+            false,
+            Duration::from_secs(2),
+        );
 
         let rendered = RunHandler::render(&summary);
 

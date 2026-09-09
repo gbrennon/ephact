@@ -9,3 +9,20 @@ pub struct BuildRunContextRequest<'a> {
     /// Repository the run executes against.
     pub repository: &'a Repository,
 }
+
+impl<'a> BuildRunContextRequest<'a> {
+    /// Creates a new request.
+    pub fn new(config: &'a ActRunConfig, repository: &'a Repository) -> Self {
+        Self { config, repository }
+    }
+
+    /// Configuration the run was started with.
+    pub fn config(&self) -> &'a ActRunConfig {
+        self.config
+    }
+
+    /// Repository the run executes against.
+    pub fn repository(&self) -> &'a Repository {
+        self.repository
+    }
+}

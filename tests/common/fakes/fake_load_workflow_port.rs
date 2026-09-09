@@ -39,7 +39,7 @@ impl LoadWorkflowPort for FakeLoadWorkflowPort {
     ) -> Result<Workflow, Box<dyn std::error::Error>> {
         self.loaded_contents
             .lock()
-            .push(request.workflow_content.to_string());
+            .push(request.workflow_content().to_string());
         match &self.yaml {
             Ok(yaml) => Ok(serde_yaml::from_str(yaml)?),
             Err(message) => Err(message.clone().into()),

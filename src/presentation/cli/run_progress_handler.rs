@@ -1,13 +1,9 @@
 use std::io::Write;
 
-use crate::{
-    application::ports::outbound::DomainEventHandler,
-    domain::events::{
-        DomainEvent, JobStartedPayload, StepFinishedPayload, StepOutputPayload,
-        WorkflowStartedPayload,
-    },
+use crate::application::ports::outbound::DomainEventHandler;
+use crate::domain::events::{
+    DomainEvent, JobStartedPayload, StepFinishedPayload, StepOutputPayload,
 };
-
 /// Presentation handler that renders workflow run progress to the terminal.
 ///
 /// In non-verbose mode, steps are announced as they begin and their outcome is
@@ -39,16 +35,16 @@ impl RunProgressHandler {
     }
 
     fn job_label(payload: &JobStartedPayload) -> String {
-        match &payload.job_name {
-            Some(name) => format!("{} ({})", payload.job_id, name),
-            None => payload.job_id.clone(),
+        match payload.job_name() {
+            Some(name) => format!("{} ({})", payload.job_id(), name),
+            None => payload.job_id().to_string(),
         }
     }
 
     fn relay_output(payload: &StepOutputPayload) {
         let mut stderr = std::io::stderr().lock();
         let _ = write!(stderr, "      | ");
-        let _ = stderr.write_all(payload.text.as_bytes());
+        let _ = stderr.write_all(payload.text().as_bytes());
         let _ = stderr.flush();
     }
 
@@ -61,11 +57,11 @@ impl RunProgressHandler {
     }
 
     fn step_outcome(&self, payload: &StepFinishedPayload) -> String {
-        let outcome = Self::step_status(payload.exit_code);
-        let mut output = format!("    Step '{}': {outcome}", payload.step_name);
-        if self.verbose && payload.exit_code != Some(0) {
-            Self::append_failure_output(&mut output, "stdout", &payload.stdout);
-            Self::append_failure_output(&mut output, "stderr", &payload.stderr);
+        let outcome = Self::step_status(payload.exit_code());
+        let mut output = format!("    Step '{}': {outcome}", payload.step_name());
+        if self.verbose && payload.exit_code() != Some(0) {
+            Self::append_failure_output(&mut output, "stdout", payload.stdout());
+            Self::append_failure_output(&mut output, "stderr", payload.stderr());
         }
         output
     }
@@ -83,21 +79,19 @@ impl RunProgressHandler {
     /// not shown in the current verbosity mode.
     fn render(&self, event: &DomainEvent) -> Option<String> {
         match event {
-            DomainEvent::WorkflowStarted(WorkflowStartedPayload { workflow_name })
-                if self.verbose =>
-            {
-                Some(format!("Workflow '{workflow_name}'"))
+            DomainEvent::WorkflowStarted(payload) if self.verbose => {
+                Some(format!("Workflow '{}'", payload.workflow_name()))
             }
             DomainEvent::JobStarted(payload) if self.verbose => {
                 Some(format!("  Job '{}'", Self::job_label(payload)))
             }
             DomainEvent::JobFinished(payload) if self.verbose => Some(format!(
                 "  Job '{}': {}",
-                payload.job_id,
-                Self::status(payload.success)
+                payload.job_id(),
+                Self::status(payload.success())
             )),
             DomainEvent::StepStarted(payload) => {
-                Some(format!("    Step '{}': running...", payload.step_name))
+                Some(format!("    Step '{}': running...", payload.step_name()))
             }
             DomainEvent::StepFinished(payload) => Some(self.step_outcome(payload)),
             _ => None,
@@ -128,36 +122,36 @@ impl DomainEventHandler for RunProgressHandler {
 mod tests {
     use super::*;
     use crate::domain::events::{
-        JobFinishedPayload, OutputStream, StepFinishedPayload, StepOutputPayload,
-        StepStartedPayload,
+        JobFinishedPayload, JobStartedPayload, OutputStream, StepFinishedPayload,
+        StepOutputPayload, StepStartedPayload, WorkflowStartedPayload,
     };
 
     fn step_started() -> DomainEvent {
-        DomainEvent::StepStarted(StepStartedPayload {
-            workflow_name: "Build".into(),
-            job_id: "build".into(),
-            step_name: "compile".into(),
-        })
+        DomainEvent::StepStarted(StepStartedPayload::new(
+            "Build".into(),
+            "build".into(),
+            "compile".into(),
+        ))
     }
 
     fn step_output(stream: OutputStream) -> DomainEvent {
-        DomainEvent::StepOutput(StepOutputPayload {
-            step_name: "compile".into(),
+        DomainEvent::StepOutput(StepOutputPayload::new(
+            "compile".into(),
             stream,
-            text: "Compiling ephact\n".into(),
-        })
+            "Compiling ephact\n".into(),
+        ))
     }
 
     fn step_finished(exit_code: Option<i64>) -> DomainEvent {
-        DomainEvent::StepFinished(StepFinishedPayload {
-            workflow_name: "Build".into(),
-            job_id: "build".into(),
-            step_name: "compile".into(),
-            success: exit_code == Some(0),
+        DomainEvent::StepFinished(StepFinishedPayload::new(
+            "Build".into(),
+            "build".into(),
+            "compile".into(),
+            exit_code == Some(0),
             exit_code,
-            stdout: String::new(),
-            stderr: String::new(),
-        })
+            String::new(),
+            String::new(),
+        ))
     }
 
     #[test]
@@ -184,28 +178,28 @@ mod tests {
         let handler = RunProgressHandler::new(false);
         assert!(
             handler
-                .render(&DomainEvent::WorkflowStarted(WorkflowStartedPayload {
-                    workflow_name: "Build".into(),
-                }))
+                .render(&DomainEvent::WorkflowStarted(WorkflowStartedPayload::new(
+                    "Build".into(),
+                )))
                 .is_none()
         );
         assert!(
             handler
-                .render(&DomainEvent::JobStarted(JobStartedPayload {
-                    workflow_name: "Build".into(),
-                    job_id: "build".into(),
-                    job_name: Some("Build".into()),
-                }))
+                .render(&DomainEvent::JobStarted(JobStartedPayload::new(
+                    "Build".into(),
+                    "build".into(),
+                    Some("Build".into()),
+                )))
                 .is_none()
         );
         assert!(
             handler
-                .render(&DomainEvent::JobFinished(JobFinishedPayload {
-                    workflow_name: "Build".into(),
-                    job_id: "build".into(),
-                    job_name: Some("Build".into()),
-                    success: true,
-                }))
+                .render(&DomainEvent::JobFinished(JobFinishedPayload::new(
+                    "Build".into(),
+                    "build".into(),
+                    Some("Build".into()),
+                    true,
+                )))
                 .is_none()
         );
     }
@@ -213,15 +207,15 @@ mod tests {
     #[test]
     fn quiet_mode_hides_failed_step_output() {
         let handler = RunProgressHandler::new(false);
-        let event = DomainEvent::StepFinished(StepFinishedPayload {
-            workflow_name: "Build".into(),
-            job_id: "build".into(),
-            step_name: "clippy".into(),
-            success: false,
-            exit_code: Some(101),
-            stdout: "stdout text".into(),
-            stderr: "clippy failed".into(),
-        });
+        let event = DomainEvent::StepFinished(StepFinishedPayload::new(
+            "Build".into(),
+            "build".into(),
+            "clippy".into(),
+            false,
+            Some(101),
+            "stdout text".into(),
+            "clippy failed".into(),
+        ));
 
         let rendered = handler.render(&event);
         assert_eq!(
@@ -236,15 +230,15 @@ mod tests {
     #[test]
     fn verbose_mode_reports_failed_step_output() {
         let handler = RunProgressHandler::new(true);
-        let event = DomainEvent::StepFinished(StepFinishedPayload {
-            workflow_name: "Build".into(),
-            job_id: "build".into(),
-            step_name: "clippy".into(),
-            success: false,
-            exit_code: Some(101),
-            stdout: "stdout text".into(),
-            stderr: "clippy failed".into(),
-        });
+        let event = DomainEvent::StepFinished(StepFinishedPayload::new(
+            "Build".into(),
+            "build".into(),
+            "clippy".into(),
+            false,
+            Some(101),
+            "stdout text".into(),
+            "clippy failed".into(),
+        ));
 
         let rendered = handler.render(&event).unwrap();
         assert!(rendered.contains("Step 'clippy': failed (exit code: 101)"));

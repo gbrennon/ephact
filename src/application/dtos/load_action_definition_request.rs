@@ -7,3 +7,15 @@ pub struct LoadActionDefinitionRequest<'a> {
     /// Directory holding the action's `action.yml`.
     pub action_dir: &'a Path,
 }
+
+impl<'a> LoadActionDefinitionRequest<'a> {
+    /// Creates a new request.
+    pub fn new(action_dir: &'a Path) -> Self {
+        Self { action_dir }
+    }
+
+    /// Directory holding the action's `action.yml`.
+    pub fn action_dir(&self) -> &'a Path {
+        self.action_dir
+    }
+}

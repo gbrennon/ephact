@@ -50,25 +50,29 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
         &self,
         request: ExecuteWorkflowRequest<'_>,
     ) -> Result<WorkflowExecution, Box<dyn Error>> {
-        let workflow = self.workflow_loader.execute(LoadWorkflowRequest {
-            workflow_content: request.workflow_content,
-        })?;
-        let workflow_name = workflow.name.clone().unwrap_or_else(|| "unnamed".into());
+        let workflow = self
+            .workflow_loader
+            .execute(LoadWorkflowRequest::new(request.workflow_content()))?;
+        let workflow_name = workflow.name().unwrap_or("unnamed");
         let plan = Planner.plan(&workflow).map_err(|e| format!("{:?}", e))?;
 
-        self.announce_workflow_started(&workflow_name);
+        self.announce_workflow_started(workflow_name);
 
         let executions = self.execute_planned_runs(&workflow, &plan, request)?;
 
-        Ok(WorkflowExecution {
+        let job_summaries = executions.iter().map(|e| e.job_summary().clone()).collect();
+        let container_names = executions
+            .iter()
+            .map(|e| e.container_name().to_string())
+            .collect();
+        let success = executions.iter().all(|e| e.job_summary().success());
+
+        Ok(WorkflowExecution::new(
             workflow_name,
-            job_summaries: executions.iter().map(|e| e.job_summary.clone()).collect(),
-            container_names: executions
-                .iter()
-                .map(|e| e.container_name.clone())
-                .collect(),
-            success: executions.iter().all(|e| e.job_summary.success),
-        })
+            job_summaries,
+            container_names,
+            success,
+        ))
     }
 }
 
@@ -80,13 +84,13 @@ impl ExecuteWorkflowService {
         request: ExecuteWorkflowRequest<'_>,
     ) -> Result<Vec<crate::application::dtos::JobExecution>, Box<dyn Error>> {
         let all_runs: Vec<&crate::domain::planner::Run> = plan
-            .stages
+            .stages()
             .iter()
-            .flat_map(|stage| stage.runs.iter())
+            .flat_map(|stage| stage.runs().iter())
             .collect();
         all_runs
             .iter()
-            .map(|run| self.execute_run(workflow, run, request.repo_path, request.context))
+            .map(|run| self.execute_run(workflow, run, request.repo_path(), request.context()))
             .collect()
     }
 
@@ -97,48 +101,45 @@ impl ExecuteWorkflowService {
         repo_path: &std::path::Path,
         context: &crate::domain::expression::EvalContext,
     ) -> Result<crate::application::dtos::JobExecution, Box<dyn Error>> {
-        self.announce_job_started(
-            &workflow.name.clone().unwrap_or_else(|| "unnamed".into()),
-            run,
-        );
+        self.announce_job_started(workflow.name().unwrap_or("unnamed"), run);
         let execution = self.command_bus.dispatch_job(ExecuteJobCommand::new(
-            run.job.clone(),
-            run.job_id.clone(),
+            run.job().clone(),
+            run.job_id().to_string(),
             workflow.clone(),
             repo_path.to_path_buf(),
             context.clone(),
         ))?;
         self.announce_job_finished(
-            &workflow.name.clone().unwrap_or_else(|| "unnamed".into()),
+            workflow.name().unwrap_or("unnamed"),
             run,
-            execution.job_summary.success,
+            execution.job_summary().success(),
         );
         Ok(execution)
     }
 
     fn announce_workflow_started(&self, workflow_name: &str) {
         self.event_bus
-            .publish(DomainEvent::WorkflowStarted(WorkflowStartedPayload {
-                workflow_name: workflow_name.to_string(),
-            }));
+            .publish(DomainEvent::WorkflowStarted(WorkflowStartedPayload::new(
+                workflow_name.to_string(),
+            )));
     }
 
     fn announce_job_started(&self, workflow_name: &str, run: &Run) {
         self.event_bus
-            .publish(DomainEvent::JobStarted(JobStartedPayload {
-                workflow_name: workflow_name.to_string(),
-                job_id: run.job_id.clone(),
-                job_name: run.job.name.clone(),
-            }));
+            .publish(DomainEvent::JobStarted(JobStartedPayload::new(
+                workflow_name.to_string(),
+                run.job_id().to_string(),
+                run.job().name().map(str::to_string),
+            )));
     }
 
     fn announce_job_finished(&self, workflow_name: &str, run: &Run, job_success: bool) {
         self.event_bus
-            .publish(DomainEvent::JobFinished(JobFinishedPayload {
-                workflow_name: workflow_name.to_string(),
-                job_id: run.job_id.clone(),
-                job_name: run.job.name.clone(),
-                success: job_success,
-            }));
+            .publish(DomainEvent::JobFinished(JobFinishedPayload::new(
+                workflow_name.to_string(),
+                run.job_id().to_string(),
+                run.job().name().map(str::to_string),
+                job_success,
+            )));
     }
 }

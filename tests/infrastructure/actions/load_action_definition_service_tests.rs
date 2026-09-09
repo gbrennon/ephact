@@ -20,8 +20,8 @@ fn execute_loads_action_yml() {
         })
         .unwrap();
 
-    assert_eq!(definition.name, "Greet");
-    assert!(matches!(definition.runs, ActionRuns::Composite { .. }));
+    assert_eq!(definition.name(), "Greet");
+    assert!(matches!(definition.runs(), ActionRuns::Composite { .. }));
 }
 
 #[test]
@@ -35,7 +35,7 @@ fn execute_falls_back_to_action_yaml() {
         })
         .unwrap();
 
-    assert_eq!(definition.name, "Greet");
+    assert_eq!(definition.name(), "Greet");
 }
 
 #[test]
@@ -49,7 +49,7 @@ fn execute_errors_when_no_definition_is_present() {
         .unwrap_err();
 
     assert_eq!(
-        error.message,
+        error.message(),
         format!("action.yml not found in {}", tmp.path().display())
     );
 }
@@ -66,8 +66,8 @@ fn execute_errors_on_malformed_yaml() {
         .unwrap_err();
 
     assert!(
-        error.message.starts_with("failed to parse "),
+        error.message().starts_with("failed to parse "),
         "{}",
-        error.message
+        error.message()
     );
 }

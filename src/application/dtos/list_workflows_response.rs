@@ -12,6 +12,16 @@ impl ListWorkflowsResponse {
     pub fn new(workflows: Vec<WorkflowListItem>) -> Self {
         Self { workflows }
     }
+
+    /// Workflows found in the repository, in discovery order.
+    pub fn workflows(&self) -> &[WorkflowListItem] {
+        &self.workflows
+    }
+
+    /// Consumes the response and returns the workflows.
+    pub fn into_workflows(self) -> Vec<WorkflowListItem> {
+        self.workflows
+    }
 }
 
 #[cfg(test)]
@@ -21,7 +31,7 @@ mod tests {
     #[test]
     fn new_response_empty_by_default() {
         let response = ListWorkflowsResponse::new(vec![]);
-        assert!(response.workflows.is_empty());
+        assert!(response.workflows().is_empty());
     }
 
     #[test]
@@ -30,8 +40,8 @@ mod tests {
             ListWorkflowsResponse::new(vec![WorkflowListItem::new(None, Some("ci.yml".into()))]);
 
         assert_eq!(
-            response.workflows,
-            vec![WorkflowListItem::new(None, Some("ci.yml".into()))]
+            response.workflows(),
+            &[WorkflowListItem::new(None, Some("ci.yml".into()))]
         );
     }
 }

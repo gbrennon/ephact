@@ -14,13 +14,13 @@ pub struct ActionRequestFixture;
 impl ActionRequestFixture {
     pub fn for_action(action_ref: &str) -> ExecuteActionRequest {
         let container: Arc<dyn ContainerPort> = Arc::new(StubContainer);
-        ExecuteActionRequest {
-            action_ref: action_ref.to_string(),
-            step: serde_yaml::from_str(&format!("uses: {action_ref}\n")).unwrap(),
-            repo_path: PathBuf::from("/workspace"),
-            env: HashMap::new(),
-            context: EvalContext::new(),
+        ExecuteActionRequest::new(
+            action_ref,
+            serde_yaml::from_str(&format!("uses: {action_ref}\n")).unwrap(),
+            PathBuf::from("/workspace"),
+            HashMap::new(),
+            EvalContext::new(),
             container,
-        }
+        )
     }
 }

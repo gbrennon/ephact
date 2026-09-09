@@ -56,11 +56,7 @@ impl ContainerPort for FakeContainerHandle {
 
         let mut results = self.exec_results.lock();
         if results.is_empty() {
-            Ok(ExecResult {
-                exit_code: 0,
-                stdout: String::new(),
-                stderr: String::new(),
-            })
+            Ok(ExecResult::new(0, String::new(), String::new()))
         } else {
             Ok(results.remove(0))
         }

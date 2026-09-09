@@ -17,4 +17,14 @@ impl ListActionsResponse {
     pub fn new(actions: Vec<String>) -> Self {
         Self { actions }
     }
+
+    /// The action references (`uses:`) used across the workflows.
+    pub fn actions(&self) -> &[String] {
+        &self.actions
+    }
+
+    /// Consumes the response and returns the actions.
+    pub fn into_actions(self) -> Vec<String> {
+        self.actions
+    }
 }

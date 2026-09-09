@@ -93,28 +93,25 @@ impl EventPayload for Event {
 impl Event {
     /// Creates a push event with sensible defaults for local execution.
     pub fn push_default(branch: &str, repo: &super::repository_info::RepositoryInfo) -> Self {
-        Event::Push(Box::new(PushPayload {
-            r#ref: format!("refs/heads/{}", branch),
-            before: "0000000000000000000000000000000000000000".to_owned(),
-            after: "0000000000000000000000000000000000000000".to_owned(),
-            repository: repo.clone(),
-            pusher: super::user_info::UserInfo {
-                name: "act".to_owned(),
-                email: "act@localhost".to_owned(),
-                login: "act".to_owned(),
-            },
-            sender: super::user_info::UserInfo {
-                name: "act".to_owned(),
-                email: "act@localhost".to_owned(),
-                login: "act".to_owned(),
-            },
-            created: false,
-            deleted: false,
-            forced: false,
-            commits: vec![],
-            head_commit: None,
-            compare: String::new(),
-        }))
+        let act_user = super::user_info::UserInfo::new(
+            "act".to_owned(),
+            "act@localhost".to_owned(),
+            "act".to_owned(),
+        );
+        Event::Push(Box::new(PushPayload::new(
+            format!("refs/heads/{}", branch),
+            "0000000000000000000000000000000000000000".to_owned(),
+            "0000000000000000000000000000000000000000".to_owned(),
+            repo.clone(),
+            act_user.clone(),
+            act_user,
+            false,
+            false,
+            false,
+            vec![],
+            None,
+            String::new(),
+        )))
     }
 
     /// Creates a pull_request event with sensible defaults for local execution.
@@ -122,42 +119,42 @@ impl Event {
         number: u64,
         repo: &super::repository_info::RepositoryInfo,
     ) -> Self {
-        Event::PullRequest(Box::new(PullRequestPayload {
-            action: "opened".to_owned(),
+        let head = super::branch_ref::BranchRef::new(
+            "refs/heads/feature".to_owned(),
+            "0000000000000000000000000000000000000000".to_owned(),
+            repo.clone(),
+            "feature".to_owned(),
+        );
+        let base = super::branch_ref::BranchRef::new(
+            "refs/heads/main".to_owned(),
+            "0000000000000000000000000000000000000000".to_owned(),
+            repo.clone(),
+            "main".to_owned(),
+        );
+        let user = super::user_info::UserInfo::new(
+            "act".to_owned(),
+            "act@localhost".to_owned(),
+            "act".to_owned(),
+        );
+        let pull_request = super::pull_request_info::PullRequestInfo::new(
             number,
-            pull_request: super::pull_request_info::PullRequestInfo {
-                number,
-                title: "Local PR".to_owned(),
-                body: None,
-                head: super::branch_ref::BranchRef {
-                    r#ref: "refs/heads/feature".to_owned(),
-                    sha: "0000000000000000000000000000000000000000".to_owned(),
-                    repo: repo.clone(),
-                    label: "feature".to_owned(),
-                },
-                base: super::branch_ref::BranchRef {
-                    r#ref: "refs/heads/main".to_owned(),
-                    sha: "0000000000000000000000000000000000000000".to_owned(),
-                    repo: repo.clone(),
-                    label: "main".to_owned(),
-                },
-                user: super::user_info::UserInfo {
-                    name: "act".to_owned(),
-                    email: "act@localhost".to_owned(),
-                    login: "act".to_owned(),
-                },
-                html_url: String::new(),
-                draft: false,
-                merged: false,
-                mergeable: None,
-            },
-            repository: repo.clone(),
-            sender: super::user_info::UserInfo {
-                name: "act".to_owned(),
-                email: "act@localhost".to_owned(),
-                login: "act".to_owned(),
-            },
-        }))
+            "Local PR".to_owned(),
+            None,
+            head,
+            base,
+            user.clone(),
+            String::new(),
+            false,
+            false,
+            None,
+        );
+        Event::PullRequest(Box::new(PullRequestPayload::new(
+            "opened".to_owned(),
+            number,
+            pull_request,
+            repo.clone(),
+            user,
+        )))
     }
 
     /// Creates a workflow_dispatch event with the given inputs.
@@ -165,42 +162,48 @@ impl Event {
         inputs: HashMap<String, String>,
         repo: &super::repository_info::RepositoryInfo,
     ) -> Self {
-        Event::WorkflowDispatch(Box::new(WorkflowDispatchPayload {
+        let sender = super::user_info::UserInfo::new(
+            "act".to_owned(),
+            "act@localhost".to_owned(),
+            "act".to_owned(),
+        );
+        Event::WorkflowDispatch(Box::new(WorkflowDispatchPayload::new(
             inputs,
-            repository: repo.clone(),
-            sender: super::user_info::UserInfo {
-                name: "act".to_owned(),
-                email: "act@localhost".to_owned(),
-                login: "act".to_owned(),
-            },
-            workflow: String::new(),
-            r#ref: "refs/heads/main".to_owned(),
-        }))
+            repo.clone(),
+            sender,
+            String::new(),
+            "refs/heads/main".to_owned(),
+        )))
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::super::{
+        branch_ref::BranchRef, comment_info::CommentInfo, issue_info::IssueInfo,
+        pull_request_info::PullRequestInfo, release_info::ReleaseInfo,
+    };
     use super::{
         super::{repository_info::RepositoryInfo, user_info::UserInfo},
         *,
     };
 
     fn test_repo() -> RepositoryInfo {
-        RepositoryInfo {
-            name: "test-repo".to_owned(),
-            full_name: "owner/test-repo".to_owned(),
-            owner: UserInfo {
-                name: "owner".to_owned(),
-                email: "owner@example.com".to_owned(),
-                login: "owner".to_owned(),
-            },
-            private: false,
-            html_url: "https://github.com/owner/test-repo".to_owned(),
-            default_branch: "main".to_owned(),
-            clone_url: "https://github.com/owner/test-repo.git".to_owned(),
-            ssh_url: "git@github.com:owner/test-repo.git".to_owned(),
-        }
+        let owner = UserInfo::new(
+            "owner".to_owned(),
+            "owner@example.com".to_owned(),
+            "owner".to_owned(),
+        );
+        RepositoryInfo::new(
+            "test-repo".to_owned(),
+            "owner/test-repo".to_owned(),
+            owner,
+            false,
+            "https://github.com/owner/test-repo".to_owned(),
+            "main".to_owned(),
+            "https://github.com/owner/test-repo.git".to_owned(),
+            "git@github.com:owner/test-repo.git".to_owned(),
+        )
     }
 
     #[test]
@@ -267,5 +270,103 @@ mod tests {
             assert_eq!(event.event_name(), name);
             assert_eq!(event.to_payload(), serde_json::json!({}));
         }
+    }
+    #[test]
+    fn payload_variants_have_names_and_payloads() {
+        let repo = test_repo();
+        let user = UserInfo::new("name".into(), "email".into(), "login".into());
+        let release = ReleaseInfo::new("v1".into(), None, None, false, false, "url".into());
+        let events = [
+            Event::Release(Box::new(ReleasePayload::new(
+                "published".into(),
+                release,
+                repo.clone(),
+                user.clone(),
+            ))),
+            Event::RepositoryDispatch(Box::new(RepositoryDispatchPayload::new(
+                "custom".into(),
+                serde_json::json!({}),
+                repo.clone(),
+                user.clone(),
+            ))),
+            Event::WorkflowCall(Box::new(WorkflowCallPayload::new(
+                HashMap::new(),
+                HashMap::new(),
+            ))),
+        ];
+
+        assert_eq!(events[0].event_name(), "release");
+        assert_eq!(events[1].event_name(), "repository_dispatch");
+        assert_eq!(events[2].event_name(), "workflow_call");
+        assert!(events.iter().all(|event| event.to_payload().is_object()));
+        let issue = IssueInfo::new(
+            1,
+            "title".into(),
+            None,
+            "open".into(),
+            user.clone(),
+            Vec::new(),
+            "url".into(),
+        );
+        let comment = CommentInfo::new(2, "body".into(), user.clone(), "url".into());
+        let branch = BranchRef::new("ref".into(), "sha".into(), repo.clone(), "main".into());
+        let pull_request = PullRequestInfo::new(
+            1,
+            "title".into(),
+            None,
+            branch.clone(),
+            branch,
+            user.clone(),
+            "url".into(),
+            false,
+            false,
+            None,
+        );
+        let extra_events = [
+            Event::Issues(Box::new(IssuesPayload::new(
+                "opened".into(),
+                issue.clone(),
+                repo.clone(),
+                user.clone(),
+            ))),
+            Event::IssueComment(Box::new(IssueCommentPayload::new(
+                "created".into(),
+                issue,
+                comment,
+                repo.clone(),
+                user.clone(),
+            ))),
+            Event::Create(Box::new(CreatePayload::new(
+                "branch".into(),
+                "main".into(),
+                "main".into(),
+                repo.clone(),
+                user.clone(),
+            ))),
+            Event::Delete(Box::new(DeletePayload::new(
+                "branch".into(),
+                "main".into(),
+                repo.clone(),
+                user.clone(),
+            ))),
+            Event::Fork(Box::new(ForkPayload::new(
+                repo.clone(),
+                repo.clone(),
+                user.clone(),
+            ))),
+            Event::PullRequest(Box::new(PullRequestPayload::new(
+                "opened".into(),
+                1,
+                pull_request,
+                repo,
+                user,
+            ))),
+        ];
+        assert_eq!(extra_events[0].event_name(), "issues");
+        assert_eq!(extra_events[1].event_name(), "issue_comment");
+        assert_eq!(extra_events[2].event_name(), "create");
+        assert_eq!(extra_events[3].event_name(), "delete");
+        assert_eq!(extra_events[4].event_name(), "fork");
+        assert_eq!(extra_events[5].event_name(), "pull_request");
     }
 }

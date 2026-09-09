@@ -14,18 +14,18 @@ mod tests {
     use super::*;
 
     fn make_config(name: &str) -> ContainerConfig {
-        ContainerConfig {
-            image: "alpine:latest".into(),
-            platform: None,
-            env: HashMap::new(),
-            binds: vec![],
-            workdir: None,
-            cmd: Some(vec!["sleep".into(), "infinity".into()]),
-            entrypoint: None,
-            network: None,
-            name: Some(name.into()),
-            runner_context: Default::default(),
-        }
+        ContainerConfig::new(
+            "alpine:latest",
+            None,
+            HashMap::new(),
+            vec![],
+            None,
+            Some(vec!["sleep".into(), "infinity".into()]),
+            None,
+            None,
+            Some(name.into()),
+            Default::default(),
+        )
     }
 
     #[test]
@@ -85,8 +85,8 @@ mod tests {
 
         let info = adapter.get_host_info().unwrap();
 
-        assert_eq!(info.os, "linux");
-        assert_eq!(info.arch, "amd64");
+        assert_eq!(info.os(), "linux");
+        assert_eq!(info.arch(), "amd64");
     }
 
     #[test]

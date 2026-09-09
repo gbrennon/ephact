@@ -7,3 +7,15 @@ pub struct FetchRemoteActionRequest<'a> {
     /// Reference naming the action to retrieve.
     pub reference: &'a RemoteActionReference,
 }
+
+impl<'a> FetchRemoteActionRequest<'a> {
+    /// Creates a new request.
+    pub fn new(reference: &'a RemoteActionReference) -> Self {
+        Self { reference }
+    }
+
+    /// Reference naming the action to retrieve.
+    pub fn reference(&self) -> &'a RemoteActionReference {
+        self.reference
+    }
+}

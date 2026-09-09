@@ -63,8 +63,8 @@ impl ContainerRuntimePort for SpyContainerRuntime {
         &self,
         config: &ContainerConfig,
     ) -> Result<Box<dyn ContainerPort>, ContainerError> {
-        let name = config.name.clone().unwrap_or_default();
-        self.created_containers.lock().push(name.clone());
+        let name = config.name().clone().unwrap_or_default();
+        self.created_containers.lock().push(name.to_owned());
         self.operations.lock().push(format!("create:{name}"));
         Ok(Box::new(StubContainer))
     }
@@ -88,10 +88,6 @@ impl ContainerRuntimePort for SpyContainerRuntime {
     }
 
     fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
-        Ok(HostInfo {
-            os: "linux".into(),
-            arch: "amd64".into(),
-            engine_version: "1.0".into(),
-        })
+        Ok(HostInfo::new("linux", "amd64", "1.0"))
     }
 }

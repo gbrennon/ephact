@@ -8,9 +8,9 @@ use crate::domain::{
 /// no filesystem paths, handles, or infrastructure references are exposed here.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecuteWorkflowCommand {
-    pub workflow_content: String,
-    pub config: ActRunConfig,
-    pub repository: Repository,
+    workflow_content: String,
+    config: ActRunConfig,
+    repository: Repository,
 }
 
 impl ExecuteWorkflowCommand {
@@ -20,5 +20,21 @@ impl ExecuteWorkflowCommand {
             config,
             repository,
         }
+    }
+
+    pub fn workflow_content(&self) -> &str {
+        &self.workflow_content
+    }
+
+    pub fn config(&self) -> &ActRunConfig {
+        &self.config
+    }
+
+    pub fn repository(&self) -> &Repository {
+        &self.repository
+    }
+
+    pub fn into_parts(self) -> (String, ActRunConfig, Repository) {
+        (self.workflow_content, self.config, self.repository)
     }
 }

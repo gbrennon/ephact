@@ -13,13 +13,9 @@ use crate::common::fakes::{fake_command_bus::FakeCommandBus, stub_container::Stu
 
 #[test]
 fn execute_delegates_action_execution_to_command_bus() {
-    let command_bus = Arc::new(
-        FakeCommandBus::new().with_action_result(ExecuteActionResponse {
-            exit_code: 0,
-            stdout: "action executed".into(),
-            stderr: String::new(),
-        }),
-    );
+    let command_bus = Arc::new(FakeCommandBus::new().with_action_result(
+        ExecuteActionResponse::new(0, "action executed".to_string(), String::new()),
+    ));
 
     let service = RunActionService::new(command_bus.clone());
     let step: Step = serde_yaml::from_str("uses: actions/checkout@v4").unwrap();
@@ -35,7 +31,7 @@ fn execute_delegates_action_execution_to_command_bus() {
 
     let response = service.execute(request).unwrap();
 
-    assert_eq!(response.exit_code, 0);
-    assert_eq!(response.stdout, "action executed");
+    assert_eq!(response.exit_code(), 0);
+    assert_eq!(response.stdout(), "action executed");
     assert_eq!(command_bus.dispatched_actions.lock().len(), 1);
 }

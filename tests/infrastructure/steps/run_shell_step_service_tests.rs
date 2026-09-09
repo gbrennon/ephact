@@ -21,18 +21,18 @@ use crate::common::fakes::{
 
 fn container(runtime: &dyn ContainerRuntimePort) -> Box<dyn ContainerPort> {
     runtime
-        .create_container(&ContainerConfig {
-            image: "image".into(),
-            platform: None,
-            env: HashMap::new(),
-            binds: vec![],
-            workdir: None,
-            cmd: None,
-            entrypoint: None,
-            network: None,
-            name: None,
-            runner_context: RunnerContext::default(),
-        })
+        .create_container(&ContainerConfig::new(
+            "image",
+            None,
+            HashMap::new(),
+            vec![],
+            None,
+            None,
+            None,
+            None,
+            None,
+            RunnerContext::default(),
+        ))
         .unwrap()
 }
 
@@ -43,11 +43,10 @@ fn step_from(yaml: &str) -> Step {
 #[test]
 fn execute_runs_the_steps_script_through_bash() {
     let runtime = FakeRuntime::new();
-    runtime.exec_results.lock().push(ExecResult {
-        exit_code: 0,
-        stdout: "hi\n".into(),
-        stderr: String::new(),
-    });
+    runtime
+        .exec_results
+        .lock()
+        .push(ExecResult::new(0, "hi\n", String::new()));
     let container = container(&runtime);
     let step = step_from("run: echo hi\n");
 
@@ -59,8 +58,8 @@ fn execute_runs_the_steps_script_through_bash() {
         })
         .unwrap();
 
-    assert_eq!(result.exit_code, 0);
-    assert_eq!(result.stdout, "hi\n");
+    assert_eq!(result.exit_code(), 0);
+    assert_eq!(result.stdout(), "hi\n");
     assert_eq!(runtime.executed_scripts(), vec!["echo hi".to_string()]);
 }
 
@@ -101,7 +100,7 @@ fn execute_errors_when_the_step_has_neither_run_nor_uses() {
         })
         .unwrap_err();
 
-    assert_eq!(error.message, "step has neither `run` nor `uses` defined");
+    assert_eq!(error.message(), "step has neither `run` nor `uses` defined");
 }
 
 #[test]
@@ -117,5 +116,9 @@ fn execute_reports_a_container_failure_as_a_step_error() {
         })
         .unwrap_err();
 
-    assert!(error.message.contains("exec refused"), "{}", error.message);
+    assert!(
+        error.message().contains("exec refused"),
+        "{}",
+        error.message()
+    );
 }

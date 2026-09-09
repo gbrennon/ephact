@@ -20,7 +20,7 @@ fn make_repo(path: &Path) -> Repository {
         std::fs::create_dir_all(&git_dir).ok();
     }
     let repo_path = RepoPath::new(path.to_path_buf()).unwrap();
-    let name = RepositoryName::new("test-repo".into()).unwrap();
+    let name = RepositoryName::new("test-repo".to_string()).unwrap();
     Repository::new(repo_path, name)
 }
 
@@ -34,12 +34,12 @@ fn execute_runs_all_workflows_and_merges_summary() {
         "name: B\non: push\njobs: {}".into(),
     ]);
     let command_bus = Arc::new(
-        FakeCommandBus::new().with_workflow_result(WorkflowExecution {
-            workflow_name: "TestWF".into(),
-            job_summaries: Vec::new(),
-            container_names: vec!["c-all".into()],
-            success: true,
-        }),
+        FakeCommandBus::new().with_workflow_result(WorkflowExecution::new(
+            "TestWF".to_string(),
+            Vec::new(),
+            vec!["c-all".to_string()],
+            true,
+        )),
     );
     let event_bus = Arc::new(FakeEventBus::new());
 
@@ -52,8 +52,8 @@ fn execute_runs_all_workflows_and_merges_summary() {
 
     let summary: RunSummary = service.execute(request).unwrap();
 
-    assert_eq!(summary.name, ALL_WORKFLOWS_SUMMARY_NAME);
-    assert!(summary.success);
+    assert_eq!(summary.name(), ALL_WORKFLOWS_SUMMARY_NAME);
+    assert!(summary.success());
     assert_eq!(command_bus.dispatched_workflows.lock().len(), 2);
 
     let events = event_bus.events();
@@ -61,6 +61,9 @@ fn execute_runs_all_workflows_and_merges_summary() {
     let DomainEvent::ActRunCompleted(payload) = &events[0] else {
         panic!("expected ActRunCompleted event");
     };
-    assert!(payload.success);
-    assert_eq!(payload.container_names, vec!["c-all", "c-all"]);
+    assert!(payload.success());
+    assert_eq!(
+        payload.container_names(),
+        vec!["c-all".to_string(), "c-all".to_string()]
+    );
 }

@@ -8,3 +8,20 @@ pub struct BuildRunContextResponse {
     /// The evaluated run context.
     pub context: EvalContext,
 }
+
+impl BuildRunContextResponse {
+    /// Creates a new response.
+    pub fn new(context: EvalContext) -> Self {
+        Self { context }
+    }
+
+    /// The evaluated run context.
+    pub fn context(&self) -> &EvalContext {
+        &self.context
+    }
+
+    /// Consumes the response and returns the evaluated run context.
+    pub fn into_context(self) -> EvalContext {
+        self.context
+    }
+}

@@ -47,7 +47,7 @@ fn source() -> FilesystemWorkflowSource {
 fn names(items: &[ephact::application::dtos::WorkflowListItem]) -> Vec<String> {
     items
         .iter()
-        .map(|item| item.name.clone().unwrap_or_default())
+        .map(|item| item.name().unwrap_or_default().to_string())
         .collect()
 }
 
@@ -63,8 +63,9 @@ fn list_workflows_reports_name_and_path_of_forgejo_workflow() {
     let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
 
     assert_eq!(workflows.len(), 1);
-    assert_eq!(workflows[0].name.as_deref(), Some("CI"));
-    let file = workflows[0].file.as_deref().unwrap();
+    assert_eq!(workflows[0].name().as_deref(), Some("CI"));
+    let file_owned = workflows[0].file();
+    let file = file_owned.as_deref().unwrap();
     assert!(
         file.ends_with(".forgejo/workflows/ci.yml"),
         "expected the full workflow path, got {file:?}"
@@ -83,8 +84,9 @@ fn list_workflows_finds_workflow_in_github_directory() {
     let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
 
     assert_eq!(workflows.len(), 1);
-    assert_eq!(workflows[0].name.as_deref(), Some("Build"));
-    let file = workflows[0].file.as_deref().unwrap();
+    assert_eq!(workflows[0].name().as_deref(), Some("Build"));
+    let file_owned = workflows[0].file();
+    let file = file_owned.as_deref().unwrap();
     assert!(
         file.ends_with(".github/workflows/build.yml"),
         "expected the full workflow path, got {file:?}"
@@ -132,7 +134,7 @@ fn list_workflows_strips_quotes_from_the_workflow_name() {
 
     let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
 
-    assert_eq!(workflows[0].name.as_deref(), Some("CI Pipeline"));
+    assert_eq!(workflows[0].name().as_deref(), Some("CI Pipeline"));
 }
 
 #[test]

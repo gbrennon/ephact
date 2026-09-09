@@ -34,7 +34,7 @@ impl ResolveNamedWorkflowFilePort for FakeResolveNamedWorkflowFilePort {
     ) -> Result<PathBuf, Box<dyn std::error::Error>> {
         self.requested_names
             .lock()
-            .push(request.workflow_name.to_string());
+            .push(request.workflow_name().to_string());
         self.result.clone().map_err(Into::into)
     }
 }

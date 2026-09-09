@@ -26,8 +26,8 @@ fn execute_carries_both_collaborators_results_through() {
         container: &container,
     });
 
-    assert_eq!(exports.path_additions, vec!["/opt/bin".to_string()]);
-    assert_eq!(exports.env.get("A").map(String::as_str), Some("1"));
+    assert_eq!(exports.path_additions(), vec!["/opt/bin".to_string()]);
+    assert_eq!(exports.env().get("A").map(String::as_str), Some("1"));
     assert!(path_reader.was_called());
     assert!(env_reader.was_called());
 }

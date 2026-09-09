@@ -35,23 +35,22 @@ impl PrepareJobContainerPort for PrepareJobContainerService {
         &self,
         request: PrepareJobContainerRequest<'_>,
     ) -> Result<PreparedJobContainer, Box<dyn Error>> {
-        let image = self.image_puller.execute(PullJobImageRequest {
-            runs_on: request.runs_on,
-        })?;
+        let image = self
+            .image_puller
+            .execute(PullJobImageRequest::new(request.runs_on()))?;
 
-        let container_name = format!("ephemeral-act-{}-{}", request.job_id, process::id());
-        let legacy_container_name = format!("ephemeral-act-{}", request.job_id);
+        let container_name = format!("ephemeral-act-{}-{}", request.job_id(), process::id());
+        let legacy_container_name = format!("ephemeral-act-{}", request.job_id());
 
-        let container = self.container_creator.execute(CreateJobContainerRequest {
-            image: &image,
-            container_name: &container_name,
-            legacy_container_name: &legacy_container_name,
-            repo_path: request.repo_path,
-        })?;
+        let container = self
+            .container_creator
+            .execute(CreateJobContainerRequest::new(
+                &image,
+                &container_name,
+                &legacy_container_name,
+                request.repo_path(),
+            ))?;
 
-        Ok(PreparedJobContainer {
-            container,
-            container_name,
-        })
+        Ok(PreparedJobContainer::new(container, container_name))
     }
 }

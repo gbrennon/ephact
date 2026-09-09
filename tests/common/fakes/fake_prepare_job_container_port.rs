@@ -42,13 +42,13 @@ impl PrepareJobContainerPort for FakePrepareJobContainerPort {
         &self,
         request: PrepareJobContainerRequest<'_>,
     ) -> Result<PreparedJobContainer, Box<dyn std::error::Error>> {
-        self.job_ids.lock().push(request.job_id.to_string());
+        self.job_ids.lock().push(request.job_id().to_string());
         if let Some(message) = &self.failure {
             return Err(message.clone().into());
         }
-        Ok(PreparedJobContainer {
-            container: Arc::new(StubContainer),
-            container_name: self.container_name.clone(),
-        })
+        Ok(PreparedJobContainer::new(
+            Arc::new(StubContainer),
+            self.container_name.clone(),
+        ))
     }
 }

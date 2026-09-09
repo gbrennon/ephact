@@ -20,7 +20,7 @@ fn execute_returns_yml_and_yaml_files_sorted_by_path() {
         .unwrap();
 
     assert_eq!(
-        response.workflow_files,
+        response.workflow_files(),
         vec![tmp.path().join("first.yml"), tmp.path().join("second.yaml")]
     );
 }
@@ -39,7 +39,7 @@ fn execute_excludes_other_extensions_and_subdirectories() {
         })
         .unwrap();
 
-    assert_eq!(response.workflow_files, vec![tmp.path().join("ci.yml")]);
+    assert_eq!(response.workflow_files(), vec![tmp.path().join("ci.yml")]);
 }
 
 #[test]
@@ -65,5 +65,5 @@ fn execute_returns_no_files_for_an_empty_directory() {
         })
         .unwrap();
 
-    assert!(response.workflow_files.is_empty());
+    assert!(response.workflow_files().is_empty());
 }

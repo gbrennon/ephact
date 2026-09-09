@@ -12,3 +12,35 @@ pub struct RunCompositeActionRequest<'a> {
 
     pub action_request: &'a ExecuteActionRequest,
 }
+
+impl<'a> RunCompositeActionRequest<'a> {
+    pub fn new(
+        steps: &'a [Step],
+        inputs: &'a HashMap<String, String>,
+        action_dir: &'a Path,
+        action_request: &'a ExecuteActionRequest,
+    ) -> Self {
+        Self {
+            steps,
+            inputs,
+            action_dir,
+            action_request,
+        }
+    }
+
+    pub fn steps(&self) -> &'a [Step] {
+        self.steps
+    }
+
+    pub fn inputs(&self) -> &'a HashMap<String, String> {
+        self.inputs
+    }
+
+    pub fn action_dir(&self) -> &'a Path {
+        self.action_dir
+    }
+
+    pub fn action_request(&self) -> &'a ExecuteActionRequest {
+        self.action_request
+    }
+}

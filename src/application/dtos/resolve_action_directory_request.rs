@@ -9,3 +9,23 @@ pub struct ResolveActionDirectoryRequest<'a> {
     /// Root of the repository under test.
     pub repo_path: &'a Path,
 }
+
+impl<'a> ResolveActionDirectoryRequest<'a> {
+    /// Creates a new request.
+    pub fn new(action_ref: &'a str, repo_path: &'a Path) -> Self {
+        Self {
+            action_ref,
+            repo_path,
+        }
+    }
+
+    /// The `uses:` value naming the action.
+    pub fn action_ref(&self) -> &'a str {
+        self.action_ref
+    }
+
+    /// Root of the repository under test.
+    pub fn repo_path(&self) -> &'a Path {
+        self.repo_path
+    }
+}

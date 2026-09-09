@@ -16,3 +16,38 @@ pub struct SummarizeStepRequest<'a> {
     /// How long the step took.
     pub duration: Duration,
 }
+
+impl<'a> SummarizeStepRequest<'a> {
+    /// Creates a new request.
+    pub fn new(
+        step: &'a Step,
+        outcome: Result<ExecutedStep, StepError>,
+        duration: Duration,
+    ) -> Self {
+        Self {
+            step,
+            outcome,
+            duration,
+        }
+    }
+
+    /// The step as declared, before its expressions were resolved.
+    pub fn step(&self) -> &'a Step {
+        self.step
+    }
+
+    /// What executing the step produced.
+    pub fn outcome(&self) -> &Result<ExecutedStep, StepError> {
+        &self.outcome
+    }
+
+    /// Consumes the request and returns what executing the step produced.
+    pub fn into_outcome(self) -> Result<ExecutedStep, StepError> {
+        self.outcome
+    }
+
+    /// How long the step took.
+    pub fn duration(&self) -> Duration {
+        self.duration
+    }
+}

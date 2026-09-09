@@ -119,7 +119,6 @@ impl DeliveryPipelineRun {
         );
 
         let outcome = application
-            .cli
             .run([
                 "ephact",
                 "run",

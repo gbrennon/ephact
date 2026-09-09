@@ -89,7 +89,7 @@ fn execute_propagates_a_copy_failure() {
     })
     .unwrap_err();
 
-    assert_eq!(error.message, "failed to copy action files");
+    assert_eq!(error.message(), "failed to copy action files");
 }
 
 #[test]
@@ -107,8 +107,8 @@ fn execute_reports_a_failing_entry_point() {
     .unwrap_err();
 
     assert!(
-        error.message.starts_with("failed to run node action"),
+        error.message().starts_with("failed to run node action"),
         "{}",
-        error.message
+        error.message()
     );
 }

@@ -28,7 +28,7 @@ fn execute_returns_files_from_both_platform_directories_forgejo_first() {
         .unwrap();
 
     assert_eq!(
-        response.workflow_files,
+        response.workflow_files(),
         vec![
             tmp.path().join(".forgejo/workflows/alpha.yml"),
             tmp.path().join(".github/workflows/beta.yml")
@@ -49,7 +49,7 @@ fn execute_returns_github_files_when_the_repository_has_only_those() {
         .unwrap();
 
     assert_eq!(
-        response.workflow_files,
+        response.workflow_files(),
         vec![tmp.path().join(".github/workflows/beta.yml")]
     );
 }

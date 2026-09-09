@@ -3,22 +3,42 @@
 /// inbound port.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecuteActionResponse {
-    /// Exit status of the action; non-zero fails the step.
     pub exit_code: i64,
-    /// Everything the action wrote to standard output.
     pub stdout: String,
-    /// Everything the action wrote to standard error.
     pub stderr: String,
 }
 
 impl ExecuteActionResponse {
-    /// Creates a successful response carrying only a runner message.
+    pub fn new(exit_code: i64, stdout: impl Into<String>, stderr: impl Into<String>) -> Self {
+        Self {
+            exit_code,
+            stdout: stdout.into(),
+            stderr: stderr.into(),
+        }
+    }
+
     pub fn note(message: impl Into<String>) -> Self {
         Self {
             exit_code: 0,
             stdout: message.into(),
             stderr: String::new(),
         }
+    }
+
+    pub fn exit_code(&self) -> i64 {
+        self.exit_code
+    }
+
+    pub fn stdout(&self) -> &str {
+        &self.stdout
+    }
+
+    pub fn stderr(&self) -> &str {
+        &self.stderr
+    }
+
+    pub fn into_parts(self) -> (i64, String, String) {
+        (self.exit_code, self.stdout, self.stderr)
     }
 }
 
@@ -30,8 +50,8 @@ mod tests {
     fn note_succeeds_and_carries_the_message() {
         let response = ExecuteActionResponse::note("workspace already mounted\n");
 
-        assert_eq!(response.exit_code, 0);
-        assert_eq!(response.stdout, "workspace already mounted\n");
-        assert!(response.stderr.is_empty());
+        assert_eq!(response.exit_code(), 0);
+        assert_eq!(response.stdout(), "workspace already mounted\n");
+        assert!(response.stderr().is_empty());
     }
 }

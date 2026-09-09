@@ -25,7 +25,7 @@ impl ListWorkflowsPort for ListWorkflowsService {
         &self,
         request: ListWorkflowsRequest,
     ) -> Result<ListWorkflowsResponse, Box<dyn Error>> {
-        let workflows = self.workflow_source.list_workflows(&request.repository)?;
+        let workflows = self.workflow_source.list_workflows(request.repository())?;
         Ok(ListWorkflowsResponse::new(workflows))
     }
 }

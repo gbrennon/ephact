@@ -21,14 +21,14 @@ impl Default for PrefixStepPathService {
 
 impl PrefixStepPathPort for PrefixStepPathService {
     fn execute(&self, request: PrefixStepPathRequest<'_>) -> HashMap<String, String> {
-        let base = request.env.get("PATH").cloned().unwrap_or_default();
-        let path = if request.path_additions.is_empty() {
+        let base = request.env().get("PATH").cloned().unwrap_or_default();
+        let path = if request.path_additions().is_empty() {
             base
         } else {
-            format!("{}:{}", request.path_additions.join(":"), base)
+            format!("{}:{}", request.path_additions().join(":"), base)
         };
 
-        let mut env = request.env.clone();
+        let mut env = request.env().clone();
         env.insert("PATH".into(), path);
         env
     }

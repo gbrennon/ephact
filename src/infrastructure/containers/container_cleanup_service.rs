@@ -1,4 +1,4 @@
-use crate::infrastructure::containers::container_cleanup_port::ContainerCleanupPort;
+use super::container_cleanup_port::ContainerCleanupPort;
 use std::sync::Arc;
 
 use crate::{
@@ -23,7 +23,7 @@ impl ContainerCleanupService {
 
 impl ContainerCleanupPort for ContainerCleanupService {
     fn execute(&self, request: ContainerCleanupRequest) {
-        for name in &request.container_names {
+        for name in request.container_names() {
             let _ = self.runtime.stop_container(name);
             let _ = self.runtime.kill_container(name);
             let _ = self.runtime.remove_container(name);

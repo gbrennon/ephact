@@ -14,32 +14,21 @@ use serde_json::Value;
 /// use ephact::domain::expression::context::EvalContext;
 ///
 /// let ctx = EvalContext::new();
-/// assert!(ctx.github.is_object());
+/// assert!(ctx.github().is_object());
 /// ```
 #[derive(Debug, Clone)]
 pub struct EvalContext {
-    /// The `github` context: repository, event, actor, etc.
-    pub github: Value,
-    /// The `env` context: environment variables.
-    pub env: Value,
-    /// The `job` context: current job metadata.
-    pub job: Value,
-    /// The `steps` context: outputs from previous steps.
-    pub steps: Value,
-    /// The `runner` context: runner OS, arch, etc.
-    pub runner: Value,
-    /// The `secrets` context: secret values (masked in logs).
-    pub secrets: Value,
-    /// The `vars` context: configuration variables.
-    pub vars: Value,
-    /// The `strategy` context: matrix strategy info.
-    pub strategy: Value,
-    /// The `matrix` context: current matrix combination.
-    pub matrix: Value,
-    /// The `needs` context: outputs from dependent jobs.
-    pub needs: Value,
-    /// The `inputs` context: workflow/action inputs.
-    pub inputs: Value,
+    github: Value,
+    env: Value,
+    job: Value,
+    steps: Value,
+    runner: Value,
+    secrets: Value,
+    vars: Value,
+    strategy: Value,
+    matrix: Value,
+    needs: Value,
+    inputs: Value,
 }
 
 impl Default for EvalContext {
@@ -88,6 +77,116 @@ impl EvalContext {
             _ => None,
         }
     }
+
+    #[must_use]
+    pub fn github(&self) -> &Value {
+        &self.github
+    }
+
+    #[must_use]
+    pub fn env(&self) -> &Value {
+        &self.env
+    }
+
+    #[must_use]
+    pub fn job(&self) -> &Value {
+        &self.job
+    }
+
+    #[must_use]
+    pub fn steps(&self) -> &Value {
+        &self.steps
+    }
+
+    #[must_use]
+    pub fn runner(&self) -> &Value {
+        &self.runner
+    }
+
+    #[must_use]
+    pub fn secrets(&self) -> &Value {
+        &self.secrets
+    }
+
+    #[must_use]
+    pub fn vars(&self) -> &Value {
+        &self.vars
+    }
+
+    #[must_use]
+    pub fn strategy(&self) -> &Value {
+        &self.strategy
+    }
+
+    #[must_use]
+    pub fn matrix(&self) -> &Value {
+        &self.matrix
+    }
+
+    #[must_use]
+    pub fn needs(&self) -> &Value {
+        &self.needs
+    }
+
+    #[must_use]
+    pub fn inputs(&self) -> &Value {
+        &self.inputs
+    }
+
+    pub fn with_github(mut self, github: Value) -> Self {
+        self.github = github;
+        self
+    }
+
+    pub fn with_env(mut self, env: Value) -> Self {
+        self.env = env;
+        self
+    }
+
+    pub fn with_job(mut self, job: Value) -> Self {
+        self.job = job;
+        self
+    }
+
+    pub fn with_steps(mut self, steps: Value) -> Self {
+        self.steps = steps;
+        self
+    }
+
+    pub fn with_runner(mut self, runner: Value) -> Self {
+        self.runner = runner;
+        self
+    }
+
+    pub fn with_secrets(mut self, secrets: Value) -> Self {
+        self.secrets = secrets;
+        self
+    }
+
+    pub fn with_vars(mut self, vars: Value) -> Self {
+        self.vars = vars;
+        self
+    }
+
+    pub fn with_strategy(mut self, strategy: Value) -> Self {
+        self.strategy = strategy;
+        self
+    }
+
+    pub fn with_matrix(mut self, matrix: Value) -> Self {
+        self.matrix = matrix;
+        self
+    }
+
+    pub fn with_needs(mut self, needs: Value) -> Self {
+        self.needs = needs;
+        self
+    }
+
+    pub fn with_inputs(mut self, inputs: Value) -> Self {
+        self.inputs = inputs;
+        self
+    }
 }
 
 #[cfg(test)]
@@ -97,8 +196,8 @@ mod tests {
     #[test]
     fn new_creates_empty_objects() {
         let ctx = EvalContext::new();
-        assert!(ctx.github.is_object());
-        assert!(ctx.env.is_object());
+        assert!(ctx.github().is_object());
+        assert!(ctx.env().is_object());
     }
 
     #[test]
@@ -119,5 +218,33 @@ mod tests {
         let ctx1 = EvalContext::new();
         let ctx2 = EvalContext::default();
         assert_eq!(ctx1.github, ctx2.github);
+    }
+    #[test]
+    fn accessors_and_builders_preserve_values() {
+        let value = Value::String("value".into());
+        let context = EvalContext::new()
+            .with_github(value.clone())
+            .with_env(value.clone())
+            .with_job(value.clone())
+            .with_steps(value.clone())
+            .with_runner(value.clone())
+            .with_secrets(value.clone())
+            .with_vars(value.clone())
+            .with_strategy(value.clone())
+            .with_matrix(value.clone())
+            .with_needs(value.clone())
+            .with_inputs(value.clone());
+
+        assert_eq!(context.github(), &value);
+        assert_eq!(context.env(), &value);
+        assert_eq!(context.job(), &value);
+        assert_eq!(context.steps(), &value);
+        assert_eq!(context.runner(), &value);
+        assert_eq!(context.secrets(), &value);
+        assert_eq!(context.vars(), &value);
+        assert_eq!(context.strategy(), &value);
+        assert_eq!(context.matrix(), &value);
+        assert_eq!(context.needs(), &value);
+        assert_eq!(context.inputs(), &value);
     }
 }

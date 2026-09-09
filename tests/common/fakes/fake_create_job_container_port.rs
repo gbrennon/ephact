@@ -41,13 +41,13 @@ impl CreateJobContainerPort for FakeCreateJobContainerPort {
         &self,
         request: CreateJobContainerRequest<'_>,
     ) -> Result<Arc<dyn ContainerPort>, Box<dyn std::error::Error>> {
-        self.images.lock().push(request.image.to_string());
+        self.images.lock().push(request.image().to_string());
         self.container_names
             .lock()
-            .push(request.container_name.to_string());
+            .push(request.container_name().to_string());
         self.legacy_container_names
             .lock()
-            .push(request.legacy_container_name.to_string());
+            .push(request.legacy_container_name().to_string());
         Ok(Arc::new(StubContainer))
     }
 }

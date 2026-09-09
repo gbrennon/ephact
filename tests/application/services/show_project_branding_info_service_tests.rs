@@ -41,12 +41,12 @@ fn execute_maps_domain_branding_to_primitive_response() {
 
     assert_eq!(
         response,
-        ShowProjectBrandingInfoResponse {
-            name: "ephact".to_string(),
-            description: "Ephemeral action runner".to_string(),
-            version: "0.1.0".to_string(),
-            emblem: "shield".to_string(),
-        }
+        ShowProjectBrandingInfoResponse::new(
+            "ephact".to_string(),
+            "Ephemeral action runner".to_string(),
+            "0.1.0".to_string(),
+            "shield".to_string()
+        )
     );
 }
 

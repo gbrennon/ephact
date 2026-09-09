@@ -78,36 +78,63 @@ impl RunArgs {
     ///
     /// Returns an error if the repository path is not a valid git repository.
     pub fn to_domain(&self) -> Result<(ActRunConfig, Repository), Box<dyn std::error::Error>> {
+        let repository = self.build_repository()?;
+        let config = self.build_config()?;
+        Ok((config, repository))
+    }
+
+    fn build_repository(&self) -> Result<Repository, Box<dyn std::error::Error>> {
         let repo_path = RepoPath::new(self.path.clone()).map_err(|e| format!("{:?}", e))?;
         let repo_name =
             RepositoryName::from_repo_path(&repo_path).map_err(|e| format!("{:?}", e))?;
-        let repository = Repository::new(repo_path, repo_name);
+        Ok(Repository::new(repo_path, repo_name))
+    }
 
-        let mut config = ActRunConfig::new();
+    fn build_config(&self) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
+        let config = ActRunConfig::new();
+        let config = self.apply_targets(config);
+        let config = config
+            .with_all_workflows(self.all_workflows || self.workflow.is_none())
+            .with_allow_real_container(self.allow_real_container)
+            .with_allow_real_fetcher(self.allow_real_fetcher)
+            .with_allow_network(self.allow_network);
+        let config = self.apply_inputs(config)?;
+        self.apply_secrets(config)
+    }
 
-        if let Some(ref wf) = self.workflow {
+    fn apply_targets(&self, mut config: ActRunConfig) -> ActRunConfig {
+        if let Some(wf) = &self.workflow {
             config = config.with_workflow(ActWorkflow::new(wf.clone()));
         }
-        if let Some(ref job) = self.job {
+        if let Some(job) = &self.job {
             config = config.with_job(ActJob::new(job.clone()));
         }
-        if let Some(ref event) = self.event {
+        if let Some(event) = &self.event {
             config = config.with_event(ActEvent::new(event.clone()));
         }
-        config = config.with_all_workflows(self.all_workflows || self.workflow.is_none());
-        config = config.with_allow_real_container(self.allow_real_container);
-        config = config.with_allow_real_fetcher(self.allow_real_fetcher);
-        config = config.with_allow_network(self.allow_network);
+        config
+    }
+
+    fn apply_inputs(
+        &self,
+        mut config: ActRunConfig,
+    ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
         for input_str in &self.inputs {
             let (k, v) = Self::parse_key_value(input_str)?;
             config = config.add_input(ActInput::new(k, v));
         }
+        Ok(config)
+    }
+
+    fn apply_secrets(
+        &self,
+        mut config: ActRunConfig,
+    ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
         for secret_str in &self.secrets {
             let (name, value) = Self::parse_secret(secret_str)?;
             config = config.add_secret(Secret::new(name, value));
         }
-
-        Ok((config, repository))
+        Ok(config)
     }
 
     /// Reports whether verbose output was requested.

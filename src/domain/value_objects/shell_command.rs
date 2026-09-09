@@ -38,14 +38,14 @@ impl ShellCommand {
 
         let mut env = job_env.clone();
         env.extend(
-            step.env
+            step.env()
                 .iter()
                 .map(|(key, value)| (key.clone(), value.clone())),
         );
 
         Some(Self {
             argv: vec![shell.to_string(), "-c".to_string(), script.to_string()],
-            working_directory: step.working_directory.clone(),
+            working_directory: step.working_directory().map(str::to_string),
             env,
         })
     }
