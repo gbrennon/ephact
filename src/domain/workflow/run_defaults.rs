@@ -25,3 +25,15 @@ impl RunDefaults {
         self.working_directory.as_deref()
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_exposes_fields() {
+        let defaults = RunDefaults::new(Some("bash".into()), Some("./src".into()));
+
+        assert_eq!(defaults.shell(), Some("bash"));
+        assert_eq!(defaults.working_directory(), Some("./src"));
+    }
+}
