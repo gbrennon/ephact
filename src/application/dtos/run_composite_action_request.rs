@@ -4,13 +4,13 @@ use crate::{application::dtos::ExecuteActionRequest, domain::workflow::Step};
 
 /// Everything needed to run the steps of a composite action.
 pub struct RunCompositeActionRequest<'a> {
-    steps: &'a [Step],
+    pub steps: &'a [Step],
 
-    inputs: &'a HashMap<String, String>,
+    pub inputs: &'a HashMap<String, String>,
 
-    action_dir: &'a Path,
+    pub action_dir: &'a Path,
 
-    action_request: &'a ExecuteActionRequest,
+    pub action_request: &'a ExecuteActionRequest,
 }
 
 impl<'a> RunCompositeActionRequest<'a> {
