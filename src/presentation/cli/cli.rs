@@ -1,5 +1,11 @@
 use std::ffi::OsString;
 
+use super::super::components::{
+    banner::Banner,
+    box_component::BoxComponent,
+    content::ContentComponent,
+    terminal::{SystemTerminal, Terminal},
+};
 use super::{
     cli_parser::CliParser, command::Command, list_actions_handler::ListActionsHandler,
     list_workflows_handler::ListWorkflowsHandler, run_handler::RunHandler,
@@ -8,10 +14,6 @@ use crate::application::ports::inbound::{
     list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
     run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
     show_project_branding_info_port::ShowProjectBrandingInfoPort,
-};
-use super::super::components::{
-    banner::Banner, box_component::BoxComponent, content::ContentComponent,
-    terminal::{SystemTerminal, Terminal},
 };
 
 pub struct Cli {
