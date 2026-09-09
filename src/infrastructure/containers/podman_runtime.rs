@@ -1,18 +1,17 @@
 use futures_util::StreamExt;
 use tokio::runtime::Runtime;
 
+use super::bollard_wrapper::types::{
+    ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder, HostConfig,
+    InspectContainerOptions, KillContainerOptions, RemoveContainerOptions, StartContainerOptions,
+};
+use super::bollard_wrapper::{API_DEFAULT_VERSION, AuthCredentials, Client};
 use super::podman_container::PodmanContainer;
 use crate::application::dtos::ContainerConfig;
 use crate::application::dtos::HostInfo;
 use crate::application::ports::outbound::ContainerRuntimePort;
 use crate::application::ports::outbound::container_port::ContainerPort;
 use crate::domain::errors::ContainerError;
-use super::bollard_wrapper::{API_DEFAULT_VERSION, AuthCredentials, Client};
-use super::bollard_wrapper::types::{
-    ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
-    HostConfig, InspectContainerOptions, KillContainerOptions, RemoveContainerOptions,
-    StartContainerOptions,
-};
 
 /// Podman-based container runtime adapter using the bollard crate.
 ///
@@ -109,7 +108,7 @@ impl ContainerRuntimePort for PodmanRuntime {
                 .await
                 .map_err(|e| {
                     ContainerError::CreationFailed(
-                        config.name().clone().unwrap_or_default().to_string().to_string(),
+                        config.name().unwrap_or_default().to_string().to_string(),
                         e.to_string(),
                     )
                 })
@@ -121,7 +120,7 @@ impl ContainerRuntimePort for PodmanRuntime {
                 .await
                 .map_err(|e| {
                     ContainerError::CreationFailed(
-                        config.name().clone().unwrap_or_default().to_string().to_string(),
+                        config.name().unwrap_or_default().to_string().to_string(),
                         e.to_string(),
                     )
                 })
@@ -202,7 +201,11 @@ impl ContainerRuntimePort for PodmanRuntime {
                 .await
                 .map_err(|_| ContainerError::NotAvailable)?;
 
-            Ok(HostInfo::new(info.os.unwrap_or_else(|| "linux".to_string()), info.arch.unwrap_or_else(|| "amd64".to_string()), info.version.unwrap_or_else(|| "unknown".to_string())))
+            Ok(HostInfo::new(
+                info.os.unwrap_or_else(|| "linux".to_string()),
+                info.arch.unwrap_or_else(|| "amd64".to_string()),
+                info.version.unwrap_or_else(|| "unknown".to_string()),
+            ))
         })
     }
 }
