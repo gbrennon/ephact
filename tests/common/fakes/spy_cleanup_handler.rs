@@ -24,6 +24,8 @@ impl SpyCleanupHandler {
 
 impl ContainerCleanupPort for SpyCleanupHandler {
     fn execute(&self, request: ContainerCleanupRequest) {
-        self.cleaned_up.lock().push(request.container_names);
+        self.cleaned_up
+            .lock()
+            .push(request.container_names().to_vec().to_vec());
     }
 }
