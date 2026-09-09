@@ -13,7 +13,11 @@ pub struct StepStartedPayload {
 
 impl StepStartedPayload {
     pub fn new(workflow_name: String, job_id: String, step_name: String) -> Self {
-        Self { workflow_name, job_id, step_name }
+        Self {
+            workflow_name,
+            job_id,
+            step_name,
+        }
     }
 
     pub fn workflow_name(&self) -> &str {
@@ -26,5 +30,18 @@ impl StepStartedPayload {
 
     pub fn step_name(&self) -> &str {
         &self.step_name
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_preserves_fields() {
+        let payload = StepStartedPayload::new("workflow".into(), "job".into(), "step".into());
+
+        assert_eq!(payload.workflow_name(), "workflow");
+        assert_eq!(payload.job_id(), "job");
+        assert_eq!(payload.step_name(), "step");
     }
 }
