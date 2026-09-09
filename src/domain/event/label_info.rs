@@ -20,3 +20,15 @@ impl LabelInfo {
         &self.color
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_preserves_fields() {
+        let label = LabelInfo::new("bug".into(), "ff0000".into());
+
+        assert_eq!(label.name(), "bug");
+        assert_eq!(label.color(), "ff0000");
+    }
+}
