@@ -12,8 +12,22 @@ pub struct ReleaseInfo {
 }
 
 impl ReleaseInfo {
-    pub fn new(tag_name: String, name: Option<String>, body: Option<String>, draft: bool, prerelease: bool, html_url: String) -> Self {
-        Self { tag_name, name, body, draft, prerelease, html_url }
+    pub fn new(
+        tag_name: String,
+        name: Option<String>,
+        body: Option<String>,
+        draft: bool,
+        prerelease: bool,
+        html_url: String,
+    ) -> Self {
+        Self {
+            tag_name,
+            name,
+            body,
+            draft,
+            prerelease,
+            html_url,
+        }
     }
 
     pub fn tag_name(&self) -> &str {
@@ -38,5 +52,28 @@ impl ReleaseInfo {
 
     pub fn html_url(&self) -> &str {
         &self.html_url
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_preserves_fields() {
+        let release = ReleaseInfo::new(
+            "v1".into(),
+            Some("Release".into()),
+            Some("Notes".into()),
+            true,
+            false,
+            "url".into(),
+        );
+
+        assert_eq!(release.tag_name(), "v1");
+        assert_eq!(release.name(), Some("Release"));
+        assert_eq!(release.body(), Some("Notes"));
+        assert!(release.draft());
+        assert!(!release.prerelease());
+        assert_eq!(release.html_url(), "url");
     }
 }
