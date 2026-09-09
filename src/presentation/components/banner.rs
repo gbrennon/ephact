@@ -17,7 +17,7 @@ impl Component for Banner<'_> {
     fn render(&self) -> String {
         let font = FIGlet::standard().expect("the bundled standard FIGlet font must be valid");
         let ascii_name = font
-            .convert(&self.response.name())
+            .convert(self.response.name())
             .expect("the crate name must be renderable by the bundled standard FIGlet font");
 
         format!(
