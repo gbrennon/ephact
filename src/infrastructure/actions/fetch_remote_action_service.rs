@@ -1,10 +1,8 @@
 use super::fetch_remote_action_port::FetchRemoteActionPort;
 use std::path::PathBuf;
 
-use crate::{
-    application::dtos::FetchRemoteActionRequest, domain::errors::ActionError,
-};
 use super::ActionFetcherPort;
+use crate::{application::dtos::FetchRemoteActionRequest, domain::errors::ActionError};
 
 /// Service that retrieves an action published on a forge, narrowing the result
 /// to the subdirectory the reference names when it names one.
