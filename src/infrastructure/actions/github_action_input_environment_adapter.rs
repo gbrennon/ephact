@@ -1,7 +1,7 @@
+use super::build_action_input_environment_port::BuildActionInputEnvironmentPort;
 use crate::application::dtos::{
     BuildActionInputEnvironmentRequest, BuildActionInputEnvironmentResponse,
 };
-use super::build_action_input_environment_port::BuildActionInputEnvironmentPort;
 
 /// Infrastructure adapter that prepares an action's execution environment
 /// following the GitHub Actions specification: `GITHUB_ACTION_PATH` and
@@ -31,7 +31,10 @@ impl BuildActionInputEnvironmentPort for GitHubActionInputEnvironmentAdapter {
         request: BuildActionInputEnvironmentRequest<'_>,
     ) -> BuildActionInputEnvironmentResponse {
         let mut action_env = request.env().clone();
-        action_env.insert("GITHUB_ACTION_PATH".into(), request.action_path().to_string());
+        action_env.insert(
+            "GITHUB_ACTION_PATH".into(),
+            request.action_path().to_string(),
+        );
         for (name, value) in request.inputs() {
             action_env.insert(Self::input_variable(name), value.clone());
         }
