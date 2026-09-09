@@ -40,8 +40,15 @@ mod tests {
         fn _assert_run_action(_: Box<dyn RunActionPort>) {}
         fn _assert_list_workflows(_: Box<dyn ListWorkflowsPort>) {}
         fn _assert_list_actions(_: Box<dyn ListActionsPort>) {}
-        let (_, run_all, run_workflow, run_action, list_workflows, list_actions) =
-            container.into_parts();
+        let (
+            _,
+            run_all,
+            run_workflow,
+            run_action,
+            _discover_run_inputs,
+            list_workflows,
+            list_actions,
+        ) = container.into_parts();
         _assert_run_all_workflows(run_all);
         _assert_run_workflow(run_workflow);
         _assert_run_action(run_action);

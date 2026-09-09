@@ -5,10 +5,14 @@ mod tests {
     use ephact::{
         application::{
             dtos::{
-                JobSummary, ListWorkflowsRequest, ListWorkflowsResponse, RunAllWorkflowsRequest,
-                RunSummary, RunWorkflowRequest, WorkflowListItem,
+                DiscoverRunInputsRequest, JobSummary, ListWorkflowsRequest, ListWorkflowsResponse,
+                RunAllWorkflowsRequest, RunInputDeclaration, RunInputSource, RunSummary,
+                RunWorkflowRequest, WorkflowListItem,
             },
-            ports::inbound::{ListWorkflowsPort, RunAllWorkflowsPort, RunWorkflowPort},
+            ports::{
+                inbound::{ListWorkflowsPort, RunAllWorkflowsPort, RunWorkflowPort},
+                outbound::DiscoverRunInputsPort,
+            },
         },
         presentation::{
             cli::{parse_run_test_args, run_handler::RunHandler},
@@ -80,6 +84,19 @@ mod tests {
             _request: ListWorkflowsRequest,
         ) -> Result<ListWorkflowsResponse, Box<dyn Error>> {
             Ok(self.response.clone())
+        }
+    }
+
+    struct DiscoverInputsFake {
+        declarations: Vec<RunInputDeclaration>,
+    }
+
+    impl DiscoverRunInputsPort for DiscoverInputsFake {
+        fn execute(
+            &self,
+            _request: DiscoverRunInputsRequest,
+        ) -> Result<Vec<RunInputDeclaration>, Box<dyn Error>> {
+            Ok(self.declarations.clone())
         }
     }
 
@@ -334,5 +351,59 @@ mod tests {
                 .map(|workflow| workflow.as_str()),
             Some("CI")
         );
+    }
+
+    #[test]
+    fn interactive_preflight_prompts_for_each_declared_input() {
+        let args = parse_run_test_args(&["--interactive"]);
+        let run_port = RecordingRunWorkflowPort::new();
+        let all_run_port = UnusedRunAllWorkflowsPort;
+        let discovery_port = DiscoverInputsFake {
+            declarations: vec![
+                RunInputDeclaration::new(
+                    "cache-key-prefix",
+                    RunInputSource::Action("./.forgejo/actions/cache-rust-deps".into()),
+                    Some("Prefix for the cache key".into()),
+                    true,
+                    None,
+                ),
+                RunInputDeclaration::new(
+                    "rustc-version",
+                    RunInputSource::Action("./.forgejo/actions/cache-rust-deps".into()),
+                    Some("Rust compiler version".into()),
+                    false,
+                    Some("stable".into()),
+                ),
+            ],
+        };
+        let list_port = WorkflowListPortFake::new(vec![WorkflowListItem::new(
+            Some("CI".into()),
+            Some("ci.yml".into()),
+            vec!["pull_request".into()],
+        )]);
+        let terminal = ScriptedTerminal::new(vec!["1\n", "ephact\n", "stable\n"]);
+
+        RunHandler::handle_with_preflight_output(
+            args,
+            &run_port,
+            &all_run_port,
+            &discovery_port,
+            &list_port,
+            &terminal,
+        )
+        .unwrap();
+
+        let requests = run_port.requests();
+        assert_eq!(requests[0].config().inputs()[0].key(), "cache-key-prefix");
+        assert_eq!(requests[0].config().inputs()[0].value(), "ephact");
+        assert_eq!(requests[0].config().inputs()[1].key(), "rustc-version");
+        assert_eq!(requests[0].config().inputs()[1].value(), "stable");
+
+        let output = terminal.written_text();
+        assert!(output.contains("Name: cache-key-prefix"));
+        assert!(output.contains("Description: Prefix for the cache key"));
+        assert!(output.contains("Value for cache-key-prefix"));
+        assert!(output.contains("Name: rustc-version"));
+        assert!(output.contains("Description: Rust compiler version"));
     }
 }
