@@ -31,7 +31,7 @@ fn execute_lets_the_job_environment_override_the_workflow_one() {
         job_env: &job_env(&[("MODE", "job")]),
     });
 
-    assert_eq!(response.env.get("MODE").map(String::as_str), Some("job"));
+    assert_eq!(response.env().get("MODE").map(String::as_str), Some("job"));
 }
 
 #[test]
@@ -44,15 +44,15 @@ fn execute_sets_the_runners_own_variables() {
     });
 
     assert_eq!(
-        response.env.get("GITHUB_PATH").map(String::as_str),
+        response.env().get("GITHUB_PATH").map(String::as_str),
         Some("/workspace/.github_path")
     );
     assert_eq!(
-        response.env.get("GITHUB_ENV").map(String::as_str),
+        response.env().get("GITHUB_ENV").map(String::as_str),
         Some("/workspace/.github_env")
     );
     assert_eq!(
-        response.env.get("GITHUB_WORKSPACE").map(String::as_str),
+        response.env().get("GITHUB_WORKSPACE").map(String::as_str),
         Some("/workspace")
     );
 }
@@ -67,7 +67,7 @@ fn execute_defaults_the_path_when_neither_workflow_nor_job_declares_one() {
     });
 
     assert_eq!(
-        response.env.get("PATH").map(String::as_str),
+        response.env().get("PATH").map(String::as_str),
         Some(DEFAULT_PATH)
     );
 }
@@ -82,7 +82,7 @@ fn execute_keeps_a_declared_path() {
     });
 
     assert_eq!(
-        response.env.get("PATH").map(String::as_str),
+        response.env().get("PATH").map(String::as_str),
         Some("/custom/bin")
     );
 }
@@ -97,7 +97,7 @@ fn execute_keeps_a_job_declared_path() {
     });
 
     assert_eq!(
-        response.env.get("PATH").map(String::as_str),
+        response.env().get("PATH").map(String::as_str),
         Some("/job/bin")
     );
 }
