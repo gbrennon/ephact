@@ -243,46 +243,117 @@ impl RunHandler {
     ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
         let declarations = discover_run_inputs_port
             .execute(DiscoverRunInputsRequest::new(config.clone(), repository))?;
+        if Self::can_skip_prompting(&declarations, interactive) {
+            return Ok(config);
+        }
+        Self::prompt_or_describe_inputs(&mut config, &declarations, interactive, terminal)?;
+        Ok(config)
+    }
+
+    fn can_skip_prompting(
+        declarations: &[crate::application::dtos::RunInputDeclaration],
+        interactive: bool,
+    ) -> bool {
         let missing: Vec<_> = declarations
             .iter()
             .filter(|input| input.required() && !input.is_resolved())
             .collect();
-        if declarations.is_empty() {
-            return Ok(config);
-        }
-        if !interactive && !terminal.is_interactive() && !missing.is_empty() {
-            return Err(format!(
-                "required inputs missing: {}",
-                missing
-                    .iter()
-                    .map(|input| input.name())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )
-            .into());
-        }
-        if !interactive && missing.is_empty() {
-            return Ok(config);
-        }
-        terminal.write_text("\nInputs\n")?;
-        for (index, declaration) in declarations.iter().enumerate() {
-            let should_prompt =
-                interactive || (declaration.required() && !declaration.is_resolved());
-            if should_prompt {
-                config = Self::prompt_for_input(
-                    config,
-                    declaration,
-                    index + 1,
-                    declarations.len(),
-                    terminal,
-                )?;
-            } else {
-                Self::describe_input(declaration, index + 1, declarations.len(), terminal)?;
-            }
-        }
-        Ok(config)
+        declarations.is_empty() || (!interactive && missing.is_empty())
     }
 
+    fn prompt_or_describe_inputs(
+        config: &mut ActRunConfig,
+        declarations: &[crate::application::dtos::RunInputDeclaration],
+        interactive: bool,
+        terminal: &dyn Terminal,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        Self::fail_if_missing_required_noninteractive(declarations, interactive, terminal)?;
+        Self::prompt_or_describe_all(config, declarations, interactive, terminal)
+    }
+
+    fn fail_if_missing_required_noninteractive(
+        declarations: &[crate::application::dtos::RunInputDeclaration],
+        interactive: bool,
+        terminal: &dyn Terminal,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let missing = Self::collect_missing_required(declarations);
+        if !interactive && !terminal.is_interactive() && !missing.is_empty() {
+            return Err(Self::missing_inputs_error(&missing));
+        }
+        Ok(())
+    }
+
+    fn prompt_or_describe_all(
+        config: &mut ActRunConfig,
+        declarations: &[crate::application::dtos::RunInputDeclaration],
+        interactive: bool,
+        terminal: &dyn Terminal,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        terminal.write_text("\nInputs\n")?;
+        for (index, declaration) in declarations.iter().enumerate() {
+            Self::prompt_or_describe_one(
+                config,
+                declaration,
+                index,
+                declarations.len(),
+                interactive,
+                terminal,
+            )?;
+        }
+        Ok(())
+    }
+
+    fn prompt_or_describe_one(
+        config: &mut ActRunConfig,
+        declaration: &crate::application::dtos::RunInputDeclaration,
+        index: usize,
+        total: usize,
+        interactive: bool,
+        terminal: &dyn Terminal,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if Self::should_prompt(declaration, interactive) {
+            *config = Self::prompt_for_input(
+                std::mem::take(config),
+                declaration,
+                index + 1,
+                total,
+                terminal,
+            )?;
+        } else {
+            Self::describe_input(declaration, index + 1, total, terminal)?;
+        }
+        Ok(())
+    }
+
+    fn collect_missing_required(
+        declarations: &[crate::application::dtos::RunInputDeclaration],
+    ) -> Vec<&crate::application::dtos::RunInputDeclaration> {
+        declarations
+            .iter()
+            .filter(|input| input.required() && !input.is_resolved())
+            .collect()
+    }
+
+    fn missing_inputs_error(
+        missing: &[&crate::application::dtos::RunInputDeclaration],
+    ) -> Box<dyn std::error::Error> {
+        format!(
+            "required inputs missing: {}",
+            missing
+                .iter()
+                .map(|input| input.name())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+        .into()
+    }
+
+    fn should_prompt(
+        declaration: &crate::application::dtos::RunInputDeclaration,
+        interactive: bool,
+    ) -> bool {
+        interactive || (declaration.required() && !declaration.is_resolved())
+    }
     fn describe_input(
         declaration: &crate::application::dtos::RunInputDeclaration,
         index: usize,
@@ -312,32 +383,55 @@ impl RunHandler {
     }
 
     fn prompt_for_input(
-        mut config: ActRunConfig,
+        config: ActRunConfig,
         declaration: &crate::application::dtos::RunInputDeclaration,
         index: usize,
         total: usize,
         terminal: &dyn Terminal,
     ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
         Self::describe_input(declaration, index, total, terminal)?;
+        let value = Self::read_input_value(declaration, terminal)?;
+        Self::apply_input_value(config, declaration, value)
+    }
+
+    fn read_input_value(
+        declaration: &crate::application::dtos::RunInputDeclaration,
+        terminal: &dyn Terminal,
+    ) -> Result<String, Box<dyn std::error::Error>> {
         terminal.write_text(&format!(
             "Value for {} (literal or env:VARIABLE; blank keeps the current/default value): ",
             declaration.name()
         ))?;
-        let value = terminal.read_line()?;
-        let value = value.trim();
-        if value.is_empty() {
-            if declaration.required() && !declaration.is_resolved() {
-                return Err(
-                    format!("required input '{}' cannot be blank", declaration.name()).into(),
-                );
-            }
-            return Ok(config);
+        let value = terminal.read_line()?.trim().to_owned();
+        Self::validate_required_input(&value, declaration)?;
+        Ok(value)
+    }
+
+    fn validate_required_input(
+        value: &str,
+        declaration: &crate::application::dtos::RunInputDeclaration,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if value.is_empty() && declaration.required() && !declaration.is_resolved() {
+            return Err(format!("required input '{}' cannot be blank", declaration.name()).into());
         }
-        let (_, source) = RunArgs::parse_input_source(&format!("{}={value}", declaration.name()))?;
-        config = config.add_input(ActInput::new(
-            declaration.name().to_owned(),
-            source.resolve()?,
-        ));
+        Ok(())
+    }
+
+    fn apply_input_value(
+        mut config: ActRunConfig,
+        declaration: &crate::application::dtos::RunInputDeclaration,
+        value: String,
+    ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
+        if !value.is_empty() {
+            let (_, source) = crate::presentation::cli::RunArgs::parse_input_source(&format!(
+                "{}={value}",
+                declaration.name()
+            ))?;
+            config = config.add_input(crate::domain::value_objects::ActInput::new(
+                declaration.name().to_owned(),
+                source.resolve()?,
+            ));
+        }
         Ok(config)
     }
 
@@ -366,7 +460,7 @@ mod tests {
     use super::*;
     use crate::{
         application::dtos::{JobSummary, run_summary::step_summary::StepSummary},
-        domain::workflow::StepType,
+        domain::value_objects::StepType,
     };
 
     fn job(job_id: &str, name: Option<&str>, success: bool) -> JobSummary {

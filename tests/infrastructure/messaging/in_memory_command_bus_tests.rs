@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use ephact::application::commands::{ExecuteActionCommand, ExecuteWorkflowCommand};
+use ephact::application::dtos::{ExecuteActionCommand, ExecuteWorkflowCommand};
 use ephact::{
     application::{
         dtos::{
@@ -17,7 +17,7 @@ use ephact::{
     },
     domain::{
         ActRunConfig, RepoPath, Repository, RepositoryName, errors::StepError,
-        expression::EvalContext, workflow::Step,
+        value_objects::EvaluationContext,
     },
     infrastructure::{
         actions::ActionCommandHandler, jobs::JobCommandHandler, messaging::InMemoryCommandBus,
@@ -26,6 +26,7 @@ use ephact::{
 };
 
 use crate::common::fakes::stub_container::StubContainer;
+use ephact::infrastructure::workflows::yaml::StepYaml;
 
 struct StubWorkflowPort;
 impl ExecuteWorkflowPort for StubWorkflowPort {
@@ -119,13 +120,15 @@ fn command_bus_dispatches_action_to_action_handler() {
         Box::new(ActionCommandHandler::new(Box::new(StubActionPort))),
     );
 
-    let step: Step = serde_yaml::from_str("uses: actions/checkout@v4").unwrap();
+    let step = serde_yaml::from_str::<StepYaml>("uses: actions/checkout@v4")
+        .unwrap()
+        .into_domain();
     let cmd = ExecuteActionCommand::new(
         "actions/checkout@v4".into(),
         step,
         PathBuf::from("/repo"),
         HashMap::new(),
-        EvalContext::new(),
+        EvaluationContext::new(),
         Arc::new(StubContainer),
     );
 

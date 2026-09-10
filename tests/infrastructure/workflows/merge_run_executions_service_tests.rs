@@ -7,7 +7,7 @@ use std::time::Duration;
 use ephact::application::dtos::{
     JobSummary, MergeRunExecutionsRequest, StepSummary, WorkflowExecution,
 };
-use ephact::domain::workflow::StepType;
+use ephact::domain::value_objects::StepType;
 
 fn job(job_id: &str, name: Option<&str>, success: bool) -> JobSummary {
     JobSummary::new(

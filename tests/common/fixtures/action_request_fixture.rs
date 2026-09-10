@@ -1,11 +1,13 @@
 #![allow(dead_code)]
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use ephact::application::dtos::ExecuteActionRequest;
-use ephact::application::ports::outbound::container_port::ContainerPort;
-use ephact::domain::expression::EvalContext;
+use ephact::{
+    application::{dtos::ExecuteActionRequest, ports::outbound::container_port::ContainerPort},
+    domain::value_objects::EvaluationContext,
+};
 
 use crate::common::fakes::stub_container::StubContainer;
+use ephact::infrastructure::workflows::yaml::StepYaml;
 
 /// Builds action execution requests for tests that only care about which
 /// action was requested.
@@ -16,10 +18,12 @@ impl ActionRequestFixture {
         let container: Arc<dyn ContainerPort> = Arc::new(StubContainer);
         ExecuteActionRequest::new(
             action_ref,
-            serde_yaml::from_str(&format!("uses: {action_ref}\n")).unwrap(),
+            serde_yaml::from_str::<StepYaml>(&format!("uses: {action_ref}\n"))
+                .unwrap()
+                .into_domain(),
             PathBuf::from("/workspace"),
             HashMap::new(),
-            EvalContext::new(),
+            EvaluationContext::new(),
             container,
         )
     }

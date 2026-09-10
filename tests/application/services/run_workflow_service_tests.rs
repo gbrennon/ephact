@@ -10,7 +10,8 @@ use ephact::{
 };
 
 use crate::common::fakes::{
-    fake_command_bus::FakeCommandBus, fake_event_bus::FakeEventBus,
+    fake_command_bus::FakeCommandBus,
+    fake_detect_workflow_trigger_port::FakeDetectWorkflowTriggerPort, fake_event_bus::FakeEventBus,
     fake_workflow_source::FakeWorkflowSource,
 };
 
@@ -45,6 +46,7 @@ fn execute_runs_workflow_and_publishes_event() {
         Box::new(workflow_source),
         command_bus.clone(),
         event_bus.clone(),
+        Arc::new(FakeDetectWorkflowTriggerPort::always_triggering()),
     );
     let request = RunWorkflowRequest::new(ActRunConfig::new(), repo);
 
@@ -79,8 +81,12 @@ fn execute_rejects_workflows_without_pull_request_event() {
         FakeWorkflowSource::new().with_workflow_content("name: CI\non: merge_group\njobs: {}");
     let command_bus = Arc::new(FakeCommandBus::new());
     let event_bus = Arc::new(FakeEventBus::new());
-    let service =
-        RunWorkflowService::new(Box::new(workflow_source), command_bus.clone(), event_bus);
+    let service = RunWorkflowService::new(
+        Box::new(workflow_source),
+        command_bus.clone(),
+        event_bus,
+        Arc::new(FakeDetectWorkflowTriggerPort::never_triggering()),
+    );
     let request = RunWorkflowRequest::new(ActRunConfig::new(), repo);
 
     let error = service.execute(request).unwrap_err();

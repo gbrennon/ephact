@@ -1,18 +1,21 @@
 use std::collections::HashMap;
 
+use ephact::infrastructure::workflows::yaml::WorkflowYaml;
 use ephact::{
     application::{
         dtos::BuildJobEnvironmentRequest,
         ports::outbound::build_job_environment_port::BuildJobEnvironmentPort,
     },
-    domain::workflow::Workflow,
+    domain::aggregates::Workflow,
     infrastructure::jobs::GitHubJobEnvironmentAdapter,
 };
 
 const DEFAULT_PATH: &str = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
 
 fn workflow(yaml: &str) -> Workflow {
-    serde_yaml::from_str(yaml).unwrap()
+    serde_yaml::from_str::<WorkflowYaml>(yaml)
+        .unwrap()
+        .into_domain()
 }
 
 fn job_env(pairs: &[(&str, &str)]) -> HashMap<String, String> {

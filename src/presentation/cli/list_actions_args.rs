@@ -2,8 +2,10 @@ use std::path::PathBuf;
 
 use clap::Args;
 
-use crate::application::dtos::ListActionsRequest;
-use crate::domain::{RepoPath, Repository, RepositoryName};
+use crate::{
+    application::dtos::ListActionsRequest,
+    domain::{RepoPath, Repository, RepositoryName},
+};
 
 /// CLI arguments for the `list-actions` command.
 ///

@@ -11,10 +11,14 @@ mod tests {
             },
             services::execute_action_service::ExecuteActionService,
         },
-        domain::{expression::EvalContext, workflow::Step},
-        infrastructure::{actions::ActionFetcherPort, di::ActionExecutionWiring},
+        domain::{
+            entities::Step,
+            value_objects::{ContextValue, EvaluationContext},
+        },
+        infrastructure::{
+            actions::ActionFetcherPort, di::ActionExecutionWiring, workflows::yaml::StepYaml,
+        },
     };
-    use serde_json::Value;
 
     use crate::common::fakes::{
         fake_action_fetcher::FakeActionFetcher,
@@ -51,7 +55,9 @@ mod tests {
     }
 
     fn step_from(yaml: &str) -> Step {
-        serde_yaml::from_str(yaml).unwrap()
+        serde_yaml::from_str::<StepYaml>(yaml)
+            .unwrap()
+            .into_domain()
     }
 
     fn request(
@@ -59,7 +65,7 @@ mod tests {
         step: Step,
         repo_path: &Path,
         container: Arc<dyn ContainerPort>,
-        context: EvalContext,
+        context: EvaluationContext,
     ) -> ExecuteActionRequest {
         ExecuteActionRequest::new(
             action_ref,
@@ -100,7 +106,7 @@ mod tests {
                 step_from("uses: ./actions/greet\n"),
                 repo.path(),
                 container(&runtime),
-                EvalContext::new(),
+                EvaluationContext::new(),
             ))
             .unwrap();
 
@@ -125,7 +131,7 @@ mod tests {
                 step_from("uses: ./actions/deploy\nwith:\n  mode: staging\n"),
                 repo.path(),
                 container(&runtime),
-                EvalContext::new(),
+                EvaluationContext::new(),
             ))
             .unwrap();
 
@@ -151,7 +157,7 @@ mod tests {
                 step_from("uses: ./actions/deploy\n"),
                 repo.path(),
                 container(&runtime),
-                EvalContext::new(),
+                EvaluationContext::new(),
             ))
             .unwrap();
 
@@ -170,9 +176,8 @@ mod tests {
         );
         let runtime = FakeRuntime::new();
         let service = wiring(Box::new(FakeActionFetcher::returning(repo.path().into())));
-        let mut secrets = serde_json::Map::new();
-        secrets.insert("TOKEN".to_string(), Value::String("abc123".to_string()));
-        let context = EvalContext::new().with_secrets(Value::Object(secrets));
+        let secrets = ContextValue::mapping([("TOKEN".to_string(), ContextValue::text("abc123"))]);
+        let context = EvaluationContext::new().with_secrets(secrets);
 
         service
             .execute(request(
@@ -207,7 +212,7 @@ mod tests {
                 step_from("uses: ./actions/build\n"),
                 repo.path(),
                 container(&runtime),
-                EvalContext::new(),
+                EvaluationContext::new(),
             ))
             .unwrap();
 
@@ -233,7 +238,7 @@ mod tests {
                 step_from("uses: https://data.forgejo.org/actions/cache@v4\n"),
                 repo.path(),
                 container(&runtime),
-                EvalContext::new(),
+                EvaluationContext::new(),
             ))
             .unwrap();
 
@@ -265,7 +270,7 @@ mod tests {
                 ),
                 repo.path(),
                 container(&runtime),
-                EvalContext::new(),
+                EvaluationContext::new(),
             ))
             .unwrap();
 
@@ -313,7 +318,7 @@ mod tests {
                 step_from("uses: https://data.forgejo.org/actions/cache@v4\n"),
                 repo.path(),
                 container(&runtime),
-                EvalContext::new(),
+                EvaluationContext::new(),
             ))
             .unwrap();
 
@@ -342,7 +347,7 @@ mod tests {
                 step_from("uses: actions/checkout@v4\n"),
                 repo.path(),
                 container(&runtime),
-                EvalContext::new(),
+                EvaluationContext::new(),
             ))
             .unwrap();
 
@@ -367,7 +372,7 @@ mod tests {
                 step_from("uses: https://data.forgejo.org/actions/cache@v4\n"),
                 repo.path(),
                 container(&runtime),
-                EvalContext::new(),
+                EvaluationContext::new(),
             ))
             .unwrap_err();
 
@@ -390,7 +395,7 @@ mod tests {
                 step_from("uses: docker://node:20\n"),
                 repo.path(),
                 container(&runtime),
-                EvalContext::new(),
+                EvaluationContext::new(),
             ))
             .unwrap_err();
 
@@ -413,7 +418,7 @@ mod tests {
                 step_from("uses: ./actions/absent\n"),
                 repo.path(),
                 container(&runtime),
-                EvalContext::new(),
+                EvaluationContext::new(),
             ))
             .unwrap_err();
 
@@ -450,7 +455,7 @@ mod tests {
                 step_from("uses: ./actions/outer\n"),
                 repo.path(),
                 container(&runtime),
-                EvalContext::new(),
+                EvaluationContext::new(),
             ))
             .unwrap();
 

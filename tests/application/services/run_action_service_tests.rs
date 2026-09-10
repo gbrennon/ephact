@@ -6,10 +6,11 @@ use ephact::{
         ports::inbound::RunActionPort,
         services::run_action_service::RunActionService,
     },
-    domain::{expression::EvalContext, workflow::Step},
+    domain::value_objects::EvaluationContext,
 };
 
 use crate::common::fakes::{fake_command_bus::FakeCommandBus, stub_container::StubContainer};
+use ephact::infrastructure::workflows::yaml::StepYaml;
 
 #[test]
 fn execute_delegates_action_execution_to_command_bus() {
@@ -18,14 +19,16 @@ fn execute_delegates_action_execution_to_command_bus() {
     ));
 
     let service = RunActionService::new(command_bus.clone());
-    let step: Step = serde_yaml::from_str("uses: actions/checkout@v4").unwrap();
+    let step = serde_yaml::from_str::<StepYaml>("uses: actions/checkout@v4")
+        .unwrap()
+        .into_domain();
 
     let request = RunActionRequest::new(
         "actions/checkout@v4".into(),
         step,
         PathBuf::from("/repo"),
         HashMap::new(),
-        EvalContext::new(),
+        EvaluationContext::new(),
         Arc::new(StubContainer),
     );
 
