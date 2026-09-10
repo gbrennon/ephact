@@ -145,4 +145,104 @@ mod tests {
         assert_eq!(result.stdout(), "action out");
         assert_eq!(result.exit_code(), 0);
     }
+
+    struct EchoJobPort;
+
+    impl ExecuteJobPort for EchoJobPort {
+        fn execute(
+            &self,
+            request: ephact::application::dtos::requests::ExecuteJobRequest<'_>,
+        ) -> Result<JobExecutionResponse, Box<dyn std::error::Error>> {
+            Ok(JobExecutionResponse::new(
+                JobSummaryResponse::new(
+                    request.run().job_id().to_string(),
+                    request.run().workflow_name().map(str::to_string),
+                    Vec::new(),
+                    true,
+                ),
+                request.repo_path().display().to_string(),
+            ))
+        }
+    }
+
+    struct EchoStepPort;
+
+    impl ExecuteStepPort for EchoStepPort {
+        fn execute(
+            &self,
+            request: ephact::application::dtos::requests::ExecuteStepRequest<'_>,
+        ) -> Result<ExecutedStepResponse, StepError> {
+            Ok(ExecutedStepResponse::new(
+                request.step().clone(),
+                ExecuteActionResponse::new(
+                    0,
+                    request.env().get("MARKER").cloned().unwrap_or_default(),
+                    request.repo_path().display().to_string(),
+                ),
+            ))
+        }
+    }
+
+    fn workflow_named(name: &str) -> Workflow {
+        Workflow::new(
+            Some(name.to_string()),
+            None,
+            WorkflowTrigger::Single("pull_request".to_string()),
+            HashMap::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+        )
+    }
+
+    #[test]
+    fn command_bus_dispatches_job_to_job_handler_with_command_payload() {
+        let bus = InMemoryCommandBus::new(
+            Box::new(WorkflowCommandHandler::new(Box::new(StubWorkflowPort))),
+            Box::new(JobCommandHandler::new(Box::new(EchoJobPort))),
+            Box::new(StepCommandHandler::new(Box::new(StubStepPort))),
+            Box::new(ActionCommandHandler::new(Box::new(StubActionPort))),
+        );
+        let repo_path = PathBuf::from("/repo/job");
+        let command = ExecuteJobCommand::new(
+            Job::default(),
+            "build-job".to_string(),
+            workflow_named("Build"),
+            repo_path.clone(),
+            EvaluationContext::new(),
+        );
+
+        let result = bus.dispatch_job(command).unwrap();
+
+        assert_eq!(result.job_summary().job_id(), "build-job");
+        assert_eq!(result.job_summary().name(), Some("Build"));
+        assert_eq!(result.container_name(), repo_path.display().to_string());
+    }
+
+    #[test]
+    fn command_bus_dispatches_step_to_step_handler_with_command_payload() {
+        let bus = InMemoryCommandBus::new(
+            Box::new(WorkflowCommandHandler::new(Box::new(StubWorkflowPort))),
+            Box::new(JobCommandHandler::new(Box::new(StubJobPort))),
+            Box::new(StepCommandHandler::new(Box::new(EchoStepPort))),
+            Box::new(ActionCommandHandler::new(Box::new(StubActionPort))),
+        );
+        let step = serde_yaml::from_str::<StepYaml>("run: echo hello")
+            .unwrap()
+            .into_domain();
+        let command = ExecuteStepCommand::new(
+            step,
+            HashMap::from([("MARKER".to_string(), "step-marker".to_string())]),
+            EvaluationContext::new(),
+            Arc::new(StubContainer),
+            PathBuf::from("/repo/step"),
+        );
+
+        let result = bus.dispatch_step(command).unwrap();
+
+        assert_eq!(result.step().run(), Some("echo hello"));
+        assert_eq!(result.response().stdout(), "step-marker");
+        assert_eq!(result.response().stderr(), "/repo/step");
+    }
 }
