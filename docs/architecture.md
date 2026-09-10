@@ -1,78 +1,64 @@
 # Architecture
 
-`ephact` is organized as a hexagon with four layers under `src/`:
+`ephact` follows a hexagonal architecture. The design separates workflow rules
+and orchestration from user interfaces and external systems so that each part
+can evolve behind an explicit boundary.
 
-| Layer | Responsibility |
-|---|---|
-| `domain` | Entities, value objects, workflow and expression models, planner, domain events, and errors |
-| `application` | Inbound and outbound ports, DTOs, one service per use case, and application commands (`ExecuteWorkflowCommand`, `ExecuteJobCommand`, `ExecuteStepCommand`, `ExecuteActionCommand`) dispatched via `CommandBusPort` |
-| `infrastructure` | Adapters: action fetching, container runtime (Bollard), image handling, runners, workflow loading, events, and dependency injection container |
-| `presentation` | CLI entrypoint, subcommands (`run`, `list-workflows`, `list-actions`), composition root wiring, and terminal UI components (`Banner`, `BoxComponent`, `RunSummary`) |
+## Layers
 
-The dependency rule points inwards: `domain` depends on nothing, `application` depends only on `domain`, and outer layers implement the ports declared by inner layers. All interactions with the outside world - fetching actions, creating containers, reading and writing files - go through injectable ports, which keeps the default configuration side-effect-free.
+| Layer          | Responsibility                                                                                                         |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Domain         | Defines workflow concepts, rules, planning, events, values, and errors without knowledge of delivery or infrastructure |
+| Application    | Implements use cases, coordinates domain behavior, and defines the inbound and outbound ports at its boundary          |
+| Infrastructure | Supplies adapters for external capabilities and composes lower-level implementation concerns                           |
+| Presentation   | Translates user input into application requests and renders application results                                        |
 
-### Test Suites
+The compile-time dependency direction points inward. The domain does not depend
+on other project layers. The application depends on the domain, while
+infrastructure and presentation may depend on the application and domain.
+Runtime control and data can cross a boundary in either direction, but only
+through contracts owned by the inner layer.
 
-The test suite mirrors the layers and integration concerns:
+## Ports and Adapters
 
-- `tests/application`: Unit tests for application services, command handling, and DTO mappings using domain fakes.
-- `tests/infrastructure`: Unit and contract tests for infrastructure adapters (workflow parsers, image mappers, event bus, runners).
-- `tests/presentation`: CLI argument parsing, subcommand handlers, and terminal UI component formatting.
-- `tests/container_integration`: Real Docker and Podman integration tests via Bollard, gated behind the `container-integration` Cargo feature.
-- `tests/e2e`: End-to-end execution testing full workflow runs with ephemeral repositories.
-- `tests/common`: Shared test fakes, in-memory adapters, stubs, and test fixtures used across all test suites.
+Inbound ports describe the use cases that the application offers. Presentation
+adapters call those ports without knowing how the use cases are implemented.
+Outbound ports describe capabilities that application orchestration needs from
+the outside world. Infrastructure adapters implement those capabilities without
+exposing external-system details to the application or domain.
 
-## Application Services Orchestration & Coordination
+Infrastructure may use its own internal interfaces to separate adapter
+responsibilities. Those interfaces are implementation seams, not application
+boundary ports, and do not reverse the inward dependency rule.
 
-Application services coordinate decisions made by the domain, but **never depend directly on one another or on inbound ports**. All level-to-level coordination flows strictly through commands published via `CommandBusPort`. Infrastructure command handlers receive these commands and invoke the corresponding coordination service through its inbound port (`workflow -> job -> step -> action`).
+## Orchestration
 
-```text
-                        ┌────────────────────────┐
-                        │ Presentation: CLI / Run│
-                        └───────────┬────────────┘
-                                    │
-                    ┌───────────────┴───────────────┐
-                    │ --all-workflows               │ single workflow
-                    ▼                               ▼
-        ┌───────────────────────┐       ┌───────────────────────┐
-        │ RunAllWorkflowsService│       │   RunWorkflowService  │
-        └───────────┬───────────┘       └───────────┬───────────┘
-                    │ (1) dispatch_workflow         │ (1) dispatch_workflow
-                    └───────────────┬───────────────┘
-                                    ▼
-╔═══════════════════════════════════════════════════════════════════════════╗
-║                                                                           ║
-║                        SINGLE SHARED COMMAND BUS                          ║
-║                             (CommandBusPort)                              ║
-║                                                                           ║
-║  (1) ExecuteWorkflowCommand                                               ║
-║       │                                                                   ║
-║       ▼                                                                   ║
-║      WorkflowCommandHandler ──► ExecuteWorkflowService                    ║
-║                                        │                                  ║
-║  (2) ExecuteJobCommand                 │ (dispatches)                     ║
-║       │ ◄──────────────────────────────┘                                  ║
-║       ▼                                                                   ║
-║      JobCommandHandler      ──► ExecuteJobService                         ║
-║                                        │                                  ║
-║  (3) ExecuteStepCommand                │ (dispatches)                     ║
-║       │ ◄──────────────────────────────┘                                  ║
-║       ▼                                                                   ║
-║      StepCommandHandler     ──► ExecuteStepService                        ║
-║                                        │                                  ║
-║  (4) ExecuteActionCommand              │ (dispatches)                     ║
-║       │ ◄──────────────────────────────┘                                  ║
-║       ▼                                                                   ║
-║      ActionCommandHandler   ──► ExecuteActionService (Node / Composite)  ║
-║                                                                           ║
-╚═══════════════════════════════════════════════════════════════════════════╝
-```
+The application layer owns orchestration. It prepares run context, asks the
+domain to make workflow decisions, and coordinates execution at workflow, job,
+step, and action boundaries. Each stage works with domain or application data
+and requests external effects through outbound ports rather than concrete
+adapters.
 
-### Coordination Flow Summary
+Not every part of a use case must pass through a single dispatch mechanism.
+Top-level orchestration can perform discovery and configuration before handing
+work to the execution stages. The architectural constraint is dependency on
+stable boundaries, not one prescribed sequence of handlers or messages.
 
-1. **Entrypoints**: The CLI invokes `RunWorkflowPort` (for a single workflow), `RunAllWorkflowsPort` (for all workflows in repository), `ListWorkflowsPort` (to list discovered workflows), or `ListActionsPort` (to list referenced actions). The execution services load workflow YAML from `WorkflowSourcePort` and dispatch `ExecuteWorkflowCommand` over `CommandBusPort`.
-2. **Workflow Execution**: `WorkflowCommandHandler` parses the run configuration and context, calling `ExecuteWorkflowService` via `ExecuteWorkflowPort`. The service plans stage runs using the domain `Planner` and dispatches `ExecuteJobCommand` for each job.
-3. **Job Execution**: `JobCommandHandler` invokes `ExecuteJobService` via `ExecuteJobPort`. The service sets up the job container via `PrepareJobContainerPort`, prepares environment variables, and dispatches `ExecuteStepCommand` for each step.
-4. **Step Execution**: `StepCommandHandler` delegates to `ExecuteStepService` via `ExecuteStepPort`. Steps are evaluated and interpolated with `StepInterpolator`. If the step executes a shell command (`run:`), it runs via `RunShellStepPort`. If the step references an action (`uses:`), it dispatches `ExecuteActionCommand`.
-5. **Action Execution**: `ActionCommandHandler` delegates to `ExecuteActionService` via `ExecuteActionPort`, resolving inputs, fetching actions, and executing either composite steps (which may recursively dispatch nested action commands) or Node.js actions within the job container.
-6. **Cleanup**: Upon workflow completion, both `RunWorkflowService` and `RunAllWorkflowsService` publish `DomainEvent::ActRunCompleted` over `EventBusPort`, triggering `ContainerCleanupHandler` to stop and clean up containers.
+## Execution Lifecycle
+
+Hexagonal boundaries improve separation and testability; they do not make
+production execution side-effect-free. A run can acquire external resources and
+change external state. Cleanup is best-effort after normally completed
+orchestration, and failures can bypass or limit cleanup. The architecture does
+not provide transactional rollback for changes made during a run.
+
+See [Usage](usage.md) for the current runtime requirements, isolation model,
+network behavior, repository access, and cleanup guarantees.
+
+## Testing Strategy
+
+Tests follow the same boundaries without making their directory layout part of
+the architecture. Domain tests exercise rules in isolation. Application tests
+replace outbound ports with controlled test doubles. Infrastructure tests
+exercise adapters and their external contracts, while end-to-end tests validate
+the behavior of an assembled application.
