@@ -107,6 +107,16 @@ impl Step {
         self.name.as_deref()
     }
 
+    /// Returns the label used for step progress and summary output.
+    pub fn display_name(&self) -> &str {
+        self.name
+            .as_deref()
+            .or(self.id.as_deref())
+            .or(self.run.as_deref())
+            .or(self.uses.as_deref())
+            .unwrap_or("unnamed step")
+    }
+
     pub fn r#if(&self) -> Option<&str> {
         self.r#if.as_deref()
     }

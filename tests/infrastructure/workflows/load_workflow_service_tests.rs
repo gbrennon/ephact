@@ -13,7 +13,7 @@ fn execute_parses_valid_workflow_content() {
         .execute(LoadWorkflowRequest::new(VALID_WORKFLOW))
         .unwrap();
 
-    assert_eq!(workflow.name().as_deref(), Some("Ci"));
+    assert_eq!(workflow.name(), Some("Ci"));
     assert_eq!(
         workflow.env().get("MODE").map(String::as_str),
         Some("staging")

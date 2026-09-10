@@ -62,10 +62,12 @@ mod tests {
             "owner/repo".into(),
             UserInfo::new("name".into(), "email".into(), "login".into()),
             false,
-            "html".into(),
-            "main".into(),
-            "clone".into(),
-            "ssh".into(),
+            super::super::repository_info::RepositoryLinks::new(
+                "html".into(),
+                "main".into(),
+                "clone".into(),
+                "ssh".into(),
+            ),
         )
     }
 
@@ -75,13 +77,10 @@ mod tests {
             1,
             "title".into(),
             None,
-            branch.clone(),
-            branch,
+            super::super::pull_request_info::PullRequestBranches::new(branch.clone(), branch),
             UserInfo::new("name".into(), "email".into(), "login".into()),
             "url".into(),
-            false,
-            false,
-            None,
+            super::super::pull_request_info::PullRequestState::new(false, false, None),
         )
     }
 

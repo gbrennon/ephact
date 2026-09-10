@@ -125,7 +125,7 @@ fn execute_resolves_expressions_before_running_the_step() {
         ))
         .unwrap();
 
-    assert_eq!(shell.steps()[0].run().as_deref(), Some("deploy staging"));
+    assert_eq!(shell.steps()[0].run(), Some("deploy staging"));
 }
 
 #[test]

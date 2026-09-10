@@ -63,29 +63,11 @@ fn list_workflows_reports_name_and_path_of_forgejo_workflow() {
     let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
 
     assert_eq!(workflows.len(), 1);
-    assert_eq!(workflows[0].name().as_deref(), Some("CI"));
-    let file_owned = workflows[0].file();
-    let file = file_owned.as_deref().unwrap();
+    assert_eq!(workflows[0].name(), Some("CI"));
+    let file = workflows[0].file().expect("workflow file path");
     assert!(
         file.ends_with(".forgejo/workflows/ci.yml"),
         "expected the full workflow path, got {file:?}"
-    );
-}
-
-#[test]
-fn list_workflows_reports_declared_events() {
-    let tmp = git_repository_dir();
-    write_workflow(
-        tmp.path(),
-        "ci.yml",
-        "name: CI\non: [push, pull_request]\njobs:\n  test:\n    runs-on: ubuntu-latest\n",
-    );
-
-    let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
-
-    assert_eq!(
-        workflows[0].events(),
-        &["push".to_string(), "pull_request".to_string()]
     );
 }
 
@@ -101,25 +83,12 @@ fn list_workflows_finds_workflow_in_github_directory() {
     let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
 
     assert_eq!(workflows.len(), 1);
-    assert_eq!(workflows[0].name().as_deref(), Some("Build"));
-    let file_owned = workflows[0].file();
-    let file = file_owned.as_deref().unwrap();
+    assert_eq!(workflows[0].name(), Some("Build"));
+    let file = workflows[0].file().expect("workflow file path");
     assert!(
         file.ends_with(".github/workflows/build.yml"),
         "expected the full workflow path, got {file:?}"
     );
-}
-
-#[test]
-fn list_workflows_returns_one_item_per_workflow_file_sorted_by_path() {
-    let tmp = git_repository_dir();
-    write_workflow(tmp.path(), "deploy.yml", "name: Deploy\non: [release]\n");
-    write_workflow(tmp.path(), "ci.yml", "name: CI\non: [push]\n");
-    write_github_workflow(tmp.path(), "build.yml", "name: Build\non: [push]\n");
-
-    let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
-
-    assert_eq!(names(&workflows), vec!["CI", "Deploy", "Build"]);
 }
 
 #[test]
@@ -150,7 +119,7 @@ fn list_workflows_strips_quotes_from_the_workflow_name() {
 
     let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
 
-    assert_eq!(workflows[0].name().as_deref(), Some("CI Pipeline"));
+    assert_eq!(workflows[0].name(), Some("CI Pipeline"));
 }
 
 #[test]

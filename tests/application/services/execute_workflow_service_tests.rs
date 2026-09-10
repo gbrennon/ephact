@@ -52,7 +52,7 @@ fn execute_publishes_job_commands_carrying_the_loaded_workflow_and_repo_path() {
 
     let dispatched = command_bus.dispatched_jobs.lock();
     let first = dispatched.first().expect("a job command");
-    assert_eq!(first.workflow().name().as_deref(), Some("Ci"));
+    assert_eq!(first.workflow().name(), Some("Ci"));
     assert_eq!(first.repo_path(), Path::new("/repo"));
 }
 

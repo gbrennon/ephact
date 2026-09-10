@@ -17,30 +17,58 @@ pub struct PullRequestInfo {
     mergeable: Option<bool>,
 }
 
+/// Groups the source and target branches of a pull request.
+pub struct PullRequestBranches {
+    head: BranchRef,
+    base: BranchRef,
+}
+
+impl PullRequestBranches {
+    /// Creates the source and target branches of a pull request.
+    pub fn new(head: BranchRef, base: BranchRef) -> Self {
+        Self { head, base }
+    }
+}
+
+/// Groups the state flags of a pull request.
+pub struct PullRequestState {
+    draft: bool,
+    merged: bool,
+    mergeable: Option<bool>,
+}
+
+impl PullRequestState {
+    /// Creates the state flags of a pull request.
+    pub fn new(draft: bool, merged: bool, mergeable: Option<bool>) -> Self {
+        Self {
+            draft,
+            merged,
+            mergeable,
+        }
+    }
+}
+
 impl PullRequestInfo {
     pub fn new(
         number: u64,
         title: String,
         body: Option<String>,
-        head: BranchRef,
-        base: BranchRef,
+        branches: PullRequestBranches,
         user: UserInfo,
         html_url: String,
-        draft: bool,
-        merged: bool,
-        mergeable: Option<bool>,
+        state: PullRequestState,
     ) -> Self {
         Self {
             number,
             title,
             body,
-            head,
-            base,
+            head: branches.head,
+            base: branches.base,
             user,
             html_url,
-            draft,
-            merged,
-            mergeable,
+            draft: state.draft,
+            merged: state.merged,
+            mergeable: state.mergeable,
         }
     }
 
@@ -87,8 +115,7 @@ impl PullRequestInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::event::RepositoryInfo;
-    use crate::domain::event::UserInfo;
+    use crate::domain::event::{RepositoryInfo, RepositoryLinks, UserInfo};
 
     fn branch() -> BranchRef {
         BranchRef::new(
@@ -99,10 +126,7 @@ mod tests {
                 "owner/repo".into(),
                 UserInfo::new("name".into(), "email".into(), "login".into()),
                 false,
-                "html".into(),
-                "main".into(),
-                "clone".into(),
-                "ssh".into(),
+                RepositoryLinks::new("html".into(), "main".into(), "clone".into(), "ssh".into()),
             ),
             "main".into(),
         )
@@ -114,13 +138,10 @@ mod tests {
             1,
             "title".into(),
             Some("body".into()),
-            branch(),
-            branch(),
+            PullRequestBranches::new(branch(), branch()),
             UserInfo::new("name".into(), "email".into(), "login".into()),
             "url".into(),
-            true,
-            true,
-            Some(true),
+            PullRequestState::new(true, true, Some(true)),
         );
 
         assert_eq!(info.number(), 1);

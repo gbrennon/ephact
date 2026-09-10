@@ -3,6 +3,7 @@ pub mod build_step_context_port;
 pub mod command_bus_port;
 pub mod container_port;
 pub mod container_runtime_port;
+pub mod discover_run_inputs_port;
 pub mod domain_event_handler;
 pub mod event_bus_port;
 pub mod load_action_definition_port;
@@ -18,6 +19,7 @@ pub mod run_node_action_port;
 pub mod run_shell_step_port;
 pub mod summarize_step_port;
 pub mod workflow_source_port;
+pub use discover_run_inputs_port::DiscoverRunInputsPort;
 
 pub use build_job_environment_port::BuildJobEnvironmentPort;
 pub use build_step_context_port::BuildStepContextPort;

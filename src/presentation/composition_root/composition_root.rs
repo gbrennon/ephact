@@ -10,12 +10,14 @@ impl CompositionRoot {
             run_all_workflows_port,
             run_workflow_port,
             _run_action_port,
+            discover_run_inputs_port,
             list_workflows_port,
             list_actions_port,
         ) = container.into_parts();
         Application::new(Cli::new(
             run_workflow_port,
             run_all_workflows_port,
+            discover_run_inputs_port,
             list_workflows_port,
             list_actions_port,
             show_project_branding_info_port,

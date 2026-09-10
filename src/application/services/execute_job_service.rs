@@ -146,7 +146,7 @@ impl ExecuteJobService {
             .publish(DomainEvent::StepStarted(StepStartedPayload::new(
                 request.workflow().name().unwrap_or("unnamed").to_string(),
                 request.run().job_id().to_string(),
-                step.name().unwrap_or("unnamed step").to_string(),
+                step.display_name().to_string(),
             )));
     }
 

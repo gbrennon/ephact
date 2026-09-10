@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
-use super::{EventConfig, OnVisitor};
+use super::{EventConfig, OnVisitor, WorkflowDispatchInput};
 
 /// The event(s) that trigger a workflow.
 ///
@@ -72,6 +72,15 @@ impl On {
             On::Single(name) => vec![name.as_str()],
             On::Multiple(names) => names.iter().map(|s| s.as_str()).collect(),
             On::WithTypes(map) => map.keys().map(|s| s.as_str()).collect(),
+        }
+    }
+    pub fn workflow_dispatch_inputs(&self) -> Option<&HashMap<String, WorkflowDispatchInput>> {
+        match self {
+            Self::WithTypes(events) => events
+                .get("workflow_dispatch")
+                .and_then(Option::as_ref)
+                .map(EventConfig::inputs),
+            _ => None,
         }
     }
 }

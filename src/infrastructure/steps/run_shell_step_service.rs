@@ -34,7 +34,7 @@ impl RunShellStepPort for RunShellStepService {
     fn execute(&self, request: RunShellStepRequest<'_>) -> Result<ExecResult, StepError> {
         let command = ShellCommand::for_step(request.step(), request.env())
             .ok_or_else(|| StepError::new("step has neither `run` nor `uses` defined"))?;
-        let step_name = request.step().name().unwrap_or("unnamed step");
+        let step_name = request.step().display_name();
 
         let mut relay = |stream: OutputStream, text: &str| {
             self.relay_output(step_name, stream, text);

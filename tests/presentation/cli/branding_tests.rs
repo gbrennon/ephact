@@ -10,6 +10,7 @@ use crate::common::fakes::{
     fake_run_all_workflows_port::FakeRunAllWorkflowsPort,
     fake_run_workflow_port::FakeRunWorkflowPort,
 };
+use crate::fakes::FakeDiscoverRunInputsPort;
 
 struct FailingBrandingPort;
 
@@ -24,6 +25,7 @@ fn run_reports_branding_failure_before_cli_parse_failure() {
     let cli = Cli::new(
         Box::new(FakeRunWorkflowPort::new(true)),
         Box::new(FakeRunAllWorkflowsPort::new(true)),
+        Box::new(FakeDiscoverRunInputsPort::new()),
         Box::new(FakeListWorkflowsPort::new()),
         Box::new(FakeListActionsPort::new()),
         Box::new(FailingBrandingPort),
