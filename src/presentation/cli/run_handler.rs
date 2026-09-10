@@ -3,11 +3,18 @@ use super::super::components::{
     terminal::Terminal,
 };
 use super::run_args::RunArgs;
-use crate::application::{
-    dtos::{RunAllWorkflowsRequest, RunSummary, RunWorkflowRequest},
-    ports::inbound::{
-        run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
+use crate::{
+    application::{
+        dtos::{
+            DiscoverRunInputsRequest, ListWorkflowsRequest, RunAllWorkflowsRequest, RunSummary,
+            RunWorkflowRequest,
+        },
+        ports::{
+            inbound::{ListWorkflowsPort, RunAllWorkflowsPort, RunWorkflowPort},
+            outbound::DiscoverRunInputsPort,
+        },
     },
+    domain::value_objects::{ActEvent, ActInput, ActRunConfig, ActWorkflow},
 };
 
 /// Handles the `run` subcommand by dispatching parsed CLI arguments to the
@@ -24,10 +31,16 @@ impl RunHandler {
         args: RunArgs,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
+        list_workflows_port: &dyn ListWorkflowsPort,
         terminal: &dyn Terminal,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let (rendered, success) =
-            Self::handle_with_output(args, run_workflow_port, run_all_workflows_port, terminal)?;
+        let (rendered, success) = Self::handle_with_output(
+            args,
+            run_workflow_port,
+            run_all_workflows_port,
+            list_workflows_port,
+            terminal,
+        )?;
         print!("{rendered}");
         Self::result_for(success)
     }
@@ -36,9 +49,21 @@ impl RunHandler {
         args: RunArgs,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
+        list_workflows_port: &dyn ListWorkflowsPort,
         terminal: &dyn Terminal,
     ) -> Result<(String, bool), Box<dyn std::error::Error>> {
         let (config, repository) = args.to_domain()?;
+        let config = if args.interactive() {
+            Self::prepare_interactive_config(
+                config,
+                &repository,
+                list_workflows_port,
+                terminal,
+                true,
+            )?
+        } else {
+            config
+        };
         let summary = Self::execute(
             config,
             repository,
@@ -47,6 +72,57 @@ impl RunHandler {
         )?;
         let rendered = BoxComponent::new(RunSummaryComponent::new(&summary), terminal).render();
         Ok((rendered, summary.success()))
+    }
+    pub fn handle_with_preflight_output(
+        args: RunArgs,
+        run_workflow_port: &dyn RunWorkflowPort,
+        run_all_workflows_port: &dyn RunAllWorkflowsPort,
+        discover_run_inputs_port: &dyn DiscoverRunInputsPort,
+        list_workflows_port: &dyn ListWorkflowsPort,
+        terminal: &dyn Terminal,
+    ) -> Result<(String, bool), Box<dyn std::error::Error>> {
+        let (config, repository) = Self::prepare_preflight_config(
+            args,
+            discover_run_inputs_port,
+            list_workflows_port,
+            terminal,
+        )?;
+        let summary = Self::execute(
+            config,
+            repository,
+            run_workflow_port,
+            run_all_workflows_port,
+        )?;
+        let rendered = BoxComponent::new(RunSummaryComponent::new(&summary), terminal).render();
+        Ok((rendered, summary.success()))
+    }
+    fn prepare_preflight_config(
+        args: RunArgs,
+        discover_run_inputs_port: &dyn DiscoverRunInputsPort,
+        list_workflows_port: &dyn ListWorkflowsPort,
+        terminal: &dyn Terminal,
+    ) -> Result<(ActRunConfig, crate::domain::Repository), Box<dyn std::error::Error>> {
+        let interactive = args.interactive();
+        let (config, repository) = args.to_domain()?;
+        let config = if interactive {
+            Self::prepare_interactive_config(
+                config,
+                &repository,
+                list_workflows_port,
+                terminal,
+                false,
+            )?
+        } else {
+            config
+        };
+        let config = Self::preflight_inputs(
+            config,
+            repository.clone(),
+            discover_run_inputs_port,
+            terminal,
+            interactive,
+        )?;
+        Ok((config, repository))
     }
 
     fn result_for(success: bool) -> Result<(), Box<dyn std::error::Error>> {
@@ -57,8 +133,216 @@ impl RunHandler {
         }
     }
 
+    fn prepare_interactive_config(
+        mut config: ActRunConfig,
+        repository: &crate::domain::Repository,
+        list_workflows_port: &dyn ListWorkflowsPort,
+        terminal: &dyn Terminal,
+        collect_inputs: bool,
+    ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
+        let response =
+            list_workflows_port.execute(ListWorkflowsRequest::new(repository.clone()))?;
+        let workflows: Vec<_> = response
+            .workflows()
+            .iter()
+            .filter(|workflow| workflow.has_pull_request_event())
+            .collect();
+        let workflow = Self::select_pull_request_workflow(&workflows, terminal)?;
+        if let Some(name) = workflow.name() {
+            config = config.with_workflow(ActWorkflow::new(name.to_string()));
+        }
+        config = config
+            .with_event(ActEvent::new("pull_request".to_string()))
+            .with_all_workflows(false);
+        if collect_inputs {
+            Self::collect_interactive_inputs(config, terminal)
+        } else {
+            Ok(config)
+        }
+    }
+
+    fn select_pull_request_workflow<'a>(
+        workflows: &[&'a crate::application::dtos::WorkflowListItem],
+        terminal: &dyn Terminal,
+    ) -> Result<&'a crate::application::dtos::WorkflowListItem, Box<dyn std::error::Error>> {
+        if workflows.is_empty() {
+            return Err("no pull_request workflows are available for interactive execution".into());
+        }
+        terminal.write_text(&Self::workflow_selection_form(workflows))?;
+        let selection = Self::read_workflow_selection(terminal)?;
+        workflows
+            .get(selection.saturating_sub(1))
+            .copied()
+            .ok_or_else(|| {
+                "workflow selection is outside the available pull_request workflows".into()
+            })
+    }
+
+    fn read_workflow_selection(
+        terminal: &dyn Terminal,
+    ) -> Result<usize, Box<dyn std::error::Error>> {
+        let line = terminal.read_line()?;
+        line.trim()
+            .parse::<usize>()
+            .map_err(|_| "workflow selection must be a number".into())
+    }
+
+    fn workflow_selection_form(
+        workflows: &[&crate::application::dtos::WorkflowListItem],
+    ) -> String {
+        let options = workflows
+            .iter()
+            .enumerate()
+            .map(|(index, workflow)| {
+                format!(
+                    "{}. {}",
+                    index + 1,
+                    workflow.name().unwrap_or("Unnamed workflow")
+                )
+            })
+            .collect::<Vec<String>>()
+            .join("\n");
+        format!(
+            "Interactive workflow run\n\nPull request workflows\n{options}\n\nSelect workflow: "
+        )
+    }
+
+    fn collect_interactive_inputs(
+        mut config: ActRunConfig,
+        terminal: &dyn Terminal,
+    ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
+        terminal.write_text(
+            "\nAdditional inputs (optional)\nEnter KEY=VALUE, KEY=env:VARIABLE, or a blank line to continue.\nInput: ",
+        )?;
+        while let Some(input) = Self::read_interactive_input(terminal)? {
+            config = config.add_input(input);
+            terminal.write_text("Input: ")?;
+        }
+        Ok(config)
+    }
+
+    fn read_interactive_input(
+        terminal: &dyn Terminal,
+    ) -> Result<Option<ActInput>, Box<dyn std::error::Error>> {
+        let line = terminal.read_line()?;
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            return Ok(None);
+        }
+        let (key, source) = RunArgs::parse_input_source(trimmed)?;
+        let value = source.resolve()?;
+        Ok(Some(ActInput::new(key, value)))
+    }
+
+    fn preflight_inputs(
+        mut config: ActRunConfig,
+        repository: crate::domain::Repository,
+        discover_run_inputs_port: &dyn DiscoverRunInputsPort,
+        terminal: &dyn Terminal,
+        interactive: bool,
+    ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
+        let declarations = discover_run_inputs_port
+            .execute(DiscoverRunInputsRequest::new(config.clone(), repository))?;
+        let missing: Vec<_> = declarations
+            .iter()
+            .filter(|input| input.required() && !input.is_resolved())
+            .collect();
+        if declarations.is_empty() {
+            return Ok(config);
+        }
+        if !interactive && !terminal.is_interactive() && !missing.is_empty() {
+            return Err(format!(
+                "required inputs missing: {}",
+                missing
+                    .iter()
+                    .map(|input| input.name())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+            .into());
+        }
+        if !interactive && missing.is_empty() {
+            return Ok(config);
+        }
+        terminal.write_text("\nInputs\n")?;
+        for (index, declaration) in declarations.iter().enumerate() {
+            let should_prompt =
+                interactive || (declaration.required() && !declaration.is_resolved());
+            if should_prompt {
+                config = Self::prompt_for_input(
+                    config,
+                    declaration,
+                    index + 1,
+                    declarations.len(),
+                    terminal,
+                )?;
+            } else {
+                Self::describe_input(declaration, index + 1, declarations.len(), terminal)?;
+            }
+        }
+        Ok(config)
+    }
+
+    fn describe_input(
+        declaration: &crate::application::dtos::RunInputDeclaration,
+        index: usize,
+        total: usize,
+        terminal: &dyn Terminal,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let description = declaration
+            .description()
+            .unwrap_or("No description provided.");
+        let state = if declaration.is_resolved() {
+            declaration
+                .default()
+                .map(|value| format!("default: {value}"))
+                .unwrap_or_else(|| "already supplied".to_string())
+        } else if declaration.required() {
+            "required".to_string()
+        } else {
+            "optional".to_string()
+        };
+        terminal.write_text(&format!(
+            "Input {index} of {total}\nName: {}\nDescription: {}\nSource: {}\nStatus: {state}\n",
+            declaration.name(),
+            description,
+            declaration.source()
+        ))?;
+        Ok(())
+    }
+
+    fn prompt_for_input(
+        mut config: ActRunConfig,
+        declaration: &crate::application::dtos::RunInputDeclaration,
+        index: usize,
+        total: usize,
+        terminal: &dyn Terminal,
+    ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
+        Self::describe_input(declaration, index, total, terminal)?;
+        terminal.write_text(&format!(
+            "Value for {} (literal or env:VARIABLE; blank keeps the current/default value): ",
+            declaration.name()
+        ))?;
+        let value = terminal.read_line()?;
+        let value = value.trim();
+        if value.is_empty() {
+            if declaration.required() && !declaration.is_resolved() {
+                return Err(
+                    format!("required input '{}' cannot be blank", declaration.name()).into(),
+                );
+            }
+            return Ok(config);
+        }
+        let (_, source) = RunArgs::parse_input_source(&format!("{}={value}", declaration.name()))?;
+        config = config.add_input(ActInput::new(
+            declaration.name().to_owned(),
+            source.resolve()?,
+        ));
+        Ok(config)
+    }
+
     fn execute(
-        config: crate::domain::value_objects::ActRunConfig,
+        config: ActRunConfig,
         repository: crate::domain::Repository,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,

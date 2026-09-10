@@ -10,7 +10,7 @@ build:
 	cargo build
 
 # Run the application without installing (pass args through)
-# Usage: just run [--help] [--workflow <path>] [--job <name>] [--event <event>] [--input KEY=VALUE] [--secret SECRET] [--extra-arg ARG] [--preserve] [repo-path]
+# Usage: just run [--help] [--interactive] [--workflow <path>] [--job <name>] [--event <event>] [--input KEY=VALUE] [--secret SECRET] [--extra-arg ARG] [--preserve] [repo-path]
 run *args:
 	cargo run -- run {{args}}
 

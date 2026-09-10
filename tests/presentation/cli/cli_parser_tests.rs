@@ -11,6 +11,7 @@ mod tests {
 
     use super::*;
     use crate::common::fakes::{
+        fake_list_workflows_port::FakeListWorkflowsPort,
         stub_run_all_workflows_port::StubRunAllWorkflowsPort,
         stub_run_workflow_port::StubRunWorkflowPort,
     };
@@ -29,7 +30,8 @@ mod tests {
         };
         let args = parse_run_test_args(&[]);
         let terminal = SystemTerminal;
-        RunHandler::handle(args, &wf_port, &all_wf_port, &terminal).unwrap();
+        let list_port = FakeListWorkflowsPort::new();
+        RunHandler::handle(args, &wf_port, &all_wf_port, &list_port, &terminal).unwrap();
     }
 
     #[test]
@@ -42,7 +44,8 @@ mod tests {
         };
         let args = parse_run_test_args(&["--workflow", "ci.yml"]);
         let terminal = SystemTerminal;
-        RunHandler::handle(args, &wf_port, &all_wf_port, &terminal).unwrap();
+        let list_port = FakeListWorkflowsPort::new();
+        RunHandler::handle(args, &wf_port, &all_wf_port, &list_port, &terminal).unwrap();
     }
 
     #[test]

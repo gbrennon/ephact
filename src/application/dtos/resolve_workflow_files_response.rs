@@ -6,7 +6,7 @@ use std::path::PathBuf;
 #[derive(Debug)]
 pub struct ResolveWorkflowFilesResponse {
     /// Workflow files the run executes, in execution order.
-    pub workflow_files: Vec<PathBuf>,
+    workflow_files: Vec<PathBuf>,
 }
 
 impl ResolveWorkflowFilesResponse {

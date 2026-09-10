@@ -6,7 +6,7 @@ use super::{repository_info::RepositoryInfo, user_info::UserInfo};
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct DeletePayload {
     ref_type: String,
-    pub r#ref: String,
+    r#ref: String,
     repository: RepositoryInfo,
     sender: UserInfo,
 }
@@ -52,10 +52,12 @@ mod tests {
             "owner/repo".into(),
             UserInfo::new("name".into(), "email".into(), "login".into()),
             false,
-            "html".into(),
-            "main".into(),
-            "clone".into(),
-            "ssh".into(),
+            super::super::repository_info::RepositoryLinks::new(
+                "html".into(),
+                "main".into(),
+                "clone".into(),
+                "ssh".into(),
+            ),
         )
     }
 

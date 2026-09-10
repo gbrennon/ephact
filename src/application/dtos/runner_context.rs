@@ -3,12 +3,12 @@ use std::collections::HashMap;
 /// Context describing the runner environment inside the container.
 #[derive(Debug, Clone)]
 pub struct RunnerContext {
-    pub workspace: String,
-    pub home: String,
-    pub action_path: String,
-    pub temp: String,
-    pub tool_cache: String,
-    pub env: HashMap<String, String>,
+    workspace: String,
+    home: String,
+    action_path: String,
+    temp: String,
+    tool_cache: String,
+    env: HashMap<String, String>,
 }
 
 impl RunnerContext {

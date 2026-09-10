@@ -5,7 +5,7 @@ use std::path::Path;
 /// inbound port.
 pub struct DetectWorkflowFileRequest<'a> {
     /// Path to the repository whose workflow is detected.
-    pub repo_path: &'a Path,
+    repo_path: &'a Path,
 }
 
 impl<'a> DetectWorkflowFileRequest<'a> {

@@ -15,19 +15,21 @@ use crate::application::ports::inbound::{
     run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
     show_project_branding_info_port::ShowProjectBrandingInfoPort,
 };
+use crate::application::ports::outbound::DiscoverRunInputsPort;
 
 pub struct Cli {
     run_workflow_port: Box<dyn RunWorkflowPort>,
     run_all_workflows_port: Box<dyn RunAllWorkflowsPort>,
+    discover_run_inputs_port: Box<dyn DiscoverRunInputsPort>,
     list_workflows_port: Box<dyn ListWorkflowsPort>,
     list_actions_port: Box<dyn ListActionsPort>,
     show_project_branding_info_port: Box<dyn ShowProjectBrandingInfoPort>,
 }
-
 impl Cli {
     pub fn new(
         run_workflow_port: Box<dyn RunWorkflowPort>,
         run_all_workflows_port: Box<dyn RunAllWorkflowsPort>,
+        discover_run_inputs_port: Box<dyn DiscoverRunInputsPort>,
         list_workflows_port: Box<dyn ListWorkflowsPort>,
         list_actions_port: Box<dyn ListActionsPort>,
         show_project_branding_info_port: Box<dyn ShowProjectBrandingInfoPort>,
@@ -35,6 +37,7 @@ impl Cli {
         Self {
             run_workflow_port,
             run_all_workflows_port,
+            discover_run_inputs_port,
             list_workflows_port,
             list_actions_port,
             show_project_branding_info_port,
@@ -94,10 +97,16 @@ impl Cli {
         terminal: &dyn Terminal,
         output: &mut String,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let (summary, success) = RunHandler::handle_with_output(
+        if args.interactive() {
+            print!("{output}");
+            output.clear();
+        }
+        let (summary, success) = RunHandler::handle_with_preflight_output(
             args,
             &*self.run_workflow_port,
             &*self.run_all_workflows_port,
+            &*self.discover_run_inputs_port,
+            &*self.list_workflows_port,
             terminal,
         )?;
         output.push_str(&summary);

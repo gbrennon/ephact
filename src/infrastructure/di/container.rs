@@ -20,7 +20,7 @@ use crate::{
         images::{ImageMapperPort, PlatformImageMapper},
         messaging::InMemoryEventBus,
         project_branding_store::CargoProjectBrandingStore,
-        workflows::FilesystemWorkflowSource,
+        workflows::{FilesystemRunInputDiscoveryService, FilesystemWorkflowSource},
     },
 };
 
@@ -72,18 +72,20 @@ impl Container {
             command_bus.clone(),
             event_bus.clone(),
         );
+        let discover_run_inputs_service =
+            FilesystemRunInputDiscoveryService::new(Box::new(workflow_source.clone()));
         let run_all_workflows_service =
             RunAllWorkflowsService::new(Box::new(workflow_source), command_bus.clone(), event_bus);
         let run_action_service = RunActionService::new(command_bus);
-
         let show_project_branding_info_service =
             ShowProjectBrandingInfoService::new(Box::new(CargoProjectBrandingStore));
 
-        AppContainer::new(
+        AppContainer::new_with_discovery(
             Box::new(show_project_branding_info_service),
             Box::new(run_all_workflows_service),
             Box::new(run_workflow_service),
             Box::new(run_action_service),
+            Box::new(discover_run_inputs_service),
             Box::new(list_workflows_service),
             Box::new(list_actions_service),
         )

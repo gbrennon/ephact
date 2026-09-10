@@ -27,6 +27,14 @@ mod tests {
         fn dimensions(&self) -> (usize, usize) {
             (100, 40)
         }
+
+        fn write_text(&self, _text: &str) -> std::io::Result<()> {
+            Ok(())
+        }
+
+        fn read_line(&self) -> std::io::Result<String> {
+            Ok(String::new())
+        }
     }
 
     struct BrandingFake;
@@ -50,8 +58,16 @@ mod tests {
             _request: ListWorkflowsRequest,
         ) -> Result<ListWorkflowsResponse, Box<dyn std::error::Error>> {
             Ok(ListWorkflowsResponse::new(vec![
-                WorkflowListItem::new(Some("Build".into()), Some("build.yml".into())),
-                WorkflowListItem::new(Some("Release".into()), Some("release.yml".into())),
+                WorkflowListItem::new(
+                    Some("Build".into()),
+                    Some("build.yml".into()),
+                    vec!["pull_request".into()],
+                ),
+                WorkflowListItem::new(
+                    Some("Release".into()),
+                    Some("release.yml".into()),
+                    vec!["push".into()],
+                ),
             ]))
         }
     }
@@ -70,6 +86,17 @@ mod tests {
         }
     }
 
+    struct InputDiscoveryFake;
+
+    impl ephact::application::ports::outbound::DiscoverRunInputsPort for InputDiscoveryFake {
+        fn execute(
+            &self,
+            _request: ephact::application::dtos::DiscoverRunInputsRequest,
+        ) -> Result<Vec<ephact::application::dtos::RunInputDeclaration>, Box<dyn std::error::Error>>
+        {
+            Ok(Vec::new())
+        }
+    }
     struct RunFake {
         summary: RunSummary,
     }
@@ -98,6 +125,7 @@ mod tests {
                 summary: summary.clone(),
             }),
             Box::new(RunFake { summary }),
+            Box::new(InputDiscoveryFake),
             Box::new(WorkflowListFake),
             Box::new(ActionListFake),
             Box::new(BrandingFake),

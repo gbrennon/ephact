@@ -17,12 +17,13 @@ fn map(pairs: &[(&str, &str)]) -> HashMap<String, String> {
 
 #[test]
 fn execute_sets_the_action_path() {
-    let response =
-        GitHubActionInputEnvironmentAdapter::new().execute(BuildActionInputEnvironmentRequest {
-            env: &HashMap::new(),
-            inputs: &HashMap::new(),
-            action_path: "/tmp/actions/greet",
-        });
+    let response = GitHubActionInputEnvironmentAdapter::new().execute(
+        BuildActionInputEnvironmentRequest::new(
+            &HashMap::new(),
+            &HashMap::new(),
+            "/tmp/actions/greet",
+        ),
+    );
 
     assert_eq!(
         response.env().get("GITHUB_ACTION_PATH").map(String::as_str),
@@ -32,12 +33,13 @@ fn execute_sets_the_action_path() {
 
 #[test]
 fn execute_exposes_inputs_as_upper_snake_case_variables() {
-    let response =
-        GitHubActionInputEnvironmentAdapter::new().execute(BuildActionInputEnvironmentRequest {
-            env: &HashMap::new(),
-            inputs: &map(&[("my input", "value")]),
-            action_path: "/tmp/actions/greet",
-        });
+    let response = GitHubActionInputEnvironmentAdapter::new().execute(
+        BuildActionInputEnvironmentRequest::new(
+            &HashMap::new(),
+            &map(&[("my input", "value")]),
+            "/tmp/actions/greet",
+        ),
+    );
 
     assert_eq!(
         response.env().get("INPUT_MY_INPUT").map(String::as_str),
@@ -47,12 +49,13 @@ fn execute_exposes_inputs_as_upper_snake_case_variables() {
 
 #[test]
 fn execute_preserves_existing_environment_entries() {
-    let response =
-        GitHubActionInputEnvironmentAdapter::new().execute(BuildActionInputEnvironmentRequest {
-            env: &map(&[("MODE", "staging")]),
-            inputs: &HashMap::new(),
-            action_path: "/tmp/actions/greet",
-        });
+    let response = GitHubActionInputEnvironmentAdapter::new().execute(
+        BuildActionInputEnvironmentRequest::new(
+            &map(&[("MODE", "staging")]),
+            &HashMap::new(),
+            "/tmp/actions/greet",
+        ),
+    );
 
     assert_eq!(
         response.env().get("MODE").map(String::as_str),
@@ -62,12 +65,13 @@ fn execute_preserves_existing_environment_entries() {
 
 #[test]
 fn execute_lets_an_input_win_over_a_colliding_environment_entry() {
-    let response =
-        GitHubActionInputEnvironmentAdapter::new().execute(BuildActionInputEnvironmentRequest {
-            env: &map(&[("INPUT_MODE", "from-env")]),
-            inputs: &map(&[("mode", "from-input")]),
-            action_path: "/tmp/actions/greet",
-        });
+    let response = GitHubActionInputEnvironmentAdapter::new().execute(
+        BuildActionInputEnvironmentRequest::new(
+            &map(&[("INPUT_MODE", "from-env")]),
+            &map(&[("mode", "from-input")]),
+            "/tmp/actions/greet",
+        ),
+    );
 
     assert_eq!(
         response.env().get("INPUT_MODE").map(String::as_str),

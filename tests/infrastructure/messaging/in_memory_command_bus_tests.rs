@@ -48,15 +48,15 @@ impl ExecuteJobPort for StubJobPort {
         &self,
         _request: ephact::application::dtos::ExecuteJobRequest<'_>,
     ) -> Result<JobExecution, Box<dyn std::error::Error>> {
-        Ok(JobExecution {
-            job_summary: JobSummary::new(
+        Ok(JobExecution::new(
+            JobSummary::new(
                 "j1".to_string(),
                 Some("job 1".to_string()),
                 Vec::new(),
                 true,
             ),
-            container_name: "c1".to_string(),
-        })
+            "c1".to_string(),
+        ))
     }
 }
 
@@ -66,10 +66,10 @@ impl ExecuteStepPort for StubStepPort {
         &self,
         request: ephact::application::dtos::ExecuteStepRequest<'_>,
     ) -> Result<ExecutedStep, StepError> {
-        Ok(ExecutedStep {
-            step: request.step().clone(),
-            response: ExecuteActionResponse::new(0, "step out".to_string(), String::new()),
-        })
+        Ok(ExecutedStep::new(
+            request.step().clone(),
+            ExecuteActionResponse::new(0, "step out".to_string(), String::new()),
+        ))
     }
 }
 

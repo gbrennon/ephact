@@ -15,7 +15,7 @@ container_runtime_available() {
 
 run_coverage_and_emit_json() {
   echo "Running cargo-llvm-cov (generating JSON report)..."
-  local args=()
+  local args=(--remap-path-prefix)
   if container_runtime_available; then
     echo "Container runtime detected; including container infrastructure in coverage."
   else

@@ -11,12 +11,12 @@ use crate::common::fakes::{
 };
 
 fn request<'a>(repo_path: &'a Path) -> CreateJobContainerRequest<'a> {
-    CreateJobContainerRequest {
-        image: "ubuntu:latest",
-        container_name: "ephemeral-act-build-42",
-        legacy_container_name: "ephemeral-act-build",
+    CreateJobContainerRequest::new(
+        "ubuntu:latest",
+        "ephemeral-act-build-42",
+        "ephemeral-act-build",
         repo_path,
-    }
+    )
 }
 
 #[test]
@@ -44,12 +44,12 @@ fn execute_mounts_the_repository_as_the_container_workspace() {
     let config = created.first().unwrap();
     assert_eq!(config.image(), "ubuntu:latest");
     assert_eq!(config.binds(), vec!["/repo:/workspace:Z".to_string()]);
-    assert_eq!(config.workdir().as_deref(), Some("/workspace"));
+    assert_eq!(config.workdir(), Some("/workspace"));
     assert_eq!(
-        config.cmd().clone().unwrap(),
+        config.cmd().unwrap(),
         vec!["sleep".to_string(), "infinity".to_string()]
     );
-    assert_eq!(config.name().as_deref(), Some("ephemeral-act-build-42"));
+    assert_eq!(config.name(), Some("ephemeral-act-build-42"));
 }
 
 #[test]

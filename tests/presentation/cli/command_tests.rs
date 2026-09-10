@@ -13,6 +13,7 @@ mod tests {
         fake_run_all_workflows_port::FakeRunAllWorkflowsPort,
         fake_run_workflow_port::FakeRunWorkflowPort,
     };
+    use crate::fakes::FakeDiscoverRunInputsPort;
 
     struct FakeShowProjectBrandingInfoPort;
 
@@ -31,6 +32,7 @@ mod tests {
         Cli::new(
             Box::new(FakeRunWorkflowPort::new(true)),
             Box::new(FakeRunAllWorkflowsPort::new(true)),
+            Box::new(FakeDiscoverRunInputsPort::new()),
             Box::new(FakeListWorkflowsPort::new()),
             Box::new(FakeListActionsPort::new()),
             Box::new(FakeShowProjectBrandingInfoPort),

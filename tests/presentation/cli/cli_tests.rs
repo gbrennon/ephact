@@ -15,6 +15,7 @@ mod tests {
         fake_run_all_workflows_port::FakeRunAllWorkflowsPort,
         fake_run_workflow_port::FakeRunWorkflowPort,
     };
+    use crate::fakes::FakeDiscoverRunInputsPort;
 
     struct FakeShowProjectBrandingInfoPort;
 
@@ -34,12 +35,21 @@ mod tests {
         fn dimensions(&self) -> (usize, usize) {
             (100, 40)
         }
+
+        fn write_text(&self, _text: &str) -> std::io::Result<()> {
+            Ok(())
+        }
+
+        fn read_line(&self) -> std::io::Result<String> {
+            Ok(String::new())
+        }
     }
 
     fn make_cli() -> Cli {
         Cli::new(
             Box::new(FakeRunWorkflowPort::new(true)),
             Box::new(FakeRunAllWorkflowsPort::new(true)),
+            Box::new(FakeDiscoverRunInputsPort::new()),
             Box::new(FakeListWorkflowsPort::new()),
             Box::new(FakeListActionsPort::new()),
             Box::new(FakeShowProjectBrandingInfoPort),
@@ -77,6 +87,7 @@ mod tests {
         let cli = Cli::new(
             Box::new(FakeRunWorkflowPort::new(false)),
             Box::new(FakeRunAllWorkflowsPort::new(false)),
+            Box::new(FakeDiscoverRunInputsPort::new()),
             Box::new(FakeListWorkflowsPort::new()),
             Box::new(FakeListActionsPort::new()),
             Box::new(FakeShowProjectBrandingInfoPort),

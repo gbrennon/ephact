@@ -10,11 +10,11 @@ use crate::{
 /// inbound port.
 pub struct SummarizeStepRequest<'a> {
     /// The step as declared, before its expressions were resolved.
-    pub step: &'a Step,
+    step: &'a Step,
     /// What executing the step produced.
-    pub outcome: Result<ExecutedStep, StepError>,
+    outcome: Result<ExecutedStep, StepError>,
     /// How long the step took.
-    pub duration: Duration,
+    duration: Duration,
 }
 
 impl<'a> SummarizeStepRequest<'a> {

@@ -5,9 +5,9 @@ use crate::domain::workflow::{ActionDefinition, Step};
 /// inbound port.
 pub struct ResolveActionInputsRequest<'a> {
     /// Definition declaring the action's inputs and their defaults.
-    pub definition: &'a ActionDefinition,
+    definition: &'a ActionDefinition,
     /// Step that referenced the action, for its `with:` values.
-    pub step: &'a Step,
+    step: &'a Step,
 }
 
 impl<'a> ResolveActionInputsRequest<'a> {

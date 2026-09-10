@@ -6,16 +6,16 @@ use std::collections::HashMap;
 /// [`ContainerRuntimePort`](crate::application::ports::outbound::ContainerRuntimePort).
 #[derive(Debug, Clone)]
 pub struct ContainerConfig {
-    pub image: String,
-    pub platform: Option<String>,
-    pub env: HashMap<String, String>,
-    pub binds: Vec<String>,
-    pub workdir: Option<String>,
-    pub cmd: Option<Vec<String>>,
-    pub entrypoint: Option<Vec<String>>,
-    pub network: Option<String>,
-    pub name: Option<String>,
-    pub runner_context: RunnerContext,
+    image: String,
+    platform: Option<String>,
+    env: HashMap<String, String>,
+    binds: Vec<String>,
+    workdir: Option<String>,
+    cmd: Option<Vec<String>>,
+    entrypoint: Option<Vec<String>>,
+    network: Option<String>,
+    name: Option<String>,
+    runner_context: RunnerContext,
 }
 
 impl ContainerConfig {

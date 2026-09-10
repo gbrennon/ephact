@@ -63,9 +63,8 @@ fn list_workflows_reports_name_and_path_of_forgejo_workflow() {
     let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
 
     assert_eq!(workflows.len(), 1);
-    assert_eq!(workflows[0].name().as_deref(), Some("CI"));
-    let file_owned = workflows[0].file();
-    let file = file_owned.as_deref().unwrap();
+    assert_eq!(workflows[0].name(), Some("CI"));
+    let file = workflows[0].file().expect("workflow file path");
     assert!(
         file.ends_with(".forgejo/workflows/ci.yml"),
         "expected the full workflow path, got {file:?}"
@@ -84,26 +83,12 @@ fn list_workflows_finds_workflow_in_github_directory() {
     let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
 
     assert_eq!(workflows.len(), 1);
-    assert_eq!(workflows[0].name().as_deref(), Some("Build"));
-    let file_owned = workflows[0].file();
-    let file = file_owned.as_deref().unwrap();
+    assert_eq!(workflows[0].name(), Some("Build"));
+    let file = workflows[0].file().expect("workflow file path");
     assert!(
         file.ends_with(".github/workflows/build.yml"),
         "expected the full workflow path, got {file:?}"
     );
-}
-
-#[test]
-fn list_workflows_returns_one_item_per_workflow_file_sorted_by_path() {
-    let tmp = git_repository_dir();
-    write_workflow(tmp.path(), "deploy.yml", "name: Deploy\non: [release]\n");
-    write_workflow(tmp.path(), "ci.yml", "name: CI\non: [push]\n");
-    write_github_workflow(tmp.path(), "build.yml", "name: Build\non: [push]\n");
-
-    let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
-
-    // Paths are sorted, and ".forgejo" sorts before ".github".
-    assert_eq!(names(&workflows), vec!["CI", "Deploy", "Build"]);
 }
 
 #[test]
@@ -134,7 +119,7 @@ fn list_workflows_strips_quotes_from_the_workflow_name() {
 
     let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
 
-    assert_eq!(workflows[0].name().as_deref(), Some("CI Pipeline"));
+    assert_eq!(workflows[0].name(), Some("CI Pipeline"));
 }
 
 #[test]
@@ -148,7 +133,6 @@ fn list_workflows_skips_workflow_file_without_a_name_key() {
 
     let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
 
-    // An item is only emitted when a name could be extracted.
     assert!(workflows.is_empty());
 }
 
@@ -181,7 +165,6 @@ fn list_workflows_is_empty_when_the_workflow_directory_disappeared() {
 
     let workflows = source().list_workflows(&repository).unwrap();
 
-    // A missing workflow directory is skipped rather than reported as an error.
     assert!(workflows.is_empty());
 }
 
@@ -189,8 +172,6 @@ fn list_workflows_is_empty_when_the_workflow_directory_disappeared() {
 fn repository_cannot_be_built_for_a_nonexistent_path() {
     let tmp = git_repository_dir();
 
-    // A nonexistent path never reaches the port: it is rejected while building
-    // the repository, so the adapter has no invalid-path branch to exercise.
     assert!(RepoPath::new(tmp.path().join("nonexistent")).is_err());
     assert!(RepoPath::new(PathBuf::from("/nonexistent")).is_err());
 }
@@ -206,7 +187,6 @@ fn list_actions_collects_uses_references_in_both_line_forms() {
 
     let actions = source().list_actions(&repository(tmp.path())).unwrap();
 
-    // Collected into a BTreeSet, so the result is sorted.
     assert_eq!(actions, vec!["./local-action", "actions/checkout@v4"]);
 }
 

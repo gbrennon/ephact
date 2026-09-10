@@ -15,6 +15,24 @@ pub struct CommitInfo {
     modified: Vec<String>,
 }
 
+/// Groups the file changes associated with a commit.
+pub struct CommitChanges {
+    added: Vec<String>,
+    removed: Vec<String>,
+    modified: Vec<String>,
+}
+
+impl CommitChanges {
+    /// Creates a commit's added, removed, and modified file lists.
+    pub fn new(added: Vec<String>, removed: Vec<String>, modified: Vec<String>) -> Self {
+        Self {
+            added,
+            removed,
+            modified,
+        }
+    }
+}
+
 impl CommitInfo {
     pub fn new(
         id: String,
@@ -22,9 +40,7 @@ impl CommitInfo {
         timestamp: String,
         author: UserInfo,
         committer: UserInfo,
-        added: Vec<String>,
-        removed: Vec<String>,
-        modified: Vec<String>,
+        changes: CommitChanges,
     ) -> Self {
         Self {
             id,
@@ -32,9 +48,9 @@ impl CommitInfo {
             timestamp,
             author,
             committer,
-            added,
-            removed,
-            modified,
+            added: changes.added,
+            removed: changes.removed,
+            modified: changes.modified,
         }
     }
 
@@ -73,7 +89,6 @@ impl CommitInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     fn user() -> UserInfo {
         UserInfo::new("name".into(), "email".into(), "login".into())
     }
@@ -86,9 +101,11 @@ mod tests {
             "timestamp".into(),
             user(),
             user(),
-            vec!["added".into()],
-            vec!["removed".into()],
-            vec!["modified".into()],
+            CommitChanges::new(
+                vec!["added".into()],
+                vec!["removed".into()],
+                vec!["modified".into()],
+            ),
         );
 
         assert_eq!(commit.id(), "id");

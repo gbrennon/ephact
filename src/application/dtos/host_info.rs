@@ -1,9 +1,9 @@
 /// Information about the host container runtime.
 #[derive(Debug, Clone)]
 pub struct HostInfo {
-    pub os: String,
-    pub arch: String,
-    pub engine_version: String,
+    os: String,
+    arch: String,
+    engine_version: String,
 }
 
 impl HostInfo {

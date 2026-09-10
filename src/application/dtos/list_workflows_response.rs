@@ -4,7 +4,7 @@ use super::workflow_list_item::WorkflowListItem;
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ListWorkflowsResponse {
     /// Workflows found in the repository, in discovery order.
-    pub workflows: Vec<WorkflowListItem>,
+    workflows: Vec<WorkflowListItem>,
 }
 
 impl ListWorkflowsResponse {
@@ -36,12 +36,15 @@ mod tests {
 
     #[test]
     fn new_response_keeps_the_given_workflows() {
-        let response =
-            ListWorkflowsResponse::new(vec![WorkflowListItem::new(None, Some("ci.yml".into()))]);
+        let response = ListWorkflowsResponse::new(vec![WorkflowListItem::new(
+            None,
+            Some("ci.yml".into()),
+            vec![],
+        )]);
 
         assert_eq!(
             response.workflows(),
-            &[WorkflowListItem::new(None, Some("ci.yml".into()))]
+            &[WorkflowListItem::new(None, Some("ci.yml".into()), vec![])]
         );
     }
 }
