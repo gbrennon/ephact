@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
 use crate::{
-    fakes::{
-        mirrored_action_fetcher::MirroredActionFetcher, succeeding_runtime::SucceedingRuntime,
-    },
+    e2e_mirrored_action_fetcher::MirroredActionFetcher,
+    e2e_succeeding_runtime::SucceedingRuntime,
     support::{
         container_activity::ContainerActivity, ephact_application::EphactApplication,
         workflow_repository::WorkflowRepository,

@@ -4,7 +4,7 @@ use ephact::application::ports::outbound::ContainerRuntimePort;
 use ephact::application::ports::outbound::container_port::ContainerPort;
 use ephact::domain::errors::ContainerError;
 
-use super::failing_container::FailingContainer;
+use crate::e2e_failing_container::FailingContainer;
 use crate::support::container_activity::ContainerActivity;
 
 /// Container runtime of the scenario where containers start normally but every
