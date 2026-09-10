@@ -1,8 +1,5 @@
+use crate::application::dtos::{StepSummary, SummarizeStepRequest, SummarizedStep};
 use crate::application::ports::outbound::summarize_step_port::SummarizeStepPort;
-use crate::{
-    application::dtos::{StepSummary, SummarizeStepRequest, SummarizedStep},
-    domain::workflow::Step,
-};
 
 /// Service that turns a step's outcome into its run-summary entry, deciding
 /// whether the outcome fails the job.
@@ -12,18 +9,7 @@ impl SummarizeStepService {
     pub fn new() -> Self {
         Self
     }
-
-    /// Names a step the way the run summary reports it.
-    fn step_label(step: &Step) -> String {
-        step.name()
-            .or(step.id())
-            .or(step.run())
-            .or(step.uses())
-            .unwrap_or("unnamed step")
-            .to_string()
-    }
 }
-
 impl Default for SummarizeStepService {
     fn default() -> Self {
         Self::new()
@@ -42,7 +28,7 @@ impl SummarizeStepPort for SummarizeStepService {
                     Some(executed.response().exit_code()),
                     executed.response().stdout().to_string(),
                     executed.response().stderr().to_string(),
-                    Self::step_label(executed.step()),
+                    executed.step().display_name().to_string(),
                     fails_job,
                 )
             }
@@ -50,7 +36,7 @@ impl SummarizeStepPort for SummarizeStepService {
                 None,
                 error.stdout().to_string(),
                 format!("step error: {}\n{}", error.message(), error.stderr()),
-                Self::step_label(request.step()),
+                request.step().display_name().to_string(),
                 !continue_on_error,
             ),
         };
