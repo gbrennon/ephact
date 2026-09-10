@@ -1,6 +1,6 @@
 use crate::{
     application::dtos::LoadActionDefinitionRequest,
-    domain::{errors::StepError, workflow::ActionDefinition},
+    domain::{errors::StepError, value_objects::ActionDefinition},
 };
 
 /// Inbound port for reading an action's `action.yml`.

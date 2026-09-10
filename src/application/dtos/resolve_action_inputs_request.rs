@@ -1,4 +1,4 @@
-use crate::domain::workflow::{ActionDefinition, Step};
+use crate::domain::{entities::Step, value_objects::ActionDefinition};
 
 /// Request DTO for the
 /// [`ResolveActionInputsPort`](crate::application::ports::inbound::resolve_action_inputs_port::ResolveActionInputsPort)

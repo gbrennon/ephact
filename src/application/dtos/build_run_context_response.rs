@@ -1,4 +1,4 @@
-use crate::domain::expression::EvalContext;
+use crate::domain::value_objects::EvaluationContext;
 
 /// Response DTO for the
 /// [`BuildRunContextPort`](crate::application::ports::inbound::build_run_context_port::BuildRunContextPort)
@@ -6,22 +6,22 @@ use crate::domain::expression::EvalContext;
 #[derive(Debug, Clone)]
 pub struct BuildRunContextResponse {
     /// The evaluated run context.
-    context: EvalContext,
+    context: EvaluationContext,
 }
 
 impl BuildRunContextResponse {
     /// Creates a new response.
-    pub fn new(context: EvalContext) -> Self {
+    pub fn new(context: EvaluationContext) -> Self {
         Self { context }
     }
 
     /// The evaluated run context.
-    pub fn context(&self) -> &EvalContext {
+    pub fn context(&self) -> &EvaluationContext {
         &self.context
     }
 
     /// Consumes the response and returns the evaluated run context.
-    pub fn into_context(self) -> EvalContext {
+    pub fn into_context(self) -> EvaluationContext {
         self.context
     }
 }

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::domain::workflow::Workflow;
+use crate::domain::aggregates::Workflow;
 
 /// Request DTO for the
 /// [`BuildJobEnvironmentPort`](crate::application::ports::outbound::build_job_environment_port::BuildJobEnvironmentPort)

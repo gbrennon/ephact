@@ -1,6 +1,7 @@
 use crate::application::dtos::{ContainerConfig, HostInfo};
-use crate::application::ports::outbound::container_port::ContainerPort;
-use crate::domain::errors::ContainerError;
+use crate::{
+    application::ports::outbound::container_port::ContainerPort, domain::errors::ContainerError,
+};
 
 /// Outbound port for managing a container runtime (Docker, Podman, etc.).
 ///

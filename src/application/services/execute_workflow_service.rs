@@ -1,9 +1,8 @@
 use std::{error::Error, sync::Arc};
 
-use crate::application::commands::ExecuteJobCommand;
 use crate::{
     application::{
-        dtos::{ExecuteWorkflowRequest, LoadWorkflowRequest, WorkflowExecution},
+        dtos::{ExecuteJobCommand, ExecuteWorkflowRequest, LoadWorkflowRequest, WorkflowExecution},
         ports::{
             inbound::execute_workflow_port::ExecuteWorkflowPort,
             outbound::{
@@ -13,8 +12,9 @@ use crate::{
         },
     },
     domain::{
+        entities::JobRun,
         events::{DomainEvent, JobFinishedPayload, JobStartedPayload, WorkflowStartedPayload},
-        planner::{Planner, Run},
+        services::ExecutionPlanner,
     },
 };
 
@@ -54,7 +54,9 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
             .workflow_loader
             .execute(LoadWorkflowRequest::new(request.workflow_content()))?;
         let workflow_name = workflow.name().unwrap_or("unnamed");
-        let plan = Planner.plan(&workflow).map_err(|e| format!("{:?}", e))?;
+        let plan = ExecutionPlanner
+            .plan(&workflow)
+            .map_err(|e| format!("{:?}", e))?;
 
         self.announce_workflow_started(workflow_name);
 
@@ -79,11 +81,11 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
 impl ExecuteWorkflowService {
     fn execute_planned_runs(
         &self,
-        workflow: &crate::domain::workflow::Workflow,
-        plan: &crate::domain::planner::Plan,
+        workflow: &crate::domain::aggregates::Workflow,
+        plan: &crate::domain::value_objects::ExecutionPlan,
         request: ExecuteWorkflowRequest<'_>,
     ) -> Result<Vec<crate::application::dtos::JobExecution>, Box<dyn Error>> {
-        let all_runs: Vec<&crate::domain::planner::Run> = plan
+        let all_runs: Vec<&crate::domain::entities::JobRun> = plan
             .stages()
             .iter()
             .flat_map(|stage| stage.runs().iter())
@@ -96,10 +98,10 @@ impl ExecuteWorkflowService {
 
     fn execute_run(
         &self,
-        workflow: &crate::domain::workflow::Workflow,
-        run: &crate::domain::planner::Run,
+        workflow: &crate::domain::aggregates::Workflow,
+        run: &crate::domain::entities::JobRun,
         repo_path: &std::path::Path,
-        context: &crate::domain::expression::EvalContext,
+        context: &crate::domain::value_objects::EvaluationContext,
     ) -> Result<crate::application::dtos::JobExecution, Box<dyn Error>> {
         self.announce_job_started(workflow.name().unwrap_or("unnamed"), run);
         let execution = self.command_bus.dispatch_job(ExecuteJobCommand::new(
@@ -124,7 +126,7 @@ impl ExecuteWorkflowService {
             )));
     }
 
-    fn announce_job_started(&self, workflow_name: &str, run: &Run) {
+    fn announce_job_started(&self, workflow_name: &str, run: &JobRun) {
         self.event_bus
             .publish(DomainEvent::JobStarted(JobStartedPayload::new(
                 workflow_name.to_string(),
@@ -133,7 +135,7 @@ impl ExecuteWorkflowService {
             )));
     }
 
-    fn announce_job_finished(&self, workflow_name: &str, run: &Run, job_success: bool) {
+    fn announce_job_finished(&self, workflow_name: &str, run: &JobRun, job_success: bool) {
         self.event_bus
             .publish(DomainEvent::JobFinished(JobFinishedPayload::new(
                 workflow_name.to_string(),

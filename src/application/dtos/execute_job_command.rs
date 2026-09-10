@@ -1,9 +1,6 @@
 use std::path::PathBuf;
 
-use crate::domain::{
-    expression::EvalContext,
-    workflow::{Job, Workflow},
-};
+use crate::domain::{aggregates::Workflow, entities::Job, value_objects::EvaluationContext};
 
 /// Command representing the intention to execute one job of a workflow.
 ///
@@ -15,7 +12,7 @@ pub struct ExecuteJobCommand {
     job_id: String,
     workflow: Workflow,
     repo_path: PathBuf,
-    context: EvalContext,
+    context: EvaluationContext,
 }
 
 impl ExecuteJobCommand {
@@ -24,7 +21,7 @@ impl ExecuteJobCommand {
         job_id: String,
         workflow: Workflow,
         repo_path: PathBuf,
-        context: EvalContext,
+        context: EvaluationContext,
     ) -> Self {
         Self {
             job,
@@ -51,11 +48,11 @@ impl ExecuteJobCommand {
         &self.repo_path
     }
 
-    pub fn context(&self) -> &EvalContext {
+    pub fn context(&self) -> &EvaluationContext {
         &self.context
     }
 
-    pub fn into_parts(self) -> (Job, String, Workflow, PathBuf, EvalContext) {
+    pub fn into_parts(self) -> (Job, String, Workflow, PathBuf, EvaluationContext) {
         (
             self.job,
             self.job_id,
