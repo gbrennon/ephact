@@ -2,8 +2,8 @@ use super::workflow_directories::WORKFLOW_DIRECTORIES;
 use std::{collections::BTreeSet, error::Error, fs};
 
 use crate::{
-    application::ports::outbound::WorkflowSourcePort,
-    domain::{entities::repository::Repository, workflow::Workflow},
+    application::ports::outbound::WorkflowSourcePort, domain::entities::repository::Repository,
+    infrastructure::workflows::yaml::WorkflowYaml,
 };
 
 /// Infrastructure adapter that reads workflow definitions from the filesystem.
@@ -79,16 +79,16 @@ impl FilesystemWorkflowSource {
     }
 
     fn extract_events(content: &str) -> Vec<String> {
-        serde_yaml::from_str::<Workflow>(content)
-            .map(|workflow| {
-                workflow
-                    .on()
-                    .event_names()
-                    .iter()
-                    .map(|event| (*event).to_string())
-                    .collect()
-            })
-            .unwrap_or_default()
+        let Ok(parsed) = serde_yaml::from_str::<WorkflowYaml>(content) else {
+            return Vec::new();
+        };
+        let workflow = parsed.into_domain();
+        workflow
+            .trigger()
+            .event_names()
+            .iter()
+            .map(|event| (*event).to_string())
+            .collect()
     }
 
     fn matches_workflow_name(content: &str, target_name: &str) -> bool {

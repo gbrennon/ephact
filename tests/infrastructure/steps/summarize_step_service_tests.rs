@@ -4,13 +4,16 @@ use ephact::{
 };
 use std::time::Duration;
 
+use ephact::infrastructure::workflows::yaml::StepYaml;
 use ephact::{
     application::dtos::{ExecuteActionResponse, ExecutedStep, SummarizeStepRequest},
-    domain::{errors::StepError, workflow::Step},
+    domain::{entities::Step, errors::StepError},
 };
 
 fn step_from(yaml: &str) -> Step {
-    serde_yaml::from_str(yaml).unwrap()
+    serde_yaml::from_str::<StepYaml>(yaml)
+        .unwrap()
+        .into_domain()
 }
 
 fn executed(step: Step, exit_code: i64) -> ExecutedStep {

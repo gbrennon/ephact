@@ -10,23 +10,30 @@ use std::{
 
 use ephact::application::dtos::ExecResult;
 use ephact::application::dtos::{ExecuteActionRequest, RunCompositeActionRequest};
-use ephact::domain::{errors::StepError, expression::EvalContext, workflow::Step};
+use ephact::domain::{entities::Step, errors::StepError, value_objects::EvaluationContext};
 
 use crate::common::fakes::{
     fake_run_composite_step_port::FakeRunCompositeStepPort, stub_container::StubContainer,
 };
+use ephact::infrastructure::workflows::yaml::StepYaml;
 
 fn steps(yaml: &str) -> Vec<Step> {
-    serde_yaml::from_str(yaml).unwrap()
+    serde_yaml::from_str::<Vec<StepYaml>>(yaml)
+        .unwrap()
+        .into_iter()
+        .map(StepYaml::into_domain)
+        .collect()
 }
 
 fn action_request() -> ExecuteActionRequest {
     ExecuteActionRequest::new(
         "./actions/outer",
-        serde_yaml::from_str("uses: ./actions/outer\n").unwrap(),
+        serde_yaml::from_str::<StepYaml>("uses: ./actions/outer\n")
+            .unwrap()
+            .into_domain(),
         PathBuf::from("/repo"),
         HashMap::new(),
-        EvalContext::new(),
+        EvaluationContext::new(),
         Arc::new(StubContainer),
     )
 }

@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use ephact::{
     application::dtos::{ExecResult, RunCompositeStepRequest},
-    domain::{errors::StepError, workflow::Step},
+    domain::{entities::Step, errors::StepError},
     infrastructure::steps::run_composite_step_port::RunCompositeStepPort,
 };
 

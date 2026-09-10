@@ -1,28 +1,28 @@
 use std::path::Path;
 
-use crate::domain::{expression::EvalContext, planner::Run, workflow::Workflow};
+use crate::domain::{aggregates::Workflow, entities::JobRun, value_objects::EvaluationContext};
 
 /// Request DTO for the
 /// [`ExecuteJobPort`](crate::application::ports::inbound::execute_job_port::ExecuteJobPort)
 /// inbound port.
 pub struct ExecuteJobRequest<'a> {
     /// Planned job to run.
-    run: &'a Run,
+    run: &'a JobRun,
     /// Workflow the job belongs to.
     workflow: &'a Workflow,
     /// Repository directory the run executes against.
     repo_path: &'a Path,
     /// Context the job's steps are evaluated against.
-    context: &'a EvalContext,
+    context: &'a EvaluationContext,
 }
 
 impl<'a> ExecuteJobRequest<'a> {
     /// Creates a new request.
     pub fn new(
-        run: &'a Run,
+        run: &'a JobRun,
         workflow: &'a Workflow,
         repo_path: &'a Path,
-        context: &'a EvalContext,
+        context: &'a EvaluationContext,
     ) -> Self {
         Self {
             run,
@@ -33,7 +33,7 @@ impl<'a> ExecuteJobRequest<'a> {
     }
 
     /// Planned job to run.
-    pub fn run(&self) -> &'a Run {
+    pub fn run(&self) -> &'a JobRun {
         self.run
     }
 
@@ -48,7 +48,7 @@ impl<'a> ExecuteJobRequest<'a> {
     }
 
     /// Context the job's steps are evaluated against.
-    pub fn context(&self) -> &'a EvalContext {
+    pub fn context(&self) -> &'a EvaluationContext {
         self.context
     }
 }

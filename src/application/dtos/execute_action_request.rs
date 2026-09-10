@@ -1,8 +1,9 @@
 use std::{collections::HashMap, fmt, path::PathBuf, sync::Arc};
 
-use crate::application::ports::outbound::container_port::ContainerPort;
-use crate::domain::expression::EvalContext;
-use crate::domain::workflow::Step;
+use crate::{
+    application::ports::outbound::container_port::ContainerPort,
+    domain::{entities::Step, value_objects::EvaluationContext},
+};
 
 #[derive(Clone)]
 pub struct ExecuteActionRequest {
@@ -10,7 +11,7 @@ pub struct ExecuteActionRequest {
     step: Step,
     repo_path: PathBuf,
     env: HashMap<String, String>,
-    context: EvalContext,
+    context: EvaluationContext,
     container: Arc<dyn ContainerPort>,
 }
 
@@ -21,7 +22,7 @@ impl ExecuteActionRequest {
         step: Step,
         repo_path: impl Into<PathBuf>,
         env: HashMap<String, String>,
-        context: EvalContext,
+        context: EvaluationContext,
         container: Arc<dyn ContainerPort>,
     ) -> Self {
         Self {
@@ -50,7 +51,7 @@ impl ExecuteActionRequest {
         &self.env
     }
 
-    pub fn context(&self) -> &EvalContext {
+    pub fn context(&self) -> &EvaluationContext {
         &self.context
     }
 
@@ -65,7 +66,7 @@ impl ExecuteActionRequest {
         Step,
         PathBuf,
         HashMap<String, String>,
-        EvalContext,
+        EvaluationContext,
         Arc<dyn ContainerPort>,
     ) {
         (

@@ -1,11 +1,20 @@
-use std::{collections::HashMap, error::Error, fs, path::Path};
+use std::{
+    collections::{HashMap, HashSet},
+    error::Error,
+    fs,
+    path::Path,
+};
 
 use crate::{
     application::{
         dtos::{DiscoverRunInputsRequest, RunInputDeclaration, RunInputSource},
         ports::outbound::{DiscoverRunInputsPort, WorkflowSourcePort},
     },
-    domain::workflow::{ActionDefinition, ActionRuns, Workflow},
+    domain::{
+        aggregates::Workflow,
+        value_objects::{ActionDefinition, ActionRuntime},
+    },
+    infrastructure::workflows::yaml::{ActionDefinitionYaml, WorkflowYaml},
 };
 
 pub struct FilesystemRunInputDiscoveryService {
@@ -55,7 +64,7 @@ impl FilesystemRunInputDiscoveryService {
         workflow: &Workflow,
         declarations: &mut Vec<RunInputDeclaration>,
     ) -> Result<(), Box<dyn Error>> {
-        if let Some(inputs) = workflow.on().workflow_dispatch_inputs() {
+        if let Some(inputs) = workflow.trigger().workflow_dispatch_inputs() {
             for (name, input) in inputs {
                 Self::add_declaration(
                     declarations,
@@ -77,23 +86,59 @@ impl FilesystemRunInputDiscoveryService {
         action_reference: &str,
         declarations: &mut Vec<RunInputDeclaration>,
     ) -> Result<(), Box<dyn Error>> {
-        let Some(relative_path) = action_reference.strip_prefix("./") else {
+        let Some(relative_path) = Self::strip_local_prefix(action_reference) else {
             return Ok(());
         };
         let action_dir = repository.join(relative_path);
-        let action_path = [
+        let action_path = Self::find_action_file(&action_dir)?;
+        let definition = Self::load_action_definition(&action_path)?;
+        Self::add_input_declarations(definition.inputs(), action_reference, declarations)?;
+        Self::process_composite_runs(repository, definition.runs(), declarations)?;
+        Ok(())
+    }
+
+    fn process_composite_runs(
+        repository: &Path,
+        runs: &ActionRuntime,
+        declarations: &mut Vec<RunInputDeclaration>,
+    ) -> Result<(), Box<dyn Error>> {
+        if let ActionRuntime::Composite { steps } = runs {
+            Self::recurse_composite_steps(repository, steps, declarations)?;
+        }
+        Ok(())
+    }
+
+    fn strip_local_prefix(action_reference: &str) -> Option<&str> {
+        action_reference.strip_prefix("./")
+    }
+
+    fn find_action_file(action_dir: &Path) -> Result<std::path::PathBuf, Box<dyn Error>> {
+        [
             action_dir.join("action.yml"),
             action_dir.join("action.yaml"),
         ]
         .into_iter()
         .find(|path| path.is_file())
-        .ok_or_else(|| format!("action definition not found for '{action_reference}'"))?;
-        let definition: ActionDefinition = serde_yaml::from_str(&fs::read_to_string(action_path)?)?;
-        for (name, input) in definition.inputs() {
+        .ok_or_else(|| format!("action definition not found in {action_dir:?}").into())
+    }
+
+    fn load_action_definition(action_path: &Path) -> Result<ActionDefinition, Box<dyn Error>> {
+        Ok(
+            serde_yaml::from_str::<ActionDefinitionYaml>(&fs::read_to_string(action_path)?)?
+                .into_domain(),
+        )
+    }
+
+    fn add_input_declarations(
+        inputs: &HashMap<String, crate::domain::value_objects::ActionInput>,
+        action_reference: &str,
+        declarations: &mut Vec<RunInputDeclaration>,
+    ) -> Result<(), Box<dyn Error>> {
+        for (name, input) in inputs {
             Self::add_declaration(
                 declarations,
                 RunInputDeclaration::new(
-                    name,
+                    name.clone(),
                     RunInputSource::Action(action_reference.to_owned()),
                     input.description().map(str::to_owned),
                     input.required(),
@@ -101,34 +146,27 @@ impl FilesystemRunInputDiscoveryService {
                 ),
             )?;
         }
-        if let ActionRuns::Composite { steps } = definition.runs() {
-            for step in steps {
-                if let Some(reference) = step.uses() {
-                    Self::add_action_inputs(repository, reference, declarations)?;
-                }
+        Ok(())
+    }
+
+    fn recurse_composite_steps(
+        repository: &Path,
+        steps: &Vec<crate::domain::entities::Step>,
+        declarations: &mut Vec<RunInputDeclaration>,
+    ) -> Result<(), Box<dyn Error>> {
+        for step in steps {
+            if let Some(reference) = step.uses() {
+                Self::add_action_inputs(repository, reference, declarations)?;
             }
         }
         Ok(())
-    }
-    fn is_resolved_step_input(value: &str) -> bool {
-        let expression = value
-            .trim()
-            .strip_prefix("${{")
-            .and_then(|value| value.strip_suffix("}}"));
-        let Some(expression) = expression.map(str::trim) else {
-            return true;
-        };
-        let Some(variable) = expression.strip_prefix("env.") else {
-            return false;
-        };
-        std::env::var(variable.trim()).is_ok()
     }
 
     fn add_actions(
         workflow: &Workflow,
         repository: &Path,
         declarations: &mut Vec<RunInputDeclaration>,
-        provided: &mut std::collections::HashSet<String>,
+        provided: &mut HashSet<String>,
     ) -> Result<(), Box<dyn Error>> {
         for job in workflow.jobs().values() {
             for step in job.steps() {
@@ -145,6 +183,59 @@ impl FilesystemRunInputDiscoveryService {
         }
         Ok(())
     }
+
+    fn is_resolved_step_input(value: &str) -> bool {
+        let expression = value
+            .trim()
+            .strip_prefix("${{")
+            .and_then(|value| value.strip_suffix("}}"));
+        let Some(expression) = expression.map(str::trim) else {
+            return true;
+        };
+        let Some(variable) = expression.strip_prefix("env.") else {
+            return false;
+        };
+        std::env::var(variable.trim()).is_ok()
+    }
+
+    fn collect_supplied_inputs(
+        config: &crate::domain::value_objects::ActRunConfig,
+    ) -> HashMap<&str, &str> {
+        config
+            .inputs()
+            .iter()
+            .map(|input| (input.key(), input.value()))
+            .collect()
+    }
+
+    fn process_workflows(
+        contents: &[String],
+        repository: &Path,
+    ) -> Result<(Vec<RunInputDeclaration>, HashSet<String>), Box<dyn Error>> {
+        let mut declarations = Vec::new();
+        let mut provided = HashSet::new();
+        for content in contents {
+            let workflow = serde_yaml::from_str::<WorkflowYaml>(content)?.into_domain();
+            Self::add_workflow_inputs(&workflow, &mut declarations)?;
+            Self::add_actions(&workflow, repository, &mut declarations, &mut provided)?;
+        }
+        Ok((declarations, provided))
+    }
+
+    fn resolve_declarations(
+        declarations: Vec<RunInputDeclaration>,
+        supplied: HashMap<&str, &str>,
+        provided: HashSet<String>,
+    ) -> Vec<RunInputDeclaration> {
+        declarations
+            .into_iter()
+            .map(|input| {
+                let resolved =
+                    supplied.contains_key(input.name()) || provided.contains(input.name());
+                input.with_resolved(resolved)
+            })
+            .collect()
+    }
 }
 
 impl DiscoverRunInputsPort for FilesystemRunInputDiscoveryService {
@@ -153,32 +244,10 @@ impl DiscoverRunInputsPort for FilesystemRunInputDiscoveryService {
         request: DiscoverRunInputsRequest,
     ) -> Result<Vec<RunInputDeclaration>, Box<dyn Error>> {
         let contents = self.workflow_contents(&request)?;
-        let supplied: HashMap<&str, &str> = request
-            .config()
-            .inputs()
-            .iter()
-            .map(|input| (input.key(), input.value()))
-            .collect();
-        let mut declarations = Vec::new();
-        let mut provided = std::collections::HashSet::new();
-        for content in contents {
-            let workflow: Workflow = serde_yaml::from_str(&content)?;
-            Self::add_workflow_inputs(&workflow, &mut declarations)?;
-            Self::add_actions(
-                &workflow,
-                request.repository().path().as_path(),
-                &mut declarations,
-                &mut provided,
-            )?;
-        }
-        Ok(declarations
-            .into_iter()
-            .map(|input| {
-                let resolved =
-                    supplied.contains_key(input.name()) || provided.contains(input.name());
-                input.with_resolved(resolved)
-            })
-            .collect())
+        let supplied = Self::collect_supplied_inputs(request.config());
+        let repo_path = request.repository().path().as_path();
+        let (declarations, provided) = Self::process_workflows(&contents, repo_path)?;
+        Ok(Self::resolve_declarations(declarations, supplied, provided))
     }
 }
 

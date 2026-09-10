@@ -7,6 +7,7 @@ pub mod logging;
 pub mod messaging;
 pub mod project_branding_store;
 pub mod steps;
+pub mod webhooks;
 pub mod workflows;
 
 pub use actions::GitActionFetcher;

@@ -5,9 +5,10 @@ use std::{
     sync::Arc,
 };
 
-use crate::application::ports::outbound::container_port::ContainerPort;
-use crate::domain::expression::EvalContext;
-use crate::domain::workflow::Step;
+use crate::{
+    application::ports::outbound::container_port::ContainerPort,
+    domain::{entities::Step, value_objects::EvaluationContext},
+};
 
 #[derive(Clone)]
 pub struct RunActionRequest {
@@ -15,7 +16,7 @@ pub struct RunActionRequest {
     step: Step,
     repo_path: PathBuf,
     env: HashMap<String, String>,
-    context: EvalContext,
+    context: EvaluationContext,
     container: Arc<dyn ContainerPort>,
 }
 
@@ -25,7 +26,7 @@ impl RunActionRequest {
         step: Step,
         repo_path: PathBuf,
         env: HashMap<String, String>,
-        context: EvalContext,
+        context: EvaluationContext,
         container: Arc<dyn ContainerPort>,
     ) -> Self {
         Self {
@@ -70,11 +71,11 @@ impl RunActionRequest {
         self.env
     }
 
-    pub fn context(&self) -> &EvalContext {
+    pub fn context(&self) -> &EvaluationContext {
         &self.context
     }
 
-    pub fn into_context(self) -> EvalContext {
+    pub fn into_context(self) -> EvaluationContext {
         self.context
     }
 

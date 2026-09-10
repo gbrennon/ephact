@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::{
     application::dtos::ExecutedStep,
-    domain::{errors::StepError, workflow::Step},
+    domain::{entities::Step, errors::StepError},
 };
 
 /// Request DTO for the

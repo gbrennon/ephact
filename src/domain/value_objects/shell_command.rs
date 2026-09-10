@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::domain::workflow::Step;
+use crate::domain::entities::Step;
 
 /// Shell used when a step declares no `shell:`.
 const DEFAULT_SHELL: &str = "bash";
@@ -27,8 +27,20 @@ impl ShellCommand {
     ///
     /// ```
     /// # use std::collections::HashMap;
-    /// # use ephact::domain::{value_objects::ShellCommand, workflow::Step};
-    /// let step: Step = serde_yaml::from_str("run: echo hi\n").unwrap();
+    /// # use ephact::domain::{entities::Step, value_objects::ShellCommand};
+    /// let step = Step::new(
+    ///     None,
+    ///     None,
+    ///     None,
+    ///     Some("echo hi".to_owned()),
+    ///     None,
+    ///     None,
+    ///     None,
+    ///     HashMap::new(),
+    ///     HashMap::new(),
+    ///     None,
+    ///     None,
+    /// );
     /// let command = ShellCommand::for_step(&step, &HashMap::new()).unwrap();
     /// assert_eq!(command.argv(), ["bash", "-c", "echo hi"]);
     /// ```
@@ -83,23 +95,46 @@ impl ShellCommand {
 mod tests {
     use super::*;
 
-    fn step_from(yaml: &str) -> Step {
-        serde_yaml::from_str(yaml).unwrap()
+    fn step(
+        run: Option<&str>,
+        shell: Option<&str>,
+        working_directory: Option<&str>,
+        env: HashMap<String, String>,
+        uses: Option<&str>,
+    ) -> Step {
+        Step::new(
+            None,
+            None,
+            None,
+            run.map(str::to_owned),
+            shell.map(str::to_owned),
+            working_directory.map(str::to_owned),
+            uses.map(str::to_owned),
+            HashMap::new(),
+            env,
+            None,
+            None,
+        )
+    }
+
+    fn run_step(script: &str) -> Step {
+        step(Some(script), None, None, HashMap::new(), None)
     }
 
     #[test]
     fn for_step_defaults_to_bash() {
-        let command =
-            ShellCommand::for_step(&step_from("run: echo hi\n"), &HashMap::new()).unwrap();
+        let command = ShellCommand::for_step(&run_step("echo hi"), &HashMap::new()).unwrap();
 
         assert_eq!(command.argv(), ["bash", "-c", "echo hi"]);
     }
 
     #[test]
     fn for_step_honors_declared_shell() {
-        let command =
-            ShellCommand::for_step(&step_from("run: echo hi\nshell: sh\n"), &HashMap::new())
-                .unwrap();
+        let command = ShellCommand::for_step(
+            &step(Some("echo hi"), Some("sh"), None, HashMap::new(), None),
+            &HashMap::new(),
+        )
+        .unwrap();
 
         assert_eq!(command.argv(), ["sh", "-c", "echo hi"]);
     }
@@ -107,7 +142,13 @@ mod tests {
     #[test]
     fn for_step_keeps_working_directory() {
         let command = ShellCommand::for_step(
-            &step_from("run: echo hi\nworking-directory: crates/app\n"),
+            &step(
+                Some("echo hi"),
+                None,
+                Some("crates/app"),
+                HashMap::new(),
+                None,
+            ),
             &HashMap::new(),
         )
         .unwrap();
@@ -121,9 +162,17 @@ mod tests {
         job_env.insert("MODE".to_string(), "job".to_string());
         job_env.insert("KEEP".to_string(), "yes".to_string());
 
-        let command =
-            ShellCommand::for_step(&step_from("run: echo hi\nenv:\n  MODE: step\n"), &job_env)
-                .unwrap();
+        let command = ShellCommand::for_step(
+            &step(
+                Some("echo hi"),
+                None,
+                None,
+                HashMap::from([("MODE".to_string(), "step".to_string())]),
+                None,
+            ),
+            &job_env,
+        )
+        .unwrap();
 
         assert_eq!(command.env().get("MODE").map(String::as_str), Some("step"));
         assert_eq!(command.env().get("KEEP").map(String::as_str), Some("yes"));
@@ -131,7 +180,13 @@ mod tests {
 
     #[test]
     fn for_step_returns_none_without_script() {
-        assert!(ShellCommand::for_step(&step_from("uses: ./action\n"), &HashMap::new()).is_none());
+        assert!(
+            ShellCommand::for_step(
+                &step(None, None, None, HashMap::new(), Some("./action")),
+                &HashMap::new()
+            )
+            .is_none()
+        );
     }
 
     #[test]

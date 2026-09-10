@@ -7,11 +7,13 @@ use super::bollard_wrapper::types::{
 };
 use super::bollard_wrapper::{API_DEFAULT_VERSION, AuthCredentials, Client};
 use super::podman_container::PodmanContainer;
-use crate::application::dtos::ContainerConfig;
-use crate::application::dtos::HostInfo;
-use crate::application::ports::outbound::ContainerRuntimePort;
-use crate::application::ports::outbound::container_port::ContainerPort;
-use crate::domain::errors::ContainerError;
+use crate::{
+    application::{
+        dtos::{ContainerConfig, HostInfo},
+        ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
+    },
+    domain::errors::ContainerError,
+};
 
 /// Podman-based container runtime adapter using the bollard crate.
 ///

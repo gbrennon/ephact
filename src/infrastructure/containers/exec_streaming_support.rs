@@ -5,8 +5,7 @@ use futures_util::StreamExt;
 
 use crate::{
     application::dtos::ExecResult,
-    domain::errors::ContainerError,
-    domain::events::OutputStream,
+    domain::{errors::ContainerError, events::OutputStream},
     infrastructure::containers::bollard_wrapper::{
         Client,
         types::{CreateExecOptions, LogOutput},

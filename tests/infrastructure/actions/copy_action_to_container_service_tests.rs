@@ -4,8 +4,7 @@ use ephact::infrastructure::actions::{
 };
 use std::path::Path;
 
-use ephact::application::dtos::CopyActionToContainerRequest;
-use ephact::application::dtos::FileEntry;
+use ephact::application::dtos::{CopyActionToContainerRequest, FileEntry};
 
 use crate::common::fakes::{
     fake_collect_action_files_port::FakeCollectActionFilesPort,

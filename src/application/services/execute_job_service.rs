@@ -1,26 +1,26 @@
 use std::{error::Error, sync::Arc, time::Instant};
 
-use crate::application::commands::ExecuteStepCommand;
-use crate::application::dtos::BuildJobEnvironmentRequest;
-use crate::application::dtos::BuildStepContextRequest;
-use crate::application::dtos::ExecuteJobRequest;
-use crate::application::dtos::JobExecution;
-use crate::application::dtos::JobSummary;
-use crate::application::dtos::PrefixStepPathRequest;
-use crate::application::dtos::PrepareJobContainerRequest;
-use crate::application::dtos::ReadStepExportsRequest;
-use crate::application::dtos::StepSummary;
-use crate::application::dtos::SummarizeStepRequest;
-use crate::application::ports::inbound::execute_job_port::ExecuteJobPort;
-use crate::application::ports::outbound::build_job_environment_port::BuildJobEnvironmentPort;
-use crate::application::ports::outbound::build_step_context_port::BuildStepContextPort;
-use crate::application::ports::outbound::command_bus_port::CommandBusPort;
-use crate::application::ports::outbound::event_bus_port::EventBusPort;
-use crate::application::ports::outbound::prefix_step_path_port::PrefixStepPathPort;
-use crate::application::ports::outbound::prepare_job_container_port::PrepareJobContainerPort;
-use crate::application::ports::outbound::read_step_exports_port::ReadStepExportsPort;
-use crate::application::ports::outbound::summarize_step_port::SummarizeStepPort;
-use crate::domain::events::{DomainEvent, StepFinishedPayload, StepStartedPayload};
+use crate::{
+    application::{
+        dtos::{
+            BuildJobEnvironmentRequest, BuildStepContextRequest, ExecuteJobRequest,
+            ExecuteStepCommand, JobExecution, JobSummary, PrefixStepPathRequest,
+            PrepareJobContainerRequest, ReadStepExportsRequest, StepSummary, SummarizeStepRequest,
+        },
+        ports::{
+            inbound::execute_job_port::ExecuteJobPort,
+            outbound::{
+                build_job_environment_port::BuildJobEnvironmentPort,
+                build_step_context_port::BuildStepContextPort, command_bus_port::CommandBusPort,
+                event_bus_port::EventBusPort, prefix_step_path_port::PrefixStepPathPort,
+                prepare_job_container_port::PrepareJobContainerPort,
+                read_step_exports_port::ReadStepExportsPort,
+                summarize_step_port::SummarizeStepPort,
+            },
+        },
+    },
+    domain::events::{DomainEvent, StepFinishedPayload, StepStartedPayload},
+};
 
 /// Application service coordinating the execution of one job.
 ///
@@ -140,7 +140,7 @@ impl ExecuteJobService {
     fn announce_step_started(
         &self,
         request: &ExecuteJobRequest<'_>,
-        step: &crate::domain::workflow::Step,
+        step: &crate::domain::entities::Step,
     ) {
         self.event_bus
             .publish(DomainEvent::StepStarted(StepStartedPayload::new(

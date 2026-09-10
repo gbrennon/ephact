@@ -2,11 +2,13 @@
 use parking_lot::Mutex;
 use std::{collections::HashMap, sync::Arc};
 
-use ephact::application::dtos::ExecResult;
-use ephact::application::dtos::RunShellStepRequest;
-use ephact::application::ports::outbound::run_shell_step_port::RunShellStepPort;
-use ephact::domain::errors::StepError;
-use ephact::domain::workflow::Step;
+use ephact::{
+    application::{
+        dtos::{ExecResult, RunShellStepRequest},
+        ports::outbound::run_shell_step_port::RunShellStepPort,
+    },
+    domain::{entities::Step, errors::StepError},
+};
 
 /// Answers every shell step with a prepared result, recording the steps and
 /// environments it received. Shares its recordings across clones.

@@ -2,7 +2,7 @@
 #[derive(Debug, Clone, PartialEq)]
 pub struct StepSummary {
     name: String,
-    step_type: crate::domain::workflow::StepType,
+    step_type: crate::domain::value_objects::StepType,
     exit_code: Option<i64>,
     continue_on_error: bool,
     duration: std::time::Duration,
@@ -14,7 +14,7 @@ impl StepSummary {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: impl Into<String>,
-        step_type: crate::domain::workflow::StepType,
+        step_type: crate::domain::value_objects::StepType,
         exit_code: Option<i64>,
         continue_on_error: bool,
         duration: std::time::Duration,
@@ -36,7 +36,7 @@ impl StepSummary {
         &self.name
     }
 
-    pub fn step_type(&self) -> &crate::domain::workflow::StepType {
+    pub fn step_type(&self) -> &crate::domain::value_objects::StepType {
         &self.step_type
     }
 
@@ -64,7 +64,7 @@ impl StepSummary {
         self,
     ) -> (
         String,
-        crate::domain::workflow::StepType,
+        crate::domain::value_objects::StepType,
         Option<i64>,
         bool,
         std::time::Duration,

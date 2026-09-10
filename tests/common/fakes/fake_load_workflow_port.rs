@@ -3,7 +3,8 @@ use ephact::application::ports::outbound::load_workflow_port::LoadWorkflowPort;
 use parking_lot::Mutex;
 use std::sync::Arc;
 
-use ephact::{application::dtos::LoadWorkflowRequest, domain::workflow::Workflow};
+use ephact::infrastructure::workflows::yaml::WorkflowYaml;
+use ephact::{application::dtos::LoadWorkflowRequest, domain::aggregates::Workflow};
 
 /// Parses a prepared YAML document instead of reading one from disk.
 #[derive(Clone)]
@@ -41,7 +42,7 @@ impl LoadWorkflowPort for FakeLoadWorkflowPort {
             .lock()
             .push(request.workflow_content().to_string());
         match &self.yaml {
-            Ok(yaml) => Ok(serde_yaml::from_str(yaml)?),
+            Ok(yaml) => Ok(serde_yaml::from_str::<WorkflowYaml>(yaml)?.into_domain()),
             Err(message) => Err(message.clone().into()),
         }
     }

@@ -1,6 +1,7 @@
-use crate::application::dtos::ExecResult;
-use crate::application::dtos::RunShellStepRequest;
-use crate::domain::errors::StepError;
+use crate::{
+    application::dtos::{ExecResult, RunShellStepRequest},
+    domain::errors::StepError,
+};
 
 /// Inbound port for running a step's shell script inside a container.
 pub trait RunShellStepPort: Send + Sync {

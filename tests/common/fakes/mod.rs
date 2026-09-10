@@ -7,6 +7,7 @@ pub mod fake_container_handle;
 pub mod fake_copy_action_to_container_port;
 pub mod fake_create_job_container_port;
 pub mod fake_detect_workflow_file_port;
+pub mod fake_detect_workflow_trigger_port;
 pub mod fake_event_bus;
 pub mod fake_fetch_remote_action_port;
 pub mod fake_image_mapper;

@@ -1,16 +1,20 @@
 use std::path::Path;
 
-use crate::domain::expression::EvalContext;
+use crate::domain::value_objects::EvaluationContext;
 
 /// Infrastructure-facing request carrying already-resolved workflow content.
 pub struct ExecuteWorkflowRequest<'a> {
     workflow_content: &'a str,
     repo_path: &'a Path,
-    context: &'a EvalContext,
+    context: &'a EvaluationContext,
 }
 
 impl<'a> ExecuteWorkflowRequest<'a> {
-    pub fn new(workflow_content: &'a str, repo_path: &'a Path, context: &'a EvalContext) -> Self {
+    pub fn new(
+        workflow_content: &'a str,
+        repo_path: &'a Path,
+        context: &'a EvaluationContext,
+    ) -> Self {
         Self {
             workflow_content,
             repo_path,
@@ -26,7 +30,7 @@ impl<'a> ExecuteWorkflowRequest<'a> {
         self.repo_path
     }
 
-    pub fn context(&self) -> &'a EvalContext {
+    pub fn context(&self) -> &'a EvaluationContext {
         self.context
     }
 }

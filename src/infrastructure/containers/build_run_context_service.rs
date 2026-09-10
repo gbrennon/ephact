@@ -1,8 +1,8 @@
-use serde_json::{Map, Value};
+use std::collections::BTreeMap;
 
 use crate::{
     application::dtos::{BuildRunContextRequest, BuildRunContextResponse},
-    domain::expression::EvalContext,
+    domain::value_objects::{ContextValue, EvaluationContext},
     infrastructure::containers::{
         build_run_context_port::BuildRunContextPort, workspace::CONTAINER_WORKSPACE,
     },
@@ -24,53 +24,53 @@ impl Default for BuildRunContextService {
 
 impl BuildRunContextPort for BuildRunContextService {
     fn execute(&self, request: BuildRunContextRequest<'_>) -> BuildRunContextResponse {
-        let secrets: Map<String, Value> = request
-            .config()
-            .secrets()
-            .iter()
-            .map(|secret| {
-                (
-                    secret.name().to_string(),
-                    Value::String(secret.value().into()),
-                )
-            })
-            .collect();
-        let inputs: Map<String, Value> = request
+        let secrets = ContextValue::mapping(request.config().secrets().iter().map(|secret| {
+            (
+                secret.name().to_string(),
+                ContextValue::text(secret.value()),
+            )
+        }));
+        let inputs: BTreeMap<String, ContextValue> = request
             .config()
             .inputs()
             .iter()
-            .map(|input| (input.key().to_string(), Value::String(input.value().into())))
+            .map(|input| (input.key().to_string(), ContextValue::text(input.value())))
             .collect();
         let event_name = request
             .config()
             .event()
             .map_or("workflow_dispatch", |event| event.as_str());
 
-        let mut event = Map::new();
-        event.insert("inputs".into(), Value::Object(inputs.clone()));
+        let event =
+            ContextValue::mapping([("inputs".to_owned(), ContextValue::Mapping(inputs.clone()))]);
 
-        let mut github = Map::new();
-        github.insert("event_name".into(), Value::String(event_name.into()));
-        github.insert(
-            "repository".into(),
-            Value::String(request.repository().name().as_str().into()),
-        );
-        github.insert(
-            "workspace".into(),
-            Value::String(CONTAINER_WORKSPACE.into()),
-        );
-        github.insert("event".into(), Value::Object(event));
+        let github = ContextValue::mapping([
+            ("event_name".to_owned(), ContextValue::text(event_name)),
+            (
+                "repository".to_owned(),
+                ContextValue::text(request.repository().name().as_str()),
+            ),
+            (
+                "workspace".to_owned(),
+                ContextValue::text(CONTAINER_WORKSPACE),
+            ),
+            ("event".to_owned(), event),
+        ]);
 
-        let mut runner = Map::new();
-        runner.insert("os".into(), Value::String("Linux".into()));
-        runner.insert("arch".into(), Value::String("X64".into()));
-        runner.insert("temp".into(), Value::String("/tmp".into()));
-
-        let context = EvalContext::new()
-            .with_secrets(Value::Object(secrets))
-            .with_inputs(Value::Object(inputs))
-            .with_github(Value::Object(github))
-            .with_runner(Value::Object(runner));
+        let context = EvaluationContext::new()
+            .with_secrets(secrets)
+            .with_inputs(ContextValue::Mapping(inputs))
+            .with_github(github)
+            .with_runner(runner_context());
         BuildRunContextResponse::new(context)
     }
+}
+
+/// Returns the runner facts every job sees in the `runner` context.
+fn runner_context() -> ContextValue {
+    ContextValue::mapping([
+        ("os".to_owned(), ContextValue::text("Linux")),
+        ("arch".to_owned(), ContextValue::text("X64")),
+        ("temp".to_owned(), ContextValue::text("/tmp")),
+    ])
 }

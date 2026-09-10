@@ -2,12 +2,13 @@
 use parking_lot::Mutex;
 use std::{collections::HashMap, sync::Arc};
 
-use ephact::application::dtos::ContainerConfig;
-use ephact::application::dtos::ExecResult;
-use ephact::application::dtos::HostInfo;
-use ephact::application::ports::outbound::ContainerRuntimePort;
-use ephact::application::ports::outbound::container_port::ContainerPort;
-use ephact::domain::errors::ContainerError;
+use ephact::{
+    application::{
+        dtos::{ContainerConfig, ExecResult, HostInfo},
+        ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
+    },
+    domain::errors::ContainerError,
+};
 
 use super::fake_container_handle::FakeContainerHandle;
 

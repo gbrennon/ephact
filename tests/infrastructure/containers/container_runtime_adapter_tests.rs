@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-use ephact::application::dtos::ContainerConfig;
-use ephact::application::ports::outbound::ContainerRuntimePort;
-use ephact::infrastructure::containers::container_runtime_adapter::ContainerRuntimeAdapter;
+use ephact::{
+    application::{dtos::ContainerConfig, ports::outbound::ContainerRuntimePort},
+    infrastructure::containers::container_runtime_adapter::ContainerRuntimeAdapter,
+};
 
 use crate::common::fakes::{
     spy_container_runtime::SpyContainerRuntime,

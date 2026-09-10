@@ -33,6 +33,15 @@ impl Repository {
     pub fn name(&self) -> &RepositoryName {
         &self.name
     }
+    /// Returns whether this repository is a standalone checkout.
+    pub fn is_standalone(&self) -> bool {
+        self.path.is_standalone()
+    }
+
+    /// Returns whether this repository is a linked worktree.
+    pub fn is_worktree(&self) -> bool {
+        self.path.is_worktree()
+    }
 }
 
 #[cfg(test)]
@@ -59,5 +68,15 @@ mod tests {
 
         assert_eq!(repo.path(), &path);
         assert_eq!(repo.name(), &name);
+    }
+    #[test]
+    fn reports_repository_kind() {
+        let repository = Repository::new(repo_path(), repo_name());
+
+        assert_eq!(
+            repository.is_standalone(),
+            repository.path().is_standalone()
+        );
+        assert_eq!(repository.is_worktree(), repository.path().is_worktree());
     }
 }

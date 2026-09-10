@@ -2,15 +2,14 @@ use super::super::steps::run_composite_step_port::RunCompositeStepPort;
 use crate::application::ports::outbound::run_composite_action_port::RunCompositeActionPort;
 use std::collections::HashMap;
 
-use serde_json::Value;
-
 use crate::{
     application::dtos::{
         ExecuteActionResponse, RunCompositeActionRequest, RunCompositeStepRequest,
     },
     domain::{
         errors::StepError,
-        expression::{EvalContext, StepInterpolator},
+        services::StepInterpolator,
+        value_objects::{ContextValue, EvaluationContext},
     },
 };
 
@@ -26,12 +25,14 @@ impl RunCompositeActionService {
     }
 
     /// Returns a copy of `context` whose `inputs` are the action's own.
-    fn context_with_inputs(context: &EvalContext, inputs: &HashMap<String, String>) -> EvalContext {
-        let input_values = Value::Object(
+    fn context_with_inputs(
+        context: &EvaluationContext,
+        inputs: &HashMap<String, String>,
+    ) -> EvaluationContext {
+        let input_values = ContextValue::mapping(
             inputs
                 .iter()
-                .map(|(name, value)| (name.clone(), Value::String(value.clone())))
-                .collect(),
+                .map(|(name, value)| (name.clone(), ContextValue::text(value.clone()))),
         );
         context.clone().with_inputs(input_values)
     }

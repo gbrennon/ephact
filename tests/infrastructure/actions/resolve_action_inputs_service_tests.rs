@@ -1,6 +1,7 @@
+use ephact::infrastructure::workflows::yaml::{ActionDefinitionYaml, StepYaml};
 use ephact::{
     application::dtos::ResolveActionInputsRequest,
-    domain::workflow::{ActionDefinition, Step},
+    domain::{entities::Step, value_objects::ActionDefinition},
 };
 use ephact::{
     application::ports::outbound::resolve_action_inputs_port::ResolveActionInputsPort,
@@ -10,11 +11,15 @@ use ephact::{
 const WITH_DEFAULTS: &str = "name: Deploy\ninputs:\n  mode:\n    description: target\n    default: production\n  token:\n    description: secret\nruns:\n  using: composite\n  steps: []\n";
 
 fn definition() -> ActionDefinition {
-    serde_yaml::from_str(WITH_DEFAULTS).unwrap()
+    serde_yaml::from_str::<ActionDefinitionYaml>(WITH_DEFAULTS)
+        .unwrap()
+        .into_domain()
 }
 
 fn step(yaml: &str) -> Step {
-    serde_yaml::from_str(yaml).unwrap()
+    serde_yaml::from_str::<StepYaml>(yaml)
+        .unwrap()
+        .into_domain()
 }
 
 #[test]
@@ -67,10 +72,11 @@ fn execute_passes_undeclared_with_keys_through() {
 
 #[test]
 fn execute_reports_a_missing_required_input() {
-    let required_definition: ActionDefinition = serde_yaml::from_str(
+    let required_definition = serde_yaml::from_str::<ActionDefinitionYaml>(
         "name: Deploy\ninputs:\n  token:\n    required: true\nruns:\n  using: composite\n  steps: []\n",
     )
-    .unwrap();
+    .unwrap()
+    .into_domain();
 
     let error = ResolveActionInputsService::new()
         .execute(ResolveActionInputsRequest::new(

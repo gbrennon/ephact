@@ -1,8 +1,10 @@
-use ephact::application::dtos::ContainerConfig;
-use ephact::application::dtos::HostInfo;
-use ephact::application::ports::outbound::ContainerRuntimePort;
-use ephact::application::ports::outbound::container_port::ContainerPort;
-use ephact::domain::errors::ContainerError;
+use ephact::{
+    application::{
+        dtos::{ContainerConfig, HostInfo},
+        ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
+    },
+    domain::errors::ContainerError,
+};
 
 use super::failing_container::FailingContainer;
 use crate::support::container_activity::ContainerActivity;

@@ -2,8 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     application::dtos::{ExecResult, FileEntry, RunnerContext},
-    domain::errors::ContainerError,
-    domain::events::OutputStream,
+    domain::{errors::ContainerError, events::OutputStream},
 };
 
 /// Outbound port for working inside one running container.
