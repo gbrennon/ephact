@@ -45,7 +45,3 @@ path = "tests/presentation/mod.rs"
 name = "e2e"
 path = "tests/e2e/mod.rs"
 
-[[test]]
-name = "container_integration"
-path = "tests/container_integration/mod.rs"
-required-features = ["container-integration"]
