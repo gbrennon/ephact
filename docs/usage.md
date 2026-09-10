@@ -1,10 +1,12 @@
 # Using ephact
 
-`ephact` provides three subcommands to inspect and run workflows locally in ephemeral repositories:
+`ephact` provides three subcommands to inspect workflows and run supported
+pull-request workflows in Docker or Podman containers:
 
-- `run`: Execute CI workflows in an ephemeral copy of a repository.
-- `list-workflows`: Discover and list workflow names available in a repository.
-- `list-actions`: Discover and list actions referenced across workflows.
+- `run`: Execute pull-request workflows with the selected Git repository mounted
+  read-write at `/workspace`.
+- `list-workflows`: Discover and list named workflows in a repository.
+- `list-actions`: Discover and list unique action references across workflows.
 
 ## Running Workflows (`ephact run`)
 
@@ -14,70 +16,80 @@
 ephact run [OPTIONS] [PATH]
 ```
 
-`[PATH]` is an optional positional argument specifying the path to the target repository. It defaults to the current working directory (`.`).
+`[PATH]` is an optional positional path to an existing Git repository. It
+defaults to `.`, is canonicalized, and must contain `.git` as either a directory
+or a worktree file.
 
 ### Options
 
-| Flag | Argument | Description | Default |
-|---|---|---|---|
-| `[PATH]` | Path | Path to the repository to inspect and run | `.` |
-| `--workflow` | `<NAME>` | Name or file of the workflow to run | Run all workflows |
-| `--job` | `<JOB>` | Specific job name to run from the selected workflow | Run all jobs |
-| `--event` | `<EVENT>` | Event to simulate (`push`, `pull_request`, `workflow_dispatch`, `release`) | `push` |
-| `--input` | `<KEY=VALUE>` | Inject a workflow input as `${{ inputs.KEY }}` (repeatable) | None |
-| `--interactive` | None | Select a pull-request workflow interactively and enter action inputs as literals or `env:VARIABLE` references | Disabled |
-| `--secret` | `<KEY[=VALUE]>` | Inject a secret as `${{ secrets.KEY }}`. If `=VALUE` is omitted, reads the value from the host environment (repeatable) | None |
-| `--all-workflows` | None | Force running every workflow discovered in the repository | Active if `--workflow` omitted |
-| `--preserve` | None | Preserve the ephemeral repository directory after execution instead of removing it | Clean up on exit |
-| `--verbose` | None | Show real-time step details (running steps and their output) in addition to the final status of each step | Terse summary |
-| `--allow-real-container` | None | Use the real Docker or Podman adapter instead of the default simulated runtime | Disabled |
-| `--allow-real-fetcher` | None | Fetch actions from remote forge instead of the local mirror | Disabled |
-| `--allow-network` | None | Allow outbound network access inside containers (requires `--allow-real-container`) | Disabled |
+| Flag                     | Argument        | Description                                                                                                                                   | Default                        |
+| ------------------------ | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `[PATH]`                 | Path            | Existing Git repository to inspect and mount read-write into job containers                                                                   | `.`                            |
+| `--workflow`             | `<NAME>`        | Exact value of the workflow's top-level `name:` field                                                                                         | All pull-request workflows     |
+| `--job`                  | `<JOB>`         | Accepted by the parser but currently ignored; all jobs in each selected workflow execute                                                      | No effect                      |
+| `--event`                | `<EVENT>`       | Accepted by the parser but currently ignored; execution supports and simulates only `pull_request`                                            | `pull_request` (forced)        |
+| `--input`                | `<KEY=VALUE>`   | Add a string to the run's `inputs` and `github.event.inputs` contexts (repeatable; later duplicate keys win)                                  | None                           |
+| `--interactive`          | None            | Select a pull-request workflow by number, then enter a literal or `env:VARIABLE` value for each discovered workflow or local-action input     | Disabled                       |
+| `--secret`               | `<KEY[=VALUE]>` | Inject a secret as `${{ secrets.KEY }}`. If `=VALUE` is omitted, reads the value from the host environment (repeatable)                       | None                           |
+| `--all-workflows`        | None            | Run every discovered workflow declaring `pull_request`; the default without `--workflow`; wins and ignores the name if both options are given | Active if `--workflow` omitted |
+| `--preserve`             | None            | Accepted by the parser but currently has no effect                                                                                            | No effect                      |
+| `--verbose`              | None            | Show real-time step details (running steps and their output) in addition to the final status of each step                                     | Terse summary                  |
+| `--allow-real-container` | None            | Accepted but currently has no effect; a real Docker or Podman runtime is always auto-detected and used                                        | No effect                      |
+| `--allow-real-fetcher`   | None            | Accepted but currently has no effect; uncached remote actions are fetched from their forge by default                                         | No effect                      |
+| `--allow-network`        | None            | Accepted but currently has no effect; containers use the runtime's default network behavior                                                   | No effect                      |
 
 ### Examples
 
-Run all workflows found in the current repository:
+Run all discovered workflows that declare `pull_request`:
 
 ```sh
 ephact run
 ```
 
-Run a specific workflow triggered by a `push` event:
+Run a specific workflow that declares `pull_request`:
 
 ```sh
-ephact run --workflow CI --event push
+ephact run --workflow CI
 ```
 
-Run a pull-request workflow interactively:
+Select a pull-request workflow interactively:
 
 ```sh
 ephact run --interactive
 ```
 
-The prompt lists only workflows declaring a pull-request event. Enter action
-inputs as `KEY=VALUE` or `KEY=env:VARIABLE`; a blank line starts the run.
+The menu lists only workflows declaring `pull_request` and accepts a numeric
+selection. It then asks once per discovered workflow or local-action input.
+Enter a literal or `env:VARIABLE`; a blank keeps an existing or default value
+and is rejected for an unresolved required input.
 
-Run a single job within a workflow:
+In interactive mode, the numeric selection replaces any `--workflow` value and
+disables `--all-workflows`. As in other modes, `--event` is ignored and
+`pull_request` is forced.
+
+`--job` is accepted but does not filter jobs; all jobs in each selected workflow
+execute.
+
+Pass run inputs and read a secret from the host environment while showing
+verbose progress:
 
 ```sh
-ephact run --workflow CI --job test
+ephact run --workflow CI --input greeting=World --secret GITHUB_TOKEN --verbose
 ```
 
-Pass workflow inputs and read a secret directly from the host environment:
+The selected workflow must declare `pull_request`; current execution always
+simulates that event.
+
+Run a named pull-request workflow from another Git repository:
 
 ```sh
-ephact run --workflow CI --event workflow_dispatch --input greeting=World --secret GITHUB_TOKEN --verbose
-```
-
-Run against a specific repository path and preserve the temporary workspace for debugging:
-
-```sh
-ephact run /path/to/repo --workflow CI --preserve
+ephact run /path/to/repo --workflow CI
 ```
 
 ## Listing Workflows (`ephact list-workflows`)
 
-Inspects workflow definitions found in supported directories (`.forgejo/workflows` and `.github/workflows`) and prints their names.
+Inspects workflow definitions found in supported directories
+(`.forgejo/workflows` and `.github/workflows`) and prints their names.
 
 ### Syntax
 
@@ -101,7 +113,8 @@ ephact list-workflows /path/to/repo
 
 ## Listing Actions (`ephact list-actions`)
 
-Parses workflow files and outputs all unique actions referenced across job steps.
+Parses workflow files and outputs all unique actions referenced across job
+steps.
 
 ### Syntax
 
@@ -123,12 +136,19 @@ List actions referenced in an external repository:
 ephact list-actions /path/to/repo
 ```
 
-## Safe by Default
+## Runtime and Safety
 
-`ephact` is designed to be completely safe to run on untrusted repositories or unverified workflows:
+`ephact` requires and auto-detects a reachable Docker or Podman runtime. The
+selected repository is bind-mounted read-write at `/workspace`, so workflow
+steps can modify the host working tree. Pulling job images and cloning uncached
+remote actions into a persistent host cache can use the network. Containers use
+the runtime's default network behavior.
 
-- **Isolated Workspace**: Repositories are copied to an ephemeral directory before execution. Changes never mutate your working directory or Git history.
-- **Automatic Teardown**: Ephemeral directories and temporary containers are removed after execution completes, unless `--preserve` is explicitly supplied.
-- **Simulated Execution**: By default, steps run within a safe fake runtime that blocks host filesystem writes and outbound network traffic.
-- **Local Action Mirroring**: Actions are resolved from a local mirror by default. Remote forge access requires `--allow-real-fetcher`.
-- **Secret Protection**: Secrets injected via `--secret` are passed directly into the container execution context and are never written to disk or recorded in permanent logs.
+After a normally completed run, `ephact` makes a best-effort attempt to remove
+recorded job containers. Early errors can occur before cleanup is triggered.
+`--preserve` currently has no effect. Pulled images, cached actions, and changes
+made to the selected repository can remain.
+
+Treat secrets as visible to the workflow. Workflow steps can print them or write
+them into the mounted repository, and `--verbose` relays step output without
+secret redaction. Review untrusted workflows before running them.
