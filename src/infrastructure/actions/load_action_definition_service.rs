@@ -3,7 +3,8 @@ use std::fs::read_to_string;
 
 use crate::{
     application::dtos::LoadActionDefinitionRequest,
-    domain::{errors::StepError, workflow::ActionDefinition},
+    domain::{errors::StepError, value_objects::ActionDefinition},
+    infrastructure::workflows::yaml::ActionDefinitionYaml,
 };
 
 /// Service that reads an action's `action.yml` (or `action.yaml`) and parses it.
@@ -43,7 +44,8 @@ impl LoadActionDefinitionPort for LoadActionDefinitionService {
         let contents = read_to_string(path).map_err(|error| {
             StepError::new(format!("failed to read {}: {error}", path.display()))
         })?;
-        serde_yaml::from_str(&contents)
+        serde_yaml::from_str::<ActionDefinitionYaml>(&contents)
+            .map(ActionDefinitionYaml::into_domain)
             .map_err(|error| StepError::new(format!("failed to parse {}: {error}", path.display())))
     }
 }

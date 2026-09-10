@@ -3,7 +3,8 @@ use std::sync::Arc;
 use crate::{
     application::{
         ports::outbound::{
-            ContainerRuntimePort, DomainEventHandler, EventBusPort, WorkflowSourcePort,
+            ContainerRuntimePort, DetectWorkflowTriggerPort, DomainEventHandler, EventBusPort,
+            WorkflowSourcePort,
         },
         services::{
             list_actions_service::ListActionsService, list_workflows_service::ListWorkflowsService,
@@ -20,7 +21,10 @@ use crate::{
         images::{ImageMapperPort, PlatformImageMapper},
         messaging::InMemoryEventBus,
         project_branding_store::CargoProjectBrandingStore,
-        workflows::{FilesystemRunInputDiscoveryService, FilesystemWorkflowSource},
+        workflows::{
+            DetectWorkflowTriggerService, FilesystemRunInputDiscoveryService,
+            FilesystemWorkflowSource,
+        },
     },
 };
 
@@ -67,15 +71,22 @@ impl Container {
             CommandBusWiring::build(runtime, image_mapper, action_fetcher, event_bus.clone());
         let list_workflows_service = ListWorkflowsService::new(Box::new(workflow_source.clone()));
         let list_actions_service = ListActionsService::new(Box::new(workflow_source.clone()));
+        let trigger_detector: Arc<dyn DetectWorkflowTriggerPort> =
+            Arc::new(DetectWorkflowTriggerService::new());
         let run_workflow_service = RunWorkflowService::new(
             Box::new(workflow_source.clone()),
             command_bus.clone(),
             event_bus.clone(),
+            trigger_detector.clone(),
         );
         let discover_run_inputs_service =
             FilesystemRunInputDiscoveryService::new(Box::new(workflow_source.clone()));
-        let run_all_workflows_service =
-            RunAllWorkflowsService::new(Box::new(workflow_source), command_bus.clone(), event_bus);
+        let run_all_workflows_service = RunAllWorkflowsService::new(
+            Box::new(workflow_source),
+            command_bus.clone(),
+            event_bus,
+            trigger_detector,
+        );
         let run_action_service = RunActionService::new(command_bus);
         let show_project_branding_info_service =
             ShowProjectBrandingInfoService::new(Box::new(CargoProjectBrandingStore));

@@ -5,10 +5,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::application::dtos::CollectActionFilesRequest;
-use crate::application::dtos::CollectActionFilesResponse;
-use crate::application::dtos::FileEntry;
-use crate::domain::errors::StepError;
+use crate::{
+    application::dtos::{CollectActionFilesRequest, CollectActionFilesResponse, FileEntry},
+    domain::errors::StepError,
+};
 
 /// Directory never copied into the container along with an action.
 const GIT_DIRECTORY: &str = ".git";

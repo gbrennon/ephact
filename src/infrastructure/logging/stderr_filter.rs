@@ -1,8 +1,6 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
-use std::mem::ManuallyDrop;
-use std::os::unix::io::FromRawFd;
-use std::thread::JoinHandle;
+use std::{mem::ManuallyDrop, os::unix::io::FromRawFd, thread::JoinHandle};
 
 const SUPPRESSED_LINE_PREFIXES: [&str; 2] = [
     "Error: crun: executable file `bash` not found",
