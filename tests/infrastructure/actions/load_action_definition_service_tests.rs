@@ -4,7 +4,9 @@ use ephact::{
 };
 use std::fs;
 
-use ephact::{application::dtos::LoadActionDefinitionRequest, domain::workflow::ActionRuns};
+use ephact::{
+    application::dtos::LoadActionDefinitionRequest, domain::value_objects::ActionRuntime,
+};
 
 const COMPOSITE: &str =
     "name: Greet\nruns:\n  using: composite\n  steps:\n    - run: echo hi\n      shell: bash\n";
@@ -19,7 +21,7 @@ fn execute_loads_action_yml() {
         .unwrap();
 
     assert_eq!(definition.name(), "Greet");
-    assert!(matches!(definition.runs(), ActionRuns::Composite { .. }));
+    assert!(matches!(definition.runs(), ActionRuntime::Composite { .. }));
 }
 
 #[test]

@@ -17,7 +17,7 @@ use crate::{
     },
     domain::{
         errors::{ActionError, StepError},
-        workflow::{ActionDefinition, ActionRuns},
+        value_objects::{ActionDefinition, ActionRuntime},
     },
 };
 
@@ -124,15 +124,15 @@ impl ExecuteActionService {
         action_dir: &std::path::Path,
     ) -> Result<ExecuteActionResponse, StepError> {
         match definition.runs() {
-            ActionRuns::Composite { steps } => {
+            ActionRuntime::Composite { steps } => {
                 self.composite_runner
                     .execute(RunCompositeActionRequest::new(
                         steps, inputs, action_dir, request,
                     ))
             }
-            ActionRuns::Node12 { main }
-            | ActionRuns::Node16 { main }
-            | ActionRuns::Node20 { main } => self
+            ActionRuntime::Node12 { main }
+            | ActionRuntime::Node16 { main }
+            | ActionRuntime::Node20 { main } => self
                 .node_runner
                 .execute(RunNodeActionRequest::new(
                     action_dir,
@@ -144,7 +144,7 @@ impl ExecuteActionService {
                 .map(|result| {
                     ExecuteActionResponse::new(result.exit_code(), result.stdout(), result.stderr())
                 }),
-            ActionRuns::Docker { image } => Err(StepError::new(
+            ActionRuntime::Docker { image } => Err(StepError::new(
                 ActionError::Unsupported(format!(
                     "action '{}' runs the container image '{image}', which cannot be executed yet",
                     request.action_ref()

@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use crate::application::ports::outbound::container_port::ContainerPort;
-use crate::domain::workflow::Step;
+use crate::{application::ports::outbound::container_port::ContainerPort, domain::entities::Step};
 
 pub struct RunShellStepRequest<'a> {
     step: &'a Step,

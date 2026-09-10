@@ -1,22 +1,28 @@
 use std::{collections::HashMap, path::Path, sync::Arc};
 
-use ephact::application::dtos::ExecResult;
-use ephact::application::dtos::ExecuteActionResponse;
-use ephact::application::dtos::ExecuteStepRequest;
-use ephact::application::ports::inbound::execute_step_port::ExecuteStepPort;
-use ephact::application::services::execute_step_service::ExecuteStepService;
-use ephact::domain::errors::StepError;
-use ephact::domain::expression::EvalContext;
-use ephact::domain::workflow::Step;
-use serde_json::Value;
+use ephact::{
+    application::{
+        dtos::{ExecResult, ExecuteActionResponse, ExecuteStepRequest},
+        ports::inbound::execute_step_port::ExecuteStepPort,
+        services::execute_step_service::ExecuteStepService,
+    },
+    domain::{
+        entities::Step,
+        errors::StepError,
+        value_objects::{ContextValue, EvaluationContext},
+    },
+};
 
 use crate::common::fakes::{
     fake_command_bus::FakeCommandBus, fake_run_shell_step_port::FakeRunShellStepPort,
     stub_container::StubContainer,
 };
+use ephact::infrastructure::workflows::yaml::StepYaml;
 
 fn step_from(yaml: &str) -> Step {
-    serde_yaml::from_str(yaml).unwrap()
+    serde_yaml::from_str::<StepYaml>(yaml)
+        .unwrap()
+        .into_domain()
 }
 
 fn shell_result(stdout: &str) -> ExecResult {
@@ -41,7 +47,7 @@ fn execute_runs_a_run_step_through_the_shell_runner() {
     let executed = service
         .execute(ExecuteStepRequest::new(
             &step,
-            &EvalContext::new(),
+            &EvaluationContext::new(),
             Arc::new(StubContainer),
             Path::new("/repo"),
             &HashMap::new(),
@@ -68,7 +74,7 @@ fn execute_publishes_an_action_command_for_a_uses_step() {
     let executed = service
         .execute(ExecuteStepRequest::new(
             &step,
-            &EvalContext::new(),
+            &EvaluationContext::new(),
             Arc::new(StubContainer),
             Path::new("/repo"),
             &env,
@@ -95,7 +101,7 @@ fn execute_does_not_publish_an_action_command_for_a_run_step() {
     service
         .execute(ExecuteStepRequest::new(
             &step,
-            &EvalContext::new(),
+            &EvaluationContext::new(),
             Arc::new(StubContainer),
             Path::new("/repo"),
             &HashMap::new(),
@@ -110,10 +116,8 @@ fn execute_resolves_expressions_before_running_the_step() {
     let shell = FakeRunShellStepPort::returning(shell_result(""));
     let service = service(shell.clone(), FakeCommandBus::new());
     let step = step_from("run: deploy ${{ inputs.mode }}\n");
-    let mut context = EvalContext::new();
-    let mut inputs = serde_json::Map::new();
-    inputs.insert("mode".to_string(), Value::String("staging".into()));
-    context = context.with_inputs(Value::Object(inputs));
+    let inputs = ContextValue::mapping([("mode".to_string(), ContextValue::text("staging"))]);
+    let context = EvaluationContext::new().with_inputs(inputs);
 
     service
         .execute(ExecuteStepRequest::new(
@@ -139,7 +143,7 @@ fn execute_reports_an_interpolation_failure() {
     let error = service
         .execute(ExecuteStepRequest::new(
             &step,
-            &EvalContext::new(),
+            &EvaluationContext::new(),
             Arc::new(StubContainer),
             Path::new("/repo"),
             &HashMap::new(),
@@ -170,7 +174,7 @@ fn execute_propagates_a_collaborator_error_unchanged() {
     let error = service
         .execute(ExecuteStepRequest::new(
             &step,
-            &EvalContext::new(),
+            &EvaluationContext::new(),
             Arc::new(StubContainer),
             Path::new("/repo"),
             &HashMap::new(),

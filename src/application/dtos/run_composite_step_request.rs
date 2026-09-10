@@ -2,7 +2,7 @@ use std::path::Path;
 
 use crate::{
     application::dtos::ExecuteActionRequest,
-    domain::{expression::EvalContext, workflow::Step},
+    domain::{entities::Step, value_objects::EvaluationContext},
 };
 
 /// Everything needed to run a single step of a composite action.
@@ -13,7 +13,7 @@ pub struct RunCompositeStepRequest<'a> {
 
     action_request: &'a ExecuteActionRequest,
 
-    context: &'a EvalContext,
+    context: &'a EvaluationContext,
 }
 
 impl<'a> RunCompositeStepRequest<'a> {
@@ -21,7 +21,7 @@ impl<'a> RunCompositeStepRequest<'a> {
         step: &'a Step,
         action_dir: &'a Path,
         action_request: &'a ExecuteActionRequest,
-        context: &'a EvalContext,
+        context: &'a EvaluationContext,
     ) -> Self {
         Self {
             step,
@@ -43,7 +43,7 @@ impl<'a> RunCompositeStepRequest<'a> {
         self.action_request
     }
 
-    pub fn context(&self) -> &'a EvalContext {
+    pub fn context(&self) -> &'a EvaluationContext {
         self.context
     }
 }

@@ -1,7 +1,8 @@
 use crate::application::ports::outbound::build_step_context_port::BuildStepContextPort;
-use serde_json::Value;
-
-use crate::{application::dtos::BuildStepContextRequest, domain::expression::EvalContext};
+use crate::{
+    application::dtos::BuildStepContextRequest,
+    domain::value_objects::{ContextValue, EvaluationContext},
+};
 
 /// Service that mirrors a step's environment into the `env` expression context.
 pub struct BuildStepContextService;
@@ -19,13 +20,12 @@ impl Default for BuildStepContextService {
 }
 
 impl BuildStepContextPort for BuildStepContextService {
-    fn execute(&self, request: BuildStepContextRequest<'_>) -> EvalContext {
-        let env = Value::Object(
+    fn execute(&self, request: BuildStepContextRequest<'_>) -> EvaluationContext {
+        let env = ContextValue::mapping(
             request
                 .env()
                 .iter()
-                .map(|(key, value)| (key.clone(), Value::String(value.clone())))
-                .collect(),
+                .map(|(key, value)| (key.clone(), ContextValue::text(value.clone()))),
         );
         request.context().clone().with_env(env)
     }

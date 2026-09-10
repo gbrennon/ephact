@@ -1,4 +1,4 @@
-use crate::{application::dtos::ExecuteActionResponse, domain::workflow::Step};
+use crate::{application::dtos::ExecuteActionResponse, domain::entities::Step};
 
 /// Outcome of executing one step, with the step its expressions resolved to.
 #[derive(Debug)]

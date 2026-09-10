@@ -7,7 +7,7 @@ use ephact::{
     application::dtos::BuildRunContextRequest,
     domain::{
         ActRunConfig, RepoPath, Repository, RepositoryName,
-        value_objects::{ActEvent, ActInput, Secret},
+        value_objects::{ActEvent, ActInput, ContextValue, Secret},
     },
 };
 
@@ -18,7 +18,7 @@ fn repository(path: &Path) -> Repository {
     )
 }
 
-fn context(config: ActRunConfig) -> ephact::domain::expression::EvalContext {
+fn context(config: ActRunConfig) -> ephact::domain::value_objects::EvaluationContext {
     let tmp = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
     let repo = repository(tmp.path());
@@ -34,7 +34,10 @@ fn execute_exposes_configured_secrets_under_the_secrets_context() {
 
     let context = context(config);
 
-    assert_eq!(context.secrets()["TOKEN"], "secret-value");
+    assert_eq!(
+        context.secrets().property("TOKEN"),
+        Some(&ContextValue::text("secret-value"))
+    );
 }
 
 #[test]
@@ -43,15 +46,28 @@ fn execute_exposes_inputs_under_both_inputs_and_the_github_event() {
 
     let context = context(config);
 
-    assert_eq!(context.inputs()["mode"], "staging");
-    assert_eq!(context.github()["event"]["inputs"]["mode"], "staging");
+    assert_eq!(
+        context.inputs().property("mode"),
+        Some(&ContextValue::text("staging"))
+    );
+    assert_eq!(
+        context
+            .github()
+            .property("event")
+            .and_then(|value| value.property("inputs"))
+            .and_then(|value| value.property("mode")),
+        Some(&ContextValue::text("staging"))
+    );
 }
 
 #[test]
 fn execute_defaults_the_event_name_to_workflow_dispatch() {
     let context = context(ActRunConfig::new());
 
-    assert_eq!(context.github()["event_name"], "workflow_dispatch");
+    assert_eq!(
+        context.github().property("event_name"),
+        Some(&ContextValue::text("workflow_dispatch"))
+    );
 }
 
 #[test]
@@ -60,22 +76,40 @@ fn execute_honours_the_configured_event_name() {
 
     let context = context(config);
 
-    assert_eq!(context.github()["event_name"], "pull_request");
+    assert_eq!(
+        context.github().property("event_name"),
+        Some(&ContextValue::text("pull_request"))
+    );
 }
 
 #[test]
 fn execute_reports_the_repository_name_and_mounted_workspace() {
     let context = context(ActRunConfig::new());
 
-    assert_eq!(context.github()["repository"], "test-repo");
-    assert_eq!(context.github()["workspace"], "/workspace");
+    assert_eq!(
+        context.github().property("repository"),
+        Some(&ContextValue::text("test-repo"))
+    );
+    assert_eq!(
+        context.github().property("workspace"),
+        Some(&ContextValue::text("/workspace"))
+    );
 }
 
 #[test]
 fn execute_reports_the_runner_platform() {
     let context = context(ActRunConfig::new());
 
-    assert_eq!(context.runner()["os"], "Linux");
-    assert_eq!(context.runner()["arch"], "X64");
-    assert_eq!(context.runner()["temp"], "/tmp");
+    assert_eq!(
+        context.runner().property("os"),
+        Some(&ContextValue::text("Linux"))
+    );
+    assert_eq!(
+        context.runner().property("arch"),
+        Some(&ContextValue::text("X64"))
+    );
+    assert_eq!(
+        context.runner().property("temp"),
+        Some(&ContextValue::text("/tmp"))
+    );
 }

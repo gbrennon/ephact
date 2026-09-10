@@ -1,7 +1,8 @@
-use crate::application::commands::ExecuteStepCommand;
-use crate::application::ports::inbound::execute_step_port::ExecuteStepPort;
 use crate::{
-    application::dtos::{ExecuteStepRequest, ExecutedStep},
+    application::{
+        dtos::{ExecuteStepCommand, ExecuteStepRequest, ExecutedStep},
+        ports::inbound::execute_step_port::ExecuteStepPort,
+    },
     domain::errors::StepError,
 };
 

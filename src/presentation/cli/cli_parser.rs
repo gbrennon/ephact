@@ -9,9 +9,8 @@ const SUPPORTED_WORKFLOWS: &str = ".forgejo/workflows, .github/workflows";
     arg_required_else_help = true,
     after_long_help = r#"EXAMPLES:
     ephact run
-    ephact run --workflow ci.yml --job test
-    ephact run --event push --secret TOKEN=abc123
-    ephact run --container-engine docker
+    ephact run --workflow CI --job test
+    ephact run --event pull_request --secret TOKEN=abc123
 
 CI host from the repository layout and manages ephemeral copies internally."#
 )]

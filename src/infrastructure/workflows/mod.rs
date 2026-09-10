@@ -1,5 +1,6 @@
 pub mod detect_workflow_file_port;
 pub mod detect_workflow_file_service;
+pub mod detect_workflow_trigger_service;
 pub mod discover_run_inputs_service;
 pub mod list_all_workflow_files_port;
 pub mod list_all_workflow_files_service;
@@ -15,10 +16,12 @@ pub mod resolve_workflow_files_service;
 pub mod workflow_command_handler;
 pub mod workflow_directories;
 pub mod workflow_source_adapter;
+pub mod yaml;
 pub use discover_run_inputs_service::FilesystemRunInputDiscoveryService;
 
 pub use detect_workflow_file_port::DetectWorkflowFilePort;
 pub use detect_workflow_file_service::DetectWorkflowFileService;
+pub use detect_workflow_trigger_service::DetectWorkflowTriggerService;
 pub use list_all_workflow_files_port::ListAllWorkflowFilesPort;
 pub use list_all_workflow_files_service::ListAllWorkflowFilesService;
 pub use list_workflow_directory_port::ListWorkflowDirectoryPort;

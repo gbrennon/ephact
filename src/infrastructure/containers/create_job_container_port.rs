@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
-use crate::application::dtos::CreateJobContainerRequest;
-use crate::application::ports::outbound::container_port::ContainerPort;
+use crate::application::{
+    dtos::CreateJobContainerRequest, ports::outbound::container_port::ContainerPort,
+};
 
 /// Inbound port for creating the container a job's steps run in.
 pub trait CreateJobContainerPort: Send + Sync {

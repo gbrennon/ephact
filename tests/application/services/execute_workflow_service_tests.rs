@@ -6,7 +6,7 @@ use ephact::{
         ports::inbound::execute_workflow_port::ExecuteWorkflowPort,
         services::execute_workflow_service::ExecuteWorkflowService,
     },
-    domain::expression::EvalContext,
+    domain::value_objects::EvaluationContext,
 };
 
 use crate::common::fakes::{
@@ -30,7 +30,7 @@ fn execute(
     .execute(ExecuteWorkflowRequest::new(
         REQUESTED_CONTENT,
         Path::new("/repo"),
-        &EvalContext::new(),
+        &EvaluationContext::new(),
     ))
 }
 

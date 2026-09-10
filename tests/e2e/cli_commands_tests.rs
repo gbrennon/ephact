@@ -15,7 +15,7 @@ mod tests {
                 ShowProjectBrandingInfoPort,
             },
         },
-        domain::workflow::StepType,
+        domain::value_objects::StepType,
         presentation::{cli::Cli, components::terminal::Terminal},
     };
 

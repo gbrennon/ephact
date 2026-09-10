@@ -9,8 +9,7 @@ default:
 build:
 	cargo build
 
-# Run the application without installing (pass args through)
-# Usage: just run [--help] [--interactive] [--workflow <path>] [--job <name>] [--event <event>] [--input KEY=VALUE] [--secret SECRET] [--extra-arg ARG] [--preserve] [repo-path]
+# Run the application without installing (pass supported arguments through)
 run *args:
 	cargo run -- run {{args}}
 
@@ -49,9 +48,9 @@ lint:
 lint-fix +files='':
 	cargo clippy --fix --allow-dirty --allow-staged {{files}}
 
-# Format source files (optionally specify files)
-fmt *files:
-	cargo fmt {{ files }}
+# Format the entire workspace (pass cargo fmt arguments through)
+fmt *args:
+	cargo fmt {{args}}
 
 # Check formatting without modifying files
 fmt-check:

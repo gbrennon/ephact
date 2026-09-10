@@ -7,7 +7,7 @@ use std::{
 
 use ephact::{
     application::dtos::{ExecuteActionRequest, ExecuteActionResponse, RunCompositeStepRequest},
-    domain::{expression::EvalContext, workflow::Step},
+    domain::{entities::Step, value_objects::EvaluationContext},
     infrastructure::steps::{
         run_composite_step_service::RunCompositeStepService,
         run_shell_step_service::RunShellStepService,
@@ -18,9 +18,12 @@ use crate::common::fakes::{
     fake_command_bus::FakeCommandBus, fake_event_bus::FakeEventBus,
     stub_failing_container::StubFailingContainer, stub_recording_container::StubRecordingContainer,
 };
+use ephact::infrastructure::workflows::yaml::StepYaml;
 
 fn step_from(yaml: &str) -> Step {
-    serde_yaml::from_str(yaml).unwrap()
+    serde_yaml::from_str::<StepYaml>(yaml)
+        .unwrap()
+        .into_domain()
 }
 
 fn action_request(
@@ -31,7 +34,7 @@ fn action_request(
         step_from("uses: ./actions/outer\n"),
         PathBuf::from("/repo"),
         HashMap::new(),
-        EvalContext::new(),
+        EvaluationContext::new(),
         container,
     )
 }
@@ -59,7 +62,7 @@ fn execute_runs_a_run_step_with_the_action_path_exposed() {
             &step,
             Path::new("/repo/actions/outer"),
             &request,
-            &EvalContext::new(),
+            &EvaluationContext::new(),
         ))
         .unwrap();
 
@@ -84,7 +87,7 @@ fn execute_publishes_an_action_command_for_a_uses_step() {
             &step,
             Path::new("/repo/actions/outer"),
             &request,
-            &EvalContext::new(),
+            &EvaluationContext::new(),
         ))
         .unwrap();
 
@@ -107,7 +110,7 @@ fn execute_propagates_a_shell_runner_failure() {
             &step,
             Path::new("/repo/actions/outer"),
             &request,
-            &EvalContext::new(),
+            &EvaluationContext::new(),
         ))
         .unwrap_err();
 

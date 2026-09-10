@@ -2,7 +2,7 @@
 use parking_lot::Mutex;
 use std::{collections::HashMap, error::Error, sync::Arc};
 
-use ephact::application::commands::{
+use ephact::application::dtos::{
     ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
 };
 use ephact::{

@@ -1,13 +1,14 @@
 use std::{collections::HashMap, path::Path, sync::Arc};
 
-use crate::application::ports::outbound::container_port::ContainerPort;
-use crate::domain::expression::EvalContext;
-use crate::domain::workflow::Step;
+use crate::{
+    application::ports::outbound::container_port::ContainerPort,
+    domain::{entities::Step, value_objects::EvaluationContext},
+};
 
 pub struct ExecuteStepRequest<'a> {
     step: &'a Step,
 
-    context: &'a EvalContext,
+    context: &'a EvaluationContext,
 
     container: Arc<dyn ContainerPort>,
 
@@ -19,7 +20,7 @@ pub struct ExecuteStepRequest<'a> {
 impl<'a> ExecuteStepRequest<'a> {
     pub fn new(
         step: &'a Step,
-        context: &'a EvalContext,
+        context: &'a EvaluationContext,
         container: Arc<dyn ContainerPort>,
         repo_path: &'a Path,
         env: &'a HashMap<String, String>,
@@ -37,7 +38,7 @@ impl<'a> ExecuteStepRequest<'a> {
         self.step
     }
 
-    pub fn context(&self) -> &'a EvalContext {
+    pub fn context(&self) -> &'a EvaluationContext {
         self.context
     }
 

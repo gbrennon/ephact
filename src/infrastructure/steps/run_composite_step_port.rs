@@ -1,6 +1,7 @@
-use crate::application::dtos::ExecResult;
-use crate::application::dtos::RunCompositeStepRequest;
-use crate::domain::errors::StepError;
+use crate::{
+    application::dtos::{ExecResult, RunCompositeStepRequest},
+    domain::errors::StepError,
+};
 
 /// Inbound port for running one step of a composite action.
 pub trait RunCompositeStepPort: Send + Sync {

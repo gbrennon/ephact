@@ -6,18 +6,19 @@ use ephact::{
 };
 use std::collections::HashMap;
 
-use ephact::application::dtos::ContainerConfig;
-use ephact::application::dtos::ExecResult;
-use ephact::application::dtos::RunShellStepRequest;
-use ephact::application::dtos::RunnerContext;
-use ephact::application::ports::outbound::ContainerRuntimePort;
-use ephact::application::ports::outbound::container_port::ContainerPort;
-use ephact::domain::workflow::Step;
+use ephact::{
+    application::{
+        dtos::{ContainerConfig, ExecResult, RunShellStepRequest, RunnerContext},
+        ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
+    },
+    domain::entities::Step,
+};
 
 use crate::common::fakes::{
     fake_event_bus::FakeEventBus, fake_runtime::FakeRuntime,
     stub_failing_container::StubFailingContainer,
 };
+use ephact::infrastructure::workflows::yaml::StepYaml;
 
 fn container(runtime: &dyn ContainerRuntimePort) -> Box<dyn ContainerPort> {
     runtime
@@ -37,7 +38,9 @@ fn container(runtime: &dyn ContainerRuntimePort) -> Box<dyn ContainerPort> {
 }
 
 fn step_from(yaml: &str) -> Step {
-    serde_yaml::from_str(yaml).unwrap()
+    serde_yaml::from_str::<StepYaml>(yaml)
+        .unwrap()
+        .into_domain()
 }
 
 #[test]

@@ -1,7 +1,8 @@
 use crate::application::dtos::{ContainerConfig, HostInfo};
-use crate::application::ports::outbound::ContainerRuntimePort;
-use crate::application::ports::outbound::container_port::ContainerPort;
-use crate::domain::errors::ContainerError;
+use crate::{
+    application::ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
+    domain::errors::ContainerError,
+};
 
 /// Lets a boxed runtime satisfy [`ContainerRuntimePort`] so a runtime-selected
 /// backend (see [`ContainerRuntimeAdapter::detect`]) can be stored behind the

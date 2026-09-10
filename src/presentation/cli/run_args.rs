@@ -23,10 +23,9 @@ pub struct RunArgs {
     /// Path to the repository (defaults to the current directory).
     #[arg(default_value = ".")]
     path: PathBuf,
-    /// Path to the workflow file to execute (e.g. `ci.yml`).
+    /// Top-level `name` of the workflow to execute (e.g. CI).
     #[arg(long)]
     workflow: Option<String>,
-
     /// Specific job name to run from the workflow.
     #[arg(long)]
     job: Option<String>,

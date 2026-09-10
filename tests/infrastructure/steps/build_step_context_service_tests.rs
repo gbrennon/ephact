@@ -4,27 +4,34 @@ use ephact::{
 };
 use std::collections::HashMap;
 
-use ephact::{application::dtos::BuildStepContextRequest, domain::expression::EvalContext};
-use serde_json::Value;
+use ephact::{
+    application::dtos::BuildStepContextRequest,
+    domain::value_objects::{ContextValue, EvaluationContext},
+};
 
 #[test]
 fn execute_mirrors_the_environment_into_the_env_context() {
     let mut env = HashMap::new();
     env.insert("MODE".to_string(), "staging".to_string());
 
-    let context = BuildStepContextService::new()
-        .execute(BuildStepContextRequest::new(&EvalContext::new(), &env));
+    let context = BuildStepContextService::new().execute(BuildStepContextRequest::new(
+        &EvaluationContext::new(),
+        &env,
+    ));
 
-    assert_eq!(context.env()["MODE"], "staging");
+    assert_eq!(
+        context.env().property("MODE"),
+        Some(&ContextValue::text("staging"))
+    );
 }
 
 #[test]
 fn execute_carries_every_other_context_field_over_unchanged() {
-    let source = EvalContext::new()
-        .with_secrets(Value::String("secrets".to_string()))
-        .with_github(Value::String("github".to_string()))
-        .with_runner(Value::String("runner".to_string()))
-        .with_inputs(Value::String("inputs".to_string()));
+    let source = EvaluationContext::new()
+        .with_secrets(ContextValue::text("secrets"))
+        .with_github(ContextValue::text("github"))
+        .with_runner(ContextValue::text("runner"))
+        .with_inputs(ContextValue::text("inputs"));
 
     let context = BuildStepContextService::new()
         .execute(BuildStepContextRequest::new(&source, &HashMap::new()));

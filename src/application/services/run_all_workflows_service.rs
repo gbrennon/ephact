@@ -1,17 +1,17 @@
 use std::{error::Error, sync::Arc, time::Instant};
 
 use crate::application::{
-    commands::ExecuteWorkflowCommand,
-    services::pull_request_workflow::{
-        config_for_pull_request_event, content_has_pull_request_event,
-    },
+    dtos::ExecuteWorkflowCommand,
+    services::pull_request_workflow::{PULL_REQUEST_EVENT_NAME, config_for_pull_request_event},
 };
 use crate::{
     application::{
         dtos::{JobSummary, RunAllWorkflowsRequest, RunSummary, WorkflowExecution},
         ports::{
             inbound::run_all_workflows_port::RunAllWorkflowsPort,
-            outbound::{CommandBusPort, EventBusPort, WorkflowSourcePort},
+            outbound::{
+                CommandBusPort, DetectWorkflowTriggerPort, EventBusPort, WorkflowSourcePort,
+            },
         },
     },
     domain::events::{ActRunCompletedPayload, DomainEvent},
@@ -30,6 +30,7 @@ pub struct RunAllWorkflowsService {
     workflow_source: Box<dyn WorkflowSourcePort>,
     command_bus: Arc<dyn CommandBusPort>,
     event_bus: Arc<dyn EventBusPort>,
+    trigger_detector: Arc<dyn DetectWorkflowTriggerPort>,
 }
 
 impl RunAllWorkflowsService {
@@ -37,11 +38,13 @@ impl RunAllWorkflowsService {
         workflow_source: Box<dyn WorkflowSourcePort>,
         command_bus: Arc<dyn CommandBusPort>,
         event_bus: Arc<dyn EventBusPort>,
+        trigger_detector: Arc<dyn DetectWorkflowTriggerPort>,
     ) -> Self {
         Self {
             workflow_source,
             command_bus,
             event_bus,
+            trigger_detector,
         }
     }
 }
@@ -73,7 +76,10 @@ impl RunAllWorkflowsService {
             .read_all_workflows(request.repository())?;
         workflow_contents
             .into_iter()
-            .filter(|content| content_has_pull_request_event(content))
+            .filter(|content| {
+                self.trigger_detector
+                    .triggers_on_event(content, PULL_REQUEST_EVENT_NAME)
+            })
             .map(|content| {
                 self.command_bus
                     .dispatch_workflow(ExecuteWorkflowCommand::new(

@@ -9,7 +9,7 @@ pre-commit:
         set -eu
         STAGED_RUST_FILES=$(git diff --cached --name-only --diff-filter=ACM | { grep -E '\.rs$' || true; } | tr '\n' ' ')
         if [ -n "$STAGED_RUST_FILES" ]; then
-          just fmt -- $STAGED_RUST_FILES
+          rustfmt --edition 2024 $STAGED_RUST_FILES
         fi
         just lint-fix
 

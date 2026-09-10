@@ -2,11 +2,11 @@ use crate::application::ports::inbound::execute_workflow_port::ExecuteWorkflowPo
 use std::error::Error;
 
 use super::super::containers::workspace::CONTAINER_WORKSPACE;
-use crate::application::commands::ExecuteWorkflowCommand;
-use crate::application::dtos::ExecuteWorkflowRequest;
-use crate::application::dtos::WorkflowExecution;
-use crate::domain::expression::EvalContext;
-use serde_json::{Map, Value};
+use crate::{
+    application::dtos::{ExecuteWorkflowCommand, ExecuteWorkflowRequest, WorkflowExecution},
+    domain::value_objects::{ContextValue, EvaluationContext},
+};
+use std::collections::BTreeMap;
 
 pub struct WorkflowCommandHandler {
     executor: Box<dyn ExecuteWorkflowPort>,
@@ -17,52 +17,45 @@ impl WorkflowCommandHandler {
         Self { executor }
     }
 
-    fn build_context(cmd: &ExecuteWorkflowCommand) -> EvalContext {
-        let secrets: Map<String, Value> = cmd
-            .config()
-            .secrets()
-            .iter()
-            .map(|secret| {
-                (
-                    secret.name().to_string(),
-                    Value::String(secret.value().into()),
-                )
-            })
-            .collect();
-        let inputs: Map<String, Value> = cmd
+    fn build_context(cmd: &ExecuteWorkflowCommand) -> EvaluationContext {
+        let secrets = ContextValue::mapping(cmd.config().secrets().iter().map(|secret| {
+            (
+                secret.name().to_string(),
+                ContextValue::text(secret.value()),
+            )
+        }));
+        let inputs: BTreeMap<String, ContextValue> = cmd
             .config()
             .inputs()
             .iter()
-            .map(|input| (input.key().to_string(), Value::String(input.value().into())))
+            .map(|input| (input.key().to_string(), ContextValue::text(input.value())))
             .collect();
         let event_name = cmd
             .config()
             .event()
             .map_or("workflow_dispatch", |event| event.as_str());
 
-        let mut event = Map::new();
-        event.insert("inputs".into(), Value::Object(inputs.clone()));
-        let repo_name = cmd.repository().name().as_str().to_string();
+        let event =
+            ContextValue::mapping([("inputs".to_owned(), ContextValue::Mapping(inputs.clone()))]);
 
-        let mut github = Map::new();
-        github.insert("event_name".into(), Value::String(event_name.into()));
-        github.insert("repository".into(), Value::String(repo_name));
-        github.insert(
-            "workspace".into(),
-            Value::String(CONTAINER_WORKSPACE.into()),
-        );
-        github.insert("event".into(), Value::Object(event));
+        let github = ContextValue::mapping([
+            ("event_name".to_owned(), ContextValue::text(event_name)),
+            (
+                "repository".to_owned(),
+                ContextValue::text(cmd.repository().name().as_str()),
+            ),
+            (
+                "workspace".to_owned(),
+                ContextValue::text(CONTAINER_WORKSPACE),
+            ),
+            ("event".to_owned(), event),
+        ]);
 
-        let mut runner = Map::new();
-        runner.insert("os".into(), Value::String("Linux".into()));
-        runner.insert("arch".into(), Value::String("X64".into()));
-        runner.insert("temp".into(), Value::String("/tmp".into()));
-
-        EvalContext::new()
-            .with_secrets(Value::Object(secrets))
-            .with_inputs(Value::Object(inputs))
-            .with_github(Value::Object(github))
-            .with_runner(Value::Object(runner))
+        EvaluationContext::new()
+            .with_secrets(secrets)
+            .with_inputs(ContextValue::Mapping(inputs))
+            .with_github(github)
+            .with_runner(runner_context())
     }
     pub fn handle(&self, cmd: ExecuteWorkflowCommand) -> Result<WorkflowExecution, Box<dyn Error>> {
         let context = Self::build_context(&cmd);
@@ -73,4 +66,13 @@ impl WorkflowCommandHandler {
         );
         self.executor.execute(req)
     }
+}
+
+/// Returns the runner facts every workflow run sees in the `runner` context.
+fn runner_context() -> ContextValue {
+    ContextValue::mapping([
+        ("os".to_owned(), ContextValue::text("Linux")),
+        ("arch".to_owned(), ContextValue::text("X64")),
+        ("temp".to_owned(), ContextValue::text("/tmp")),
+    ])
 }
