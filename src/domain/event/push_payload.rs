@@ -19,17 +19,43 @@ pub struct PushPayload {
     compare: String,
 }
 
-impl PushPayload {
+/// Groups the repository, actors, and state flags of a push event.
+pub struct PushMetadata {
+    repository: RepositoryInfo,
+    pusher: UserInfo,
+    sender: UserInfo,
+    created: bool,
+    deleted: bool,
+    forced: bool,
+}
+
+impl PushMetadata {
+    /// Creates the metadata associated with a push event.
     pub fn new(
-        r#ref: String,
-        before: String,
-        after: String,
         repository: RepositoryInfo,
         pusher: UserInfo,
         sender: UserInfo,
         created: bool,
         deleted: bool,
         forced: bool,
+    ) -> Self {
+        Self {
+            repository,
+            pusher,
+            sender,
+            created,
+            deleted,
+            forced,
+        }
+    }
+}
+
+impl PushPayload {
+    pub fn new(
+        r#ref: String,
+        before: String,
+        after: String,
+        metadata: PushMetadata,
         commits: Vec<CommitInfo>,
         head_commit: Option<CommitInfo>,
         compare: String,
@@ -38,12 +64,12 @@ impl PushPayload {
             r#ref,
             before,
             after,
-            repository,
-            pusher,
-            sender,
-            created,
-            deleted,
-            forced,
+            repository: metadata.repository,
+            pusher: metadata.pusher,
+            sender: metadata.sender,
+            created: metadata.created,
+            deleted: metadata.deleted,
+            forced: metadata.forced,
             commits,
             head_commit,
             compare,
@@ -112,10 +138,12 @@ mod tests {
             "owner/repo".into(),
             user(),
             false,
-            "html".into(),
-            "main".into(),
-            "clone".into(),
-            "ssh".into(),
+            super::super::repository_info::RepositoryLinks::new(
+                "html".into(),
+                "main".into(),
+                "clone".into(),
+                "ssh".into(),
+            ),
         )
     }
 
@@ -127,20 +155,13 @@ mod tests {
             "timestamp".into(),
             user(),
             user(),
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
+            super::super::commit_info::CommitChanges::new(Vec::new(), Vec::new(), Vec::new()),
         );
         let payload = PushPayload::new(
             "refs/heads/main".into(),
             "before".into(),
             "after".into(),
-            repository(),
-            user(),
-            user(),
-            true,
-            false,
-            true,
+            PushMetadata::new(repository(), user(), user(), true, false, true),
             vec![commit.clone()],
             Some(commit),
             "compare".into(),
