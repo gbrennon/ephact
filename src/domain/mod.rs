@@ -1,11 +1,9 @@
+pub mod aggregates;
 pub mod entities;
 pub mod errors;
-pub mod event;
 pub mod events;
-pub mod expression;
-pub mod planner;
+pub mod services;
 pub mod value_objects;
-pub mod workflow;
 
 pub use self::{
     entities::{

@@ -1,5 +1,4 @@
-use std::error::Error;
-use std::fmt;
+use std::{error::Error, fmt};
 
 /// Validation errors that can occur when constructing project branding domain objects.
 ///
