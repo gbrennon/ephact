@@ -53,8 +53,8 @@ impl PullRequestPayload {
 }
 #[cfg(test)]
 mod tests {
+    use super::super::BranchRef;
     use super::*;
-    use crate::domain::event::BranchRef;
 
     fn repository() -> RepositoryInfo {
         RepositoryInfo::new(

@@ -1,5 +1,5 @@
 /// Trait for event types that can produce a JSON payload.
-pub trait EventPayload {
+pub trait WebhookEventPayload {
     /// The event type name (e.g. "push", "pull_request").
     fn event_name(&self) -> &str;
 

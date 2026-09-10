@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use super::{
     create_payload::CreatePayload,
     delete_payload::DeletePayload,
-    event_payload::EventPayload,
     fork_payload::ForkPayload,
     issue_comment_payload::IssueCommentPayload,
     issues_payload::IssuesPayload,
@@ -11,6 +10,7 @@ use super::{
     push_payload::{PushMetadata, PushPayload},
     release_payload::ReleasePayload,
     repository_dispatch_payload::RepositoryDispatchPayload,
+    webhook_event_payload::WebhookEventPayload,
     workflow_call_payload::WorkflowCallPayload,
     workflow_dispatch_payload::WorkflowDispatchPayload,
 };
@@ -21,7 +21,7 @@ use super::{
 /// The event payload is serialized to JSON and made available
 /// via the `github` context in expressions.
 #[derive(Debug, Clone, PartialEq)]
-pub enum Event {
+pub enum WebhookEvent {
     Push(Box<PushPayload>),
     PullRequest(Box<PullRequestPayload>),
     WorkflowDispatch(Box<WorkflowDispatchPayload>),
@@ -46,57 +46,57 @@ pub enum Event {
     },
 }
 
-impl EventPayload for Event {
+impl WebhookEventPayload for WebhookEvent {
     fn event_name(&self) -> &str {
         match self {
-            Event::Push(_) => "push",
-            Event::PullRequest(_) => "pull_request",
-            Event::WorkflowDispatch(_) => "workflow_dispatch",
-            Event::Schedule => "schedule",
-            Event::Release(_) => "release",
-            Event::Issues(_) => "issues",
-            Event::IssueComment(_) => "issue_comment",
-            Event::Create(_) => "create",
-            Event::Delete(_) => "delete",
-            Event::Fork(_) => "fork",
-            Event::Gollum => "gollum",
-            Event::PageBuild => "page_build",
-            Event::Public => "public",
-            Event::RepositoryDispatch(_) => "repository_dispatch",
-            Event::Status => "status",
-            Event::Watch => "watch",
-            Event::WorkflowCall(_) => "workflow_call",
-            Event::WorkflowRun => "workflow_run",
-            Event::Custom { name, .. } => name.as_str(),
+            WebhookEvent::Push(_) => "push",
+            WebhookEvent::PullRequest(_) => "pull_request",
+            WebhookEvent::WorkflowDispatch(_) => "workflow_dispatch",
+            WebhookEvent::Schedule => "schedule",
+            WebhookEvent::Release(_) => "release",
+            WebhookEvent::Issues(_) => "issues",
+            WebhookEvent::IssueComment(_) => "issue_comment",
+            WebhookEvent::Create(_) => "create",
+            WebhookEvent::Delete(_) => "delete",
+            WebhookEvent::Fork(_) => "fork",
+            WebhookEvent::Gollum => "gollum",
+            WebhookEvent::PageBuild => "page_build",
+            WebhookEvent::Public => "public",
+            WebhookEvent::RepositoryDispatch(_) => "repository_dispatch",
+            WebhookEvent::Status => "status",
+            WebhookEvent::Watch => "watch",
+            WebhookEvent::WorkflowCall(_) => "workflow_call",
+            WebhookEvent::WorkflowRun => "workflow_run",
+            WebhookEvent::Custom { name, .. } => name.as_str(),
         }
     }
 
     fn to_payload(&self) -> serde_json::Value {
         match self {
-            Event::Push(p) => serde_json::to_value(p).unwrap_or_default(),
-            Event::PullRequest(p) => serde_json::to_value(p).unwrap_or_default(),
-            Event::WorkflowDispatch(p) => serde_json::to_value(p).unwrap_or_default(),
-            Event::Schedule => serde_json::json!({}),
-            Event::Release(p) => serde_json::to_value(p).unwrap_or_default(),
-            Event::Issues(p) => serde_json::to_value(p).unwrap_or_default(),
-            Event::IssueComment(p) => serde_json::to_value(p).unwrap_or_default(),
-            Event::Create(p) => serde_json::to_value(p).unwrap_or_default(),
-            Event::Delete(p) => serde_json::to_value(p).unwrap_or_default(),
-            Event::Fork(p) => serde_json::to_value(p).unwrap_or_default(),
-            Event::Gollum => serde_json::json!({}),
-            Event::PageBuild => serde_json::json!({}),
-            Event::Public => serde_json::json!({}),
-            Event::RepositoryDispatch(p) => serde_json::to_value(p).unwrap_or_default(),
-            Event::Status => serde_json::json!({}),
-            Event::Watch => serde_json::json!({}),
-            Event::WorkflowCall(p) => serde_json::to_value(p).unwrap_or_default(),
-            Event::WorkflowRun => serde_json::json!({}),
-            Event::Custom { payload, .. } => payload.clone(),
+            WebhookEvent::Push(p) => serde_json::to_value(p).unwrap_or_default(),
+            WebhookEvent::PullRequest(p) => serde_json::to_value(p).unwrap_or_default(),
+            WebhookEvent::WorkflowDispatch(p) => serde_json::to_value(p).unwrap_or_default(),
+            WebhookEvent::Schedule => serde_json::json!({}),
+            WebhookEvent::Release(p) => serde_json::to_value(p).unwrap_or_default(),
+            WebhookEvent::Issues(p) => serde_json::to_value(p).unwrap_or_default(),
+            WebhookEvent::IssueComment(p) => serde_json::to_value(p).unwrap_or_default(),
+            WebhookEvent::Create(p) => serde_json::to_value(p).unwrap_or_default(),
+            WebhookEvent::Delete(p) => serde_json::to_value(p).unwrap_or_default(),
+            WebhookEvent::Fork(p) => serde_json::to_value(p).unwrap_or_default(),
+            WebhookEvent::Gollum => serde_json::json!({}),
+            WebhookEvent::PageBuild => serde_json::json!({}),
+            WebhookEvent::Public => serde_json::json!({}),
+            WebhookEvent::RepositoryDispatch(p) => serde_json::to_value(p).unwrap_or_default(),
+            WebhookEvent::Status => serde_json::json!({}),
+            WebhookEvent::Watch => serde_json::json!({}),
+            WebhookEvent::WorkflowCall(p) => serde_json::to_value(p).unwrap_or_default(),
+            WebhookEvent::WorkflowRun => serde_json::json!({}),
+            WebhookEvent::Custom { payload, .. } => payload.clone(),
         }
     }
 }
 
-impl Event {
+impl WebhookEvent {
     /// Creates a push event with sensible defaults for local execution.
     pub fn push_default(branch: &str, repo: &super::repository_info::RepositoryInfo) -> Self {
         let act_user = super::user_info::UserInfo::new(
@@ -104,7 +104,7 @@ impl Event {
             "act@localhost".to_owned(),
             "act".to_owned(),
         );
-        Event::Push(Box::new(PushPayload::new(
+        WebhookEvent::Push(Box::new(PushPayload::new(
             format!("refs/heads/{}", branch),
             "0000000000000000000000000000000000000000".to_owned(),
             "0000000000000000000000000000000000000000".to_owned(),
@@ -153,7 +153,7 @@ impl Event {
             String::new(),
             super::pull_request_info::PullRequestState::new(false, false, None),
         );
-        Event::PullRequest(Box::new(PullRequestPayload::new(
+        WebhookEvent::PullRequest(Box::new(PullRequestPayload::new(
             "opened".to_owned(),
             number,
             pull_request,
@@ -172,7 +172,7 @@ impl Event {
             "act@localhost".to_owned(),
             "act".to_owned(),
         );
-        Event::WorkflowDispatch(Box::new(WorkflowDispatchPayload::new(
+        WebhookEvent::WorkflowDispatch(Box::new(WorkflowDispatchPayload::new(
             inputs,
             repo.clone(),
             sender,
@@ -221,13 +221,13 @@ mod tests {
 
     #[test]
     fn push_event_name() {
-        let event = Event::push_default("main", &test_repo());
+        let event = WebhookEvent::push_default("main", &test_repo());
         assert_eq!(event.event_name(), "push");
     }
 
     #[test]
     fn push_event_payload_is_valid_json() {
-        let event = Event::push_default("main", &test_repo());
+        let event = WebhookEvent::push_default("main", &test_repo());
         let payload = event.to_payload();
         let json_str = serde_json::to_string(&payload).unwrap();
         assert!(json_str.contains("refs/heads/main"));
@@ -236,7 +236,7 @@ mod tests {
 
     #[test]
     fn pull_request_event_name() {
-        let event = Event::pull_request_default(42, &test_repo());
+        let event = WebhookEvent::pull_request_default(42, &test_repo());
         assert_eq!(event.event_name(), "pull_request");
     }
 
@@ -244,20 +244,20 @@ mod tests {
     fn workflow_dispatch_event_name() {
         let mut inputs = HashMap::new();
         inputs.insert("name".to_owned(), "world".to_owned());
-        let event = Event::workflow_dispatch(inputs, &test_repo());
+        let event = WebhookEvent::workflow_dispatch(inputs, &test_repo());
         assert_eq!(event.event_name(), "workflow_dispatch");
     }
 
     #[test]
     fn schedule_event_has_empty_payload() {
-        let event = Event::Schedule;
+        let event = WebhookEvent::Schedule;
         assert_eq!(event.event_name(), "schedule");
         assert_eq!(event.to_payload(), serde_json::json!({}));
     }
 
     #[test]
     fn custom_event() {
-        let event = Event::Custom {
+        let event = WebhookEvent::Custom {
             name: "deployment".to_owned(),
             payload: serde_json::json!({"environment": "production"}),
         };
@@ -271,13 +271,13 @@ mod tests {
     #[test]
     fn unit_variant_event_names_and_payloads() {
         let events = [
-            (Event::Schedule, "schedule"),
-            (Event::Gollum, "gollum"),
-            (Event::PageBuild, "page_build"),
-            (Event::Public, "public"),
-            (Event::Status, "status"),
-            (Event::Watch, "watch"),
-            (Event::WorkflowRun, "workflow_run"),
+            (WebhookEvent::Schedule, "schedule"),
+            (WebhookEvent::Gollum, "gollum"),
+            (WebhookEvent::PageBuild, "page_build"),
+            (WebhookEvent::Public, "public"),
+            (WebhookEvent::Status, "status"),
+            (WebhookEvent::Watch, "watch"),
+            (WebhookEvent::WorkflowRun, "workflow_run"),
         ];
         for (event, name) in events {
             assert_eq!(event.event_name(), name);
@@ -290,19 +290,19 @@ mod tests {
         let user = UserInfo::new("name".into(), "email".into(), "login".into());
         let release = ReleaseInfo::new("v1".into(), None, None, false, false, "url".into());
         let events = [
-            Event::Release(Box::new(ReleasePayload::new(
+            WebhookEvent::Release(Box::new(ReleasePayload::new(
                 "published".into(),
                 release,
                 repo.clone(),
                 user.clone(),
             ))),
-            Event::RepositoryDispatch(Box::new(RepositoryDispatchPayload::new(
+            WebhookEvent::RepositoryDispatch(Box::new(RepositoryDispatchPayload::new(
                 "custom".into(),
                 serde_json::json!({}),
                 repo.clone(),
                 user.clone(),
             ))),
-            Event::WorkflowCall(Box::new(WorkflowCallPayload::new(
+            WebhookEvent::WorkflowCall(Box::new(WorkflowCallPayload::new(
                 HashMap::new(),
                 HashMap::new(),
             ))),
@@ -333,38 +333,38 @@ mod tests {
             PullRequestState::new(false, false, None),
         );
         let extra_events = [
-            Event::Issues(Box::new(IssuesPayload::new(
+            WebhookEvent::Issues(Box::new(IssuesPayload::new(
                 "opened".into(),
                 issue.clone(),
                 repo.clone(),
                 user.clone(),
             ))),
-            Event::IssueComment(Box::new(IssueCommentPayload::new(
+            WebhookEvent::IssueComment(Box::new(IssueCommentPayload::new(
                 "created".into(),
                 issue,
                 comment,
                 repo.clone(),
                 user.clone(),
             ))),
-            Event::Create(Box::new(CreatePayload::new(
+            WebhookEvent::Create(Box::new(CreatePayload::new(
                 "branch".into(),
                 "main".into(),
                 "main".into(),
                 repo.clone(),
                 user.clone(),
             ))),
-            Event::Delete(Box::new(DeletePayload::new(
+            WebhookEvent::Delete(Box::new(DeletePayload::new(
                 "branch".into(),
                 "main".into(),
                 repo.clone(),
                 user.clone(),
             ))),
-            Event::Fork(Box::new(ForkPayload::new(
+            WebhookEvent::Fork(Box::new(ForkPayload::new(
                 repo.clone(),
                 repo.clone(),
                 user.clone(),
             ))),
-            Event::PullRequest(Box::new(PullRequestPayload::new(
+            WebhookEvent::PullRequest(Box::new(PullRequestPayload::new(
                 "opened".into(),
                 1,
                 pull_request,

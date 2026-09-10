@@ -39,8 +39,8 @@ impl BranchRef {
 }
 #[cfg(test)]
 mod tests {
+    use super::super::UserInfo;
     use super::*;
-    use crate::domain::event::UserInfo;
 
     fn repository() -> RepositoryInfo {
         RepositoryInfo::new(
