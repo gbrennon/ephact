@@ -12,10 +12,10 @@ impl ListWorkflowDirectoryService {
     }
 
     fn is_workflow_file(path: &std::path::Path) -> bool {
-        match path.extension().and_then(|ext| ext.to_str()) {
-            Some("yml") | Some("yaml") => true,
-            _ => false,
-        }
+        matches!(
+            path.extension().and_then(|ext| ext.to_str()),
+            Some("yml") | Some("yaml")
+        )
     }
 }
 

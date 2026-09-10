@@ -63,7 +63,7 @@ impl ContainerRuntimePort for SpyContainerRuntime {
         &self,
         config: &ContainerConfig,
     ) -> Result<Box<dyn ContainerPort>, ContainerError> {
-        let name = config.name().clone().unwrap_or_default();
+        let name = config.name().unwrap_or_default();
         self.created_containers.lock().push(name.to_owned());
         self.operations.lock().push(format!("create:{name}"));
         Ok(Box::new(StubContainer))

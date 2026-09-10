@@ -8,6 +8,7 @@ use crate::domain::workflow::Workflow;
 /// Builds a DAG from job `needs` dependencies and topologically sorts
 /// into stages where independent jobs run in parallel.
 pub struct Planner;
+type DependencyMaps<'a> = (HashMap<&'a str, usize>, HashMap<&'a str, Vec<&'a str>>);
 
 impl Planner {
     /// Plans the execution of a single workflow.
@@ -143,7 +144,7 @@ impl Planner {
 
     fn compute_dependencies<'a>(
         deps: &HashMap<&'a str, Vec<&'a str>>,
-    ) -> Result<(HashMap<&'a str, usize>, HashMap<&'a str, Vec<&'a str>>), PlanError> {
+    ) -> Result<DependencyMaps<'a>, PlanError> {
         let mut in_degree: HashMap<&'a str, usize> = HashMap::new();
         let mut dependents: HashMap<&'a str, Vec<&'a str>> = HashMap::new();
 

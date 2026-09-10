@@ -86,6 +86,17 @@ mod tests {
         }
     }
 
+    struct InputDiscoveryFake;
+
+    impl ephact::application::ports::outbound::DiscoverRunInputsPort for InputDiscoveryFake {
+        fn execute(
+            &self,
+            _request: ephact::application::dtos::DiscoverRunInputsRequest,
+        ) -> Result<Vec<ephact::application::dtos::RunInputDeclaration>, Box<dyn std::error::Error>>
+        {
+            Ok(Vec::new())
+        }
+    }
     struct RunFake {
         summary: RunSummary,
     }
@@ -114,6 +125,7 @@ mod tests {
                 summary: summary.clone(),
             }),
             Box::new(RunFake { summary }),
+            Box::new(InputDiscoveryFake),
             Box::new(WorkflowListFake),
             Box::new(ActionListFake),
             Box::new(BrandingFake),

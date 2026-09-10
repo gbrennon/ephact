@@ -31,6 +31,15 @@ fn service(
     command_bus: FakeCommandBus,
     exports: FakeReadStepExportsPort,
 ) -> ExecuteJobService {
+    service_with_event_bus(preparer, command_bus, exports, FakeEventBus::new())
+}
+
+fn service_with_event_bus(
+    preparer: FakePrepareJobContainerPort,
+    command_bus: FakeCommandBus,
+    exports: FakeReadStepExportsPort,
+    event_bus: FakeEventBus,
+) -> ExecuteJobService {
     ExecuteJobService::new(
         Box::new(GitHubJobEnvironmentAdapter::new()),
         Box::new(preparer),
@@ -39,7 +48,7 @@ fn service(
         Box::new(SummarizeStepService::new()),
         Box::new(exports),
         Arc::new(command_bus),
-        Arc::new(FakeEventBus::new()),
+        Arc::new(event_bus),
     )
 }
 
@@ -233,4 +242,36 @@ fn execute_propagates_a_container_preparation_failure() {
     };
 
     assert_eq!(error.to_string(), "no runtime");
+}
+
+#[test]
+fn execute_announces_the_same_step_label_as_the_summary() {
+    let wf = single_job_workflow("      - run: cargo test\n");
+    let plan = Planner.plan(&wf).unwrap();
+    let run = &plan.stages()[0].runs()[0];
+    let event_bus = FakeEventBus::new();
+
+    let execution = service_with_event_bus(
+        FakePrepareJobContainerPort::named("job-container"),
+        FakeCommandBus::new(),
+        FakeReadStepExportsPort::new(),
+        event_bus.clone(),
+    )
+    .execute(ExecuteJobRequest::new(
+        run,
+        &wf,
+        Path::new("/repo"),
+        &EvalContext::new(),
+    ))
+    .unwrap();
+
+    let events = event_bus.events();
+    let ephact::domain::events::DomainEvent::StepStarted(payload) = &events[0] else {
+        panic!("the first event should announce the step start");
+    };
+
+    assert_eq!(
+        payload.step_name(),
+        execution.job_summary().steps()[0].name()
+    );
 }

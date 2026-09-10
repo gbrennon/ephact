@@ -61,10 +61,12 @@ mod tests {
             "owner/repo".into(),
             UserInfo::new("name".into(), "email".into(), "login".into()),
             false,
-            "html".into(),
-            "main".into(),
-            "clone".into(),
-            "ssh".into(),
+            super::super::repository_info::RepositoryLinks::new(
+                "html".into(),
+                "main".into(),
+                "clone".into(),
+                "ssh".into(),
+            ),
         )
     }
 

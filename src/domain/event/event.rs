@@ -1,12 +1,18 @@
 use std::collections::HashMap;
 
 use super::{
-    create_payload::CreatePayload, delete_payload::DeletePayload, event_payload::EventPayload,
-    fork_payload::ForkPayload, issue_comment_payload::IssueCommentPayload,
-    issues_payload::IssuesPayload, pull_request_payload::PullRequestPayload,
-    push_payload::PushPayload, release_payload::ReleasePayload,
+    create_payload::CreatePayload,
+    delete_payload::DeletePayload,
+    event_payload::EventPayload,
+    fork_payload::ForkPayload,
+    issue_comment_payload::IssueCommentPayload,
+    issues_payload::IssuesPayload,
+    pull_request_payload::PullRequestPayload,
+    push_payload::{PushMetadata, PushPayload},
+    release_payload::ReleasePayload,
     repository_dispatch_payload::RepositoryDispatchPayload,
-    workflow_call_payload::WorkflowCallPayload, workflow_dispatch_payload::WorkflowDispatchPayload,
+    workflow_call_payload::WorkflowCallPayload,
+    workflow_dispatch_payload::WorkflowDispatchPayload,
 };
 
 /// A GitHub Actions event that triggers a workflow.
@@ -102,12 +108,14 @@ impl Event {
             format!("refs/heads/{}", branch),
             "0000000000000000000000000000000000000000".to_owned(),
             "0000000000000000000000000000000000000000".to_owned(),
-            repo.clone(),
-            act_user.clone(),
-            act_user,
-            false,
-            false,
-            false,
+            PushMetadata::new(
+                repo.clone(),
+                act_user.clone(),
+                act_user,
+                false,
+                false,
+                false,
+            ),
             vec![],
             None,
             String::new(),
@@ -140,13 +148,10 @@ impl Event {
             number,
             "Local PR".to_owned(),
             None,
-            head,
-            base,
+            super::pull_request_info::PullRequestBranches::new(head, base),
             user.clone(),
             String::new(),
-            false,
-            false,
-            None,
+            super::pull_request_info::PullRequestState::new(false, false, None),
         );
         Event::PullRequest(Box::new(PullRequestPayload::new(
             "opened".to_owned(),
@@ -180,11 +185,17 @@ impl Event {
 #[cfg(test)]
 mod tests {
     use super::super::{
-        branch_ref::BranchRef, comment_info::CommentInfo, issue_info::IssueInfo,
-        pull_request_info::PullRequestInfo, release_info::ReleaseInfo,
+        branch_ref::BranchRef,
+        comment_info::CommentInfo,
+        issue_info::IssueInfo,
+        pull_request_info::{PullRequestBranches, PullRequestInfo, PullRequestState},
+        release_info::ReleaseInfo,
     };
     use super::{
-        super::{repository_info::RepositoryInfo, user_info::UserInfo},
+        super::{
+            repository_info::{RepositoryInfo, RepositoryLinks},
+            user_info::UserInfo,
+        },
         *,
     };
 
@@ -199,10 +210,12 @@ mod tests {
             "owner/test-repo".to_owned(),
             owner,
             false,
-            "https://github.com/owner/test-repo".to_owned(),
-            "main".to_owned(),
-            "https://github.com/owner/test-repo.git".to_owned(),
-            "git@github.com:owner/test-repo.git".to_owned(),
+            RepositoryLinks::new(
+                "https://github.com/owner/test-repo".to_owned(),
+                "main".to_owned(),
+                "https://github.com/owner/test-repo.git".to_owned(),
+                "git@github.com:owner/test-repo.git".to_owned(),
+            ),
         )
     }
 
@@ -314,13 +327,10 @@ mod tests {
             1,
             "title".into(),
             None,
-            branch.clone(),
-            branch,
+            PullRequestBranches::new(branch.clone(), branch),
             user.clone(),
             "url".into(),
-            false,
-            false,
-            None,
+            PullRequestState::new(false, false, None),
         );
         let extra_events = [
             Event::Issues(Box::new(IssuesPayload::new(
