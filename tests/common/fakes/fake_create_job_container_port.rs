@@ -3,12 +3,9 @@ use parking_lot::Mutex;
 use std::sync::Arc;
 
 use super::stub_container::StubContainer;
-use ephact::{
-    application::{
-        dtos::CreateJobContainerRequest, ports::outbound::container_port::ContainerPort,
-    },
-    infrastructure::containers::create_job_container_port::CreateJobContainerPort,
-};
+use ephact::application::dtos::requests::CreateJobContainerRequest;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::infrastructure::containers::create_job_container_port::CreateJobContainerPort;
 
 /// Records the creation requests it receives and hands back a stub container.
 ///

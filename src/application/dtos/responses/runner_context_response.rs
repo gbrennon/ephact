@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 /// Context describing the runner environment inside the container.
 #[derive(Debug, Clone)]
-pub struct RunnerContext {
+pub struct RunnerContextResponse {
     workspace: String,
     home: String,
     action_path: String,
@@ -11,7 +11,7 @@ pub struct RunnerContext {
     env: HashMap<String, String>,
 }
 
-impl RunnerContext {
+impl RunnerContextResponse {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         workspace: impl Into<String>,
@@ -68,7 +68,7 @@ impl RunnerContext {
     }
 }
 
-impl Default for RunnerContext {
+impl Default for RunnerContextResponse {
     fn default() -> Self {
         Self {
             workspace: "/workspace".into(),

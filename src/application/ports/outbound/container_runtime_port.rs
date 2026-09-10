@@ -1,4 +1,5 @@
-use crate::application::dtos::{ContainerConfig, HostInfo};
+use crate::application::dtos::responses::ContainerConfigResponse;
+use crate::application::dtos::responses::HostInfoResponse;
 use crate::{
     application::ports::outbound::container_port::ContainerPort, domain::errors::ContainerError,
 };
@@ -15,7 +16,7 @@ pub trait ContainerRuntimePort: Send + Sync {
     /// Creates a container from the given configuration.
     fn create_container(
         &self,
-        config: &ContainerConfig,
+        config: &ContainerConfigResponse,
     ) -> Result<Box<dyn ContainerPort>, ContainerError>;
 
     /// Removes a container by name.
@@ -31,5 +32,5 @@ pub trait ContainerRuntimePort: Send + Sync {
     fn kill_container(&self, name: &str) -> Result<(), ContainerError>;
 
     /// Gets information about the host system.
-    fn get_host_info(&self) -> Result<HostInfo, ContainerError>;
+    fn get_host_info(&self) -> Result<HostInfoResponse, ContainerError>;
 }

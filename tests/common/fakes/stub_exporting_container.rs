@@ -1,13 +1,11 @@
 #![allow(dead_code)]
 use std::collections::HashMap;
 
-use ephact::{
-    application::{
-        dtos::{ExecResult, FileEntry, RunnerContext},
-        ports::outbound::container_port::ContainerPort,
-    },
-    domain::errors::ContainerError,
-};
+use ephact::application::dtos::responses::ExecResultResponse;
+use ephact::application::dtos::responses::FileEntryResponse;
+use ephact::application::dtos::responses::RunnerContextResponse;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::errors::ContainerError;
 
 /// Container that answers `cat <file>` with prepared contents, standing in for
 /// a container whose steps wrote the runner's export files.
@@ -34,14 +32,14 @@ impl ContainerPort for StubExportingContainer {
         cmd: &[String],
         _workdir: Option<&str>,
         _env: &HashMap<String, String>,
-    ) -> Result<ExecResult, ContainerError> {
+    ) -> Result<ExecResultResponse, ContainerError> {
         if cmd.first().map(String::as_str) != Some("cat") {
-            return Ok(ExecResult::new(0, String::new(), String::new()));
+            return Ok(ExecResultResponse::new(0, String::new(), String::new()));
         }
 
         let path = cmd.get(1).cloned().unwrap_or_default();
         match self.files.iter().find(|(name, _)| name == &path) {
-            Some((_, contents)) => Ok(ExecResult::new(0, contents.clone(), String::new())),
+            Some((_, contents)) => Ok(ExecResultResponse::new(0, contents.clone(), String::new())),
             None => Err(ContainerError::ExecutionFailed(
                 "stub".into(),
                 "No such file or directory".into(),
@@ -49,11 +47,11 @@ impl ContainerPort for StubExportingContainer {
         }
     }
 
-    fn copy_to(&self, _path: &str, _entries: &[FileEntry]) -> Result<(), ContainerError> {
+    fn copy_to(&self, _path: &str, _entries: &[FileEntryResponse]) -> Result<(), ContainerError> {
         Ok(())
     }
 
-    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntry>, ContainerError> {
+    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntryResponse>, ContainerError> {
         Ok(vec![])
     }
 
@@ -61,7 +59,7 @@ impl ContainerPort for StubExportingContainer {
         Ok(())
     }
 
-    fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> {
-        Ok(RunnerContext::default())
+    fn get_runner_context(&self) -> Result<RunnerContextResponse, ContainerError> {
+        Ok(RunnerContextResponse::default())
     }
 }

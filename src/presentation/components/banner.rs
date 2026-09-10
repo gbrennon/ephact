@@ -1,7 +1,7 @@
 use figlet_rs::FIGlet;
 
 use super::component::Component;
-use crate::application::dtos::ShowProjectBrandingInfoResponse;
+use crate::application::dtos::responses::ShowProjectBrandingInfoResponse;
 
 pub struct Banner<'a> {
     response: &'a ShowProjectBrandingInfoResponse,

@@ -1,6 +1,6 @@
 /// Summary of a step within a job run.
 #[derive(Debug, Clone, PartialEq)]
-pub struct StepSummary {
+pub struct StepSummaryResponse {
     name: String,
     step_type: crate::domain::value_objects::StepType,
     exit_code: Option<i64>,
@@ -10,7 +10,7 @@ pub struct StepSummary {
     stderr: String,
 }
 
-impl StepSummary {
+impl StepSummaryResponse {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: impl Into<String>,

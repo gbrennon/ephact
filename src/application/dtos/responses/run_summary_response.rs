@@ -1,16 +1,16 @@
 /// Workflow run summary.
 #[derive(Debug, Clone, PartialEq)]
-pub struct RunSummary {
+pub struct RunSummaryResponse {
     name: String,
-    job_summaries: Vec<crate::application::dtos::run_summary::job_summary::JobSummary>,
+    job_summaries: Vec<crate::application::dtos::responses::JobSummaryResponse>,
     success: bool,
     duration: std::time::Duration,
 }
 
-impl RunSummary {
+impl RunSummaryResponse {
     pub fn new(
         name: impl Into<String>,
-        job_summaries: Vec<crate::application::dtos::run_summary::job_summary::JobSummary>,
+        job_summaries: Vec<crate::application::dtos::responses::JobSummaryResponse>,
         success: bool,
         duration: std::time::Duration,
     ) -> Self {
@@ -26,9 +26,7 @@ impl RunSummary {
         &self.name
     }
 
-    pub fn job_summaries(
-        &self,
-    ) -> &[crate::application::dtos::run_summary::job_summary::JobSummary] {
+    pub fn job_summaries(&self) -> &[crate::application::dtos::responses::JobSummaryResponse] {
         &self.job_summaries
     }
 
@@ -44,7 +42,7 @@ impl RunSummary {
         self,
     ) -> (
         String,
-        Vec<crate::application::dtos::run_summary::job_summary::JobSummary>,
+        Vec<crate::application::dtos::responses::JobSummaryResponse>,
         bool,
         std::time::Duration,
     ) {

@@ -1,16 +1,14 @@
 use std::sync::Arc;
 
-use crate::{
-    application::{
-        dtos::{ExecResult, RunShellStepRequest},
-        ports::outbound::{event_bus_port::EventBusPort, run_shell_step_port::RunShellStepPort},
-    },
-    domain::{
-        errors::StepError,
-        events::{DomainEvent, OutputStream, StepOutputPayload},
-        value_objects::ShellCommand,
-    },
-};
+use crate::application::dtos::requests::RunShellStepRequest;
+use crate::application::dtos::responses::ExecResultResponse;
+use crate::application::ports::outbound::event_bus_port::EventBusPort;
+use crate::application::ports::outbound::run_shell_step_port::RunShellStepPort;
+use crate::domain::errors::StepError;
+use crate::domain::events::DomainEvent;
+use crate::domain::events::OutputStream;
+use crate::domain::events::StepOutputPayload;
+use crate::domain::value_objects::ShellCommand;
 
 /// Service that runs a step's shell script inside the container it was given,
 /// relaying the step's output as [`DomainEvent::StepOutput`] events while it
@@ -35,7 +33,7 @@ impl RunShellStepService {
 }
 
 impl RunShellStepPort for RunShellStepService {
-    fn execute(&self, request: RunShellStepRequest<'_>) -> Result<ExecResult, StepError> {
+    fn execute(&self, request: RunShellStepRequest<'_>) -> Result<ExecResultResponse, StepError> {
         let command = ShellCommand::for_step(request.step(), request.env())
             .ok_or_else(|| StepError::new("step has neither `run` nor `uses` defined"))?;
         let step_name = request.step().display_name();

@@ -1,10 +1,8 @@
-use ephact::{
-    application::{
-        dtos::{ContainerConfig, HostInfo},
-        ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
-    },
-    domain::errors::ContainerError,
-};
+use ephact::application::dtos::responses::ContainerConfigResponse;
+use ephact::application::dtos::responses::HostInfoResponse;
+use ephact::application::ports::outbound::ContainerRuntimePort;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::errors::ContainerError;
 
 use super::failing_container::FailingContainer;
 use crate::support::container_activity::ContainerActivity;
@@ -30,7 +28,7 @@ impl ContainerRuntimePort for FailingRuntime {
 
     fn create_container(
         &self,
-        _config: &ContainerConfig,
+        _config: &ContainerConfigResponse,
     ) -> Result<Box<dyn ContainerPort>, ContainerError> {
         Ok(Box::new(FailingContainer::recording(self.activity.clone())))
     }
@@ -49,7 +47,7 @@ impl ContainerRuntimePort for FailingRuntime {
         Ok(())
     }
 
-    fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
-        Ok(HostInfo::new("linux", "x86_64", "e2e"))
+    fn get_host_info(&self) -> Result<HostInfoResponse, ContainerError> {
+        Ok(HostInfoResponse::new("linux", "x86_64", "e2e"))
     }
 }

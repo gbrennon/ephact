@@ -1,12 +1,12 @@
 /// Information about the host container runtime.
 #[derive(Debug, Clone)]
-pub struct HostInfo {
+pub struct HostInfoResponse {
     os: String,
     arch: String,
     engine_version: String,
 }
 
-impl HostInfo {
+impl HostInfoResponse {
     pub fn new(
         os: impl Into<String>,
         arch: impl Into<String>,

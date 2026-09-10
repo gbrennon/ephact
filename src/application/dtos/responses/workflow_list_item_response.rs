@@ -1,13 +1,13 @@
 /// One workflow file discovered in a repository, as the presentation layer
 /// displays it.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct WorkflowListItem {
+pub struct WorkflowListItemResponse {
     name: Option<String>,
     file: Option<String>,
     events: Vec<String>,
 }
 
-impl WorkflowListItem {
+impl WorkflowListItemResponse {
     pub fn new(name: Option<String>, file: Option<String>, events: Vec<String>) -> Self {
         Self { name, file, events }
     }
@@ -38,7 +38,7 @@ mod tests {
 
     #[test]
     fn new_workflow_list_item_keeps_fields() {
-        let item = WorkflowListItem::new(
+        let item = WorkflowListItemResponse::new(
             Some("ci".into()),
             Some("ci.yml".into()),
             vec!["pull_request".into()],
@@ -50,7 +50,7 @@ mod tests {
 
     #[test]
     fn new_workflow_list_item_allows_missing_fields() {
-        let item = WorkflowListItem::new(None, None, vec![]);
+        let item = WorkflowListItemResponse::new(None, None, vec![]);
         assert_eq!(item.name(), None);
         assert_eq!(item.file(), None);
         assert!(item.events().is_empty());
@@ -58,7 +58,8 @@ mod tests {
 
     #[test]
     fn has_pull_request_event_reports_pull_request_eligibility() {
-        let item = WorkflowListItem::new(None, None, vec!["push".into(), "pull_request".into()]);
+        let item =
+            WorkflowListItemResponse::new(None, None, vec!["push".into(), "pull_request".into()]);
 
         assert!(item.has_pull_request_event());
     }

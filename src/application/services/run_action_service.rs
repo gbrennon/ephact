@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
-use crate::{
-    application::{
-        dtos::{ExecuteActionCommand, ExecuteActionResponse, RunActionRequest},
-        ports::{inbound::RunActionPort, outbound::CommandBusPort},
-    },
-    domain::errors::StepError,
-};
+use crate::application::commands::ExecuteActionCommand;
+use crate::application::dtos::requests::RunActionRequest;
+use crate::application::dtos::responses::ExecuteActionResponse;
+use crate::application::ports::inbound::RunActionPort;
+use crate::application::ports::outbound::CommandBusPort;
+use crate::domain::errors::StepError;
 
 /// Application service implementing the entrypoint to run an action.
 ///

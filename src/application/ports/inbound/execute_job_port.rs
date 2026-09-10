@@ -1,4 +1,5 @@
-use crate::application::dtos::{ExecuteJobRequest, JobExecution};
+use crate::application::dtos::requests::ExecuteJobRequest;
+use crate::application::dtos::responses::JobExecutionResponse;
 
 /// Inbound port for running one planned job.
 pub trait ExecuteJobPort: Send + Sync {
@@ -6,5 +7,5 @@ pub trait ExecuteJobPort: Send + Sync {
     fn execute(
         &self,
         request: ExecuteJobRequest<'_>,
-    ) -> Result<JobExecution, Box<dyn std::error::Error>>;
+    ) -> Result<JobExecutionResponse, Box<dyn std::error::Error>>;
 }

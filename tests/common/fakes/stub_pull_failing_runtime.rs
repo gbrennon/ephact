@@ -1,12 +1,10 @@
 #![allow(dead_code)]
 
-use ephact::{
-    application::{
-        dtos::{ContainerConfig, HostInfo},
-        ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
-    },
-    domain::errors::ContainerError,
-};
+use ephact::application::dtos::responses::ContainerConfigResponse;
+use ephact::application::dtos::responses::HostInfoResponse;
+use ephact::application::ports::outbound::ContainerRuntimePort;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::errors::ContainerError;
 use parking_lot::Mutex;
 
 use super::stub_container::StubContainer;
@@ -42,7 +40,7 @@ impl ContainerRuntimePort for StubPullFailingRuntime {
 
     fn create_container(
         &self,
-        _config: &ContainerConfig,
+        _config: &ContainerConfigResponse,
     ) -> Result<Box<dyn ContainerPort>, ContainerError> {
         Ok(Box::new(StubContainer))
     }
@@ -59,7 +57,7 @@ impl ContainerRuntimePort for StubPullFailingRuntime {
         Ok(())
     }
 
-    fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
-        Ok(HostInfo::new("linux", "amd64", "1.0"))
+    fn get_host_info(&self) -> Result<HostInfoResponse, ContainerError> {
+        Ok(HostInfoResponse::new("linux", "amd64", "1.0"))
     }
 }

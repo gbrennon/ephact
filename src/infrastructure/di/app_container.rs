@@ -30,9 +30,11 @@ struct EmptyRunInputDiscovery;
 impl DiscoverRunInputsPort for EmptyRunInputDiscovery {
     fn execute(
         &self,
-        _request: crate::application::dtos::DiscoverRunInputsRequest,
-    ) -> Result<Vec<crate::application::dtos::RunInputDeclaration>, Box<dyn std::error::Error>>
-    {
+        _request: crate::application::dtos::requests::DiscoverRunInputsRequest,
+    ) -> Result<
+        Vec<crate::application::dtos::responses::RunInputDeclarationResponse>,
+        Box<dyn std::error::Error>,
+    > {
         Ok(Vec::new())
     }
 }

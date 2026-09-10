@@ -2,10 +2,11 @@ use crate::application::ports::inbound::execute_workflow_port::ExecuteWorkflowPo
 use std::error::Error;
 
 use super::super::containers::workspace::CONTAINER_WORKSPACE;
-use crate::{
-    application::dtos::{ExecuteWorkflowCommand, ExecuteWorkflowRequest, WorkflowExecution},
-    domain::value_objects::{ContextValue, EvaluationContext},
-};
+use crate::application::commands::ExecuteWorkflowCommand;
+use crate::application::dtos::requests::ExecuteWorkflowRequest;
+use crate::application::dtos::responses::WorkflowExecutionResponse;
+use crate::domain::value_objects::ContextValue;
+use crate::domain::value_objects::EvaluationContext;
 use std::collections::BTreeMap;
 
 pub struct WorkflowCommandHandler {
@@ -57,7 +58,10 @@ impl WorkflowCommandHandler {
             .with_github(github)
             .with_runner(runner_context())
     }
-    pub fn handle(&self, cmd: ExecuteWorkflowCommand) -> Result<WorkflowExecution, Box<dyn Error>> {
+    pub fn handle(
+        &self,
+        cmd: ExecuteWorkflowCommand,
+    ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
         let context = Self::build_context(&cmd);
         let req = ExecuteWorkflowRequest::new(
             cmd.workflow_content(),

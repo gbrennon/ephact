@@ -1,7 +1,7 @@
 use crate::application::ports::outbound::prefix_step_path_port::PrefixStepPathPort;
 use std::collections::HashMap;
 
-use crate::application::dtos::PrefixStepPathRequest;
+use crate::application::dtos::requests::PrefixStepPathRequest;
 
 /// Service that prefixes a step's `PATH` with the directories earlier steps
 /// exported through `GITHUB_PATH`.

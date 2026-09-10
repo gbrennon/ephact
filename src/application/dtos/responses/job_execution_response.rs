@@ -1,21 +1,21 @@
-use crate::application::dtos::JobSummary;
+use crate::application::dtos::responses::JobSummaryResponse;
 
 /// Outcome of running one job, with the container it ran in.
 #[derive(Debug, Clone)]
-pub struct JobExecution {
-    job_summary: JobSummary,
+pub struct JobExecutionResponse {
+    job_summary: JobSummaryResponse,
     container_name: String,
 }
 
-impl JobExecution {
-    pub fn new(job_summary: JobSummary, container_name: impl Into<String>) -> Self {
+impl JobExecutionResponse {
+    pub fn new(job_summary: JobSummaryResponse, container_name: impl Into<String>) -> Self {
         Self {
             job_summary,
             container_name: container_name.into(),
         }
     }
 
-    pub fn job_summary(&self) -> &JobSummary {
+    pub fn job_summary(&self) -> &JobSummaryResponse {
         &self.job_summary
     }
 
@@ -23,7 +23,7 @@ impl JobExecution {
         &self.container_name
     }
 
-    pub fn into_parts(self) -> (JobSummary, String) {
+    pub fn into_parts(self) -> (JobSummaryResponse, String) {
         (self.job_summary, self.container_name)
     }
 }

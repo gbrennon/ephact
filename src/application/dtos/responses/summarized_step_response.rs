@@ -1,26 +1,26 @@
-use crate::application::dtos::StepSummary;
+use crate::application::dtos::responses::StepSummaryResponse;
 
 /// Summary of one executed step, and whether it fails the job it belongs to.
-pub struct SummarizedStep {
+pub struct SummarizedStepResponse {
     /// Summary reported for the step.
-    summary: StepSummary,
+    summary: StepSummaryResponse,
     /// Whether this step's outcome fails the job.
     fails_job: bool,
 }
 
-impl SummarizedStep {
+impl SummarizedStepResponse {
     /// Creates a new summarized step.
-    pub fn new(summary: StepSummary, fails_job: bool) -> Self {
+    pub fn new(summary: StepSummaryResponse, fails_job: bool) -> Self {
         Self { summary, fails_job }
     }
 
     /// Summary reported for the step.
-    pub fn summary(&self) -> &StepSummary {
+    pub fn summary(&self) -> &StepSummaryResponse {
         &self.summary
     }
 
     /// Consumes the summarized step and returns its summary.
-    pub fn into_summary(self) -> StepSummary {
+    pub fn into_summary(self) -> StepSummaryResponse {
         self.summary
     }
 

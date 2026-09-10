@@ -1,17 +1,17 @@
 /// Summary of a job within a workflow run.
 #[derive(Debug, Clone, PartialEq)]
-pub struct JobSummary {
+pub struct JobSummaryResponse {
     job_id: String,
     name: Option<String>,
-    steps: Vec<crate::application::dtos::run_summary::step_summary::StepSummary>,
+    steps: Vec<crate::application::dtos::responses::StepSummaryResponse>,
     success: bool,
 }
 
-impl JobSummary {
+impl JobSummaryResponse {
     pub fn new(
         job_id: impl Into<String>,
         name: Option<String>,
-        steps: Vec<crate::application::dtos::run_summary::step_summary::StepSummary>,
+        steps: Vec<crate::application::dtos::responses::StepSummaryResponse>,
         success: bool,
     ) -> Self {
         Self {
@@ -30,7 +30,7 @@ impl JobSummary {
         self.name.as_deref()
     }
 
-    pub fn steps(&self) -> &[crate::application::dtos::run_summary::step_summary::StepSummary] {
+    pub fn steps(&self) -> &[crate::application::dtos::responses::StepSummaryResponse] {
         &self.steps
     }
 
@@ -48,7 +48,7 @@ impl JobSummary {
     ) -> (
         String,
         Option<String>,
-        Vec<crate::application::dtos::run_summary::step_summary::StepSummary>,
+        Vec<crate::application::dtos::responses::StepSummaryResponse>,
         bool,
     ) {
         (self.job_id, self.name, self.steps, self.success)

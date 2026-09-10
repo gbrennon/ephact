@@ -3,19 +3,19 @@ use super::super::components::{
     terminal::Terminal,
 };
 use super::run_args::RunArgs;
-use crate::{
-    application::{
-        dtos::{
-            DiscoverRunInputsRequest, ListWorkflowsRequest, RunAllWorkflowsRequest, RunSummary,
-            RunWorkflowRequest,
-        },
-        ports::{
-            inbound::{ListWorkflowsPort, RunAllWorkflowsPort, RunWorkflowPort},
-            outbound::DiscoverRunInputsPort,
-        },
-    },
-    domain::value_objects::{ActEvent, ActInput, ActRunConfig, ActWorkflow},
-};
+use crate::application::dtos::requests::DiscoverRunInputsRequest;
+use crate::application::dtos::requests::ListWorkflowsRequest;
+use crate::application::dtos::requests::RunAllWorkflowsRequest;
+use crate::application::dtos::requests::RunWorkflowRequest;
+use crate::application::dtos::responses::RunSummaryResponse;
+use crate::application::ports::inbound::ListWorkflowsPort;
+use crate::application::ports::inbound::RunAllWorkflowsPort;
+use crate::application::ports::inbound::RunWorkflowPort;
+use crate::application::ports::outbound::DiscoverRunInputsPort;
+use crate::domain::value_objects::ActEvent;
+use crate::domain::value_objects::ActInput;
+use crate::domain::value_objects::ActRunConfig;
+use crate::domain::value_objects::ActWorkflow;
 
 /// Handles the `run` subcommand by dispatching parsed CLI arguments to the
 /// application port.
@@ -162,9 +162,12 @@ impl RunHandler {
     }
 
     fn select_pull_request_workflow<'a>(
-        workflows: &[&'a crate::application::dtos::WorkflowListItem],
+        workflows: &[&'a crate::application::dtos::responses::WorkflowListItemResponse],
         terminal: &dyn Terminal,
-    ) -> Result<&'a crate::application::dtos::WorkflowListItem, Box<dyn std::error::Error>> {
+    ) -> Result<
+        &'a crate::application::dtos::responses::WorkflowListItemResponse,
+        Box<dyn std::error::Error>,
+    > {
         if workflows.is_empty() {
             return Err("no pull_request workflows are available for interactive execution".into());
         }
@@ -188,7 +191,7 @@ impl RunHandler {
     }
 
     fn workflow_selection_form(
-        workflows: &[&crate::application::dtos::WorkflowListItem],
+        workflows: &[&crate::application::dtos::responses::WorkflowListItemResponse],
     ) -> String {
         let options = workflows
             .iter()
@@ -251,7 +254,7 @@ impl RunHandler {
     }
 
     fn can_skip_prompting(
-        declarations: &[crate::application::dtos::RunInputDeclaration],
+        declarations: &[crate::application::dtos::responses::RunInputDeclarationResponse],
         interactive: bool,
     ) -> bool {
         let missing: Vec<_> = declarations
@@ -263,7 +266,7 @@ impl RunHandler {
 
     fn prompt_or_describe_inputs(
         config: &mut ActRunConfig,
-        declarations: &[crate::application::dtos::RunInputDeclaration],
+        declarations: &[crate::application::dtos::responses::RunInputDeclarationResponse],
         interactive: bool,
         terminal: &dyn Terminal,
     ) -> Result<(), Box<dyn std::error::Error>> {
@@ -272,7 +275,7 @@ impl RunHandler {
     }
 
     fn fail_if_missing_required_noninteractive(
-        declarations: &[crate::application::dtos::RunInputDeclaration],
+        declarations: &[crate::application::dtos::responses::RunInputDeclarationResponse],
         interactive: bool,
         terminal: &dyn Terminal,
     ) -> Result<(), Box<dyn std::error::Error>> {
@@ -285,7 +288,7 @@ impl RunHandler {
 
     fn prompt_or_describe_all(
         config: &mut ActRunConfig,
-        declarations: &[crate::application::dtos::RunInputDeclaration],
+        declarations: &[crate::application::dtos::responses::RunInputDeclarationResponse],
         interactive: bool,
         terminal: &dyn Terminal,
     ) -> Result<(), Box<dyn std::error::Error>> {
@@ -305,7 +308,7 @@ impl RunHandler {
 
     fn prompt_or_describe_one(
         config: &mut ActRunConfig,
-        declaration: &crate::application::dtos::RunInputDeclaration,
+        declaration: &crate::application::dtos::responses::RunInputDeclarationResponse,
         index: usize,
         total: usize,
         interactive: bool,
@@ -326,8 +329,8 @@ impl RunHandler {
     }
 
     fn collect_missing_required(
-        declarations: &[crate::application::dtos::RunInputDeclaration],
-    ) -> Vec<&crate::application::dtos::RunInputDeclaration> {
+        declarations: &[crate::application::dtos::responses::RunInputDeclarationResponse],
+    ) -> Vec<&crate::application::dtos::responses::RunInputDeclarationResponse> {
         declarations
             .iter()
             .filter(|input| input.required() && !input.is_resolved())
@@ -335,7 +338,7 @@ impl RunHandler {
     }
 
     fn missing_inputs_error(
-        missing: &[&crate::application::dtos::RunInputDeclaration],
+        missing: &[&crate::application::dtos::responses::RunInputDeclarationResponse],
     ) -> Box<dyn std::error::Error> {
         format!(
             "required inputs missing: {}",
@@ -349,13 +352,13 @@ impl RunHandler {
     }
 
     fn should_prompt(
-        declaration: &crate::application::dtos::RunInputDeclaration,
+        declaration: &crate::application::dtos::responses::RunInputDeclarationResponse,
         interactive: bool,
     ) -> bool {
         interactive || (declaration.required() && !declaration.is_resolved())
     }
     fn describe_input(
-        declaration: &crate::application::dtos::RunInputDeclaration,
+        declaration: &crate::application::dtos::responses::RunInputDeclarationResponse,
         index: usize,
         total: usize,
         terminal: &dyn Terminal,
@@ -384,7 +387,7 @@ impl RunHandler {
 
     fn prompt_for_input(
         config: ActRunConfig,
-        declaration: &crate::application::dtos::RunInputDeclaration,
+        declaration: &crate::application::dtos::responses::RunInputDeclarationResponse,
         index: usize,
         total: usize,
         terminal: &dyn Terminal,
@@ -395,7 +398,7 @@ impl RunHandler {
     }
 
     fn read_input_value(
-        declaration: &crate::application::dtos::RunInputDeclaration,
+        declaration: &crate::application::dtos::responses::RunInputDeclarationResponse,
         terminal: &dyn Terminal,
     ) -> Result<String, Box<dyn std::error::Error>> {
         terminal.write_text(&format!(
@@ -409,7 +412,7 @@ impl RunHandler {
 
     fn validate_required_input(
         value: &str,
-        declaration: &crate::application::dtos::RunInputDeclaration,
+        declaration: &crate::application::dtos::responses::RunInputDeclarationResponse,
     ) -> Result<(), Box<dyn std::error::Error>> {
         if value.is_empty() && declaration.required() && !declaration.is_resolved() {
             return Err(format!("required input '{}' cannot be blank", declaration.name()).into());
@@ -419,7 +422,7 @@ impl RunHandler {
 
     fn apply_input_value(
         mut config: ActRunConfig,
-        declaration: &crate::application::dtos::RunInputDeclaration,
+        declaration: &crate::application::dtos::responses::RunInputDeclarationResponse,
         value: String,
     ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
         if !value.is_empty() {
@@ -440,7 +443,7 @@ impl RunHandler {
         repository: crate::domain::Repository,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
-    ) -> Result<RunSummary, Box<dyn std::error::Error>> {
+    ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
         if config.all_workflows() {
             run_all_workflows_port.execute(RunAllWorkflowsRequest::new(config, repository))
         } else {
@@ -448,7 +451,7 @@ impl RunHandler {
         }
     }
 
-    pub fn render(summary: &RunSummary) -> String {
+    pub fn render(summary: &RunSummaryResponse) -> String {
         RunSummaryComponent::new(summary).render()
     }
 }
@@ -458,17 +461,20 @@ mod tests {
     use std::time::Duration;
 
     use super::*;
-    use crate::{
-        application::dtos::{JobSummary, run_summary::step_summary::StepSummary},
-        domain::value_objects::StepType,
-    };
+    use crate::application::dtos::responses::JobSummaryResponse;
+    use crate::application::dtos::responses::StepSummaryResponse;
+    use crate::domain::value_objects::StepType;
 
-    fn job(job_id: &str, name: Option<&str>, success: bool) -> JobSummary {
-        JobSummary::new(job_id, name.map(Into::into), vec![], success)
+    fn job(job_id: &str, name: Option<&str>, success: bool) -> JobSummaryResponse {
+        JobSummaryResponse::new(job_id, name.map(Into::into), vec![], success)
     }
 
-    fn summary(success: bool, jobs: Vec<JobSummary>, duration: Duration) -> RunSummary {
-        RunSummary::new("test", jobs, success, duration)
+    fn summary(
+        success: bool,
+        jobs: Vec<JobSummaryResponse>,
+        duration: Duration,
+    ) -> RunSummaryResponse {
+        RunSummaryResponse::new("test", jobs, success, duration)
     }
 
     #[test]
@@ -494,13 +500,13 @@ mod tests {
     }
     #[test]
     fn render_includes_workflow_and_every_step_status() {
-        let summary = RunSummary::new(
+        let summary = RunSummaryResponse::new(
             "Build",
-            vec![JobSummary::new(
+            vec![JobSummaryResponse::new(
                 "compile",
                 Some("Compile".to_string()),
                 vec![
-                    StepSummary::new(
+                    StepSummaryResponse::new(
                         "Checkout",
                         StepType::Run,
                         Some(0),
@@ -509,7 +515,7 @@ mod tests {
                         String::new(),
                         String::new(),
                     ),
-                    StepSummary::new(
+                    StepSummaryResponse::new(
                         "Build",
                         StepType::Run,
                         Some(1),
@@ -534,12 +540,12 @@ mod tests {
 
     #[test]
     fn render_reports_failed_step_status_without_output_details() {
-        let summary = RunSummary::new(
+        let summary = RunSummaryResponse::new(
             "test",
-            vec![JobSummary::new(
+            vec![JobSummaryResponse::new(
                 "lint",
                 Some("Lint".to_string()),
-                vec![StepSummary::new(
+                vec![StepSummaryResponse::new(
                     "Clippy",
                     StepType::Run,
                     Some(101),
@@ -571,7 +577,7 @@ mod tests {
     }
 
     impl Rendered {
-        fn of(summary: &RunSummary) -> Self {
+        fn of(summary: &RunSummaryResponse) -> Self {
             Self {
                 text: RunHandler::render(summary),
             }

@@ -1,34 +1,21 @@
-use std::fmt;
+use crate::application::dtos::responses::RunInputSourceResponse;
 
+/// Input metadata returned when a workflow run exposes configurable inputs.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RunInputSource {
-    Workflow,
-    Action(String),
-}
-
-impl fmt::Display for RunInputSource {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Workflow => formatter.write_str("workflow"),
-            Self::Action(reference) => write!(formatter, "action {reference}"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RunInputDeclaration {
+pub struct RunInputDeclarationResponse {
     name: String,
-    source: RunInputSource,
+    source: RunInputSourceResponse,
     description: Option<String>,
     required: bool,
     default: Option<String>,
     resolved: bool,
 }
 
-impl RunInputDeclaration {
+impl RunInputDeclarationResponse {
+    /// Creates a response for one declared input.
     pub fn new(
         name: impl Into<String>,
-        source: RunInputSource,
+        source: RunInputSourceResponse,
         description: Option<String>,
         required: bool,
         default: Option<String>,
@@ -43,26 +30,38 @@ impl RunInputDeclaration {
         }
     }
 
+    /// Returns a response with the resolved flag updated.
     pub fn with_resolved(mut self, resolved: bool) -> Self {
         self.resolved = resolved;
         self
     }
 
+    /// Returns the input name.
     pub fn name(&self) -> &str {
         &self.name
     }
-    pub fn source(&self) -> &RunInputSource {
+
+    /// Returns where the input was declared.
+    pub fn source(&self) -> &RunInputSourceResponse {
         &self.source
     }
+
+    /// Returns human-readable input guidance when one was declared.
     pub fn description(&self) -> Option<&str> {
         self.description.as_deref()
     }
+
+    /// Returns whether the input must be provided by the caller.
     pub fn required(&self) -> bool {
         self.required
     }
+
+    /// Returns the default value declared for the input.
     pub fn default(&self) -> Option<&str> {
         self.default.as_deref()
     }
+
+    /// Returns whether the input is already resolved for execution.
     pub fn is_resolved(&self) -> bool {
         self.resolved || self.default.is_some()
     }

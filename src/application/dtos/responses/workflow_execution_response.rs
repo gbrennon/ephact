@@ -1,17 +1,17 @@
-use crate::application::dtos::JobSummary;
+use crate::application::dtos::responses::JobSummaryResponse;
 
 #[derive(Debug, Clone)]
-pub struct WorkflowExecution {
+pub struct WorkflowExecutionResponse {
     workflow_name: String,
-    job_summaries: Vec<JobSummary>,
+    job_summaries: Vec<JobSummaryResponse>,
     container_names: Vec<String>,
     success: bool,
 }
 
-impl WorkflowExecution {
+impl WorkflowExecutionResponse {
     pub fn new(
         workflow_name: impl Into<String>,
-        job_summaries: Vec<JobSummary>,
+        job_summaries: Vec<JobSummaryResponse>,
         container_names: Vec<String>,
         success: bool,
     ) -> Self {
@@ -27,7 +27,7 @@ impl WorkflowExecution {
         &self.workflow_name
     }
 
-    pub fn job_summaries(&self) -> &[JobSummary] {
+    pub fn job_summaries(&self) -> &[JobSummaryResponse] {
         &self.job_summaries
     }
 
@@ -39,7 +39,7 @@ impl WorkflowExecution {
         self.success
     }
 
-    pub fn into_parts(self) -> (String, Vec<JobSummary>, Vec<String>, bool) {
+    pub fn into_parts(self) -> (String, Vec<JobSummaryResponse>, Vec<String>, bool) {
         (
             self.workflow_name,
             self.job_summaries,

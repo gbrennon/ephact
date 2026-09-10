@@ -1,6 +1,7 @@
-use crate::application::dtos::{
-    ReadStepEnvExportsRequest, ReadStepExportsRequest, ReadStepPathExportsRequest, StepExports,
-};
+use crate::application::dtos::requests::ReadStepEnvExportsRequest;
+use crate::application::dtos::requests::ReadStepExportsRequest;
+use crate::application::dtos::requests::ReadStepPathExportsRequest;
+use crate::application::dtos::responses::StepExportsResponse;
 use crate::{
     application::ports::outbound::read_step_exports_port::ReadStepExportsPort,
     infrastructure::steps::{
@@ -28,8 +29,8 @@ impl ReadStepExportsService {
 }
 
 impl ReadStepExportsPort for ReadStepExportsService {
-    fn execute(&self, request: ReadStepExportsRequest<'_>) -> StepExports {
-        StepExports::new(
+    fn execute(&self, request: ReadStepExportsRequest<'_>) -> StepExportsResponse {
+        StepExportsResponse::new(
             self.path_reader
                 .execute(ReadStepPathExportsRequest::new(request.container())),
             self.env_reader

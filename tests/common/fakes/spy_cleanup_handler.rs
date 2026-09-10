@@ -3,7 +3,7 @@ use ephact::infrastructure::containers::container_cleanup_port::ContainerCleanup
 use parking_lot::Mutex;
 use std::sync::Arc;
 
-use ephact::application::dtos::ContainerCleanupRequest;
+use ephact::application::dtos::requests::ContainerCleanupRequest;
 
 /// Cleanup handler that records the container names of every request it
 /// receives. Every clone observes the same recording.

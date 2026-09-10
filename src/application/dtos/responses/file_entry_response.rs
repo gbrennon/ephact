@@ -1,12 +1,12 @@
 /// A file entry for copy operations.
 #[derive(Debug, Clone)]
-pub struct FileEntry {
+pub struct FileEntryResponse {
     path: String,
     content: Vec<u8>,
     mode: u32,
 }
 
-impl FileEntry {
+impl FileEntryResponse {
     pub fn new(path: impl Into<String>, content: Vec<u8>, mode: u32) -> Self {
         Self {
             path: path.into(),

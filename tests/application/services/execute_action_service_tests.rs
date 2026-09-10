@@ -2,23 +2,20 @@
 mod tests {
     use std::{collections::HashMap, path::Path, sync::Arc};
 
-    use ephact::{
-        application::{
-            dtos::{ContainerConfig, ExecResult, ExecuteActionRequest, RunnerContext},
-            ports::{
-                inbound::execute_action_port::ExecuteActionPort,
-                outbound::{ContainerRuntimePort, container_port::ContainerPort},
-            },
-            services::execute_action_service::ExecuteActionService,
-        },
-        domain::{
-            entities::Step,
-            value_objects::{ContextValue, EvaluationContext},
-        },
-        infrastructure::{
-            actions::ActionFetcherPort, di::ActionExecutionWiring, workflows::yaml::StepYaml,
-        },
-    };
+    use ephact::application::dtos::requests::ExecuteActionRequest;
+    use ephact::application::dtos::responses::ContainerConfigResponse;
+    use ephact::application::dtos::responses::ExecResultResponse;
+    use ephact::application::dtos::responses::RunnerContextResponse;
+    use ephact::application::ports::inbound::execute_action_port::ExecuteActionPort;
+    use ephact::application::ports::outbound::ContainerRuntimePort;
+    use ephact::application::ports::outbound::container_port::ContainerPort;
+    use ephact::application::services::execute_action_service::ExecuteActionService;
+    use ephact::domain::entities::Step;
+    use ephact::domain::value_objects::ContextValue;
+    use ephact::domain::value_objects::EvaluationContext;
+    use ephact::infrastructure::actions::ActionFetcherPort;
+    use ephact::infrastructure::di::ActionExecutionWiring;
+    use ephact::infrastructure::workflows::yaml::StepYaml;
 
     use crate::common::fakes::{
         fake_action_fetcher::FakeActionFetcher,
@@ -38,7 +35,7 @@ mod tests {
     fn container(runtime: &FakeRuntime) -> Arc<dyn ContainerPort> {
         Arc::from(
             runtime
-                .create_container(&ContainerConfig::new(
+                .create_container(&ContainerConfigResponse::new(
                     "image",
                     None,
                     HashMap::new(),
@@ -48,7 +45,7 @@ mod tests {
                     None,
                     None,
                     None,
-                    RunnerContext::default(),
+                    RunnerContextResponse::default(),
                 ))
                 .unwrap(),
         )
@@ -86,7 +83,7 @@ mod tests {
         runtime
             .exec_results
             .lock()
-            .push(ExecResult::new(exit_code, stdout, String::new()));
+            .push(ExecResultResponse::new(exit_code, stdout, String::new()));
     }
 
     #[test]

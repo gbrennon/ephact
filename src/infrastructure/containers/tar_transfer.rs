@@ -3,18 +3,16 @@ use std::fmt::Display;
 use bytes::Bytes;
 use futures_util::StreamExt;
 
-use crate::{
-    application::dtos::FileEntry,
-    domain::errors::ContainerError,
-    infrastructure::containers::bollard_wrapper::{
-        Client, body_full,
-        types::{DownloadFromContainerOptionsBuilder, UploadToContainerOptionsBuilder},
-    },
-};
+use crate::application::dtos::responses::FileEntryResponse;
+use crate::domain::errors::ContainerError;
+use crate::infrastructure::containers::bollard_wrapper::Client;
+use crate::infrastructure::containers::bollard_wrapper::body_full;
+use crate::infrastructure::containers::bollard_wrapper::types::DownloadFromContainerOptionsBuilder;
+use crate::infrastructure::containers::bollard_wrapper::types::UploadToContainerOptionsBuilder;
 
 /// Packs file entries into an in-memory tar archive.
 pub(super) fn pack_entries(
-    entries: &[FileEntry],
+    entries: &[FileEntryResponse],
     container_id: &str,
 ) -> Result<Vec<u8>, ContainerError> {
     let mut builder = tar::Builder::new(Vec::new());
@@ -26,7 +24,7 @@ pub(super) fn pack_entries(
 
 fn append_entry(
     builder: &mut tar::Builder<Vec<u8>>,
-    entry: &FileEntry,
+    entry: &FileEntryResponse,
     container_id: &str,
 ) -> Result<(), ContainerError> {
     let mut header = tar::Header::new_gnu();
@@ -89,7 +87,7 @@ pub(super) async fn download_archive(
 pub(super) fn unpack_entries(
     archive: &[u8],
     container_id: &str,
-) -> Result<Vec<FileEntry>, ContainerError> {
+) -> Result<Vec<FileEntryResponse>, ContainerError> {
     let mut unpacked = Vec::new();
     let mut archive = tar::Archive::new(archive);
     for entry in archive
@@ -105,7 +103,7 @@ pub(super) fn unpack_entries(
 fn read_entry<R: std::io::Read>(
     mut entry: tar::Entry<'_, R>,
     container_id: &str,
-) -> Result<FileEntry, ContainerError> {
+) -> Result<FileEntryResponse, ContainerError> {
     let path = entry
         .path()
         .map_err(|error| copy_failed(container_id, error))?
@@ -118,7 +116,7 @@ fn read_entry<R: std::io::Read>(
     let mut content = Vec::new();
     std::io::Read::read_to_end(&mut entry, &mut content)
         .map_err(|error| copy_failed(container_id, error))?;
-    Ok(FileEntry::new(path, content, mode))
+    Ok(FileEntryResponse::new(path, content, mode))
 }
 
 fn copy_failed(container_id: &str, error: impl Display) -> ContainerError {

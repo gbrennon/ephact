@@ -1,4 +1,5 @@
-use crate::application::dtos::{BuildJobEnvironmentRequest, BuildJobEnvironmentResponse};
+use crate::application::dtos::requests::BuildJobEnvironmentRequest;
+use crate::application::dtos::responses::BuildJobEnvironmentResponse;
 
 /// Outbound port for building the environment variables a job runs with.
 pub trait BuildJobEnvironmentPort: Send + Sync {

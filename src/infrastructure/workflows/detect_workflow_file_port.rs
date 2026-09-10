@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::application::dtos::DetectWorkflowFileRequest;
+use crate::application::dtos::requests::DetectWorkflowFileRequest;
 
 /// Inbound port for detecting which workflow a repository runs by default.
 pub trait DetectWorkflowFilePort: Send + Sync {

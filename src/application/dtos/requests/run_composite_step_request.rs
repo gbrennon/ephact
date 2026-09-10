@@ -1,9 +1,8 @@
 use std::path::Path;
 
-use crate::{
-    application::dtos::ExecuteActionRequest,
-    domain::{entities::Step, value_objects::EvaluationContext},
-};
+use crate::application::dtos::requests::ExecuteActionRequest;
+use crate::domain::entities::Step;
+use crate::domain::value_objects::EvaluationContext;
 
 /// Everything needed to run a single step of a composite action.
 pub struct RunCompositeStepRequest<'a> {

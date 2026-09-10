@@ -1,10 +1,11 @@
 use super::{create_job_container_port::CreateJobContainerPort, workspace::CONTAINER_WORKSPACE};
 use std::{collections::HashMap, error::Error, sync::Arc};
 
-use crate::application::{
-    dtos::{ContainerConfig, CreateJobContainerRequest, RunnerContext},
-    ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
-};
+use crate::application::dtos::requests::CreateJobContainerRequest;
+use crate::application::dtos::responses::ContainerConfigResponse;
+use crate::application::dtos::responses::RunnerContextResponse;
+use crate::application::ports::outbound::ContainerRuntimePort;
+use crate::application::ports::outbound::container_port::ContainerPort;
 
 /// Service that creates the container a job's steps run in, removing any
 /// container left behind by an earlier run of the same job first.
@@ -28,7 +29,7 @@ impl CreateJobContainerPort for CreateJobContainerService {
             .remove_container(request.legacy_container_name());
         let _ = self.runtime.remove_container(request.container_name());
 
-        let container_config = ContainerConfig::new(
+        let container_config = ContainerConfigResponse::new(
             request.image().to_string(),
             None,
             HashMap::new(),
@@ -42,7 +43,7 @@ impl CreateJobContainerPort for CreateJobContainerService {
             None,
             None,
             Some(request.container_name().to_string()),
-            RunnerContext::default(),
+            RunnerContextResponse::default(),
         );
 
         Ok(Arc::from(

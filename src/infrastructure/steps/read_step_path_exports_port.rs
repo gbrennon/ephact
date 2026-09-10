@@ -1,4 +1,4 @@
-use crate::application::dtos::ReadStepPathExportsRequest;
+use crate::application::dtos::requests::ReadStepPathExportsRequest;
 
 /// Inbound port for reading the `PATH` additions a step exported.
 pub trait ReadStepPathExportsPort: Send + Sync {

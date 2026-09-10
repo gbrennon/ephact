@@ -1,9 +1,8 @@
 use std::time::Duration;
 
-use crate::{
-    application::dtos::ExecutedStep,
-    domain::{entities::Step, errors::StepError},
-};
+use crate::application::dtos::responses::ExecutedStepResponse;
+use crate::domain::entities::Step;
+use crate::domain::errors::StepError;
 
 /// Request DTO for the
 /// [`SummarizeStepPort`](crate::application::ports::inbound::summarize_step_port::SummarizeStepPort)
@@ -12,7 +11,7 @@ pub struct SummarizeStepRequest<'a> {
     /// The step as declared, before its expressions were resolved.
     step: &'a Step,
     /// What executing the step produced.
-    outcome: Result<ExecutedStep, StepError>,
+    outcome: Result<ExecutedStepResponse, StepError>,
     /// How long the step took.
     duration: Duration,
 }
@@ -21,7 +20,7 @@ impl<'a> SummarizeStepRequest<'a> {
     /// Creates a new request.
     pub fn new(
         step: &'a Step,
-        outcome: Result<ExecutedStep, StepError>,
+        outcome: Result<ExecutedStepResponse, StepError>,
         duration: Duration,
     ) -> Self {
         Self {
@@ -37,12 +36,12 @@ impl<'a> SummarizeStepRequest<'a> {
     }
 
     /// What executing the step produced.
-    pub fn outcome(&self) -> &Result<ExecutedStep, StepError> {
+    pub fn outcome(&self) -> &Result<ExecutedStepResponse, StepError> {
         &self.outcome
     }
 
     /// Consumes the request and returns what executing the step produced.
-    pub fn into_outcome(self) -> Result<ExecutedStep, StepError> {
+    pub fn into_outcome(self) -> Result<ExecutedStepResponse, StepError> {
         self.outcome
     }
 

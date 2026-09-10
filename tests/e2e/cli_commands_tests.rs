@@ -2,22 +2,25 @@
 mod tests {
     use std::time::Duration;
 
-    use ephact::{
-        application::{
-            dtos::{
-                JobSummary, ListActionsRequest, ListActionsResponse, ListWorkflowsRequest,
-                ListWorkflowsResponse, RunAllWorkflowsRequest, RunSummary, RunWorkflowRequest,
-                ShowProjectBrandingInfoResponse, WorkflowListItem,
-                run_summary::step_summary::StepSummary,
-            },
-            ports::inbound::{
-                ListActionsPort, ListWorkflowsPort, RunAllWorkflowsPort, RunWorkflowPort,
-                ShowProjectBrandingInfoPort,
-            },
-        },
-        domain::value_objects::StepType,
-        presentation::{cli::Cli, components::terminal::Terminal},
-    };
+    use ephact::application::dtos::requests::ListActionsRequest;
+    use ephact::application::dtos::requests::ListWorkflowsRequest;
+    use ephact::application::dtos::requests::RunAllWorkflowsRequest;
+    use ephact::application::dtos::requests::RunWorkflowRequest;
+    use ephact::application::dtos::responses::JobSummaryResponse;
+    use ephact::application::dtos::responses::ListActionsResponse;
+    use ephact::application::dtos::responses::ListWorkflowsResponse;
+    use ephact::application::dtos::responses::RunSummaryResponse;
+    use ephact::application::dtos::responses::ShowProjectBrandingInfoResponse;
+    use ephact::application::dtos::responses::StepSummaryResponse;
+    use ephact::application::dtos::responses::WorkflowListItemResponse;
+    use ephact::application::ports::inbound::ListActionsPort;
+    use ephact::application::ports::inbound::ListWorkflowsPort;
+    use ephact::application::ports::inbound::RunAllWorkflowsPort;
+    use ephact::application::ports::inbound::RunWorkflowPort;
+    use ephact::application::ports::inbound::ShowProjectBrandingInfoPort;
+    use ephact::domain::value_objects::StepType;
+    use ephact::presentation::cli::Cli;
+    use ephact::presentation::components::terminal::Terminal;
 
     use super::super::support::workflow_repository::WorkflowRepository;
 
@@ -58,12 +61,12 @@ mod tests {
             _request: ListWorkflowsRequest,
         ) -> Result<ListWorkflowsResponse, Box<dyn std::error::Error>> {
             Ok(ListWorkflowsResponse::new(vec![
-                WorkflowListItem::new(
+                WorkflowListItemResponse::new(
                     Some("Build".into()),
                     Some("build.yml".into()),
                     vec!["pull_request".into()],
                 ),
-                WorkflowListItem::new(
+                WorkflowListItemResponse::new(
                     Some("Release".into()),
                     Some("release.yml".into()),
                     vec!["push".into()],
@@ -91,21 +94,23 @@ mod tests {
     impl ephact::application::ports::outbound::DiscoverRunInputsPort for InputDiscoveryFake {
         fn execute(
             &self,
-            _request: ephact::application::dtos::DiscoverRunInputsRequest,
-        ) -> Result<Vec<ephact::application::dtos::RunInputDeclaration>, Box<dyn std::error::Error>>
-        {
+            _request: ephact::application::dtos::requests::DiscoverRunInputsRequest,
+        ) -> Result<
+            Vec<ephact::application::dtos::responses::RunInputDeclarationResponse>,
+            Box<dyn std::error::Error>,
+        > {
             Ok(Vec::new())
         }
     }
     struct RunFake {
-        summary: RunSummary,
+        summary: RunSummaryResponse,
     }
 
     impl RunWorkflowPort for RunFake {
         fn execute(
             &self,
             _request: RunWorkflowRequest,
-        ) -> Result<RunSummary, Box<dyn std::error::Error>> {
+        ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
             Ok(self.summary.clone())
         }
     }
@@ -114,12 +119,12 @@ mod tests {
         fn execute(
             &self,
             _request: RunAllWorkflowsRequest,
-        ) -> Result<RunSummary, Box<dyn std::error::Error>> {
+        ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
             Ok(self.summary.clone())
         }
     }
 
-    fn cli(summary: RunSummary) -> Cli {
+    fn cli(summary: RunSummaryResponse) -> Cli {
         Cli::new(
             Box::new(RunFake {
                 summary: summary.clone(),
@@ -140,14 +145,14 @@ mod tests {
             .with_action(".github/actions/release", "name: Release")
     }
 
-    fn run_summary() -> RunSummary {
-        RunSummary::new(
+    fn run_summary() -> RunSummaryResponse {
+        RunSummaryResponse::new(
             "Build",
-            vec![JobSummary::new(
+            vec![JobSummaryResponse::new(
                 "build",
                 Some("Build job".into()),
                 vec![
-                    StepSummary::new(
+                    StepSummaryResponse::new(
                         "Checkout",
                         StepType::Run,
                         Some(0),
@@ -156,7 +161,7 @@ mod tests {
                         String::new(),
                         String::new(),
                     ),
-                    StepSummary::new(
+                    StepSummaryResponse::new(
                         "Compile",
                         StepType::Run,
                         Some(0),

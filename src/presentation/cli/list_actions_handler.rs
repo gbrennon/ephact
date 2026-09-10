@@ -1,7 +1,6 @@
 use super::list_actions_args::ListActionsArgs;
-use crate::application::{
-    dtos::ListActionsResponse, ports::inbound::list_actions_port::ListActionsPort,
-};
+use crate::application::dtos::responses::ListActionsResponse;
+use crate::application::ports::inbound::list_actions_port::ListActionsPort;
 
 pub struct ListActionsHandler;
 

@@ -1,23 +1,22 @@
-use ephact::presentation::{
-    cli::{CliParser, parse_run_test_args, run_handler::RunHandler},
-    components::terminal::SystemTerminal,
-};
-
 #[cfg(test)]
 mod tests {
+    use ephact::presentation::{
+        cli::{CliParser, parse_run_test_args, run_handler::RunHandler},
+        components::terminal::SystemTerminal,
+    };
+
     use std::time::Duration;
 
-    use ephact::application::dtos::RunSummary;
+    use ephact::application::dtos::responses::RunSummaryResponse;
 
-    use super::*;
     use crate::common::fakes::{
         fake_list_workflows_port::FakeListWorkflowsPort,
         stub_run_all_workflows_port::StubRunAllWorkflowsPort,
         stub_run_workflow_port::StubRunWorkflowPort,
     };
 
-    fn ok_summary() -> RunSummary {
-        RunSummary::new("test".to_string(), vec![], true, Duration::ZERO)
+    fn ok_summary() -> RunSummaryResponse {
+        RunSummaryResponse::new("test".to_string(), vec![], true, Duration::ZERO)
     }
 
     #[test]

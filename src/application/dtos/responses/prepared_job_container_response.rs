@@ -3,14 +3,14 @@ use std::sync::Arc;
 use crate::application::ports::outbound::container_port::ContainerPort;
 
 /// Container a job's steps run in, with the name it was created under.
-pub struct PreparedJobContainer {
+pub struct PreparedJobContainerResponse {
     /// Handle to the running container.
     container: Arc<dyn ContainerPort>,
     /// Name the container was created with.
     container_name: String,
 }
 
-impl PreparedJobContainer {
+impl PreparedJobContainerResponse {
     /// Creates a new prepared job container.
     pub fn new(container: Arc<dyn ContainerPort>, container_name: String) -> Self {
         Self {

@@ -2,13 +2,12 @@
 use parking_lot::Mutex;
 use std::{collections::HashMap, sync::Arc};
 
-use ephact::{
-    application::{
-        dtos::{ContainerConfig, ExecResult, HostInfo},
-        ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
-    },
-    domain::errors::ContainerError,
-};
+use ephact::application::dtos::responses::ContainerConfigResponse;
+use ephact::application::dtos::responses::ExecResultResponse;
+use ephact::application::dtos::responses::HostInfoResponse;
+use ephact::application::ports::outbound::ContainerRuntimePort;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::errors::ContainerError;
 
 use super::fake_container_handle::FakeContainerHandle;
 
@@ -16,8 +15,8 @@ use super::fake_container_handle::FakeContainerHandle;
 /// and recording every command and file copy they receive.
 pub struct FakeRuntime {
     pub pulled_images: Mutex<Vec<String>>,
-    pub created_containers: Mutex<Vec<ContainerConfig>>,
-    pub exec_results: Arc<Mutex<Vec<ExecResult>>>,
+    pub created_containers: Mutex<Vec<ContainerConfigResponse>>,
+    pub exec_results: Arc<Mutex<Vec<ExecResultResponse>>>,
     pub executed_commands: Arc<Mutex<Vec<Vec<String>>>>,
     pub exec_environments: Arc<Mutex<Vec<HashMap<String, String>>>>,
     pub copied_paths: Arc<Mutex<Vec<String>>>,
@@ -60,7 +59,7 @@ impl ContainerRuntimePort for FakeRuntime {
 
     fn create_container(
         &self,
-        config: &ContainerConfig,
+        config: &ContainerConfigResponse,
     ) -> Result<Box<dyn ContainerPort>, ContainerError> {
         self.created_containers.lock().push(config.clone());
         Ok(Box::new(FakeContainerHandle::new(
@@ -86,7 +85,7 @@ impl ContainerRuntimePort for FakeRuntime {
         Ok(())
     }
 
-    fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
-        Ok(HostInfo::new("linux", "amd64", "1.0"))
+    fn get_host_info(&self) -> Result<HostInfoResponse, ContainerError> {
+        Ok(HostInfoResponse::new("linux", "amd64", "1.0"))
     }
 }

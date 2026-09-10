@@ -1,19 +1,14 @@
-use std::collections::HashMap;
-
-use ephact::{
-    application::{
-        dtos::{ContainerConfig, FileEntry},
-        ports::outbound::ContainerRuntimePort,
-    },
-    infrastructure::containers::DockerRuntime,
-};
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::collections::HashMap;
 
-    fn make_config(name: &str) -> ContainerConfig {
-        ContainerConfig::new(
+    use ephact::application::dtos::responses::ContainerConfigResponse;
+    use ephact::application::dtos::responses::FileEntryResponse;
+    use ephact::application::ports::outbound::ContainerRuntimePort;
+    use ephact::infrastructure::containers::DockerRuntime;
+
+    fn make_config(name: &str) -> ContainerConfigResponse {
+        ContainerConfigResponse::new(
             "alpine:latest",
             None,
             HashMap::new(),
@@ -54,8 +49,8 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(result.stdout, "hello");
-        assert_eq!(result.exit_code, 0);
+        assert_eq!(result.stdout(), "hello");
+        assert_eq!(result.exit_code(), 0);
         container.remove().unwrap();
     }
 
@@ -74,7 +69,7 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(result.exit_code, 42);
+        assert_eq!(result.exit_code(), 42);
         container.remove().unwrap();
     }
 
@@ -95,8 +90,8 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(result.stdout, "ct_value");
-        assert_eq!(result.exit_code, 0);
+        assert_eq!(result.stdout(), "ct_value");
+        assert_eq!(result.exit_code(), 0);
         container.remove().unwrap();
     }
 
@@ -108,17 +103,17 @@ mod tests {
         let container = runtime.create_container(&config).unwrap();
 
         let original = b"container roundtrip data";
-        let entries = vec![FileEntry {
-            path: "ct_roundtrip.bin".into(),
-            content: original.to_vec(),
-            mode: 0o644,
-        }];
+        let entries = vec![FileEntryResponse::new(
+            "ct_roundtrip.bin",
+            original.to_vec(),
+            0o644,
+        )];
         container.copy_to("/tmp", &entries).unwrap();
 
         let retrieved = container.copy_from("/tmp/ct_roundtrip.bin").unwrap();
         assert_eq!(retrieved.len(), 1);
-        assert_eq!(retrieved[0].path, "ct_roundtrip.bin");
-        assert_eq!(retrieved[0].content, original);
+        assert_eq!(retrieved[0].path(), "ct_roundtrip.bin");
+        assert_eq!(retrieved[0].content(), original);
         container.remove().unwrap();
     }
 
@@ -131,8 +126,8 @@ mod tests {
 
         let ctx = container.get_runner_context().unwrap();
 
-        assert_eq!(ctx.workspace, "/workspace");
-        assert_eq!(ctx.home, "/home");
+        assert_eq!(ctx.workspace(), "/workspace");
+        assert_eq!(ctx.home(), "/home");
         container.remove().unwrap();
     }
 

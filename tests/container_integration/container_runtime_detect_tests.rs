@@ -1,8 +1,6 @@
-use ephact::infrastructure::containers::container_runtime_adapter::ContainerRuntimeAdapter;
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use ephact::infrastructure::containers::container_runtime_adapter::ContainerRuntimeAdapter;
 
     #[test]
     fn detect_selects_an_available_runtime() {

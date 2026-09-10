@@ -1,11 +1,11 @@
-use crate::application::dtos::RunnerContext;
+use crate::application::dtos::responses::RunnerContextResponse;
 use std::collections::HashMap;
 
 /// Configuration for creating a container: image, environment, mounts, and the
 /// runner context exposed to steps. Consumed by the outbound
 /// [`ContainerRuntimePort`](crate::application::ports::outbound::ContainerRuntimePort).
 #[derive(Debug, Clone)]
-pub struct ContainerConfig {
+pub struct ContainerConfigResponse {
     image: String,
     platform: Option<String>,
     env: HashMap<String, String>,
@@ -15,10 +15,10 @@ pub struct ContainerConfig {
     entrypoint: Option<Vec<String>>,
     network: Option<String>,
     name: Option<String>,
-    runner_context: RunnerContext,
+    runner_context: RunnerContextResponse,
 }
 
-impl ContainerConfig {
+impl ContainerConfigResponse {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         image: impl Into<String>,
@@ -30,7 +30,7 @@ impl ContainerConfig {
         entrypoint: Option<Vec<String>>,
         network: Option<String>,
         name: Option<String>,
-        runner_context: RunnerContext,
+        runner_context: RunnerContextResponse,
     ) -> Self {
         Self {
             image: image.into(),
@@ -82,7 +82,7 @@ impl ContainerConfig {
         self.name.as_deref()
     }
 
-    pub fn runner_context(&self) -> &RunnerContext {
+    pub fn runner_context(&self) -> &RunnerContextResponse {
         &self.runner_context
     }
 }

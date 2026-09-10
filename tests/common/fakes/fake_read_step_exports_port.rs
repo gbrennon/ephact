@@ -3,7 +3,8 @@ use ephact::application::ports::outbound::read_step_exports_port::ReadStepExport
 use parking_lot::Mutex;
 use std::{collections::HashMap, sync::Arc};
 
-use ephact::application::dtos::{ReadStepExportsRequest, StepExports};
+use ephact::application::dtos::requests::ReadStepExportsRequest;
+use ephact::application::dtos::responses::StepExportsResponse;
 
 type QueuedStepExports = (Vec<String>, HashMap<String, String>);
 
@@ -32,13 +33,13 @@ impl FakeReadStepExportsPort {
 }
 
 impl ReadStepExportsPort for FakeReadStepExportsPort {
-    fn execute(&self, _request: ReadStepExportsRequest<'_>) -> StepExports {
+    fn execute(&self, _request: ReadStepExportsRequest<'_>) -> StepExportsResponse {
         *self.calls.lock() += 1;
         let mut queued = self.queued.lock();
         if queued.is_empty() {
-            return StepExports::new(Vec::new(), HashMap::new());
+            return StepExportsResponse::new(Vec::new(), HashMap::new());
         }
         let (path_additions, env) = queued.remove(0);
-        StepExports::new(path_additions, env)
+        StepExportsResponse::new(path_additions, env)
     }
 }

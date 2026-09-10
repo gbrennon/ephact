@@ -1,9 +1,9 @@
 use std::error::Error;
 
-use crate::application::{
-    dtos::{ListActionsRequest, ListActionsResponse},
-    ports::{inbound::list_actions_port::ListActionsPort, outbound::WorkflowSourcePort},
-};
+use crate::application::dtos::requests::ListActionsRequest;
+use crate::application::dtos::responses::ListActionsResponse;
+use crate::application::ports::inbound::list_actions_port::ListActionsPort;
+use crate::application::ports::outbound::WorkflowSourcePort;
 
 /// Application service implementing the `ListActionsPort` entrypoint.
 ///

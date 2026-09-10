@@ -2,12 +2,10 @@
 mod tests {
     use std::error::Error;
 
-    use ephact::{
-        application::{
-            dtos::ShowProjectBrandingInfoResponse, ports::inbound::ShowProjectBrandingInfoPort,
-        },
-        presentation::{cli::Cli, components::terminal::Terminal},
-    };
+    use ephact::application::dtos::responses::ShowProjectBrandingInfoResponse;
+    use ephact::application::ports::inbound::ShowProjectBrandingInfoPort;
+    use ephact::presentation::cli::Cli;
+    use ephact::presentation::components::terminal::Terminal;
 
     use crate::common::fakes::{
         fake_list_actions_port::FakeListActionsPort,

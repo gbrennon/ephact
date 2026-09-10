@@ -1,25 +1,25 @@
-use super::workflow_list_item::WorkflowListItem;
+use super::WorkflowListItemResponse;
 
 /// Result of listing the workflow files of a repository.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ListWorkflowsResponse {
     /// Workflows found in the repository, in discovery order.
-    workflows: Vec<WorkflowListItem>,
+    workflows: Vec<WorkflowListItemResponse>,
 }
 
 impl ListWorkflowsResponse {
     /// Creates a response carrying the discovered workflows.
-    pub fn new(workflows: Vec<WorkflowListItem>) -> Self {
+    pub fn new(workflows: Vec<WorkflowListItemResponse>) -> Self {
         Self { workflows }
     }
 
     /// Workflows found in the repository, in discovery order.
-    pub fn workflows(&self) -> &[WorkflowListItem] {
+    pub fn workflows(&self) -> &[WorkflowListItemResponse] {
         &self.workflows
     }
 
     /// Consumes the response and returns the workflows.
-    pub fn into_workflows(self) -> Vec<WorkflowListItem> {
+    pub fn into_workflows(self) -> Vec<WorkflowListItemResponse> {
         self.workflows
     }
 }
@@ -36,7 +36,7 @@ mod tests {
 
     #[test]
     fn new_response_keeps_the_given_workflows() {
-        let response = ListWorkflowsResponse::new(vec![WorkflowListItem::new(
+        let response = ListWorkflowsResponse::new(vec![WorkflowListItemResponse::new(
             None,
             Some("ci.yml".into()),
             vec![],
@@ -44,7 +44,11 @@ mod tests {
 
         assert_eq!(
             response.workflows(),
-            &[WorkflowListItem::new(None, Some("ci.yml".into()), vec![])]
+            &[WorkflowListItemResponse::new(
+                None,
+                Some("ci.yml".into()),
+                vec![]
+            )]
         );
     }
 }

@@ -1,12 +1,12 @@
 /// Result of a container exec command.
 #[derive(Debug, Clone)]
-pub struct ExecResult {
+pub struct ExecResultResponse {
     exit_code: i64,
     stdout: String,
     stderr: String,
 }
 
-impl ExecResult {
+impl ExecResultResponse {
     pub fn new(exit_code: i64, stdout: impl Into<String>, stderr: impl Into<String>) -> Self {
         Self {
             exit_code,

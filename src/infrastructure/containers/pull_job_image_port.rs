@@ -1,4 +1,4 @@
-use crate::application::dtos::PullJobImageRequest;
+use crate::application::dtos::requests::PullJobImageRequest;
 
 /// Inbound port for pulling the image a job runs in.
 pub trait PullJobImagePort: Send + Sync {

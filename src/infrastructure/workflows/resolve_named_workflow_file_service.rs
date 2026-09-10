@@ -2,7 +2,7 @@ use super::resolve_named_workflow_file_port::ResolveNamedWorkflowFilePort;
 use std::{error::Error, path::PathBuf};
 
 use super::workflow_directories::WORKFLOW_DIRECTORIES;
-use crate::application::dtos::ResolveNamedWorkflowFileRequest;
+use crate::application::dtos::requests::ResolveNamedWorkflowFileRequest;
 
 /// Service that resolves the file of a workflow the caller named.
 ///

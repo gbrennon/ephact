@@ -2,15 +2,16 @@ use std::path::PathBuf;
 
 use clap::Args;
 
-use crate::{
-    application::dtos::WorkflowInputSource,
-    domain::{
-        ActRunConfig, Repository,
-        value_objects::{
-            ActEvent, ActInput, ActJob, ActWorkflow, RepoPath, RepositoryName, Secret,
-        },
-    },
-};
+use crate::application::dtos::responses::WorkflowInputSourceResponse;
+use crate::domain::ActRunConfig;
+use crate::domain::Repository;
+use crate::domain::value_objects::ActEvent;
+use crate::domain::value_objects::ActInput;
+use crate::domain::value_objects::ActJob;
+use crate::domain::value_objects::ActWorkflow;
+use crate::domain::value_objects::RepoPath;
+use crate::domain::value_objects::RepositoryName;
+use crate::domain::value_objects::Secret;
 
 /// CLI arguments for the `run` subcommand.
 ///
@@ -164,12 +165,12 @@ impl RunArgs {
             .ok_or_else(|| format!("expected KEY=VALUE, got '{}'", s))
     }
 
-    pub fn parse_input_source(s: &str) -> Result<(String, WorkflowInputSource), String> {
+    pub fn parse_input_source(s: &str) -> Result<(String, WorkflowInputSourceResponse), String> {
         let (key, value) = Self::parse_key_value(s)?;
         let source = value
             .strip_prefix("env:")
-            .map(WorkflowInputSource::environment_variable)
-            .unwrap_or_else(|| WorkflowInputSource::literal(value));
+            .map(WorkflowInputSourceResponse::environment_variable)
+            .unwrap_or_else(|| WorkflowInputSourceResponse::literal(value));
         Ok((key, source))
     }
 

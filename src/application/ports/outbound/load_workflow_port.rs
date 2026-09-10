@@ -1,4 +1,5 @@
-use crate::{application::dtos::LoadWorkflowRequest, domain::aggregates::Workflow};
+use crate::application::dtos::requests::LoadWorkflowRequest;
+use crate::domain::aggregates::Workflow;
 
 pub trait LoadWorkflowPort: Send + Sync {
     fn execute(

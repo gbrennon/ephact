@@ -8,7 +8,7 @@ use std::{
     },
 };
 
-use ephact::application::dtos::ReadStepEnvExportsRequest;
+use ephact::application::dtos::requests::ReadStepEnvExportsRequest;
 
 /// Returns prepared environment exports, recording that it was consulted.
 #[derive(Clone)]

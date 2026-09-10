@@ -1,13 +1,14 @@
-use crate::{application::dtos::ExecuteActionResponse, domain::entities::Step};
+use crate::application::dtos::responses::ExecuteActionResponse;
+use crate::domain::entities::Step;
 
 /// Outcome of executing one step, with the step its expressions resolved to.
 #[derive(Debug)]
-pub struct ExecutedStep {
+pub struct ExecutedStepResponse {
     step: Step,
     response: ExecuteActionResponse,
 }
 
-impl ExecutedStep {
+impl ExecutedStepResponse {
     pub fn new(step: Step, response: ExecuteActionResponse) -> Self {
         Self { step, response }
     }

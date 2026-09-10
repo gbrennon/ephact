@@ -1,12 +1,10 @@
 use std::collections::HashMap;
 
-use ephact::{
-    application::{
-        dtos::{ExecResult, FileEntry, RunnerContext},
-        ports::outbound::container_port::ContainerPort,
-    },
-    domain::errors::ContainerError,
-};
+use ephact::application::dtos::responses::ExecResultResponse;
+use ephact::application::dtos::responses::FileEntryResponse;
+use ephact::application::dtos::responses::RunnerContextResponse;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::errors::ContainerError;
 
 use crate::support::container_activity::ContainerActivity;
 
@@ -28,17 +26,21 @@ impl ContainerPort for FailingContainer {
         cmd: &[String],
         _workdir: Option<&str>,
         env: &HashMap<String, String>,
-    ) -> Result<ExecResult, ContainerError> {
+    ) -> Result<ExecResultResponse, ContainerError> {
         self.activity.record_command(cmd, env);
-        Ok(ExecResult::new(1, String::new(), String::new()))
+        Ok(ExecResultResponse::new(1, String::new(), String::new()))
     }
 
-    fn copy_to(&self, container_path: &str, _entries: &[FileEntry]) -> Result<(), ContainerError> {
+    fn copy_to(
+        &self,
+        container_path: &str,
+        _entries: &[FileEntryResponse],
+    ) -> Result<(), ContainerError> {
         self.activity.record_copy(container_path);
         Ok(())
     }
 
-    fn copy_from(&self, _container_path: &str) -> Result<Vec<FileEntry>, ContainerError> {
+    fn copy_from(&self, _container_path: &str) -> Result<Vec<FileEntryResponse>, ContainerError> {
         Ok(Vec::new())
     }
 
@@ -46,7 +48,7 @@ impl ContainerPort for FailingContainer {
         Ok(())
     }
 
-    fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> {
-        Ok(RunnerContext::default())
+    fn get_runner_context(&self) -> Result<RunnerContextResponse, ContainerError> {
+        Ok(RunnerContextResponse::default())
     }
 }

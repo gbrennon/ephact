@@ -1,7 +1,6 @@
-use crate::{
-    application::dtos::{RunNodeActionRequest, RunNodeActionResponse},
-    domain::errors::StepError,
-};
+use crate::application::dtos::requests::RunNodeActionRequest;
+use crate::application::dtos::responses::RunNodeActionResponse;
+use crate::domain::errors::StepError;
 
 /// Inbound port for running a JavaScript action inside the job's container.
 pub trait RunNodeActionPort: Send + Sync {

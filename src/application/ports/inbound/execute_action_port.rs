@@ -1,7 +1,6 @@
-use crate::{
-    application::dtos::{ExecuteActionRequest, ExecuteActionResponse},
-    domain::errors::StepError,
-};
+use crate::application::dtos::requests::ExecuteActionRequest;
+use crate::application::dtos::responses::ExecuteActionResponse;
+use crate::domain::errors::StepError;
 
 /// Inbound port for executing a single action referenced by a workflow step.
 ///
