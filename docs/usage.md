@@ -33,7 +33,7 @@ or a worktree file.
 | `--secret`               | `<KEY[=VALUE]>` | Inject a secret as `${{ secrets.KEY }}`. If `=VALUE` is omitted, reads the value from the host environment (repeatable)                       | None                           |
 | `--all-workflows`        | None            | Run every discovered workflow declaring `pull_request`; the default without `--workflow`; wins and ignores the name if both options are given | Active if `--workflow` omitted |
 | `--preserve`             | None            | Accepted by the parser but currently has no effect                                                                                            | No effect                      |
-| `--verbose`              | None            | Show real-time step details (running steps and their output) in addition to the final status of each step                                     | Terse summary                  |
+| `--verbose`              | None            | Show workflow and job lifecycle details, live step output, and failure diagnostics in addition to step start/finish status                     | Step start/finish status       |
 | `--allow-real-container` | None            | Accepted but currently has no effect; a real Docker or Podman runtime is always auto-detected and used                                        | No effect                      |
 | `--allow-real-fetcher`   | None            | Accepted but currently has no effect; uncached remote actions are fetched from their forge by default                                         | No effect                      |
 | `--allow-network`        | None            | Accepted but currently has no effect; containers use the runtime's default network behavior                                                   | No effect                      |
@@ -111,10 +111,9 @@ List workflows in an external repository:
 ephact list-workflows /path/to/repo
 ```
 
-## Listing Actions (`ephact list-actions`)
-
-Parses workflow files and outputs all unique actions referenced across job
-steps.
+Parses workflow files and outputs the final action names derived from the
+references used across job steps. Different references with the same final
+component may therefore produce the same displayed name.
 
 ### Syntax
 

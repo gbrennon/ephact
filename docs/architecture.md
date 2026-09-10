@@ -33,11 +33,11 @@ boundary ports, and do not reverse the inward dependency rule.
 
 ## Orchestration
 
-The application layer owns orchestration. It prepares run context, asks the
-domain to make workflow decisions, and coordinates execution at workflow, job,
-step, and action boundaries. Each stage works with domain or application data
-and requests external effects through outbound ports rather than concrete
-adapters.
+The application layer owns orchestration. It coordinates workflow, job, step,
+and action execution, asks the domain to make workflow decisions, and requests
+external effects through outbound ports. Infrastructure adapters prepare
+infrastructure-specific run context and implement those ports without exposing
+external-system details to the application or domain.
 
 Not every part of a use case must pass through a single dispatch mechanism.
 Top-level orchestration can perform discovery and configuration before handing
