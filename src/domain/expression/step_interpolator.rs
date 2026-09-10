@@ -156,7 +156,7 @@ mod tests {
 
         let interpolated = StepInterpolator::interpolate(&step, &EvalContext::new()).unwrap();
 
-        assert_eq!(interpolated.r#if().as_deref(), Some("${{ success() }}"));
+        assert_eq!(interpolated.r#if(), Some("${{ success() }}"));
     }
 
     #[test]

@@ -116,5 +116,5 @@ fn execute_exposes_the_actions_inputs_to_its_steps() {
         ))
         .unwrap();
 
-    assert_eq!(runner.steps()[0].run().as_deref(), Some("deploy staging"));
+    assert_eq!(runner.steps()[0].run(), Some("deploy staging"));
 }
