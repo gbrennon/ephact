@@ -15,6 +15,16 @@ pub struct AppContainer {
     list_workflows_port: Box<dyn ListWorkflowsPort>,
     list_actions_port: Box<dyn ListActionsPort>,
 }
+/// The ports assembled by the application container.
+pub type AppContainerParts = (
+    Box<dyn ShowProjectBrandingInfoPort>,
+    Box<dyn RunAllWorkflowsPort>,
+    Box<dyn RunWorkflowPort>,
+    Box<dyn RunActionPort>,
+    Box<dyn DiscoverRunInputsPort>,
+    Box<dyn ListWorkflowsPort>,
+    Box<dyn ListActionsPort>,
+);
 struct EmptyRunInputDiscovery;
 
 impl DiscoverRunInputsPort for EmptyRunInputDiscovery {
@@ -67,17 +77,7 @@ impl AppContainer {
         }
     }
 
-    pub fn into_parts(
-        self,
-    ) -> (
-        Box<dyn ShowProjectBrandingInfoPort>,
-        Box<dyn RunAllWorkflowsPort>,
-        Box<dyn RunWorkflowPort>,
-        Box<dyn RunActionPort>,
-        Box<dyn DiscoverRunInputsPort>,
-        Box<dyn ListWorkflowsPort>,
-        Box<dyn ListActionsPort>,
-    ) {
+    pub fn into_parts(self) -> AppContainerParts {
         (
             self.show_project_branding_info_port,
             self.run_all_workflows_port,

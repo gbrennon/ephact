@@ -11,6 +11,12 @@ use crate::domain::workflow::Step;
 /// (`if`, `continue-on-error`, `timeout-minutes`) are left as authored because
 /// they are evaluated as expressions in their own right.
 pub struct StepInterpolator;
+type InterpolatedCoreFields = (Option<String>, Option<String>, Option<String>);
+type InterpolatedActionFields = (
+    Option<String>,
+    HashMap<String, String>,
+    HashMap<String, String>,
+);
 
 impl StepInterpolator {
     /// Interpolates `step` against `context`.
@@ -40,7 +46,7 @@ impl StepInterpolator {
     fn interpolate_core_fields(
         step: &Step,
         context: &EvalContext,
-    ) -> Result<(Option<String>, Option<String>, Option<String>), EvalError> {
+    ) -> Result<InterpolatedCoreFields, EvalError> {
         let name = Self::interpolate_field(step.name(), context)?;
         let run = Self::interpolate_field(step.run(), context)?;
         let working_directory = Self::interpolate_field(step.working_directory(), context)?;
@@ -50,14 +56,7 @@ impl StepInterpolator {
     fn interpolate_action_fields(
         step: &Step,
         context: &EvalContext,
-    ) -> Result<
-        (
-            Option<String>,
-            HashMap<String, String>,
-            HashMap<String, String>,
-        ),
-        EvalError,
-    > {
+    ) -> Result<InterpolatedActionFields, EvalError> {
         let uses = Self::interpolate_field(step.uses(), context)?;
         let with = Self::interpolate_map(step.with(), context)?;
         let env = Self::interpolate_map(step.env(), context)?;
