@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, path::Path, sync::Arc};
+    use std::{collections::HashMap, path::Path};
 
     use ephact::application::dtos::requests::ExecuteJobRequest;
     use ephact::application::ports::inbound::execute_job_port::ExecuteJobPort;
@@ -47,8 +47,8 @@ mod tests {
             Box::new(BuildStepContextService::new()),
             Box::new(SummarizeStepService::new()),
             Box::new(exports),
-            Arc::new(command_bus),
-            Arc::new(event_bus),
+            Box::new(command_bus),
+            Box::new(event_bus),
         )
     }
 
@@ -266,7 +266,7 @@ mod tests {
         .unwrap();
 
         let events = event_bus.events();
-        let ephact::domain::events::DomainEvent::StepStarted(payload) = &events[0] else {
+        let ephact::domain::messages::events::DomainEvent::StepStarted(payload) = &events[0] else {
             panic!("the first event should announce the step start");
         };
 
