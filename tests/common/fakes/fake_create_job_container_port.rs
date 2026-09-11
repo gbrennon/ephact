@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use parking_lot::Mutex;
-use std::sync::Arc;
+use std::{error::Error, sync::Arc};
 
 use super::stub_container::StubContainer;
 use ephact::application::dtos::requests::CreateJobContainerRequest;
@@ -40,7 +40,7 @@ impl CreateJobContainerPort for FakeCreateJobContainerPort {
     fn execute(
         &self,
         request: CreateJobContainerRequest<'_>,
-    ) -> Result<Arc<dyn ContainerPort>, Box<dyn std::error::Error>> {
+    ) -> Result<Box<dyn ContainerPort>, Box<dyn Error>> {
         self.images.lock().push(request.image().to_string());
         self.container_names
             .lock()
@@ -48,6 +48,6 @@ impl CreateJobContainerPort for FakeCreateJobContainerPort {
         self.legacy_container_names
             .lock()
             .push(request.legacy_container_name().to_string());
-        Ok(Arc::new(StubContainer))
+        Ok(Box::new(StubContainer))
     }
 }

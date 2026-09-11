@@ -1,11 +1,9 @@
 #![allow(dead_code)]
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, path::PathBuf};
 
 use ephact::application::dtos::requests::ExecuteActionRequest;
 use ephact::application::ports::outbound::container_port::ContainerPort;
 use ephact::domain::value_objects::EvaluationContext;
-
-use crate::common::fakes::stub_container::StubContainer;
 use ephact::infrastructure::workflows::yaml::StepYaml;
 
 /// Builds action execution requests for tests that only care about which
@@ -13,8 +11,10 @@ use ephact::infrastructure::workflows::yaml::StepYaml;
 pub struct ActionRequestFixture;
 
 impl ActionRequestFixture {
-    pub fn for_action(action_ref: &str) -> ExecuteActionRequest {
-        let container: Arc<dyn ContainerPort> = Arc::new(StubContainer);
+    pub fn for_action<'a>(
+        action_ref: &str,
+        container: &'a dyn ContainerPort,
+    ) -> ExecuteActionRequest<'a> {
         ExecuteActionRequest::new(
             action_ref,
             serde_yaml::from_str::<StepYaml>(&format!("uses: {action_ref}\n"))

@@ -1,32 +1,30 @@
 #![allow(dead_code)]
-use std::{
-    error::Error,
-    sync::{Arc, OnceLock},
-};
+use std::sync::{Arc, OnceLock};
 
-use ephact::application::commands::{
-    ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
+use ephact::{
+    application::{
+        dtos::{requests::ExecuteActionRequest, responses::ExecuteActionResponse},
+        ports::{
+            inbound::ExecuteActionPort,
+            outbound::{command_bus_port::CommandBusPort, container_port::ContainerPort},
+        },
+    },
+    domain::{errors::StepError, messages::commands::ExecuteActionCommand},
 };
-use ephact::application::dtos::requests::ExecuteActionRequest;
-use ephact::application::dtos::responses::ExecuteActionResponse;
-use ephact::application::dtos::responses::ExecutedStepResponse;
-use ephact::application::dtos::responses::JobExecutionResponse;
-use ephact::application::dtos::responses::WorkflowExecutionResponse;
-use ephact::application::ports::inbound::ExecuteActionPort;
-use ephact::application::ports::outbound::CommandBusPort;
-use ephact::domain::errors::StepError;
 
 /// Routes dispatched action commands to a bound action executor, so a
 /// composite action nesting another action exercises the real recursion the
-/// command bus provides in production. Every other command is rejected.
-#[derive(Default)]
+/// command bus provides in production.
+#[derive(Clone, Default)]
 pub struct FakeActionRoutingCommandBus {
-    executor: OnceLock<Arc<dyn ExecuteActionPort>>,
+    executor: Arc<OnceLock<Arc<dyn ExecuteActionPort>>>,
 }
 
 impl FakeActionRoutingCommandBus {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            executor: Arc::new(OnceLock::new()),
+        }
     }
 
     pub fn bind(&self, executor: Arc<dyn ExecuteActionPort>) {
@@ -37,40 +35,23 @@ impl FakeActionRoutingCommandBus {
     }
 }
 
-impl CommandBusPort for FakeActionRoutingCommandBus {
-    fn dispatch_workflow(
-        &self,
-        _cmd: ExecuteWorkflowCommand,
-    ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
-        Err("workflow commands are not routed by this fake".into())
-    }
+impl<'a> CommandBusPort<ExecuteActionCommand<'a, dyn ContainerPort>>
+    for FakeActionRoutingCommandBus
+{
+    type Response = ExecuteActionResponse;
+    type Error = StepError;
 
-    fn dispatch_job(
+    fn dispatch(
         &self,
-        _cmd: ExecuteJobCommand,
-    ) -> Result<JobExecutionResponse, Box<dyn Error>> {
-        Err("job commands are not routed by this fake".into())
-    }
-
-    fn dispatch_step(&self, _cmd: ExecuteStepCommand) -> Result<ExecutedStepResponse, StepError> {
-        Err(StepError::new("step commands are not routed by this fake"))
-    }
-
-    fn dispatch_action(
-        &self,
-        cmd: ExecuteActionCommand,
-    ) -> Result<ExecuteActionResponse, StepError> {
+        cmd: ExecuteActionCommand<'a, dyn ContainerPort>,
+    ) -> Result<Self::Response, Self::Error> {
         let executor = self
             .executor
             .get()
             .ok_or_else(|| StepError::new("no action executor bound"))?;
+        let (action_ref, step, repo_path, env, context, container) = cmd.into_parts();
         executor.execute(ExecuteActionRequest::new(
-            cmd.action_ref().to_owned(),
-            cmd.step().clone(),
-            cmd.repo_path().to_path_buf(),
-            cmd.env().clone(),
-            cmd.context().clone(),
-            cmd.container().clone(),
+            action_ref, step, repo_path, env, context, container,
         ))
     }
 }
