@@ -6,12 +6,9 @@ use crate::domain::entities::Step;
 /// Everything needed to run the steps of a composite action.
 pub struct RunCompositeActionRequest<'a> {
     steps: &'a [Step],
-
     inputs: &'a HashMap<String, String>,
-
     action_dir: &'a Path,
-
-    action_request: &'a ExecuteActionRequest,
+    action_request: &'a ExecuteActionRequest<'a>,
 }
 
 impl<'a> RunCompositeActionRequest<'a> {
@@ -19,7 +16,7 @@ impl<'a> RunCompositeActionRequest<'a> {
         steps: &'a [Step],
         inputs: &'a HashMap<String, String>,
         action_dir: &'a Path,
-        action_request: &'a ExecuteActionRequest,
+        action_request: &'a ExecuteActionRequest<'a>,
     ) -> Self {
         Self {
             steps,
@@ -41,7 +38,7 @@ impl<'a> RunCompositeActionRequest<'a> {
         self.action_dir
     }
 
-    pub fn action_request(&self) -> &'a ExecuteActionRequest {
+    pub fn action_request(&self) -> &'a ExecuteActionRequest<'a> {
         self.action_request
     }
 }

@@ -1,8 +1,10 @@
 use std::io::Write;
 
 use crate::{
-    application::ports::outbound::DomainEventHandler,
-    domain::events::{DomainEvent, JobStartedPayload, StepFinishedPayload, StepOutputPayload},
+    domain::messages::events::{
+        DomainEvent, JobStartedPayload, StepFinishedPayload, StepOutputPayload,
+    },
+    infrastructure::messaging::DomainEventHandler,
 };
 /// Presentation handler that renders workflow run progress to the terminal.
 ///
@@ -121,7 +123,7 @@ impl DomainEventHandler for RunProgressHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::events::{
+    use crate::domain::messages::events::{
         JobFinishedPayload, JobStartedPayload, OutputStream, StepFinishedPayload,
         StepOutputPayload, StepStartedPayload, WorkflowStartedPayload,
     };

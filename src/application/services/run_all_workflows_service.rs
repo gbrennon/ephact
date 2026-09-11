@@ -1,19 +1,19 @@
-use std::{error::Error, sync::Arc, time::Instant};
+use std::{error::Error, time::Instant};
 
-use crate::application::commands::ExecuteWorkflowCommand;
 use crate::application::dtos::requests::RunAllWorkflowsRequest;
 use crate::application::dtos::responses::JobSummaryResponse;
 use crate::application::dtos::responses::RunSummaryResponse;
 use crate::application::dtos::responses::WorkflowExecutionResponse;
 use crate::application::ports::inbound::run_all_workflows_port::RunAllWorkflowsPort;
-use crate::application::ports::outbound::CommandBusPort;
 use crate::application::ports::outbound::DetectWorkflowTriggerPort;
-use crate::application::ports::outbound::EventBusPort;
 use crate::application::ports::outbound::WorkflowSourcePort;
+use crate::application::ports::outbound::command_bus_port::WorkflowCommandBusPort;
+use crate::application::ports::outbound::event_bus_port::DomainEventBusPort;
 use crate::application::services::pull_request_workflow::PULL_REQUEST_EVENT_NAME;
 use crate::application::services::pull_request_workflow::config_for_pull_request_event;
-use crate::domain::events::ActRunCompletedPayload;
-use crate::domain::events::DomainEvent;
+use crate::domain::messages::commands::ExecuteWorkflowCommand;
+use crate::domain::messages::events::ActRunCompletedPayload;
+use crate::domain::messages::events::DomainEvent;
 
 /// Name reported for the aggregate summary of a full multi-workflow run.
 pub const ALL_WORKFLOWS_SUMMARY_NAME: &str = "All Workflows";
@@ -26,17 +26,17 @@ pub const ALL_WORKFLOWS_SUMMARY_NAME: &str = "All Workflows";
 /// infrastructure handlers can clean up.
 pub struct RunAllWorkflowsService {
     workflow_source: Box<dyn WorkflowSourcePort>,
-    command_bus: Arc<dyn CommandBusPort>,
-    event_bus: Arc<dyn EventBusPort>,
-    trigger_detector: Arc<dyn DetectWorkflowTriggerPort>,
+    command_bus: Box<WorkflowCommandBusPort>,
+    event_bus: Box<DomainEventBusPort>,
+    trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
 }
 
 impl RunAllWorkflowsService {
     pub fn new(
         workflow_source: Box<dyn WorkflowSourcePort>,
-        command_bus: Arc<dyn CommandBusPort>,
-        event_bus: Arc<dyn EventBusPort>,
-        trigger_detector: Arc<dyn DetectWorkflowTriggerPort>,
+        command_bus: Box<WorkflowCommandBusPort>,
+        event_bus: Box<DomainEventBusPort>,
+        trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
     ) -> Self {
         Self {
             workflow_source,
@@ -82,12 +82,11 @@ impl RunAllWorkflowsService {
                     .triggers_on_event(content, PULL_REQUEST_EVENT_NAME)
             })
             .map(|content| {
-                self.command_bus
-                    .dispatch_workflow(ExecuteWorkflowCommand::new(
-                        content,
-                        config_for_pull_request_event(request.config().clone()),
-                        request.repository().clone(),
-                    ))
+                self.command_bus.dispatch(ExecuteWorkflowCommand::new(
+                    content,
+                    config_for_pull_request_event(request.config().clone()),
+                    request.repository().clone(),
+                ))
             })
             .collect()
     }

@@ -19,5 +19,8 @@ pub trait ExecuteActionPort: Send + Sync {
     ///
     /// Returns [`StepError`] when the reference cannot be resolved, the action
     /// definition cannot be read, or the container refuses to run it.
-    fn execute(&self, request: ExecuteActionRequest) -> Result<ExecuteActionResponse, StepError>;
+    fn execute(
+        &self,
+        request: ExecuteActionRequest<'_>,
+    ) -> Result<ExecuteActionResponse, StepError>;
 }

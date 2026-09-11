@@ -1,23 +1,28 @@
 use std::error::Error;
 
-use crate::application::commands::{
-    ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
+use crate::{
+    application::{
+        dtos::responses::{
+            ExecuteActionResponse, ExecutedStepResponse, JobExecutionResponse,
+            WorkflowExecutionResponse,
+        },
+        ports::outbound::{command_bus_port::CommandBusPort, container_port::ContainerPort},
+    },
+    domain::{
+        errors::StepError,
+        messages::commands::{
+            ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
+        },
+    },
+    infrastructure::{
+        actions::ActionCommandHandler, jobs::JobCommandHandler, steps::StepCommandHandler,
+        workflows::WorkflowCommandHandler,
+    },
 };
-use crate::application::dtos::responses::ExecuteActionResponse;
-use crate::application::dtos::responses::ExecutedStepResponse;
-use crate::application::dtos::responses::JobExecutionResponse;
-use crate::application::dtos::responses::WorkflowExecutionResponse;
-use crate::application::ports::outbound::CommandBusPort;
-use crate::domain::errors::StepError;
-use crate::infrastructure::actions::ActionCommandHandler;
-use crate::infrastructure::jobs::JobCommandHandler;
-use crate::infrastructure::steps::StepCommandHandler;
-use crate::infrastructure::workflows::WorkflowCommandHandler;
 
 /// In-memory implementation of the CommandBusPort.
 ///
-/// Routes commands (intentions of something to happen in the future)
-/// to their corresponding infrastructure command handlers.
+/// Routes commands to their corresponding infrastructure command handlers.
 pub struct InMemoryCommandBus {
     workflow_handler: Box<WorkflowCommandHandler>,
     job_handler: Box<JobCommandHandler>,
@@ -41,26 +46,44 @@ impl InMemoryCommandBus {
     }
 }
 
-impl CommandBusPort for InMemoryCommandBus {
-    fn dispatch_workflow(
+impl CommandBusPort<ExecuteWorkflowCommand> for InMemoryCommandBus {
+    type Response = WorkflowExecutionResponse;
+    type Error = Box<dyn Error>;
+
+    fn dispatch(&self, command: ExecuteWorkflowCommand) -> Result<Self::Response, Self::Error> {
+        self.workflow_handler.handle(command)
+    }
+}
+
+impl CommandBusPort<ExecuteJobCommand> for InMemoryCommandBus {
+    type Response = JobExecutionResponse;
+    type Error = Box<dyn Error>;
+
+    fn dispatch(&self, command: ExecuteJobCommand) -> Result<Self::Response, Self::Error> {
+        self.job_handler.handle(command)
+    }
+}
+
+impl<'a> CommandBusPort<ExecuteStepCommand<'a, dyn ContainerPort>> for InMemoryCommandBus {
+    type Response = ExecutedStepResponse;
+    type Error = StepError;
+
+    fn dispatch(
         &self,
-        cmd: ExecuteWorkflowCommand,
-    ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
-        self.workflow_handler.handle(cmd)
+        command: ExecuteStepCommand<'a, dyn ContainerPort>,
+    ) -> Result<Self::Response, Self::Error> {
+        self.step_handler.handle(command)
     }
+}
 
-    fn dispatch_job(&self, cmd: ExecuteJobCommand) -> Result<JobExecutionResponse, Box<dyn Error>> {
-        self.job_handler.handle(cmd)
-    }
+impl<'a> CommandBusPort<ExecuteActionCommand<'a, dyn ContainerPort>> for InMemoryCommandBus {
+    type Response = ExecuteActionResponse;
+    type Error = StepError;
 
-    fn dispatch_step(&self, cmd: ExecuteStepCommand) -> Result<ExecutedStepResponse, StepError> {
-        self.step_handler.handle(cmd)
-    }
-
-    fn dispatch_action(
+    fn dispatch(
         &self,
-        cmd: ExecuteActionCommand,
-    ) -> Result<ExecuteActionResponse, StepError> {
-        self.action_handler.handle(cmd)
+        command: ExecuteActionCommand<'a, dyn ContainerPort>,
+    ) -> Result<Self::Response, Self::Error> {
+        self.action_handler.handle(command)
     }
 }

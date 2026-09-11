@@ -1,10 +1,10 @@
 use crate::application::ports::inbound::execute_job_port::ExecuteJobPort;
 use std::error::Error;
 
-use crate::application::commands::ExecuteJobCommand;
 use crate::application::dtos::requests::ExecuteJobRequest;
 use crate::application::dtos::responses::JobExecutionResponse;
 use crate::domain::entities::JobRun;
+use crate::domain::messages::commands::ExecuteJobCommand;
 
 /// Infrastructure command handler that processes `ExecuteJobCommand`.
 pub struct JobCommandHandler {

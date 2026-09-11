@@ -23,7 +23,7 @@ impl CreateJobContainerPort for CreateJobContainerService {
     fn execute(
         &self,
         request: CreateJobContainerRequest<'_>,
-    ) -> Result<Arc<dyn ContainerPort>, Box<dyn Error>> {
+    ) -> Result<Box<dyn ContainerPort>, Box<dyn Error>> {
         let _ = self
             .runtime
             .remove_container(request.legacy_container_name());
@@ -46,10 +46,8 @@ impl CreateJobContainerPort for CreateJobContainerService {
             RunnerContextResponse::default(),
         );
 
-        Ok(Arc::from(
-            self.runtime
-                .create_container(&container_config)
-                .map_err(|e| format!("{:?}", e))?,
-        ))
+        self.runtime
+            .create_container(&container_config)
+            .map_err(|e| -> Box<dyn Error> { format!("{:?}", e).into() })
     }
 }

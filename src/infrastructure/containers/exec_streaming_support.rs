@@ -5,7 +5,7 @@ use futures_util::StreamExt;
 
 use crate::application::dtos::responses::ExecResultResponse;
 use crate::domain::errors::ContainerError;
-use crate::domain::events::OutputStream;
+use crate::domain::messages::events::OutputStream;
 use crate::infrastructure::containers::bollard_wrapper::Client;
 use crate::infrastructure::containers::bollard_wrapper::types::CreateExecOptions;
 use crate::infrastructure::containers::bollard_wrapper::types::LogOutput;

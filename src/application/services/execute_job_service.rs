@@ -1,6 +1,5 @@
-use std::{error::Error, sync::Arc, time::Instant};
+use std::{error::Error, time::Instant};
 
-use crate::application::commands::ExecuteStepCommand;
 use crate::application::dtos::requests::BuildJobEnvironmentRequest;
 use crate::application::dtos::requests::BuildStepContextRequest;
 use crate::application::dtos::requests::ExecuteJobRequest;
@@ -14,15 +13,16 @@ use crate::application::dtos::responses::StepSummaryResponse;
 use crate::application::ports::inbound::execute_job_port::ExecuteJobPort;
 use crate::application::ports::outbound::build_job_environment_port::BuildJobEnvironmentPort;
 use crate::application::ports::outbound::build_step_context_port::BuildStepContextPort;
-use crate::application::ports::outbound::command_bus_port::CommandBusPort;
-use crate::application::ports::outbound::event_bus_port::EventBusPort;
+use crate::application::ports::outbound::command_bus_port::StepCommandBusPort;
+use crate::application::ports::outbound::event_bus_port::DomainEventBusPort;
 use crate::application::ports::outbound::prefix_step_path_port::PrefixStepPathPort;
 use crate::application::ports::outbound::prepare_job_container_port::PrepareJobContainerPort;
 use crate::application::ports::outbound::read_step_exports_port::ReadStepExportsPort;
 use crate::application::ports::outbound::summarize_step_port::SummarizeStepPort;
-use crate::domain::events::DomainEvent;
-use crate::domain::events::StepFinishedPayload;
-use crate::domain::events::StepStartedPayload;
+use crate::domain::messages::commands::ExecuteStepCommand;
+use crate::domain::messages::events::DomainEvent;
+use crate::domain::messages::events::StepFinishedPayload;
+use crate::domain::messages::events::StepStartedPayload;
 
 /// Application service coordinating the execution of one job.
 ///
@@ -30,7 +30,7 @@ use crate::domain::events::StepStartedPayload;
 /// publishes one [`ExecuteStepCommand`] per step: the step command handler
 /// runs each step, so this service never depends on the step entrypoint.
 /// Progress facts for every step are announced as domain events on the
-/// outbound [`EventBusPort`].
+/// outbound [`DomainEventBusPort`].
 pub struct ExecuteJobService {
     job_environment_builder: Box<dyn BuildJobEnvironmentPort>,
     container_preparer: Box<dyn PrepareJobContainerPort>,
@@ -38,8 +38,8 @@ pub struct ExecuteJobService {
     step_context_builder: Box<dyn BuildStepContextPort>,
     step_summarizer: Box<dyn SummarizeStepPort>,
     step_exports_reader: Box<dyn ReadStepExportsPort>,
-    command_bus: Arc<dyn CommandBusPort>,
-    event_bus: Arc<dyn EventBusPort>,
+    command_bus: Box<StepCommandBusPort>,
+    event_bus: Box<DomainEventBusPort>,
 }
 
 impl ExecuteJobService {
@@ -51,8 +51,8 @@ impl ExecuteJobService {
         step_context_builder: Box<dyn BuildStepContextPort>,
         step_summarizer: Box<dyn SummarizeStepPort>,
         step_exports_reader: Box<dyn ReadStepExportsPort>,
-        command_bus: Arc<dyn CommandBusPort>,
-        event_bus: Arc<dyn EventBusPort>,
+        command_bus: Box<StepCommandBusPort>,
+        event_bus: Box<DomainEventBusPort>,
     ) -> Self {
         Self {
             job_environment_builder,
@@ -103,11 +103,11 @@ impl ExecuteJobPort for ExecuteJobService {
                 .execute(BuildStepContextRequest::new(request.context(), &step_env));
 
             self.announce_step_started(&request, step);
-            let outcome = self.command_bus.dispatch_step(ExecuteStepCommand::new(
+            let outcome = self.command_bus.dispatch(ExecuteStepCommand::new(
                 step.clone(),
                 step_env.clone(),
                 step_context,
-                prepared.container().clone(),
+                prepared.container(),
                 request.repo_path().to_path_buf(),
             ));
 
@@ -122,7 +122,7 @@ impl ExecuteJobPort for ExecuteJobService {
 
             let exports = self
                 .step_exports_reader
-                .execute(ReadStepExportsRequest::new(prepared.container().as_ref()));
+                .execute(ReadStepExportsRequest::new(prepared.container()));
             let (path_additions, env) = exports.into_parts();
             extra_path.extend(path_additions);
             step_env.extend(env);

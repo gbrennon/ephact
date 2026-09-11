@@ -5,7 +5,6 @@ pub mod container_port;
 pub mod container_runtime_port;
 pub mod detect_workflow_trigger_port;
 pub mod discover_run_inputs_port;
-pub mod domain_event_handler;
 pub mod event_bus_port;
 pub mod load_action_definition_port;
 pub mod load_workflow_port;
@@ -20,16 +19,18 @@ pub mod run_node_action_port;
 pub mod run_shell_step_port;
 pub mod summarize_step_port;
 pub mod workflow_source_port;
-pub use discover_run_inputs_port::DiscoverRunInputsPort;
 
 pub use build_job_environment_port::BuildJobEnvironmentPort;
 pub use build_step_context_port::BuildStepContextPort;
-pub use command_bus_port::CommandBusPort;
+pub use command_bus_port::{
+    ActionCommandBusPort, CommandBusPort, JobCommandBusPort, StepCommandBusPort,
+    WorkflowCommandBusPort,
+};
 pub use container_port::ContainerPort;
 pub use container_runtime_port::ContainerRuntimePort;
 pub use detect_workflow_trigger_port::DetectWorkflowTriggerPort;
-pub use domain_event_handler::DomainEventHandler;
-pub use event_bus_port::EventBusPort;
+pub use discover_run_inputs_port::DiscoverRunInputsPort;
+pub use event_bus_port::{DomainEventBusPort, EventBusPort};
 pub use load_action_definition_port::LoadActionDefinitionPort;
 pub use load_workflow_port::LoadWorkflowPort;
 pub use prefix_step_path_port::PrefixStepPathPort;

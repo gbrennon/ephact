@@ -10,7 +10,7 @@ use crate::application::dtos::responses::FileEntryResponse;
 use crate::application::dtos::responses::RunnerContextResponse;
 use crate::application::ports::outbound::container_port::ContainerPort;
 use crate::domain::errors::ContainerError;
-use crate::domain::events::OutputStream;
+use crate::domain::messages::events::OutputStream;
 
 /// A running Podman container, created by [`PodmanRuntime`].
 pub(super) struct PodmanContainer {

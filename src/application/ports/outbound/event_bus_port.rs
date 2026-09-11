@@ -1,10 +1,11 @@
-use crate::domain::events::DomainEvent;
+use crate::domain::messages::events::{DomainEvent, Event};
 
-/// Outbound port representing the event bus.
+/// Outbound port representing a generic event bus.
 ///
-/// Publishes domain events (representing facts of something that happened in the past)
-/// to be handled by interested event handlers/subscribers in the infrastructure layer.
-pub trait EventBusPort: Send + Sync {
-    /// Publishes a domain event.
-    fn publish(&self, event: DomainEvent);
+/// Publishes domain events to interested subscribers.
+pub trait EventBusPort<E: Event>: Send + Sync {
+    /// Publishes an event.
+    fn publish(&self, event: E);
 }
+
+pub type DomainEventBusPort = dyn EventBusPort<DomainEvent>;

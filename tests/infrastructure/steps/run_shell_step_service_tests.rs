@@ -1,7 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
     use ephact::{
         application::ports::outbound::run_shell_step_port::RunShellStepPort,
         infrastructure::steps::run_shell_step_service::RunShellStepService,
@@ -55,7 +53,7 @@ mod tests {
         let container = container(&runtime);
         let step = step_from("run: echo hi\n");
 
-        let result = RunShellStepService::new(Arc::new(FakeEventBus::new()))
+        let result = RunShellStepService::new(Box::new(FakeEventBus::new()))
             .execute(RunShellStepRequest::new(
                 &step,
                 container.as_ref(),
@@ -76,7 +74,7 @@ mod tests {
         let mut env = HashMap::new();
         env.insert("MODE".to_string(), "job".to_string());
 
-        RunShellStepService::new(Arc::new(FakeEventBus::new()))
+        RunShellStepService::new(Box::new(FakeEventBus::new()))
             .execute(RunShellStepRequest::new(&step, container.as_ref(), &env))
             .unwrap();
 
@@ -93,7 +91,7 @@ mod tests {
         let container = container(&runtime);
         let step = step_from("name: nothing to run\n");
 
-        let error = RunShellStepService::new(Arc::new(FakeEventBus::new()))
+        let error = RunShellStepService::new(Box::new(FakeEventBus::new()))
             .execute(RunShellStepRequest::new(
                 &step,
                 container.as_ref(),
@@ -109,14 +107,10 @@ mod tests {
         let step = step_from("run: echo hi\n");
         let container = StubFailingContainer;
 
-        let error = RunShellStepService::new(Arc::new(FakeEventBus::new()))
+        let error = RunShellStepService::new(Box::new(FakeEventBus::new()))
             .execute(RunShellStepRequest::new(&step, &container, &HashMap::new()))
             .unwrap_err();
 
-        assert!(
-            error.message().contains("exec refused"),
-            "{}",
-            error.message()
-        );
+        assert!(error.message().contains("exec refused"));
     }
 }
