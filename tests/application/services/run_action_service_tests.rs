@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, path::PathBuf, sync::Arc};
+    use std::{collections::HashMap, path::PathBuf};
 
     use ephact::application::dtos::requests::RunActionRequest;
     use ephact::application::dtos::responses::ExecuteActionResponse;
@@ -13,14 +13,17 @@ mod tests {
 
     #[test]
     fn execute_delegates_action_execution_to_command_bus() {
-        let command_bus = Arc::new(FakeCommandBus::new().with_action_result(
-            ExecuteActionResponse::new(0, "action executed".to_string(), String::new()),
+        let command_bus = FakeCommandBus::new().with_action_result(ExecuteActionResponse::new(
+            0,
+            "action executed".to_string(),
+            String::new(),
         ));
 
-        let service = RunActionService::new(command_bus.clone());
+        let service = RunActionService::new(Box::new(command_bus.clone()));
         let step = serde_yaml::from_str::<StepYaml>("uses: actions/checkout@v4")
             .unwrap()
             .into_domain();
+        let container = StubContainer;
 
         let request = RunActionRequest::new(
             "actions/checkout@v4".into(),
@@ -28,7 +31,7 @@ mod tests {
             PathBuf::from("/repo"),
             HashMap::new(),
             EvaluationContext::new(),
-            Arc::new(StubContainer),
+            &container,
         );
 
         let response = service.execute(request).unwrap();

@@ -61,7 +61,7 @@ impl ExecuteActionService {
 
     fn run_action(
         &self,
-        request: &ExecuteActionRequest,
+        request: &ExecuteActionRequest<'_>,
     ) -> Result<ExecuteActionResponse, StepError> {
         let action_dir = match self.resolve_action_directory(request)? {
             ActionDirectoryResolution::Skipped(response) => return Ok(response),
@@ -75,7 +75,7 @@ impl ExecuteActionService {
 
     fn resolve_action_directory(
         &self,
-        request: &ExecuteActionRequest,
+        request: &ExecuteActionRequest<'_>,
     ) -> Result<ActionDirectoryResolution, StepError> {
         match self
             .directory_resolver
@@ -94,7 +94,7 @@ impl ExecuteActionService {
 
     fn load_action_definition(
         &self,
-        request: &ExecuteActionRequest,
+        request: &ExecuteActionRequest<'_>,
         action_dir: &std::path::Path,
     ) -> Result<ActionDefinition, StepError> {
         self.definition_loader
@@ -111,7 +111,7 @@ impl ExecuteActionService {
     fn resolve_action_inputs(
         &self,
         definition: &ActionDefinition,
-        request: &ExecuteActionRequest,
+        request: &ExecuteActionRequest<'_>,
     ) -> Result<HashMap<String, String>, StepError> {
         self.input_resolver
             .execute(ResolveActionInputsRequest::new(definition, request.step()))
@@ -119,7 +119,7 @@ impl ExecuteActionService {
 
     fn execute_loaded_action(
         &self,
-        request: &ExecuteActionRequest,
+        request: &ExecuteActionRequest<'_>,
         definition: &ActionDefinition,
         inputs: &HashMap<String, String>,
         action_dir: &std::path::Path,
@@ -128,7 +128,10 @@ impl ExecuteActionService {
             ActionRuntime::Composite { steps } => {
                 self.composite_runner
                     .execute(RunCompositeActionRequest::new(
-                        steps, inputs, action_dir, request,
+                        steps.as_slice(),
+                        inputs,
+                        action_dir,
+                        request,
                     ))
             }
             ActionRuntime::Node12 { main }
@@ -137,10 +140,10 @@ impl ExecuteActionService {
                 .node_runner
                 .execute(RunNodeActionRequest::new(
                     action_dir,
-                    main,
+                    main.as_str(),
                     inputs,
                     request.env(),
-                    request.container().as_ref(),
+                    request.container(),
                 ))
                 .map(|result| {
                     ExecuteActionResponse::new(result.exit_code(), result.stdout(), result.stderr())
@@ -157,7 +160,10 @@ impl ExecuteActionService {
 }
 
 impl ExecuteActionPort for ExecuteActionService {
-    fn execute(&self, request: ExecuteActionRequest) -> Result<ExecuteActionResponse, StepError> {
+    fn execute(
+        &self,
+        request: ExecuteActionRequest<'_>,
+    ) -> Result<ExecuteActionResponse, StepError> {
         self.run_action(&request)
     }
 }

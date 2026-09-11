@@ -1,8 +1,8 @@
-use std::sync::Arc;
-
 use crate::{
     application::{
-        ports::outbound::{CommandBusPort, EventBusPort},
+        ports::outbound::{
+            command_bus_port::ActionCommandBusPort, event_bus_port::DomainEventBusPort,
+        },
         services::execute_action_service::ExecuteActionService,
     },
     infrastructure::{
@@ -37,8 +37,8 @@ impl ActionExecutionWiring {
     #[must_use]
     pub fn build(
         fetcher: Box<dyn ActionFetcherPort>,
-        command_bus: Arc<dyn CommandBusPort>,
-        event_bus: Arc<dyn EventBusPort>,
+        command_bus: Box<ActionCommandBusPort>,
+        event_bus: Box<DomainEventBusPort>,
     ) -> ExecuteActionService {
         ExecuteActionService::new(
             Box::new(ResolveActionDirectoryService::new(Box::new(
@@ -48,7 +48,7 @@ impl ActionExecutionWiring {
             Box::new(ResolveActionInputsService::new()),
             Box::new(RunCompositeActionService::new(Box::new(
                 RunCompositeStepService::new(
-                    Box::new(RunShellStepService::new(event_bus.clone())),
+                    Box::new(RunShellStepService::new(event_bus)),
                     command_bus,
                 ),
             ))),

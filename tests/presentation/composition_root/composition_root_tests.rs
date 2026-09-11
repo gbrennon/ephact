@@ -33,7 +33,7 @@ mod tests {
     impl RunActionPort for FakeRunActionPort {
         fn execute(
             &self,
-            _request: RunActionRequest,
+            _request: RunActionRequest<'_>,
         ) -> Result<ExecuteActionResponse, ephact::domain::errors::StepError> {
             Ok(ExecuteActionResponse::note("action completed"))
         }

@@ -2,7 +2,6 @@ use std::{
     collections::HashMap,
     fmt,
     path::{Path, PathBuf},
-    sync::Arc,
 };
 
 use crate::{
@@ -11,23 +10,23 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub struct RunActionRequest {
+pub struct RunActionRequest<'a> {
     action_ref: String,
     step: Step,
     repo_path: PathBuf,
     env: HashMap<String, String>,
     context: EvaluationContext,
-    container: Arc<dyn ContainerPort>,
+    container: &'a dyn ContainerPort,
 }
 
-impl RunActionRequest {
+impl<'a> RunActionRequest<'a> {
     pub fn new(
         action_ref: String,
         step: Step,
         repo_path: PathBuf,
         env: HashMap<String, String>,
         context: EvaluationContext,
-        container: Arc<dyn ContainerPort>,
+        container: &'a dyn ContainerPort,
     ) -> Self {
         Self {
             action_ref,
@@ -79,20 +78,12 @@ impl RunActionRequest {
         self.context
     }
 
-    pub fn container(&self) -> &Arc<dyn ContainerPort> {
-        &self.container
-    }
-
-    pub fn container_arc(&self) -> Arc<dyn ContainerPort> {
-        self.container.clone()
-    }
-
-    pub fn into_container(self) -> Arc<dyn ContainerPort> {
+    pub fn container(&self) -> &'a dyn ContainerPort {
         self.container
     }
 }
 
-impl fmt::Debug for RunActionRequest {
+impl fmt::Debug for RunActionRequest<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("RunActionRequest")
             .field("action_ref", &self.action_ref)

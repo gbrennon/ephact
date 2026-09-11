@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::error::Error;
 
 use crate::application::dtos::requests::CreateJobContainerRequest;
 use crate::application::ports::outbound::container_port::ContainerPort;
@@ -9,5 +9,5 @@ pub trait CreateJobContainerPort: Send + Sync {
     fn execute(
         &self,
         request: CreateJobContainerRequest<'_>,
-    ) -> Result<Arc<dyn ContainerPort>, Box<dyn std::error::Error>>;
+    ) -> Result<Box<dyn ContainerPort>, Box<dyn Error>>;
 }

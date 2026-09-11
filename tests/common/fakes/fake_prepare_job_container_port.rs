@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use ephact::application::ports::outbound::prepare_job_container_port::PrepareJobContainerPort;
 use parking_lot::Mutex;
-use std::sync::Arc;
+use std::{error::Error, sync::Arc};
 
 use ephact::application::dtos::requests::PrepareJobContainerRequest;
 use ephact::application::dtos::responses::PreparedJobContainerResponse;
@@ -42,13 +42,13 @@ impl PrepareJobContainerPort for FakePrepareJobContainerPort {
     fn execute(
         &self,
         request: PrepareJobContainerRequest<'_>,
-    ) -> Result<PreparedJobContainerResponse, Box<dyn std::error::Error>> {
+    ) -> Result<PreparedJobContainerResponse, Box<dyn Error>> {
         self.job_ids.lock().push(request.job_id().to_string());
         if let Some(message) = &self.failure {
             return Err(message.clone().into());
         }
         Ok(PreparedJobContainerResponse::new(
-            Arc::new(StubContainer),
+            Box::new(StubContainer),
             self.container_name.clone(),
         ))
     }

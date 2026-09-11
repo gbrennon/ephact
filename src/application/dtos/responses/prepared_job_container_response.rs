@@ -1,18 +1,16 @@
-use std::sync::Arc;
-
 use crate::application::ports::outbound::container_port::ContainerPort;
 
 /// Container a job's steps run in, with the name it was created under.
 pub struct PreparedJobContainerResponse {
     /// Handle to the running container.
-    container: Arc<dyn ContainerPort>,
+    container: Box<dyn ContainerPort>,
     /// Name the container was created with.
     container_name: String,
 }
 
 impl PreparedJobContainerResponse {
     /// Creates a new prepared job container.
-    pub fn new(container: Arc<dyn ContainerPort>, container_name: String) -> Self {
+    pub fn new(container: Box<dyn ContainerPort>, container_name: String) -> Self {
         Self {
             container,
             container_name,
@@ -20,17 +18,12 @@ impl PreparedJobContainerResponse {
     }
 
     /// Handle to the running container.
-    pub fn container(&self) -> &Arc<dyn ContainerPort> {
-        &self.container
-    }
-
-    /// Cloned handle to the running container.
-    pub fn container_arc(&self) -> Arc<dyn ContainerPort> {
-        self.container.clone()
+    pub fn container(&self) -> &dyn ContainerPort {
+        &*self.container
     }
 
     /// Consumes the container and returns the handle.
-    pub fn into_container(self) -> Arc<dyn ContainerPort> {
+    pub fn into_container(self) -> Box<dyn ContainerPort> {
         self.container
     }
 

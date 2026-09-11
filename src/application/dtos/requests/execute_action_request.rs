@@ -1,4 +1,8 @@
-use std::{collections::HashMap, fmt, path::PathBuf, sync::Arc};
+use std::{
+    collections::HashMap,
+    fmt,
+    path::{Path, PathBuf},
+};
 
 use crate::{
     application::ports::outbound::container_port::ContainerPort,
@@ -6,24 +10,23 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub struct ExecuteActionRequest {
+pub struct ExecuteActionRequest<'a> {
     action_ref: String,
     step: Step,
     repo_path: PathBuf,
     env: HashMap<String, String>,
     context: EvaluationContext,
-    container: Arc<dyn ContainerPort>,
+    container: &'a dyn ContainerPort,
 }
 
-impl ExecuteActionRequest {
-    #[allow(clippy::too_many_arguments)]
+impl<'a> ExecuteActionRequest<'a> {
     pub fn new(
         action_ref: impl Into<String>,
         step: Step,
         repo_path: impl Into<PathBuf>,
         env: HashMap<String, String>,
         context: EvaluationContext,
-        container: Arc<dyn ContainerPort>,
+        container: &'a dyn ContainerPort,
     ) -> Self {
         Self {
             action_ref: action_ref.into(),
@@ -43,7 +46,7 @@ impl ExecuteActionRequest {
         &self.step
     }
 
-    pub fn repo_path(&self) -> &std::path::Path {
+    pub fn repo_path(&self) -> &Path {
         &self.repo_path
     }
 
@@ -55,8 +58,8 @@ impl ExecuteActionRequest {
         &self.context
     }
 
-    pub fn container(&self) -> &Arc<dyn ContainerPort> {
-        &self.container
+    pub fn container(&self) -> &'a dyn ContainerPort {
+        self.container
     }
 
     pub fn into_parts(
@@ -67,7 +70,7 @@ impl ExecuteActionRequest {
         PathBuf,
         HashMap<String, String>,
         EvaluationContext,
-        Arc<dyn ContainerPort>,
+        &'a dyn ContainerPort,
     ) {
         (
             self.action_ref,
@@ -80,7 +83,7 @@ impl ExecuteActionRequest {
     }
 }
 
-impl fmt::Debug for ExecuteActionRequest {
+impl fmt::Debug for ExecuteActionRequest<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ExecuteActionRequest")
             .field("action_ref", &self.action_ref)

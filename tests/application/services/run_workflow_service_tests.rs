@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::{path::Path, sync::Arc};
+    use std::path::Path;
 
     use ephact::application::dtos::requests::RunWorkflowRequest;
     use ephact::application::dtos::responses::RunSummaryResponse;
@@ -11,7 +11,7 @@ mod tests {
     use ephact::domain::RepoPath;
     use ephact::domain::Repository;
     use ephact::domain::RepositoryName;
-    use ephact::domain::events::DomainEvent;
+    use ephact::domain::messages::events::DomainEvent;
 
     use crate::common::fakes::{
         fake_command_bus::FakeCommandBus,
@@ -36,21 +36,20 @@ mod tests {
 
         let workflow_source =
             FakeWorkflowSource::new().with_workflow_content("name: CI\non: pull_request\njobs: {}");
-        let command_bus = Arc::new(FakeCommandBus::new().with_workflow_result(
-            WorkflowExecutionResponse::new(
+        let command_bus =
+            FakeCommandBus::new().with_workflow_result(WorkflowExecutionResponse::new(
                 "CI".to_string(),
                 Vec::new(),
                 vec!["test-container-1".to_string()],
                 true,
-            ),
-        ));
-        let event_bus = Arc::new(FakeEventBus::new());
+            ));
+        let event_bus = FakeEventBus::new();
 
         let service = RunWorkflowService::new(
             Box::new(workflow_source),
-            command_bus.clone(),
-            event_bus.clone(),
-            Arc::new(FakeDetectWorkflowTriggerPort::always_triggering()),
+            Box::new(command_bus.clone()),
+            Box::new(event_bus.clone()),
+            Box::new(FakeDetectWorkflowTriggerPort::always_triggering()),
         );
         let request = RunWorkflowRequest::new(ActRunConfig::new(), repo);
 
@@ -83,13 +82,13 @@ mod tests {
         let repo = make_repo(temp.path());
         let workflow_source =
             FakeWorkflowSource::new().with_workflow_content("name: CI\non: merge_group\njobs: {}");
-        let command_bus = Arc::new(FakeCommandBus::new());
-        let event_bus = Arc::new(FakeEventBus::new());
+        let command_bus = FakeCommandBus::new();
+        let event_bus = FakeEventBus::new();
         let service = RunWorkflowService::new(
             Box::new(workflow_source),
-            command_bus.clone(),
-            event_bus,
-            Arc::new(FakeDetectWorkflowTriggerPort::never_triggering()),
+            Box::new(command_bus.clone()),
+            Box::new(event_bus),
+            Box::new(FakeDetectWorkflowTriggerPort::never_triggering()),
         );
         let request = RunWorkflowRequest::new(ActRunConfig::new(), repo);
 

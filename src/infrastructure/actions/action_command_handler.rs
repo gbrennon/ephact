@@ -1,8 +1,9 @@
-use crate::application::commands::ExecuteActionCommand;
 use crate::application::dtos::requests::ExecuteActionRequest;
 use crate::application::dtos::responses::ExecuteActionResponse;
 use crate::application::ports::inbound::execute_action_port::ExecuteActionPort;
+use crate::application::ports::outbound::container_port::ContainerPort;
 use crate::domain::errors::StepError;
+use crate::domain::messages::commands::ExecuteActionCommand;
 
 /// Infrastructure command handler that processes `ExecuteActionCommand`.
 pub struct ActionCommandHandler {
@@ -14,7 +15,10 @@ impl ActionCommandHandler {
         Self { executor }
     }
 
-    pub fn handle(&self, cmd: ExecuteActionCommand) -> Result<ExecuteActionResponse, StepError> {
+    pub fn handle<'a>(
+        &self,
+        cmd: ExecuteActionCommand<'a, dyn ContainerPort>,
+    ) -> Result<ExecuteActionResponse, StepError> {
         let (action_ref, step, repo_path, env, context, container) = cmd.into_parts();
         let req = ExecuteActionRequest::new(action_ref, step, repo_path, env, context, container);
         self.executor.execute(req)

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::{path::Path, sync::Arc};
+    use std::path::Path;
 
     use ephact::application::dtos::requests::ExecuteWorkflowRequest;
     use ephact::application::dtos::responses::WorkflowExecutionResponse;
@@ -23,8 +23,8 @@ mod tests {
     ) -> Result<WorkflowExecutionResponse, Box<dyn std::error::Error>> {
         ExecuteWorkflowService::new(
             Box::new(loader),
-            Arc::new(command_bus),
-            Arc::new(FakeEventBus::new()),
+            Box::new(command_bus),
+            Box::new(FakeEventBus::new()),
         )
         .execute(ExecuteWorkflowRequest::new(
             REQUESTED_CONTENT,

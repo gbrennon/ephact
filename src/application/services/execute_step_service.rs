@@ -1,14 +1,12 @@
-use std::sync::Arc;
-
-use crate::application::commands::ExecuteActionCommand;
 use crate::application::dtos::requests::ExecuteStepRequest;
 use crate::application::dtos::requests::RunShellStepRequest;
 use crate::application::dtos::responses::ExecuteActionResponse;
 use crate::application::dtos::responses::ExecutedStepResponse;
 use crate::application::ports::inbound::execute_step_port::ExecuteStepPort;
-use crate::application::ports::outbound::command_bus_port::CommandBusPort;
+use crate::application::ports::outbound::command_bus_port::ActionCommandBusPort;
 use crate::application::ports::outbound::run_shell_step_port::RunShellStepPort;
 use crate::domain::errors::StepError;
+use crate::domain::messages::commands::ExecuteActionCommand;
 use crate::domain::services::StepInterpolator;
 
 /// Application service coordinating the execution of one step.
@@ -18,13 +16,13 @@ use crate::domain::services::StepInterpolator;
 /// step references an action: the action command handler owns that execution.
 pub struct ExecuteStepService {
     shell_runner: Box<dyn RunShellStepPort>,
-    command_bus: Arc<dyn CommandBusPort>,
+    command_bus: Box<ActionCommandBusPort>,
 }
 
 impl ExecuteStepService {
     pub fn new(
         shell_runner: Box<dyn RunShellStepPort>,
-        command_bus: Arc<dyn CommandBusPort>,
+        command_bus: Box<ActionCommandBusPort>,
     ) -> Self {
         Self {
             shell_runner,
@@ -39,18 +37,18 @@ impl ExecuteStepPort for ExecuteStepService {
             .map_err(|error| StepError::new(format!("failed to resolve expressions: {error:?}")))?;
 
         let response = match interpolated.uses() {
-            Some(action_ref) => self.command_bus.dispatch_action(ExecuteActionCommand::new(
+            Some(action_ref) => self.command_bus.dispatch(ExecuteActionCommand::new(
                 action_ref.to_string(),
                 interpolated.clone(),
                 request.repo_path().to_path_buf(),
                 request.env().clone(),
                 request.context().clone(),
-                request.container().clone().clone(),
+                request.container(),
             ))?,
             None => {
                 let result = self.shell_runner.execute(RunShellStepRequest::new(
                     &interpolated,
-                    request.container().as_ref(),
+                    request.container(),
                     request.env(),
                 ))?;
                 ExecuteActionResponse::new(result.exit_code(), result.stdout(), result.stderr())

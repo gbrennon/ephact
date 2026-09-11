@@ -1,12 +1,10 @@
-use std::sync::Arc;
-
-use crate::application::commands::ExecuteActionCommand;
 use crate::application::dtos::requests::RunCompositeStepRequest;
 use crate::application::dtos::requests::RunShellStepRequest;
 use crate::application::dtos::responses::ExecResultResponse;
-use crate::application::ports::outbound::command_bus_port::CommandBusPort;
+use crate::application::ports::outbound::command_bus_port::ActionCommandBusPort;
 use crate::application::ports::outbound::run_shell_step_port::RunShellStepPort;
 use crate::domain::errors::StepError;
+use crate::domain::messages::commands::ExecuteActionCommand;
 use crate::infrastructure::steps::run_composite_step_port::RunCompositeStepPort;
 
 /// Runs one step of a composite action: shell steps go straight to the shell
@@ -14,13 +12,13 @@ use crate::infrastructure::steps::run_composite_step_port::RunCompositeStepPort;
 /// [`ExecuteActionCommand`] so the action command handler executes them.
 pub struct RunCompositeStepService {
     shell_runner: Box<dyn RunShellStepPort>,
-    command_bus: Arc<dyn CommandBusPort>,
+    command_bus: Box<ActionCommandBusPort>,
 }
 
 impl RunCompositeStepService {
     pub fn new(
         shell_runner: Box<dyn RunShellStepPort>,
-        command_bus: Arc<dyn CommandBusPort>,
+        command_bus: Box<ActionCommandBusPort>,
     ) -> Self {
         Self {
             shell_runner,
@@ -39,19 +37,19 @@ impl RunCompositeStepPort for RunCompositeStepService {
         match request.step().uses() {
             Some(nested) => self
                 .command_bus
-                .dispatch_action(ExecuteActionCommand::new(
+                .dispatch(ExecuteActionCommand::new(
                     nested.to_string(),
                     request.step().clone(),
                     action_request.repo_path().to_path_buf(),
                     action_request.env().clone(),
                     request.context().clone(),
-                    action_request.container().clone(),
+                    action_request.container(),
                 ))
                 .map(|response| {
                     ExecResultResponse::new(
                         response.exit_code(),
-                        response.stdout().to_string().to_string(),
-                        response.stderr().to_string().to_string(),
+                        response.stdout().to_string(),
+                        response.stderr().to_string(),
                     )
                 }),
             None => {
@@ -62,7 +60,7 @@ impl RunCompositeStepPort for RunCompositeStepService {
                 );
                 self.shell_runner.execute(RunShellStepRequest::new(
                     request.step(),
-                    action_request.container().as_ref(),
+                    action_request.container(),
                     &action_env,
                 ))
             }

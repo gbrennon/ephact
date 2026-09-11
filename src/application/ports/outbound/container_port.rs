@@ -4,7 +4,7 @@ use crate::application::dtos::responses::ExecResultResponse;
 use crate::application::dtos::responses::FileEntryResponse;
 use crate::application::dtos::responses::RunnerContextResponse;
 use crate::domain::errors::ContainerError;
-use crate::domain::events::OutputStream;
+use crate::domain::messages::events::OutputStream;
 
 /// Outbound port for working inside one running container.
 ///

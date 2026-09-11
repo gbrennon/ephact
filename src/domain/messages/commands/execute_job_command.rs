@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 
-use crate::domain::{aggregates::Workflow, entities::Job, value_objects::EvaluationContext};
+use crate::domain::{
+    aggregates::Workflow, entities::Job, messages::commands::command::Command,
+    value_objects::EvaluationContext,
+};
 
 /// Command representing the intention to execute one job of a workflow.
 ///
@@ -62,3 +65,5 @@ impl ExecuteJobCommand {
         )
     }
 }
+
+impl Command for ExecuteJobCommand {}

@@ -1,3 +1,5 @@
+use super::event::Event;
+
 /// Domain events published by application services.
 ///
 /// Events state a fact about something that already happened. They are
@@ -21,3 +23,5 @@ pub enum DomainEvent {
     /// Published when one job of a workflow finishes.
     JobFinished(super::job_finished_payload::JobFinishedPayload),
 }
+
+impl Event for DomainEvent {}

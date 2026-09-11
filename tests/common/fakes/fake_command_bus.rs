@@ -1,17 +1,116 @@
 #![allow(dead_code)]
 use parking_lot::Mutex;
-use std::{collections::HashMap, error::Error, sync::Arc};
-
-use ephact::application::commands::{
-    ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
+use std::{
+    collections::HashMap,
+    error::Error,
+    path::{Path, PathBuf},
+    sync::Arc,
 };
-use ephact::application::dtos::responses::ExecuteActionResponse;
-use ephact::application::dtos::responses::ExecutedStepResponse;
-use ephact::application::dtos::responses::JobExecutionResponse;
-use ephact::application::dtos::responses::JobSummaryResponse;
-use ephact::application::dtos::responses::WorkflowExecutionResponse;
-use ephact::application::ports::outbound::CommandBusPort;
-use ephact::domain::errors::StepError;
+
+use ephact::{
+    application::{
+        dtos::responses::{
+            ExecuteActionResponse, ExecutedStepResponse, JobExecutionResponse, JobSummaryResponse,
+            WorkflowExecutionResponse,
+        },
+        ports::outbound::{command_bus_port::CommandBusPort, container_port::ContainerPort},
+    },
+    domain::{
+        entities::Step,
+        errors::StepError,
+        messages::commands::{
+            ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
+        },
+        value_objects::EvaluationContext,
+    },
+};
+
+#[derive(Clone, Debug)]
+pub struct DispatchedStepSnapshot {
+    step: Step,
+    env: HashMap<String, String>,
+    context: EvaluationContext,
+    repo_path: PathBuf,
+}
+
+impl DispatchedStepSnapshot {
+    pub fn new(
+        step: Step,
+        env: HashMap<String, String>,
+        context: EvaluationContext,
+        repo_path: PathBuf,
+    ) -> Self {
+        Self {
+            step,
+            env,
+            context,
+            repo_path,
+        }
+    }
+
+    pub fn step(&self) -> &Step {
+        &self.step
+    }
+
+    pub fn env(&self) -> &HashMap<String, String> {
+        &self.env
+    }
+
+    pub fn context(&self) -> &EvaluationContext {
+        &self.context
+    }
+
+    pub fn repo_path(&self) -> &Path {
+        &self.repo_path
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct DispatchedActionSnapshot {
+    action_ref: String,
+    step: Step,
+    repo_path: PathBuf,
+    env: HashMap<String, String>,
+    context: EvaluationContext,
+}
+
+impl DispatchedActionSnapshot {
+    pub fn new(
+        action_ref: String,
+        step: Step,
+        repo_path: PathBuf,
+        env: HashMap<String, String>,
+        context: EvaluationContext,
+    ) -> Self {
+        Self {
+            action_ref,
+            step,
+            repo_path,
+            env,
+            context,
+        }
+    }
+
+    pub fn action_ref(&self) -> &str {
+        &self.action_ref
+    }
+
+    pub fn step(&self) -> &Step {
+        &self.step
+    }
+
+    pub fn repo_path(&self) -> &Path {
+        &self.repo_path
+    }
+
+    pub fn env(&self) -> &HashMap<String, String> {
+        &self.env
+    }
+
+    pub fn context(&self) -> &EvaluationContext {
+        &self.context
+    }
+}
 
 /// Records every dispatched command and answers it with a prepared outcome, so
 /// a coordination service can be tested on what it publishes instead of on
@@ -20,8 +119,8 @@ use ephact::domain::errors::StepError;
 pub struct FakeCommandBus {
     pub dispatched_workflows: Arc<Mutex<Vec<ExecuteWorkflowCommand>>>,
     pub dispatched_jobs: Arc<Mutex<Vec<ExecuteJobCommand>>>,
-    pub dispatched_steps: Arc<Mutex<Vec<ExecuteStepCommand>>>,
-    pub dispatched_actions: Arc<Mutex<Vec<ExecuteActionCommand>>>,
+    pub dispatched_steps: Arc<Mutex<Vec<DispatchedStepSnapshot>>>,
+    pub dispatched_actions: Arc<Mutex<Vec<DispatchedActionSnapshot>>>,
     workflow_result: Option<WorkflowExecutionResponse>,
     action_result: Option<ExecuteActionResponse>,
     failing_jobs: Vec<String>,
@@ -95,11 +194,11 @@ impl FakeCommandBus {
     }
 }
 
-impl CommandBusPort for FakeCommandBus {
-    fn dispatch_workflow(
-        &self,
-        cmd: ExecuteWorkflowCommand,
-    ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
+impl CommandBusPort<ExecuteWorkflowCommand> for FakeCommandBus {
+    type Response = WorkflowExecutionResponse;
+    type Error = Box<dyn Error>;
+
+    fn dispatch(&self, cmd: ExecuteWorkflowCommand) -> Result<Self::Response, Self::Error> {
         self.dispatched_workflows.lock().push(cmd);
         Ok(self
             .workflow_result
@@ -111,8 +210,13 @@ impl CommandBusPort for FakeCommandBus {
                 true,
             )))
     }
+}
 
-    fn dispatch_job(&self, cmd: ExecuteJobCommand) -> Result<JobExecutionResponse, Box<dyn Error>> {
+impl CommandBusPort<ExecuteJobCommand> for FakeCommandBus {
+    type Response = JobExecutionResponse;
+    type Error = Box<dyn Error>;
+
+    fn dispatch(&self, cmd: ExecuteJobCommand) -> Result<Self::Response, Self::Error> {
         let job_id = cmd.job_id().to_owned();
         let name = cmd.job().name().map(|s| s.to_owned());
         self.dispatched_jobs.lock().push(cmd);
@@ -129,10 +233,25 @@ impl CommandBusPort for FakeCommandBus {
             format!("container-{job_id}"),
         ))
     }
+}
 
-    fn dispatch_step(&self, cmd: ExecuteStepCommand) -> Result<ExecutedStepResponse, StepError> {
-        let step = cmd.step().clone();
-        self.dispatched_steps.lock().push(cmd);
+impl<'a> CommandBusPort<ExecuteStepCommand<'a, dyn ContainerPort>> for FakeCommandBus {
+    type Response = ExecutedStepResponse;
+    type Error = StepError;
+
+    fn dispatch(
+        &self,
+        cmd: ExecuteStepCommand<'a, dyn ContainerPort>,
+    ) -> Result<Self::Response, Self::Error> {
+        let (step, env, context, _container, repo_path) = cmd.into_parts();
+        self.dispatched_steps
+            .lock()
+            .push(DispatchedStepSnapshot::new(
+                step.clone(),
+                env,
+                context,
+                repo_path,
+            ));
         if let Some(message) = &self.step_error {
             return Err(StepError::new(message.clone()));
         }
@@ -145,12 +264,22 @@ impl CommandBusPort for FakeCommandBus {
             ),
         ))
     }
+}
 
-    fn dispatch_action(
+impl<'a> CommandBusPort<ExecuteActionCommand<'a, dyn ContainerPort>> for FakeCommandBus {
+    type Response = ExecuteActionResponse;
+    type Error = StepError;
+
+    fn dispatch(
         &self,
-        cmd: ExecuteActionCommand,
-    ) -> Result<ExecuteActionResponse, StepError> {
-        self.dispatched_actions.lock().push(cmd);
+        cmd: ExecuteActionCommand<'a, dyn ContainerPort>,
+    ) -> Result<Self::Response, Self::Error> {
+        let (action_ref, step, repo_path, env, context, _container) = cmd.into_parts();
+        self.dispatched_actions
+            .lock()
+            .push(DispatchedActionSnapshot::new(
+                action_ref, step, repo_path, env, context,
+            ));
         Ok(self
             .action_result
             .clone()

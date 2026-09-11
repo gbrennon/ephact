@@ -1,5 +1,6 @@
 use crate::domain::{
-    entities::repository::Repository, value_objects::act_run_config::ActRunConfig,
+    entities::repository::Repository, messages::commands::command::Command,
+    value_objects::act_run_config::ActRunConfig,
 };
 
 /// Command representing the intention to execute a workflow.
@@ -38,3 +39,5 @@ impl ExecuteWorkflowCommand {
         (self.workflow_content, self.config, self.repository)
     }
 }
+
+impl Command for ExecuteWorkflowCommand {}
