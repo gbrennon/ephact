@@ -6,7 +6,7 @@ use ephact::{
     presentation::composition_root::{Application, CompositionRoot},
 };
 
-use crate::fakes::fixed_image_mapper::FixedImageMapper;
+use crate::e2e_fixed_image_mapper::FixedImageMapper;
 
 pub struct EphactApplication;
 

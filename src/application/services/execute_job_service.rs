@@ -1,26 +1,28 @@
 use std::{error::Error, sync::Arc, time::Instant};
 
-use crate::{
-    application::{
-        dtos::{
-            BuildJobEnvironmentRequest, BuildStepContextRequest, ExecuteJobRequest,
-            ExecuteStepCommand, JobExecution, JobSummary, PrefixStepPathRequest,
-            PrepareJobContainerRequest, ReadStepExportsRequest, StepSummary, SummarizeStepRequest,
-        },
-        ports::{
-            inbound::execute_job_port::ExecuteJobPort,
-            outbound::{
-                build_job_environment_port::BuildJobEnvironmentPort,
-                build_step_context_port::BuildStepContextPort, command_bus_port::CommandBusPort,
-                event_bus_port::EventBusPort, prefix_step_path_port::PrefixStepPathPort,
-                prepare_job_container_port::PrepareJobContainerPort,
-                read_step_exports_port::ReadStepExportsPort,
-                summarize_step_port::SummarizeStepPort,
-            },
-        },
-    },
-    domain::events::{DomainEvent, StepFinishedPayload, StepStartedPayload},
-};
+use crate::application::commands::ExecuteStepCommand;
+use crate::application::dtos::requests::BuildJobEnvironmentRequest;
+use crate::application::dtos::requests::BuildStepContextRequest;
+use crate::application::dtos::requests::ExecuteJobRequest;
+use crate::application::dtos::requests::PrefixStepPathRequest;
+use crate::application::dtos::requests::PrepareJobContainerRequest;
+use crate::application::dtos::requests::ReadStepExportsRequest;
+use crate::application::dtos::requests::SummarizeStepRequest;
+use crate::application::dtos::responses::JobExecutionResponse;
+use crate::application::dtos::responses::JobSummaryResponse;
+use crate::application::dtos::responses::StepSummaryResponse;
+use crate::application::ports::inbound::execute_job_port::ExecuteJobPort;
+use crate::application::ports::outbound::build_job_environment_port::BuildJobEnvironmentPort;
+use crate::application::ports::outbound::build_step_context_port::BuildStepContextPort;
+use crate::application::ports::outbound::command_bus_port::CommandBusPort;
+use crate::application::ports::outbound::event_bus_port::EventBusPort;
+use crate::application::ports::outbound::prefix_step_path_port::PrefixStepPathPort;
+use crate::application::ports::outbound::prepare_job_container_port::PrepareJobContainerPort;
+use crate::application::ports::outbound::read_step_exports_port::ReadStepExportsPort;
+use crate::application::ports::outbound::summarize_step_port::SummarizeStepPort;
+use crate::domain::events::DomainEvent;
+use crate::domain::events::StepFinishedPayload;
+use crate::domain::events::StepStartedPayload;
 
 /// Application service coordinating the execution of one job.
 ///
@@ -66,7 +68,10 @@ impl ExecuteJobService {
 }
 
 impl ExecuteJobPort for ExecuteJobService {
-    fn execute(&self, request: ExecuteJobRequest<'_>) -> Result<JobExecution, Box<dyn Error>> {
+    fn execute(
+        &self,
+        request: ExecuteJobRequest<'_>,
+    ) -> Result<JobExecutionResponse, Box<dyn Error>> {
         let mut step_env = self
             .job_environment_builder
             .execute(BuildJobEnvironmentRequest::new(
@@ -85,7 +90,7 @@ impl ExecuteJobPort for ExecuteJobService {
 
         let mut extra_path: Vec<String> = Vec::new();
         let mut job_success = true;
-        let mut steps: Vec<StepSummary> = Vec::new();
+        let mut steps: Vec<StepSummaryResponse> = Vec::new();
 
         for step in request.run().job().steps() {
             step_env = self
@@ -123,13 +128,13 @@ impl ExecuteJobPort for ExecuteJobService {
             step_env.extend(env);
         }
 
-        let job_summary = JobSummary::new(
+        let job_summary = JobSummaryResponse::new(
             request.run().job_id().to_string(),
             request.run().job().name().map(str::to_string),
             steps,
             job_success,
         );
-        Ok(JobExecution::new(
+        Ok(JobExecutionResponse::new(
             job_summary,
             prepared.container_name().to_string(),
         ))
@@ -153,7 +158,7 @@ impl ExecuteJobService {
     fn announce_step_finished(
         &self,
         request: &ExecuteJobRequest<'_>,
-        summary: &StepSummary,
+        summary: &StepSummaryResponse,
         step_success: bool,
     ) {
         self.event_bus

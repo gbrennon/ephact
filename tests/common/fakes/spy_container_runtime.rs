@@ -2,13 +2,11 @@
 use parking_lot::Mutex;
 use std::sync::Arc;
 
-use ephact::{
-    application::{
-        dtos::{ContainerConfig, HostInfo},
-        ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
-    },
-    domain::errors::ContainerError,
-};
+use ephact::application::dtos::responses::ContainerConfigResponse;
+use ephact::application::dtos::responses::HostInfoResponse;
+use ephact::application::ports::outbound::ContainerRuntimePort;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::errors::ContainerError;
 
 use super::stub_container::StubContainer;
 
@@ -63,7 +61,7 @@ impl ContainerRuntimePort for SpyContainerRuntime {
 
     fn create_container(
         &self,
-        config: &ContainerConfig,
+        config: &ContainerConfigResponse,
     ) -> Result<Box<dyn ContainerPort>, ContainerError> {
         let name = config.name().unwrap_or_default();
         self.created_containers.lock().push(name.to_owned());
@@ -89,7 +87,7 @@ impl ContainerRuntimePort for SpyContainerRuntime {
         Ok(())
     }
 
-    fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
-        Ok(HostInfo::new("linux", "amd64", "1.0"))
+    fn get_host_info(&self) -> Result<HostInfoResponse, ContainerError> {
+        Ok(HostInfoResponse::new("linux", "amd64", "1.0"))
     }
 }

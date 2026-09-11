@@ -1,8 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        fakes::fixed_image_mapper::RUNNER_IMAGE,
-        scenarios::delivery_pipeline_run::DeliveryPipelineRun,
+        e2e_fixed_image_mapper::RUNNER_IMAGE, scenarios::delivery_pipeline_run::DeliveryPipelineRun,
     };
 
     struct DeliveryPipelineTests;

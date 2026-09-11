@@ -5,9 +5,9 @@ use super::{
 use std::error::Error;
 
 use super::workflow_directories::WORKFLOW_DIRECTORIES;
-use crate::application::dtos::{
-    ListAllWorkflowFilesRequest, ListAllWorkflowFilesResponse, ListWorkflowDirectoryRequest,
-};
+use crate::application::dtos::requests::ListAllWorkflowFilesRequest;
+use crate::application::dtos::requests::ListWorkflowDirectoryRequest;
+use crate::application::dtos::responses::ListAllWorkflowFilesResponse;
 
 /// Service that lists every workflow file of a repository, `.forgejo` first.
 pub struct ListAllWorkflowFilesService {

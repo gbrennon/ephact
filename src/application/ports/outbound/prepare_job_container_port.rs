@@ -1,4 +1,5 @@
-use crate::application::dtos::{PrepareJobContainerRequest, PreparedJobContainer};
+use crate::application::dtos::requests::PrepareJobContainerRequest;
+use crate::application::dtos::responses::PreparedJobContainerResponse;
 
 /// Inbound port for preparing the container a job's steps run in.
 pub trait PrepareJobContainerPort: Send + Sync {
@@ -6,5 +7,5 @@ pub trait PrepareJobContainerPort: Send + Sync {
     fn execute(
         &self,
         request: PrepareJobContainerRequest<'_>,
-    ) -> Result<PreparedJobContainer, Box<dyn std::error::Error>>;
+    ) -> Result<PreparedJobContainerResponse, Box<dyn std::error::Error>>;
 }

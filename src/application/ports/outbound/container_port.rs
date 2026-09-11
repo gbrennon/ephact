@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use crate::{
-    application::dtos::{ExecResult, FileEntry, RunnerContext},
-    domain::{errors::ContainerError, events::OutputStream},
-};
+use crate::application::dtos::responses::ExecResultResponse;
+use crate::application::dtos::responses::FileEntryResponse;
+use crate::application::dtos::responses::RunnerContextResponse;
+use crate::domain::errors::ContainerError;
+use crate::domain::events::OutputStream;
 
 /// Outbound port for working inside one running container.
 ///
@@ -17,12 +18,12 @@ pub trait ContainerPort: Send + Sync {
         cmd: &[String],
         workdir: Option<&str>,
         env: &HashMap<String, String>,
-    ) -> Result<ExecResult, ContainerError>;
+    ) -> Result<ExecResultResponse, ContainerError>;
 
     /// Executes a command inside the container, forwarding each output chunk
     /// to `on_output` as it is produced.
     ///
-    /// The returned [`ExecResult`] carries the same output accumulated by the
+    /// The returned [`ExecResultResponse`] carries the same output accumulated by the
     /// sink. Implementations that cannot stream may buffer and deliver the
     /// whole output once, right before returning.
     fn exec_streaming(
@@ -31,7 +32,7 @@ pub trait ContainerPort: Send + Sync {
         workdir: Option<&str>,
         env: &HashMap<String, String>,
         on_output: &mut dyn FnMut(OutputStream, &str),
-    ) -> Result<ExecResult, ContainerError> {
+    ) -> Result<ExecResultResponse, ContainerError> {
         let result = self.exec(cmd, workdir, env)?;
         if !result.stdout().is_empty() {
             on_output(OutputStream::StandardOutput, result.stdout());
@@ -43,14 +44,18 @@ pub trait ContainerPort: Send + Sync {
     }
 
     /// Copies the given entries into the container at `container_path`.
-    fn copy_to(&self, container_path: &str, entries: &[FileEntry]) -> Result<(), ContainerError>;
+    fn copy_to(
+        &self,
+        container_path: &str,
+        entries: &[FileEntryResponse],
+    ) -> Result<(), ContainerError>;
 
     /// Reads the entries stored under `container_path` out of the container.
-    fn copy_from(&self, container_path: &str) -> Result<Vec<FileEntry>, ContainerError>;
+    fn copy_from(&self, container_path: &str) -> Result<Vec<FileEntryResponse>, ContainerError>;
 
     /// Removes the container.
     fn remove(&self) -> Result<(), ContainerError>;
 
     /// Reports the runner context the container exposes to steps.
-    fn get_runner_context(&self) -> Result<RunnerContext, ContainerError>;
+    fn get_runner_context(&self) -> Result<RunnerContextResponse, ContainerError>;
 }

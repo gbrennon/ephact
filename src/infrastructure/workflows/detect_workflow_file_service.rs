@@ -5,7 +5,8 @@ use super::{
 use std::{error::Error, path::PathBuf};
 
 use super::workflow_directories::WORKFLOW_DIRECTORIES;
-use crate::application::dtos::{DetectWorkflowFileRequest, ListWorkflowDirectoryRequest};
+use crate::application::dtos::requests::DetectWorkflowFileRequest;
+use crate::application::dtos::requests::ListWorkflowDirectoryRequest;
 
 /// Service that detects the workflow a repository runs when the caller names
 /// none, preferring the Forgejo layout over the GitHub one.

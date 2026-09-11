@@ -1,11 +1,9 @@
 use super::{docker_runtime::DockerRuntime, podman_runtime::PodmanRuntime};
-use crate::{
-    application::{
-        dtos::{ContainerConfig, HostInfo},
-        ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
-    },
-    domain::errors::ContainerError,
-};
+use crate::application::dtos::responses::ContainerConfigResponse;
+use crate::application::dtos::responses::HostInfoResponse;
+use crate::application::ports::outbound::ContainerRuntimePort;
+use crate::application::ports::outbound::container_port::ContainerPort;
+use crate::domain::errors::ContainerError;
 
 /// Strategy-pattern context over a container runtime.
 ///
@@ -74,7 +72,7 @@ impl<R: ContainerRuntimePort> ContainerRuntimePort for ContainerRuntimeAdapter<R
 
     fn create_container(
         &self,
-        config: &ContainerConfig,
+        config: &ContainerConfigResponse,
     ) -> Result<Box<dyn ContainerPort>, ContainerError> {
         self.runtime
             .create_container(config)
@@ -99,7 +97,7 @@ impl<R: ContainerRuntimePort> ContainerRuntimePort for ContainerRuntimeAdapter<R
             .map_err(|e| self.map_error(e))
     }
 
-    fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
+    fn get_host_info(&self) -> Result<HostInfoResponse, ContainerError> {
         self.runtime.get_host_info()
     }
 }

@@ -1,67 +1,69 @@
-use ephact::{
-    application::ports::outbound::load_action_definition_port::LoadActionDefinitionPort,
-    infrastructure::actions::load_action_definition_service::LoadActionDefinitionService,
-};
-use std::fs;
+#[cfg(test)]
+mod tests {
+    use ephact::{
+        application::ports::outbound::load_action_definition_port::LoadActionDefinitionPort,
+        infrastructure::actions::load_action_definition_service::LoadActionDefinitionService,
+    };
+    use std::fs;
 
-use ephact::{
-    application::dtos::LoadActionDefinitionRequest, domain::value_objects::ActionRuntime,
-};
+    use ephact::application::dtos::requests::LoadActionDefinitionRequest;
+    use ephact::domain::value_objects::ActionRuntime;
 
-const COMPOSITE: &str =
-    "name: Greet\nruns:\n  using: composite\n  steps:\n    - run: echo hi\n      shell: bash\n";
+    const COMPOSITE: &str =
+        "name: Greet\nruns:\n  using: composite\n  steps:\n    - run: echo hi\n      shell: bash\n";
 
-#[test]
-fn execute_loads_action_yml() {
-    let tmp = tempfile::tempdir().unwrap();
-    fs::write(tmp.path().join("action.yml"), COMPOSITE).unwrap();
+    #[test]
+    fn execute_loads_action_yml() {
+        let tmp = tempfile::tempdir().unwrap();
+        fs::write(tmp.path().join("action.yml"), COMPOSITE).unwrap();
 
-    let definition = LoadActionDefinitionService::new()
-        .execute(LoadActionDefinitionRequest::new(tmp.path()))
-        .unwrap();
+        let definition = LoadActionDefinitionService::new()
+            .execute(LoadActionDefinitionRequest::new(tmp.path()))
+            .unwrap();
 
-    assert_eq!(definition.name(), "Greet");
-    assert!(matches!(definition.runs(), ActionRuntime::Composite { .. }));
-}
+        assert_eq!(definition.name(), "Greet");
+        assert!(matches!(definition.runs(), ActionRuntime::Composite { .. }));
+    }
 
-#[test]
-fn execute_falls_back_to_action_yaml() {
-    let tmp = tempfile::tempdir().unwrap();
-    fs::write(tmp.path().join("action.yaml"), COMPOSITE).unwrap();
+    #[test]
+    fn execute_falls_back_to_action_yaml() {
+        let tmp = tempfile::tempdir().unwrap();
+        fs::write(tmp.path().join("action.yaml"), COMPOSITE).unwrap();
 
-    let definition = LoadActionDefinitionService::new()
-        .execute(LoadActionDefinitionRequest::new(tmp.path()))
-        .unwrap();
+        let definition = LoadActionDefinitionService::new()
+            .execute(LoadActionDefinitionRequest::new(tmp.path()))
+            .unwrap();
 
-    assert_eq!(definition.name(), "Greet");
-}
+        assert_eq!(definition.name(), "Greet");
+    }
 
-#[test]
-fn execute_errors_when_no_definition_is_present() {
-    let tmp = tempfile::tempdir().unwrap();
+    #[test]
+    fn execute_errors_when_no_definition_is_present() {
+        let tmp = tempfile::tempdir().unwrap();
 
-    let error = LoadActionDefinitionService::new()
-        .execute(LoadActionDefinitionRequest::new(tmp.path()))
-        .unwrap_err();
+        let error = LoadActionDefinitionService::new()
+            .execute(LoadActionDefinitionRequest::new(tmp.path()))
+            .unwrap_err();
 
-    assert_eq!(
-        error.message(),
-        format!("action.yml not found in {}", tmp.path().display())
-    );
-}
+        assert_eq!(
+            error.message(),
+            format!("action.yml not found in {}", tmp.path().display())
+        );
+    }
 
-#[test]
-fn execute_errors_on_malformed_yaml() {
-    let tmp = tempfile::tempdir().unwrap();
-    fs::write(tmp.path().join("action.yml"), "name: [unterminated\n").unwrap();
+    #[test]
+    fn execute_errors_on_malformed_yaml() {
+        let tmp = tempfile::tempdir().unwrap();
+        fs::write(tmp.path().join("action.yml"), "name: [unterminated\n").unwrap();
 
-    let error = LoadActionDefinitionService::new()
-        .execute(LoadActionDefinitionRequest::new(tmp.path()))
-        .unwrap_err();
+        let error = LoadActionDefinitionService::new()
+            .execute(LoadActionDefinitionRequest::new(tmp.path()))
+            .unwrap_err();
 
-    assert!(
-        error.message().starts_with("failed to parse "),
-        "{}",
-        error.message()
-    );
+        assert!(
+            error.message().starts_with("failed to parse "),
+            "{}",
+            error.message()
+        );
+    }
 }

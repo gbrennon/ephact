@@ -2,23 +2,23 @@
 use parking_lot::Mutex;
 use std::sync::Arc;
 
-use ephact::{
-    application::dtos::{ExecResult, RunCompositeStepRequest},
-    domain::{entities::Step, errors::StepError},
-    infrastructure::steps::run_composite_step_port::RunCompositeStepPort,
-};
+use ephact::application::dtos::requests::RunCompositeStepRequest;
+use ephact::application::dtos::responses::ExecResultResponse;
+use ephact::domain::entities::Step;
+use ephact::domain::errors::StepError;
+use ephact::infrastructure::steps::run_composite_step_port::RunCompositeStepPort;
 
 /// Answers each composite step with the next queued result, recording the
 /// steps it was asked to run.
 #[derive(Clone, Default)]
 pub struct FakeRunCompositeStepPort {
-    results: Arc<Mutex<Vec<ExecResult>>>,
+    results: Arc<Mutex<Vec<ExecResultResponse>>>,
     failure: Option<(String, String, String)>,
     steps: Arc<Mutex<Vec<Step>>>,
 }
 
 impl FakeRunCompositeStepPort {
-    pub fn queueing(results: Vec<ExecResult>) -> Self {
+    pub fn queueing(results: Vec<ExecResultResponse>) -> Self {
         Self {
             results: Arc::new(Mutex::new(results)),
             failure: None,
@@ -44,7 +44,10 @@ impl FakeRunCompositeStepPort {
 }
 
 impl RunCompositeStepPort for FakeRunCompositeStepPort {
-    fn execute(&self, request: RunCompositeStepRequest<'_>) -> Result<ExecResult, StepError> {
+    fn execute(
+        &self,
+        request: RunCompositeStepRequest<'_>,
+    ) -> Result<ExecResultResponse, StepError> {
         self.steps.lock().push(request.step().clone());
 
         if let Some((message, stdout, stderr)) = &self.failure {
@@ -55,7 +58,7 @@ impl RunCompositeStepPort for FakeRunCompositeStepPort {
 
         let mut queued = self.results.lock();
         if queued.is_empty() {
-            return Ok(ExecResult::new(0, String::new(), String::new()));
+            return Ok(ExecResultResponse::new(0, String::new(), String::new()));
         }
         Ok(queued.remove(0))
     }

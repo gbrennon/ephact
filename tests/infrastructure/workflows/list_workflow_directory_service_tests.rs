@@ -1,63 +1,66 @@
-use ephact::infrastructure::workflows::{
-    list_workflow_directory_port::ListWorkflowDirectoryPort,
-    list_workflow_directory_service::ListWorkflowDirectoryService,
-};
-use std::fs;
+#[cfg(test)]
+mod tests {
+    use ephact::infrastructure::workflows::{
+        list_workflow_directory_port::ListWorkflowDirectoryPort,
+        list_workflow_directory_service::ListWorkflowDirectoryService,
+    };
+    use std::fs;
 
-use ephact::application::dtos::ListWorkflowDirectoryRequest;
+    use ephact::application::dtos::requests::ListWorkflowDirectoryRequest;
 
-#[test]
-fn execute_returns_yml_and_yaml_files_sorted_by_path() {
-    let tmp = tempfile::tempdir().unwrap();
-    fs::write(tmp.path().join("second.yaml"), "").unwrap();
-    fs::write(tmp.path().join("first.yml"), "").unwrap();
-    let service = ListWorkflowDirectoryService::new();
+    #[test]
+    fn execute_returns_yml_and_yaml_files_sorted_by_path() {
+        let tmp = tempfile::tempdir().unwrap();
+        fs::write(tmp.path().join("second.yaml"), "").unwrap();
+        fs::write(tmp.path().join("first.yml"), "").unwrap();
+        let service = ListWorkflowDirectoryService::new();
 
-    let response = service
-        .execute(ListWorkflowDirectoryRequest::new(tmp.path()))
-        .unwrap();
+        let response = service
+            .execute(ListWorkflowDirectoryRequest::new(tmp.path()))
+            .unwrap();
 
-    assert_eq!(
-        response.workflow_files(),
-        vec![tmp.path().join("first.yml"), tmp.path().join("second.yaml")]
-    );
-}
+        assert_eq!(
+            response.workflow_files(),
+            vec![tmp.path().join("first.yml"), tmp.path().join("second.yaml")]
+        );
+    }
 
-#[test]
-fn execute_excludes_other_extensions_and_subdirectories() {
-    let tmp = tempfile::tempdir().unwrap();
-    fs::write(tmp.path().join("ci.yml"), "").unwrap();
-    fs::write(tmp.path().join("readme.md"), "").unwrap();
-    fs::create_dir(tmp.path().join("nested")).unwrap();
-    let service = ListWorkflowDirectoryService::new();
+    #[test]
+    fn execute_excludes_other_extensions_and_subdirectories() {
+        let tmp = tempfile::tempdir().unwrap();
+        fs::write(tmp.path().join("ci.yml"), "").unwrap();
+        fs::write(tmp.path().join("readme.md"), "").unwrap();
+        fs::create_dir(tmp.path().join("nested")).unwrap();
+        let service = ListWorkflowDirectoryService::new();
 
-    let response = service
-        .execute(ListWorkflowDirectoryRequest::new(tmp.path()))
-        .unwrap();
+        let response = service
+            .execute(ListWorkflowDirectoryRequest::new(tmp.path()))
+            .unwrap();
 
-    assert_eq!(response.workflow_files(), vec![tmp.path().join("ci.yml")]);
-}
+        assert_eq!(response.workflow_files(), vec![tmp.path().join("ci.yml")]);
+    }
 
-#[test]
-fn execute_errors_when_the_directory_is_missing() {
-    let tmp = tempfile::tempdir().unwrap();
-    let service = ListWorkflowDirectoryService::new();
+    #[test]
+    fn execute_errors_when_the_directory_is_missing() {
+        let tmp = tempfile::tempdir().unwrap();
+        let service = ListWorkflowDirectoryService::new();
 
-    let result = service.execute(ListWorkflowDirectoryRequest::new(
-        &tmp.path().join("absent"),
-    ));
+        let result = service.execute(ListWorkflowDirectoryRequest::new(
+            &tmp.path().join("absent"),
+        ));
 
-    assert!(result.is_err());
-}
+        assert!(result.is_err());
+    }
 
-#[test]
-fn execute_returns_no_files_for_an_empty_directory() {
-    let tmp = tempfile::tempdir().unwrap();
-    let service = ListWorkflowDirectoryService::new();
+    #[test]
+    fn execute_returns_no_files_for_an_empty_directory() {
+        let tmp = tempfile::tempdir().unwrap();
+        let service = ListWorkflowDirectoryService::new();
 
-    let response = service
-        .execute(ListWorkflowDirectoryRequest::new(tmp.path()))
-        .unwrap();
+        let response = service
+            .execute(ListWorkflowDirectoryRequest::new(tmp.path()))
+            .unwrap();
 
-    assert!(response.workflow_files().is_empty());
+        assert!(response.workflow_files().is_empty());
+    }
 }

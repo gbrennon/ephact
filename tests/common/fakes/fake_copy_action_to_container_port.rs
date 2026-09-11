@@ -3,7 +3,8 @@ use ephact::infrastructure::actions::copy_action_to_container_port::CopyActionTo
 use parking_lot::Mutex;
 use std::{path::PathBuf, sync::Arc};
 
-use ephact::{application::dtos::CopyActionToContainerRequest, domain::errors::StepError};
+use ephact::application::dtos::requests::CopyActionToContainerRequest;
+use ephact::domain::errors::StepError;
 
 /// Reports a prepared container-side directory, recording what it copied.
 #[derive(Clone)]

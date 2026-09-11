@@ -1,11 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use ephact::{
-        application::{
-            dtos::ShowProjectBrandingInfoResponse, ports::inbound::ShowProjectBrandingInfoPort,
-        },
-        presentation::cli::Cli,
-    };
+    use ephact::application::dtos::responses::ShowProjectBrandingInfoResponse;
+    use ephact::application::ports::inbound::ShowProjectBrandingInfoPort;
+    use ephact::presentation::cli::Cli;
 
     use crate::common::fakes::{
         fake_list_actions_port::FakeListActionsPort,
@@ -13,7 +10,7 @@ mod tests {
         fake_run_all_workflows_port::FakeRunAllWorkflowsPort,
         fake_run_workflow_port::FakeRunWorkflowPort,
     };
-    use crate::fakes::FakeDiscoverRunInputsPort;
+    use crate::fakes::fake_discover_run_inputs_port::FakeDiscoverRunInputsPort;
 
     struct FakeShowProjectBrandingInfoPort;
 

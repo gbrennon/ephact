@@ -1,18 +1,15 @@
 use std::sync::Arc;
 
-use crate::{
-    application::{
-        dtos::{
-            ExecuteActionCommand, ExecuteActionResponse, ExecuteStepRequest, ExecutedStep,
-            RunShellStepRequest,
-        },
-        ports::{
-            inbound::execute_step_port::ExecuteStepPort,
-            outbound::{command_bus_port::CommandBusPort, run_shell_step_port::RunShellStepPort},
-        },
-    },
-    domain::{errors::StepError, services::StepInterpolator},
-};
+use crate::application::commands::ExecuteActionCommand;
+use crate::application::dtos::requests::ExecuteStepRequest;
+use crate::application::dtos::requests::RunShellStepRequest;
+use crate::application::dtos::responses::ExecuteActionResponse;
+use crate::application::dtos::responses::ExecutedStepResponse;
+use crate::application::ports::inbound::execute_step_port::ExecuteStepPort;
+use crate::application::ports::outbound::command_bus_port::CommandBusPort;
+use crate::application::ports::outbound::run_shell_step_port::RunShellStepPort;
+use crate::domain::errors::StepError;
+use crate::domain::services::StepInterpolator;
 
 /// Application service coordinating the execution of one step.
 ///
@@ -37,7 +34,7 @@ impl ExecuteStepService {
 }
 
 impl ExecuteStepPort for ExecuteStepService {
-    fn execute(&self, request: ExecuteStepRequest<'_>) -> Result<ExecutedStep, StepError> {
+    fn execute(&self, request: ExecuteStepRequest<'_>) -> Result<ExecutedStepResponse, StepError> {
         let interpolated = StepInterpolator::interpolate(request.step(), request.context())
             .map_err(|error| StepError::new(format!("failed to resolve expressions: {error:?}")))?;
 
@@ -60,6 +57,6 @@ impl ExecuteStepPort for ExecuteStepService {
             }
         };
 
-        Ok(ExecutedStep::new(interpolated, response))
+        Ok(ExecutedStepResponse::new(interpolated, response))
     }
 }

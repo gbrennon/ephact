@@ -1,10 +1,9 @@
 #![allow(dead_code)]
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use ephact::{
-    application::{dtos::ExecuteActionRequest, ports::outbound::container_port::ContainerPort},
-    domain::value_objects::EvaluationContext,
-};
+use ephact::application::dtos::requests::ExecuteActionRequest;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::value_objects::EvaluationContext;
 
 use crate::common::fakes::stub_container::StubContainer;
 use ephact::infrastructure::workflows::yaml::StepYaml;

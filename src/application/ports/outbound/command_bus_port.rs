@@ -1,12 +1,13 @@
 use std::error::Error;
 
-use crate::application::dtos::{
+use crate::application::commands::{
     ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
 };
-use crate::{
-    application::dtos::{ExecuteActionResponse, ExecutedStep, JobExecution, WorkflowExecution},
-    domain::errors::StepError,
-};
+use crate::application::dtos::responses::ExecuteActionResponse;
+use crate::application::dtos::responses::ExecutedStepResponse;
+use crate::application::dtos::responses::JobExecutionResponse;
+use crate::application::dtos::responses::WorkflowExecutionResponse;
+use crate::domain::errors::StepError;
 
 /// Outbound port representing the command bus.
 ///
@@ -17,12 +18,12 @@ pub trait CommandBusPort: Send + Sync {
     fn dispatch_workflow(
         &self,
         cmd: ExecuteWorkflowCommand,
-    ) -> Result<WorkflowExecution, Box<dyn Error>>;
+    ) -> Result<WorkflowExecutionResponse, Box<dyn Error>>;
 
     /// Dispatches an [`ExecuteJobCommand`] to the job command handler.
-    fn dispatch_job(&self, cmd: ExecuteJobCommand) -> Result<JobExecution, Box<dyn Error>>;
+    fn dispatch_job(&self, cmd: ExecuteJobCommand) -> Result<JobExecutionResponse, Box<dyn Error>>;
     /// Dispatches an [`ExecuteStepCommand`] to the step command handler.
-    fn dispatch_step(&self, cmd: ExecuteStepCommand) -> Result<ExecutedStep, StepError>;
+    fn dispatch_step(&self, cmd: ExecuteStepCommand) -> Result<ExecutedStepResponse, StepError>;
 
     /// Dispatches an [`ExecuteActionCommand`] to the action command handler.
     fn dispatch_action(

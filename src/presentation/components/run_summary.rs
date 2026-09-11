@@ -1,24 +1,26 @@
-use crate::application::dtos::{JobSummary, RunSummary, run_summary::step_summary::StepSummary};
+use crate::application::dtos::responses::JobSummaryResponse;
+use crate::application::dtos::responses::RunSummaryResponse;
+use crate::application::dtos::responses::StepSummaryResponse;
 
 use super::component::Component;
 
 pub struct RunSummaryComponent<'a> {
-    summary: &'a RunSummary,
+    summary: &'a RunSummaryResponse,
 }
 
 impl<'a> RunSummaryComponent<'a> {
-    pub fn new(summary: &'a RunSummary) -> Self {
+    pub fn new(summary: &'a RunSummaryResponse) -> Self {
         Self { summary }
     }
 
-    fn job_label(job: &JobSummary) -> String {
+    fn job_label(job: &JobSummaryResponse) -> String {
         match &job.name() {
             Some(name) => format!("{} ({name})", job.job_id()),
             None => job.job_id().to_string(),
         }
     }
 
-    fn step_status(step: &StepSummary) -> &'static str {
+    fn step_status(step: &StepSummaryResponse) -> &'static str {
         match step.exit_code() {
             Some(0) => "ok",
             Some(_) => "failed",

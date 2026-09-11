@@ -1,7 +1,6 @@
-use crate::{
-    application::dtos::{ResolveActionDirectoryRequest, ResolvedActionDirectory},
-    domain::errors::StepError,
-};
+use crate::application::dtos::requests::ResolveActionDirectoryRequest;
+use crate::application::dtos::responses::ResolvedActionDirectoryResponse;
+use crate::domain::errors::StepError;
 
 /// Inbound port for deciding where the action a step references lives.
 pub trait ResolveActionDirectoryPort: Send + Sync {
@@ -9,5 +8,5 @@ pub trait ResolveActionDirectoryPort: Send + Sync {
     fn execute(
         &self,
         request: ResolveActionDirectoryRequest<'_>,
-    ) -> Result<ResolvedActionDirectory, StepError>;
+    ) -> Result<ResolvedActionDirectoryResponse, StepError>;
 }

@@ -1,4 +1,5 @@
-use crate::application::dtos::{ContainerConfig, HostInfo};
+use crate::application::dtos::responses::ContainerConfigResponse;
+use crate::application::dtos::responses::HostInfoResponse;
 use crate::{
     application::ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
     domain::errors::ContainerError,
@@ -16,7 +17,7 @@ impl ContainerRuntimePort for Box<dyn ContainerRuntimePort> {
 
     fn create_container(
         &self,
-        config: &ContainerConfig,
+        config: &ContainerConfigResponse,
     ) -> Result<Box<dyn ContainerPort>, ContainerError> {
         (**self).create_container(config)
     }
@@ -33,7 +34,7 @@ impl ContainerRuntimePort for Box<dyn ContainerRuntimePort> {
         (**self).kill_container(name)
     }
 
-    fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
+    fn get_host_info(&self) -> Result<HostInfoResponse, ContainerError> {
         (**self).get_host_info()
     }
 }

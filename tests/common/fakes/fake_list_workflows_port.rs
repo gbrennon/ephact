@@ -1,8 +1,7 @@
 #![allow(dead_code)]
-use ephact::application::{
-    dtos::{ListWorkflowsRequest, ListWorkflowsResponse},
-    ports::inbound::list_workflows_port::ListWorkflowsPort,
-};
+use ephact::application::dtos::requests::ListWorkflowsRequest;
+use ephact::application::dtos::responses::ListWorkflowsResponse;
+use ephact::application::ports::inbound::list_workflows_port::ListWorkflowsPort;
 
 pub struct FakeListWorkflowsPort;
 

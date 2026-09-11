@@ -3,14 +3,12 @@ use std::collections::HashMap;
 use bollard::errors::Error;
 use futures_util::StreamExt;
 
-use crate::{
-    application::dtos::ExecResult,
-    domain::{errors::ContainerError, events::OutputStream},
-    infrastructure::containers::bollard_wrapper::{
-        Client,
-        types::{CreateExecOptions, LogOutput},
-    },
-};
+use crate::application::dtos::responses::ExecResultResponse;
+use crate::domain::errors::ContainerError;
+use crate::domain::events::OutputStream;
+use crate::infrastructure::containers::bollard_wrapper::Client;
+use crate::infrastructure::containers::bollard_wrapper::types::CreateExecOptions;
+use crate::infrastructure::containers::bollard_wrapper::types::LogOutput;
 
 /// Builds the exec options that attach both output streams to a command.
 pub(super) fn exec_options(
@@ -116,8 +114,8 @@ pub(super) async fn exec_exit_code(client: &Client, exec_id: &str) -> i64 {
 }
 
 /// The result reported for a detached exec, which carries no output.
-pub(super) fn detached_result() -> ExecResult {
-    ExecResult::new(0, String::new(), String::new())
+pub(super) fn detached_result() -> ExecResultResponse {
+    ExecResultResponse::new(0, String::new(), String::new())
 }
 
 /// Creates the exec, streams its output, then reports the accumulated result
@@ -127,7 +125,7 @@ pub(super) async fn run_streaming_exec(
     container_id: &str,
     options: CreateExecOptions<String>,
     on_output: &mut dyn FnMut(OutputStream, &str),
-) -> Result<ExecResult, ContainerError> {
+) -> Result<ExecResultResponse, ContainerError> {
     let exec = client
         .create_exec(container_id, options)
         .await
@@ -141,7 +139,7 @@ pub(super) async fn run_streaming_exec(
     match started {
         bollard::exec::StartExecResults::Attached { output, .. } => {
             let (stdout, stderr) = consume_exec_output(output, on_output, container_id).await?;
-            Ok(ExecResult::new(
+            Ok(ExecResultResponse::new(
                 exec_exit_code(client, &exec.id).await,
                 stdout,
                 stderr,
@@ -153,9 +151,9 @@ pub(super) async fn run_streaming_exec(
 
 /// Merges the container's declared environment into a runner context.
 pub(super) fn runner_context_with_container_env(
-    base: &crate::application::dtos::RunnerContext,
+    base: &crate::application::dtos::responses::RunnerContextResponse,
     container_env: Vec<String>,
-) -> crate::application::dtos::RunnerContext {
+) -> crate::application::dtos::responses::RunnerContextResponse {
     base.clone()
         .with_env_extension(parse_env_entries(container_env))
 }

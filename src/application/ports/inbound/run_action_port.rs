@@ -1,7 +1,6 @@
-use crate::{
-    application::dtos::{ExecuteActionResponse, RunActionRequest},
-    domain::errors::StepError,
-};
+use crate::application::dtos::requests::RunActionRequest;
+use crate::application::dtos::responses::ExecuteActionResponse;
+use crate::domain::errors::StepError;
 
 /// Inbound port representing the entrypoint to run an action.
 pub trait RunActionPort {

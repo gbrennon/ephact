@@ -1,4 +1,5 @@
-use crate::application::dtos::{ListWorkflowsRequest, ListWorkflowsResponse};
+use crate::application::dtos::requests::ListWorkflowsRequest;
+use crate::application::dtos::responses::ListWorkflowsResponse;
 
 /// Inbound port for listing workflows in a repository.
 pub trait ListWorkflowsPort {

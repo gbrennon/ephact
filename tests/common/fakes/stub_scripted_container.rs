@@ -1,13 +1,11 @@
 #![allow(dead_code)]
 use std::collections::HashMap;
 
-use ephact::{
-    application::{
-        dtos::{ExecResult, FileEntry, RunnerContext},
-        ports::outbound::container_port::ContainerPort,
-    },
-    domain::errors::ContainerError,
-};
+use ephact::application::dtos::responses::ExecResultResponse;
+use ephact::application::dtos::responses::FileEntryResponse;
+use ephact::application::dtos::responses::RunnerContextResponse;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::errors::ContainerError;
 
 /// Container that answers every execution with one prepared result.
 pub struct StubScriptedContainer {
@@ -30,19 +28,19 @@ impl ContainerPort for StubScriptedContainer {
         _cmd: &[String],
         _workdir: Option<&str>,
         _env: &HashMap<String, String>,
-    ) -> Result<ExecResult, ContainerError> {
-        Ok(ExecResult::new(
+    ) -> Result<ExecResultResponse, ContainerError> {
+        Ok(ExecResultResponse::new(
             self.exit_code,
             self.stdout.clone(),
             String::new(),
         ))
     }
 
-    fn copy_to(&self, _path: &str, _entries: &[FileEntry]) -> Result<(), ContainerError> {
+    fn copy_to(&self, _path: &str, _entries: &[FileEntryResponse]) -> Result<(), ContainerError> {
         Ok(())
     }
 
-    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntry>, ContainerError> {
+    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntryResponse>, ContainerError> {
         Ok(vec![])
     }
 
@@ -50,7 +48,7 @@ impl ContainerPort for StubScriptedContainer {
         Ok(())
     }
 
-    fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> {
-        Ok(RunnerContext::default())
+    fn get_runner_context(&self) -> Result<RunnerContextResponse, ContainerError> {
+        Ok(RunnerContextResponse::default())
     }
 }

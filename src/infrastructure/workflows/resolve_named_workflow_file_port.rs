@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::application::dtos::ResolveNamedWorkflowFileRequest;
+use crate::application::dtos::requests::ResolveNamedWorkflowFileRequest;
 
 /// Inbound port for resolving the file of a workflow named by the caller.
 pub trait ResolveNamedWorkflowFilePort: Send + Sync {

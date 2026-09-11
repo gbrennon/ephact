@@ -1,21 +1,17 @@
 use std::{error::Error, sync::Arc, time::Instant};
 
-use crate::application::{
-    dtos::ExecuteWorkflowCommand,
-    services::pull_request_workflow::{PULL_REQUEST_EVENT_NAME, config_for_pull_request_event},
-};
-use crate::{
-    application::{
-        dtos::{RunSummary, RunWorkflowRequest},
-        ports::{
-            inbound::RunWorkflowPort,
-            outbound::{
-                CommandBusPort, DetectWorkflowTriggerPort, EventBusPort, WorkflowSourcePort,
-            },
-        },
-    },
-    domain::events::{ActRunCompletedPayload, DomainEvent},
-};
+use crate::application::commands::ExecuteWorkflowCommand;
+use crate::application::dtos::requests::RunWorkflowRequest;
+use crate::application::dtos::responses::RunSummaryResponse;
+use crate::application::ports::inbound::RunWorkflowPort;
+use crate::application::ports::outbound::CommandBusPort;
+use crate::application::ports::outbound::DetectWorkflowTriggerPort;
+use crate::application::ports::outbound::EventBusPort;
+use crate::application::ports::outbound::WorkflowSourcePort;
+use crate::application::services::pull_request_workflow::PULL_REQUEST_EVENT_NAME;
+use crate::application::services::pull_request_workflow::config_for_pull_request_event;
+use crate::domain::events::ActRunCompletedPayload;
+use crate::domain::events::DomainEvent;
 
 /// Application service implementing the entrypoint to run a single workflow.
 ///
@@ -48,7 +44,7 @@ impl RunWorkflowService {
 }
 
 impl RunWorkflowPort for RunWorkflowService {
-    fn execute(&self, request: RunWorkflowRequest) -> Result<RunSummary, Box<dyn Error>> {
+    fn execute(&self, request: RunWorkflowRequest) -> Result<RunSummaryResponse, Box<dyn Error>> {
         let repository = request.repository().clone();
         let config = request.into_config();
         let started_at = Instant::now();
@@ -80,7 +76,7 @@ impl RunWorkflowPort for RunWorkflowService {
                 success,
             )));
 
-        Ok(RunSummary::new(
+        Ok(RunSummaryResponse::new(
             workflow_name,
             job_summaries,
             success,

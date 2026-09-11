@@ -1,5 +1,13 @@
 use std::{collections::HashMap, path::PathBuf};
 
+use crate::application::dtos::requests::ExecuteActionRequest;
+use crate::application::dtos::requests::LoadActionDefinitionRequest;
+use crate::application::dtos::requests::ResolveActionDirectoryRequest;
+use crate::application::dtos::requests::ResolveActionInputsRequest;
+use crate::application::dtos::requests::RunCompositeActionRequest;
+use crate::application::dtos::requests::RunNodeActionRequest;
+use crate::application::dtos::responses::ExecuteActionResponse;
+use crate::application::dtos::responses::ResolvedActionDirectoryResponse;
 use crate::application::ports::{
     inbound::execute_action_port::ExecuteActionPort,
     outbound::{
@@ -9,17 +17,10 @@ use crate::application::ports::{
         run_composite_action_port::RunCompositeActionPort, run_node_action_port::RunNodeActionPort,
     },
 };
-use crate::{
-    application::dtos::{
-        ExecuteActionRequest, ExecuteActionResponse, LoadActionDefinitionRequest,
-        ResolveActionDirectoryRequest, ResolveActionInputsRequest, ResolvedActionDirectory,
-        RunCompositeActionRequest, RunNodeActionRequest,
-    },
-    domain::{
-        errors::{ActionError, StepError},
-        value_objects::{ActionDefinition, ActionRuntime},
-    },
-};
+use crate::domain::errors::ActionError;
+use crate::domain::errors::StepError;
+use crate::domain::value_objects::ActionDefinition;
+use crate::domain::value_objects::ActionRuntime;
 
 /// Application service that runs the action a step references.
 ///
@@ -82,10 +83,10 @@ impl ExecuteActionService {
                 request.action_ref(),
                 request.repo_path(),
             ))? {
-            ResolvedActionDirectory::Skipped(response) => {
+            ResolvedActionDirectoryResponse::Skipped(response) => {
                 Ok(ActionDirectoryResolution::Skipped(response))
             }
-            ResolvedActionDirectory::Directory(directory) => {
+            ResolvedActionDirectoryResponse::Directory(directory) => {
                 Ok(ActionDirectoryResolution::Directory(directory))
             }
         }

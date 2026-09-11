@@ -1,15 +1,14 @@
 use std::{error::Error, sync::OnceLock};
 
-use crate::application::dtos::{
+use crate::application::commands::{
     ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
 };
-use crate::{
-    application::{
-        dtos::{ExecuteActionResponse, ExecutedStep, JobExecution, WorkflowExecution},
-        ports::outbound::CommandBusPort,
-    },
-    domain::errors::StepError,
-};
+use crate::application::dtos::responses::ExecuteActionResponse;
+use crate::application::dtos::responses::ExecutedStepResponse;
+use crate::application::dtos::responses::JobExecutionResponse;
+use crate::application::dtos::responses::WorkflowExecutionResponse;
+use crate::application::ports::outbound::CommandBusPort;
+use crate::domain::errors::StepError;
 
 /// Command bus whose target is bound after construction.
 ///
@@ -51,19 +50,19 @@ impl CommandBusPort for DeferredCommandBus {
     fn dispatch_workflow(
         &self,
         cmd: ExecuteWorkflowCommand,
-    ) -> Result<WorkflowExecution, Box<dyn Error>> {
+    ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
         self.bound()
             .ok_or_else(|| Self::unbound().message().to_string())?
             .dispatch_workflow(cmd)
     }
 
-    fn dispatch_job(&self, cmd: ExecuteJobCommand) -> Result<JobExecution, Box<dyn Error>> {
+    fn dispatch_job(&self, cmd: ExecuteJobCommand) -> Result<JobExecutionResponse, Box<dyn Error>> {
         self.bound()
             .ok_or_else(|| Self::unbound().message().to_string())?
             .dispatch_job(cmd)
     }
 
-    fn dispatch_step(&self, cmd: ExecuteStepCommand) -> Result<ExecutedStep, StepError> {
+    fn dispatch_step(&self, cmd: ExecuteStepCommand) -> Result<ExecutedStepResponse, StepError> {
         self.bound().ok_or_else(Self::unbound)?.dispatch_step(cmd)
     }
 

@@ -4,19 +4,17 @@ use std::{
     sync::{Arc, OnceLock},
 };
 
-use ephact::application::dtos::{
+use ephact::application::commands::{
     ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
 };
-use ephact::{
-    application::{
-        dtos::{
-            ExecuteActionRequest, ExecuteActionResponse, ExecutedStep, JobExecution,
-            WorkflowExecution,
-        },
-        ports::{inbound::ExecuteActionPort, outbound::CommandBusPort},
-    },
-    domain::errors::StepError,
-};
+use ephact::application::dtos::requests::ExecuteActionRequest;
+use ephact::application::dtos::responses::ExecuteActionResponse;
+use ephact::application::dtos::responses::ExecutedStepResponse;
+use ephact::application::dtos::responses::JobExecutionResponse;
+use ephact::application::dtos::responses::WorkflowExecutionResponse;
+use ephact::application::ports::inbound::ExecuteActionPort;
+use ephact::application::ports::outbound::CommandBusPort;
+use ephact::domain::errors::StepError;
 
 /// Routes dispatched action commands to a bound action executor, so a
 /// composite action nesting another action exercises the real recursion the
@@ -43,15 +41,18 @@ impl CommandBusPort for FakeActionRoutingCommandBus {
     fn dispatch_workflow(
         &self,
         _cmd: ExecuteWorkflowCommand,
-    ) -> Result<WorkflowExecution, Box<dyn Error>> {
+    ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
         Err("workflow commands are not routed by this fake".into())
     }
 
-    fn dispatch_job(&self, _cmd: ExecuteJobCommand) -> Result<JobExecution, Box<dyn Error>> {
+    fn dispatch_job(
+        &self,
+        _cmd: ExecuteJobCommand,
+    ) -> Result<JobExecutionResponse, Box<dyn Error>> {
         Err("job commands are not routed by this fake".into())
     }
 
-    fn dispatch_step(&self, _cmd: ExecuteStepCommand) -> Result<ExecutedStep, StepError> {
+    fn dispatch_step(&self, _cmd: ExecuteStepCommand) -> Result<ExecutedStepResponse, StepError> {
         Err(StepError::new("step commands are not routed by this fake"))
     }
 

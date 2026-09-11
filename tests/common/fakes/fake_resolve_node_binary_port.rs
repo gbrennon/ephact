@@ -1,8 +1,6 @@
 #![allow(dead_code)]
-use ephact::{
-    application::dtos::ResolveNodeBinaryRequest,
-    infrastructure::actions::resolve_node_binary_port::ResolveNodeBinaryPort,
-};
+use ephact::application::dtos::requests::ResolveNodeBinaryRequest;
+use ephact::infrastructure::actions::resolve_node_binary_port::ResolveNodeBinaryPort;
 
 /// Reports a prepared node interpreter.
 #[derive(Clone)]

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use crate::{application::dtos::ResolveActionInputsRequest, domain::errors::StepError};
+use crate::application::dtos::requests::ResolveActionInputsRequest;
+use crate::domain::errors::StepError;
 
 /// Inbound port for resolving the inputs an action runs with.
 pub trait ResolveActionInputsPort: Send + Sync {

@@ -1,9 +1,8 @@
 use std::error::Error;
 
-use crate::application::{
-    dtos::ShowProjectBrandingInfoResponse,
-    ports::{inbound::ShowProjectBrandingInfoPort, outbound::ProjectBrandingStorePort},
-};
+use crate::application::dtos::responses::ShowProjectBrandingInfoResponse;
+use crate::application::ports::inbound::ShowProjectBrandingInfoPort;
+use crate::application::ports::outbound::ProjectBrandingStorePort;
 
 pub struct ShowProjectBrandingInfoService {
     branding_store: Box<dyn ProjectBrandingStorePort>,

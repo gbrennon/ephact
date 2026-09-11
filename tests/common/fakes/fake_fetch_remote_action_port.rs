@@ -3,10 +3,9 @@ use ephact::infrastructure::actions::fetch_remote_action_port::FetchRemoteAction
 use parking_lot::Mutex;
 use std::{path::PathBuf, sync::Arc};
 
-use ephact::{
-    application::dtos::FetchRemoteActionRequest,
-    domain::{errors::ActionError, value_objects::RemoteActionReference},
-};
+use ephact::application::dtos::requests::FetchRemoteActionRequest;
+use ephact::domain::errors::ActionError;
+use ephact::domain::value_objects::RemoteActionReference;
 
 /// Resolves every remote reference to a prepared directory, or fails.
 #[derive(Clone)]

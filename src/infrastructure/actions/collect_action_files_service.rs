@@ -5,10 +5,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{
-    application::dtos::{CollectActionFilesRequest, CollectActionFilesResponse, FileEntry},
-    domain::errors::StepError,
-};
+use crate::application::dtos::requests::CollectActionFilesRequest;
+use crate::application::dtos::responses::CollectActionFilesResponse;
+use crate::application::dtos::responses::FileEntryResponse;
+use crate::domain::errors::StepError;
 
 /// Directory never copied into the container along with an action.
 const GIT_DIRECTORY: &str = ".git";
@@ -29,7 +29,7 @@ impl CollectActionFilesService {
             .unwrap_or(0o644)
     }
 
-    fn read_file_entry(root: &Path, path: &Path) -> Result<FileEntry, StepError> {
+    fn read_file_entry(root: &Path, path: &Path) -> Result<FileEntryResponse, StepError> {
         let relative = path
             .strip_prefix(root)
             .map_err(|error| StepError::new(format!("action file outside action: {error}")))?;
@@ -38,7 +38,7 @@ impl CollectActionFilesService {
         })?;
         let mode = Self::file_mode(path);
 
-        Ok(FileEntry::new(
+        Ok(FileEntryResponse::new(
             relative.display().to_string(),
             content,
             mode,
@@ -48,7 +48,7 @@ impl CollectActionFilesService {
     fn process_entry(
         root: &Path,
         path: PathBuf,
-        files: &mut Vec<FileEntry>,
+        files: &mut Vec<FileEntryResponse>,
     ) -> Result<(), StepError> {
         if path.file_name().is_some_and(|name| name == GIT_DIRECTORY) {
             return Ok(());
@@ -64,7 +64,7 @@ impl CollectActionFilesService {
     fn collect_files_into(
         root: &Path,
         directory: &Path,
-        files: &mut Vec<FileEntry>,
+        files: &mut Vec<FileEntryResponse>,
     ) -> Result<(), StepError> {
         let listing = read_dir(directory).map_err(|error| {
             StepError::new(format!(

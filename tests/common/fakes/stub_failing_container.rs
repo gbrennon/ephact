@@ -1,13 +1,11 @@
 #![allow(dead_code)]
 use std::collections::HashMap;
 
-use ephact::{
-    application::{
-        dtos::{ExecResult, FileEntry, RunnerContext},
-        ports::outbound::container_port::ContainerPort,
-    },
-    domain::errors::ContainerError,
-};
+use ephact::application::dtos::responses::ExecResultResponse;
+use ephact::application::dtos::responses::FileEntryResponse;
+use ephact::application::dtos::responses::RunnerContextResponse;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::errors::ContainerError;
 
 /// Container that fails every operation, for tests that need to see how a
 /// service surfaces a container failure.
@@ -19,18 +17,18 @@ impl ContainerPort for StubFailingContainer {
         _cmd: &[String],
         _workdir: Option<&str>,
         _env: &HashMap<String, String>,
-    ) -> Result<ExecResult, ContainerError> {
+    ) -> Result<ExecResultResponse, ContainerError> {
         Err(ContainerError::ExecutionFailed(
             "stub".into(),
             "exec refused".into(),
         ))
     }
 
-    fn copy_to(&self, _path: &str, _entries: &[FileEntry]) -> Result<(), ContainerError> {
+    fn copy_to(&self, _path: &str, _entries: &[FileEntryResponse]) -> Result<(), ContainerError> {
         Err(ContainerError::Internal("copy refused".into()))
     }
 
-    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntry>, ContainerError> {
+    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntryResponse>, ContainerError> {
         Err(ContainerError::Internal("copy refused".into()))
     }
 
@@ -41,7 +39,7 @@ impl ContainerPort for StubFailingContainer {
         ))
     }
 
-    fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> {
+    fn get_runner_context(&self) -> Result<RunnerContextResponse, ContainerError> {
         Err(ContainerError::NotAvailable)
     }
 }

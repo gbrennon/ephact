@@ -1,12 +1,10 @@
-use ephact::{
-    application::dtos::ListActionsRequest,
-    domain::{RepoPath, Repository, RepositoryName},
-    presentation::cli::parse_list_actions_test_args,
-};
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use ephact::application::dtos::requests::ListActionsRequest;
+    use ephact::domain::RepoPath;
+    use ephact::domain::Repository;
+    use ephact::domain::RepositoryName;
+    use ephact::presentation::cli::parse_list_actions_test_args;
 
     /// Mirrors how `ListActionsArgs::to_domain` builds its repository from the default `.`
     /// argument. `RepoPath::new` canonicalizes, so the expected value must go through the
