@@ -4,6 +4,9 @@ rules:
       - rust
     message: "Domain layer must not depend on infrastructure"
     severity: ERROR
+    paths:
+      include:
+        - "/src/domain/**"
     patterns:
       - pattern: use $MODULE;
       - metavariable-regex:
@@ -15,6 +18,9 @@ rules:
       - rust
     message: "Domain layer must not depend on presentation"
     severity: ERROR
+    paths:
+      include:
+        - "/src/domain/**"
     patterns:
       - pattern: use $MODULE;
       - metavariable-regex:

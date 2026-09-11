@@ -1,10 +1,8 @@
-use crate::{
-    application::{
-        dtos::{ExecuteActionCommand, ExecuteActionRequest, ExecuteActionResponse},
-        ports::inbound::execute_action_port::ExecuteActionPort,
-    },
-    domain::errors::StepError,
-};
+use crate::application::commands::ExecuteActionCommand;
+use crate::application::dtos::requests::ExecuteActionRequest;
+use crate::application::dtos::responses::ExecuteActionResponse;
+use crate::application::ports::inbound::execute_action_port::ExecuteActionPort;
+use crate::domain::errors::StepError;
 
 /// Infrastructure command handler that processes `ExecuteActionCommand`.
 pub struct ActionCommandHandler {

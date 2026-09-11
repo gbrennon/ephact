@@ -5,20 +5,19 @@ use super::exec_streaming_support::{
     exec_options, run_streaming_exec, runner_context_with_container_env,
 };
 use super::tar_transfer::{download_archive, pack_entries, unpack_entries, upload_archive};
-use crate::{
-    application::{
-        dtos::{ExecResult, FileEntry, RunnerContext},
-        ports::outbound::container_port::ContainerPort,
-    },
-    domain::{errors::ContainerError, events::OutputStream},
-};
+use crate::application::dtos::responses::ExecResultResponse;
+use crate::application::dtos::responses::FileEntryResponse;
+use crate::application::dtos::responses::RunnerContextResponse;
+use crate::application::ports::outbound::container_port::ContainerPort;
+use crate::domain::errors::ContainerError;
+use crate::domain::events::OutputStream;
 
 /// A running Podman container, created by [`PodmanRuntime`].
 pub(super) struct PodmanContainer {
     client: Client,
     container_id: String,
     runtime: tokio::runtime::Handle,
-    runner_context: RunnerContext,
+    runner_context: RunnerContextResponse,
 }
 
 impl PodmanContainer {
@@ -26,7 +25,7 @@ impl PodmanContainer {
         client: Client,
         container_id: String,
         runtime: tokio::runtime::Handle,
-        runner_context: RunnerContext,
+        runner_context: RunnerContextResponse,
     ) -> Self {
         Self {
             client,
@@ -43,7 +42,7 @@ impl ContainerPort for PodmanContainer {
         cmd: &[String],
         workdir: Option<&str>,
         env: &HashMap<String, String>,
-    ) -> Result<ExecResult, ContainerError> {
+    ) -> Result<ExecResultResponse, ContainerError> {
         self.exec_streaming(cmd, workdir, env, &mut |_, _| {})
     }
 
@@ -53,7 +52,7 @@ impl ContainerPort for PodmanContainer {
         workdir: Option<&str>,
         env: &HashMap<String, String>,
         on_output: &mut dyn FnMut(OutputStream, &str),
-    ) -> Result<ExecResult, ContainerError> {
+    ) -> Result<ExecResultResponse, ContainerError> {
         let options = exec_options(cmd, workdir, env);
         self.runtime.block_on(run_streaming_exec(
             &self.client,
@@ -63,7 +62,11 @@ impl ContainerPort for PodmanContainer {
         ))
     }
 
-    fn copy_to(&self, container_path: &str, entries: &[FileEntry]) -> Result<(), ContainerError> {
+    fn copy_to(
+        &self,
+        container_path: &str,
+        entries: &[FileEntryResponse],
+    ) -> Result<(), ContainerError> {
         let archive = pack_entries(entries, &self.container_id)?;
         self.runtime.block_on(upload_archive(
             &self.client,
@@ -73,7 +76,7 @@ impl ContainerPort for PodmanContainer {
         ))
     }
 
-    fn copy_from(&self, container_path: &str) -> Result<Vec<FileEntry>, ContainerError> {
+    fn copy_from(&self, container_path: &str) -> Result<Vec<FileEntryResponse>, ContainerError> {
         self.runtime.block_on(async {
             let archive =
                 download_archive(&self.client, &self.container_id, container_path).await?;
@@ -98,7 +101,7 @@ impl ContainerPort for PodmanContainer {
         })
     }
 
-    fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> {
+    fn get_runner_context(&self) -> Result<RunnerContextResponse, ContainerError> {
         self.runtime.block_on(async {
             let info = self
                 .client

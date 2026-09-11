@@ -1,8 +1,7 @@
+use crate::application::dtos::requests::BuildStepContextRequest;
 use crate::application::ports::outbound::build_step_context_port::BuildStepContextPort;
-use crate::{
-    application::dtos::BuildStepContextRequest,
-    domain::value_objects::{ContextValue, EvaluationContext},
-};
+use crate::domain::value_objects::ContextValue;
+use crate::domain::value_objects::EvaluationContext;
 
 /// Service that mirrors a step's environment into the `env` expression context.
 pub struct BuildStepContextService;

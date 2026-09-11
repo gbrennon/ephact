@@ -3,7 +3,8 @@ use ephact::application::ports::outbound::prepare_job_container_port::PrepareJob
 use parking_lot::Mutex;
 use std::sync::Arc;
 
-use ephact::application::dtos::{PrepareJobContainerRequest, PreparedJobContainer};
+use ephact::application::dtos::requests::PrepareJobContainerRequest;
+use ephact::application::dtos::responses::PreparedJobContainerResponse;
 
 use super::stub_container::StubContainer;
 
@@ -41,12 +42,12 @@ impl PrepareJobContainerPort for FakePrepareJobContainerPort {
     fn execute(
         &self,
         request: PrepareJobContainerRequest<'_>,
-    ) -> Result<PreparedJobContainer, Box<dyn std::error::Error>> {
+    ) -> Result<PreparedJobContainerResponse, Box<dyn std::error::Error>> {
         self.job_ids.lock().push(request.job_id().to_string());
         if let Some(message) = &self.failure {
             return Err(message.clone().into());
         }
-        Ok(PreparedJobContainer::new(
+        Ok(PreparedJobContainerResponse::new(
             Arc::new(StubContainer),
             self.container_name.clone(),
         ))

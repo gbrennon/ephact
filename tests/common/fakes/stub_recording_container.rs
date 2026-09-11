@@ -2,13 +2,11 @@
 use parking_lot::Mutex;
 use std::{collections::HashMap, sync::Arc};
 
-use ephact::{
-    application::{
-        dtos::{ExecResult, FileEntry, RunnerContext},
-        ports::outbound::container_port::ContainerPort,
-    },
-    domain::errors::ContainerError,
-};
+use ephact::application::dtos::responses::ExecResultResponse;
+use ephact::application::dtos::responses::FileEntryResponse;
+use ephact::application::dtos::responses::RunnerContextResponse;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::errors::ContainerError;
 
 /// Container that succeeds at everything and records what it was asked to run
 /// and copy. Every clone observes the same recording.
@@ -17,7 +15,7 @@ pub struct StubRecordingContainer {
     executed_commands: Arc<Mutex<Vec<Vec<String>>>>,
     exec_environments: Arc<Mutex<Vec<HashMap<String, String>>>>,
     copied_paths: Arc<Mutex<Vec<String>>>,
-    copied_files: Arc<Mutex<Vec<Vec<FileEntry>>>>,
+    copied_files: Arc<Mutex<Vec<Vec<FileEntryResponse>>>>,
 }
 
 impl StubRecordingContainer {
@@ -37,7 +35,7 @@ impl StubRecordingContainer {
         self.copied_paths.lock().clone()
     }
 
-    pub fn copied_files(&self) -> Vec<Vec<FileEntry>> {
+    pub fn copied_files(&self) -> Vec<Vec<FileEntryResponse>> {
         self.copied_files.lock().clone()
     }
 }
@@ -48,19 +46,19 @@ impl ContainerPort for StubRecordingContainer {
         cmd: &[String],
         _workdir: Option<&str>,
         env: &HashMap<String, String>,
-    ) -> Result<ExecResult, ContainerError> {
+    ) -> Result<ExecResultResponse, ContainerError> {
         self.executed_commands.lock().push(cmd.to_vec());
         self.exec_environments.lock().push(env.clone());
-        Ok(ExecResult::new(0, String::new(), String::new()))
+        Ok(ExecResultResponse::new(0, String::new(), String::new()))
     }
 
-    fn copy_to(&self, path: &str, entries: &[FileEntry]) -> Result<(), ContainerError> {
+    fn copy_to(&self, path: &str, entries: &[FileEntryResponse]) -> Result<(), ContainerError> {
         self.copied_paths.lock().push(path.to_string());
         self.copied_files.lock().push(entries.to_vec());
         Ok(())
     }
 
-    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntry>, ContainerError> {
+    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntryResponse>, ContainerError> {
         Ok(vec![])
     }
 
@@ -68,7 +66,7 @@ impl ContainerPort for StubRecordingContainer {
         Ok(())
     }
 
-    fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> {
-        Ok(RunnerContext::default())
+    fn get_runner_context(&self) -> Result<RunnerContextResponse, ContainerError> {
+        Ok(RunnerContextResponse::default())
     }
 }

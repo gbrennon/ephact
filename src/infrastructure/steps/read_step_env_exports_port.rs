@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::application::dtos::ReadStepEnvExportsRequest;
+use crate::application::dtos::requests::ReadStepEnvExportsRequest;
 
 /// Inbound port for reading the environment variables a step exported.
 pub trait ReadStepEnvExportsPort: Send + Sync {

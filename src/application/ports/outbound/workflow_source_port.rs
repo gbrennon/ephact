@@ -1,6 +1,7 @@
 use std::{error::Error, sync::Arc};
 
-use crate::{application::dtos::WorkflowListItem, domain::entities::repository::Repository};
+use crate::application::dtos::responses::WorkflowListItemResponse;
+use crate::domain::entities::repository::Repository;
 
 /// Outbound port that supplies workflow definitions and catalogues for a repository.
 ///
@@ -26,7 +27,7 @@ pub trait WorkflowSourcePort: Send + Sync {
     fn list_workflows(
         &self,
         repository: &Repository,
-    ) -> Result<Vec<WorkflowListItem>, Box<dyn Error>>;
+    ) -> Result<Vec<WorkflowListItemResponse>, Box<dyn Error>>;
 }
 
 impl<T: WorkflowSourcePort + ?Sized> WorkflowSourcePort for Arc<T> {
@@ -49,7 +50,7 @@ impl<T: WorkflowSourcePort + ?Sized> WorkflowSourcePort for Arc<T> {
     fn list_workflows(
         &self,
         repository: &Repository,
-    ) -> Result<Vec<WorkflowListItem>, Box<dyn Error>> {
+    ) -> Result<Vec<WorkflowListItemResponse>, Box<dyn Error>> {
         (**self).list_workflows(repository)
     }
 }

@@ -1,15 +1,14 @@
 #![allow(dead_code)]
 use std::{error::Error, sync::Arc};
 
-use ephact::{
-    application::{dtos::WorkflowListItem, ports::outbound::WorkflowSourcePort},
-    domain::Repository,
-};
+use ephact::application::dtos::responses::WorkflowListItemResponse;
+use ephact::application::ports::outbound::WorkflowSourcePort;
+use ephact::domain::Repository;
 use parking_lot::Mutex;
 
 #[derive(Default)]
 struct FakeWorkflowSourceState {
-    workflows: Vec<WorkflowListItem>,
+    workflows: Vec<WorkflowListItemResponse>,
     actions: Vec<String>,
     workflow_content: String,
     all_workflow_contents: Vec<String>,
@@ -36,7 +35,7 @@ impl FakeWorkflowSource {
         Self::default()
     }
 
-    pub fn with_workflows(self, workflows: Vec<WorkflowListItem>) -> Self {
+    pub fn with_workflows(self, workflows: Vec<WorkflowListItemResponse>) -> Self {
         self.state.lock().workflows = workflows;
         self
     }
@@ -136,7 +135,7 @@ impl WorkflowSourcePort for FakeWorkflowSource {
     fn list_workflows(
         &self,
         repository: &Repository,
-    ) -> Result<Vec<WorkflowListItem>, Box<dyn Error>> {
+    ) -> Result<Vec<WorkflowListItemResponse>, Box<dyn Error>> {
         let mut state = self.state.lock();
         state.list_workflows_calls.push(repository.clone());
 

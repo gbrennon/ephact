@@ -2,23 +2,24 @@
 mod tests {
     use std::{cell::RefCell, error::Error, time::Duration};
 
-    use ephact::{
-        application::{
-            dtos::{
-                DiscoverRunInputsRequest, JobSummary, ListWorkflowsRequest, ListWorkflowsResponse,
-                RunAllWorkflowsRequest, RunInputDeclaration, RunInputSource, RunSummary,
-                RunWorkflowRequest, WorkflowListItem,
-            },
-            ports::{
-                inbound::{ListWorkflowsPort, RunAllWorkflowsPort, RunWorkflowPort},
-                outbound::DiscoverRunInputsPort,
-            },
-        },
-        presentation::{
-            cli::{parse_run_test_args, run_handler::RunHandler},
-            components::terminal::{SystemTerminal, Terminal},
-        },
-    };
+    use ephact::application::dtos::requests::DiscoverRunInputsRequest;
+    use ephact::application::dtos::requests::ListWorkflowsRequest;
+    use ephact::application::dtos::requests::RunAllWorkflowsRequest;
+    use ephact::application::dtos::requests::RunWorkflowRequest;
+    use ephact::application::dtos::responses::JobSummaryResponse;
+    use ephact::application::dtos::responses::ListWorkflowsResponse;
+    use ephact::application::dtos::responses::RunInputDeclarationResponse;
+    use ephact::application::dtos::responses::RunInputSourceResponse;
+    use ephact::application::dtos::responses::RunSummaryResponse;
+    use ephact::application::dtos::responses::WorkflowListItemResponse;
+    use ephact::application::ports::inbound::ListWorkflowsPort;
+    use ephact::application::ports::inbound::RunAllWorkflowsPort;
+    use ephact::application::ports::inbound::RunWorkflowPort;
+    use ephact::application::ports::outbound::DiscoverRunInputsPort;
+    use ephact::presentation::cli::parse_run_test_args;
+    use ephact::presentation::cli::run_handler::RunHandler;
+    use ephact::presentation::components::terminal::SystemTerminal;
+    use ephact::presentation::components::terminal::Terminal;
 
     use crate::common::fakes::{
         fake_list_workflows_port::FakeListWorkflowsPort,
@@ -26,10 +27,10 @@ mod tests {
         stub_run_workflow_port::StubRunWorkflowPort,
     };
 
-    fn summary(success: bool) -> RunSummary {
-        RunSummary::new(
+    fn summary(success: bool) -> RunSummaryResponse {
+        RunSummaryResponse::new(
             "test",
-            vec![JobSummary::new("job", None, vec![], success)],
+            vec![JobSummaryResponse::new("job", None, vec![], success)],
             success,
             Duration::ZERO,
         )
@@ -52,7 +53,10 @@ mod tests {
     }
 
     impl RunWorkflowPort for RecordingRunWorkflowPort {
-        fn execute(&self, request: RunWorkflowRequest) -> Result<RunSummary, Box<dyn Error>> {
+        fn execute(
+            &self,
+            request: RunWorkflowRequest,
+        ) -> Result<RunSummaryResponse, Box<dyn Error>> {
             self.requests.borrow_mut().push(request);
             Ok(summary(true))
         }
@@ -61,7 +65,10 @@ mod tests {
     struct UnusedRunAllWorkflowsPort;
 
     impl RunAllWorkflowsPort for UnusedRunAllWorkflowsPort {
-        fn execute(&self, _request: RunAllWorkflowsRequest) -> Result<RunSummary, Box<dyn Error>> {
+        fn execute(
+            &self,
+            _request: RunAllWorkflowsRequest,
+        ) -> Result<RunSummaryResponse, Box<dyn Error>> {
             Err("all workflows should not run interactively".into())
         }
     }
@@ -71,7 +78,7 @@ mod tests {
     }
 
     impl WorkflowListPortFake {
-        fn new(workflows: Vec<WorkflowListItem>) -> Self {
+        fn new(workflows: Vec<WorkflowListItemResponse>) -> Self {
             Self {
                 response: ListWorkflowsResponse::new(workflows),
             }
@@ -88,14 +95,14 @@ mod tests {
     }
 
     struct DiscoverInputsFake {
-        declarations: Vec<RunInputDeclaration>,
+        declarations: Vec<RunInputDeclarationResponse>,
     }
 
     impl DiscoverRunInputsPort for DiscoverInputsFake {
         fn execute(
             &self,
             _request: DiscoverRunInputsRequest,
-        ) -> Result<Vec<RunInputDeclaration>, Box<dyn Error>> {
+        ) -> Result<Vec<RunInputDeclarationResponse>, Box<dyn Error>> {
             Ok(self.declarations.clone())
         }
     }
@@ -218,7 +225,7 @@ mod tests {
         let args = parse_run_test_args(&["--interactive"]);
         let run_port = RecordingRunWorkflowPort::new();
         let all_run_port = UnusedRunAllWorkflowsPort;
-        let list_port = WorkflowListPortFake::new(vec![WorkflowListItem::new(
+        let list_port = WorkflowListPortFake::new(vec![WorkflowListItemResponse::new(
             Some("CI".into()),
             Some("ci.yml".into()),
             vec!["pull_request".into()],
@@ -248,7 +255,7 @@ mod tests {
         let args = parse_run_test_args(&["--interactive"]);
         let run_port = RecordingRunWorkflowPort::new();
         let all_run_port = UnusedRunAllWorkflowsPort;
-        let list_port = WorkflowListPortFake::new(vec![WorkflowListItem::new(
+        let list_port = WorkflowListPortFake::new(vec![WorkflowListItemResponse::new(
             Some("CI".into()),
             Some("ci.yml".into()),
             vec!["pull_request".into()],
@@ -271,7 +278,7 @@ mod tests {
         let args = parse_run_test_args(&["--interactive"]);
         let run_port = RecordingRunWorkflowPort::new();
         let all_run_port = UnusedRunAllWorkflowsPort;
-        let list_port = WorkflowListPortFake::new(vec![WorkflowListItem::new(
+        let list_port = WorkflowListPortFake::new(vec![WorkflowListItemResponse::new(
             Some("CI".into()),
             Some("ci.yml".into()),
             vec!["pull_request".into()],
@@ -298,7 +305,7 @@ mod tests {
         let args = parse_run_test_args(&["--interactive"]);
         let run_port = RecordingRunWorkflowPort::new();
         let all_run_port = UnusedRunAllWorkflowsPort;
-        let list_port = WorkflowListPortFake::new(vec![WorkflowListItem::new(
+        let list_port = WorkflowListPortFake::new(vec![WorkflowListItemResponse::new(
             Some("CI".into()),
             Some("ci.yml".into()),
             vec!["pull_request".into()],
@@ -326,12 +333,12 @@ mod tests {
         let run_port = RecordingRunWorkflowPort::new();
         let all_run_port = UnusedRunAllWorkflowsPort;
         let list_port = WorkflowListPortFake::new(vec![
-            WorkflowListItem::new(
+            WorkflowListItemResponse::new(
                 Some("Merge".into()),
                 Some("merge.yml".into()),
                 vec!["merge_group".into()],
             ),
-            WorkflowListItem::new(
+            WorkflowListItemResponse::new(
                 Some("CI".into()),
                 Some("ci.yml".into()),
                 vec!["pull_request".into()],
@@ -360,23 +367,23 @@ mod tests {
         let all_run_port = UnusedRunAllWorkflowsPort;
         let discovery_port = DiscoverInputsFake {
             declarations: vec![
-                RunInputDeclaration::new(
+                RunInputDeclarationResponse::new(
                     "cache-key-prefix",
-                    RunInputSource::Action("./.forgejo/actions/cache-rust-deps".into()),
+                    RunInputSourceResponse::Action("./.forgejo/actions/cache-rust-deps".into()),
                     Some("Prefix for the cache key".into()),
                     true,
                     None,
                 ),
-                RunInputDeclaration::new(
+                RunInputDeclarationResponse::new(
                     "rustc-version",
-                    RunInputSource::Action("./.forgejo/actions/cache-rust-deps".into()),
+                    RunInputSourceResponse::Action("./.forgejo/actions/cache-rust-deps".into()),
                     Some("Rust compiler version".into()),
                     false,
                     Some("stable".into()),
                 ),
             ],
         };
-        let list_port = WorkflowListPortFake::new(vec![WorkflowListItem::new(
+        let list_port = WorkflowListPortFake::new(vec![WorkflowListItemResponse::new(
             Some("CI".into()),
             Some("ci.yml".into()),
             vec!["pull_request".into()],

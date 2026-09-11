@@ -1,11 +1,10 @@
 use crate::application::ports::outbound::load_action_definition_port::LoadActionDefinitionPort;
 use std::fs::read_to_string;
 
-use crate::{
-    application::dtos::LoadActionDefinitionRequest,
-    domain::{errors::StepError, value_objects::ActionDefinition},
-    infrastructure::workflows::yaml::ActionDefinitionYaml,
-};
+use crate::application::dtos::requests::LoadActionDefinitionRequest;
+use crate::domain::errors::StepError;
+use crate::domain::value_objects::ActionDefinition;
+use crate::infrastructure::workflows::yaml::ActionDefinitionYaml;
 
 /// Service that reads an action's `action.yml` (or `action.yaml`) and parses it.
 pub struct LoadActionDefinitionService;

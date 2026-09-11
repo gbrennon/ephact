@@ -1,7 +1,6 @@
 use super::list_workflows_args::ListWorkflowsArgs;
-use crate::application::{
-    dtos::ListWorkflowsResponse, ports::inbound::list_workflows_port::ListWorkflowsPort,
-};
+use crate::application::dtos::responses::ListWorkflowsResponse;
+use crate::application::ports::inbound::list_workflows_port::ListWorkflowsPort;
 
 pub struct ListWorkflowsHandler;
 

@@ -1,22 +1,19 @@
 use std::{error::Error, sync::Arc};
 
-use crate::{
-    application::{
-        dtos::{ExecuteJobCommand, ExecuteWorkflowRequest, LoadWorkflowRequest, WorkflowExecution},
-        ports::{
-            inbound::execute_workflow_port::ExecuteWorkflowPort,
-            outbound::{
-                command_bus_port::CommandBusPort, event_bus_port::EventBusPort,
-                load_workflow_port::LoadWorkflowPort,
-            },
-        },
-    },
-    domain::{
-        entities::JobRun,
-        events::{DomainEvent, JobFinishedPayload, JobStartedPayload, WorkflowStartedPayload},
-        services::ExecutionPlanner,
-    },
-};
+use crate::application::commands::ExecuteJobCommand;
+use crate::application::dtos::requests::ExecuteWorkflowRequest;
+use crate::application::dtos::requests::LoadWorkflowRequest;
+use crate::application::dtos::responses::WorkflowExecutionResponse;
+use crate::application::ports::inbound::execute_workflow_port::ExecuteWorkflowPort;
+use crate::application::ports::outbound::command_bus_port::CommandBusPort;
+use crate::application::ports::outbound::event_bus_port::EventBusPort;
+use crate::application::ports::outbound::load_workflow_port::LoadWorkflowPort;
+use crate::domain::entities::JobRun;
+use crate::domain::events::DomainEvent;
+use crate::domain::events::JobFinishedPayload;
+use crate::domain::events::JobStartedPayload;
+use crate::domain::events::WorkflowStartedPayload;
+use crate::domain::services::ExecutionPlanner;
 
 /// Application service coordinating the execution of a single workflow.
 ///
@@ -49,7 +46,7 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
     fn execute(
         &self,
         request: ExecuteWorkflowRequest<'_>,
-    ) -> Result<WorkflowExecution, Box<dyn Error>> {
+    ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
         let workflow = self
             .workflow_loader
             .execute(LoadWorkflowRequest::new(request.workflow_content()))?;
@@ -69,7 +66,7 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
             .collect();
         let success = executions.iter().all(|e| e.job_summary().success());
 
-        Ok(WorkflowExecution::new(
+        Ok(WorkflowExecutionResponse::new(
             workflow_name,
             job_summaries,
             container_names,
@@ -84,7 +81,8 @@ impl ExecuteWorkflowService {
         workflow: &crate::domain::aggregates::Workflow,
         plan: &crate::domain::value_objects::ExecutionPlan,
         request: ExecuteWorkflowRequest<'_>,
-    ) -> Result<Vec<crate::application::dtos::JobExecution>, Box<dyn Error>> {
+    ) -> Result<Vec<crate::application::dtos::responses::JobExecutionResponse>, Box<dyn Error>>
+    {
         let all_runs: Vec<&crate::domain::entities::JobRun> = plan
             .stages()
             .iter()
@@ -102,7 +100,7 @@ impl ExecuteWorkflowService {
         run: &crate::domain::entities::JobRun,
         repo_path: &std::path::Path,
         context: &crate::domain::value_objects::EvaluationContext,
-    ) -> Result<crate::application::dtos::JobExecution, Box<dyn Error>> {
+    ) -> Result<crate::application::dtos::responses::JobExecutionResponse, Box<dyn Error>> {
         self.announce_job_started(workflow.name().unwrap_or("unnamed"), run);
         let execution = self.command_bus.dispatch_job(ExecuteJobCommand::new(
             run.job().clone(),

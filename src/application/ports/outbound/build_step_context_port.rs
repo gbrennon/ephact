@@ -1,4 +1,5 @@
-use crate::{application::dtos::BuildStepContextRequest, domain::value_objects::EvaluationContext};
+use crate::application::dtos::requests::BuildStepContextRequest;
+use crate::domain::value_objects::EvaluationContext;
 
 /// Inbound port for building the context one step's expressions resolve against.
 pub trait BuildStepContextPort: Send + Sync {

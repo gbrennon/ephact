@@ -5,7 +5,7 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 
-use ephact::application::dtos::ReadStepPathExportsRequest;
+use ephact::application::dtos::requests::ReadStepPathExportsRequest;
 
 /// Returns prepared path additions, recording that it was consulted.
 #[derive(Clone)]

@@ -6,10 +6,10 @@ use crate::{
 };
 use std::{error::Error, process};
 
-use crate::application::dtos::{
-    CreateJobContainerRequest, PrepareJobContainerRequest, PreparedJobContainer,
-    PullJobImageRequest,
-};
+use crate::application::dtos::requests::CreateJobContainerRequest;
+use crate::application::dtos::requests::PrepareJobContainerRequest;
+use crate::application::dtos::requests::PullJobImageRequest;
+use crate::application::dtos::responses::PreparedJobContainerResponse;
 
 /// Service that prepares a job's container: pulls the image the job needs and
 /// creates the container its steps run in.
@@ -34,7 +34,7 @@ impl PrepareJobContainerPort for PrepareJobContainerService {
     fn execute(
         &self,
         request: PrepareJobContainerRequest<'_>,
-    ) -> Result<PreparedJobContainer, Box<dyn Error>> {
+    ) -> Result<PreparedJobContainerResponse, Box<dyn Error>> {
         let image = self
             .image_puller
             .execute(PullJobImageRequest::new(request.runs_on()))?;
@@ -51,6 +51,6 @@ impl PrepareJobContainerPort for PrepareJobContainerService {
                 request.repo_path(),
             ))?;
 
-        Ok(PreparedJobContainer::new(container, container_name))
+        Ok(PreparedJobContainerResponse::new(container, container_name))
     }
 }

@@ -1,11 +1,9 @@
 #![allow(dead_code)]
-use ephact::{
-    application::{
-        dtos::{ContainerConfig, HostInfo},
-        ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
-    },
-    domain::errors::ContainerError,
-};
+use ephact::application::dtos::responses::ContainerConfigResponse;
+use ephact::application::dtos::responses::HostInfoResponse;
+use ephact::application::ports::outbound::ContainerRuntimePort;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::errors::ContainerError;
 
 /// Runtime whose every fallible operation fails with a "Docker"-worded error.
 ///
@@ -28,7 +26,7 @@ impl ContainerRuntimePort for StubDockerErroringRuntime {
 
     fn create_container(
         &self,
-        _config: &ContainerConfig,
+        _config: &ContainerConfigResponse,
     ) -> Result<Box<dyn ContainerPort>, ContainerError> {
         Err(Self::docker_error())
     }
@@ -45,7 +43,7 @@ impl ContainerRuntimePort for StubDockerErroringRuntime {
         Err(Self::docker_error())
     }
 
-    fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
+    fn get_host_info(&self) -> Result<HostInfoResponse, ContainerError> {
         Err(Self::docker_error())
     }
 }

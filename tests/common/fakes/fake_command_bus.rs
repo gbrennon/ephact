@@ -2,16 +2,16 @@
 use parking_lot::Mutex;
 use std::{collections::HashMap, error::Error, sync::Arc};
 
-use ephact::application::dtos::{
+use ephact::application::commands::{
     ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
 };
-use ephact::{
-    application::{
-        dtos::{ExecuteActionResponse, ExecutedStep, JobExecution, JobSummary, WorkflowExecution},
-        ports::outbound::CommandBusPort,
-    },
-    domain::errors::StepError,
-};
+use ephact::application::dtos::responses::ExecuteActionResponse;
+use ephact::application::dtos::responses::ExecutedStepResponse;
+use ephact::application::dtos::responses::JobExecutionResponse;
+use ephact::application::dtos::responses::JobSummaryResponse;
+use ephact::application::dtos::responses::WorkflowExecutionResponse;
+use ephact::application::ports::outbound::CommandBusPort;
+use ephact::domain::errors::StepError;
 
 /// Records every dispatched command and answers it with a prepared outcome, so
 /// a coordination service can be tested on what it publishes instead of on
@@ -22,7 +22,7 @@ pub struct FakeCommandBus {
     pub dispatched_jobs: Arc<Mutex<Vec<ExecuteJobCommand>>>,
     pub dispatched_steps: Arc<Mutex<Vec<ExecuteStepCommand>>>,
     pub dispatched_actions: Arc<Mutex<Vec<ExecuteActionCommand>>>,
-    workflow_result: Option<WorkflowExecution>,
+    workflow_result: Option<WorkflowExecutionResponse>,
     action_result: Option<ExecuteActionResponse>,
     failing_jobs: Vec<String>,
     step_exit_codes: Arc<Mutex<Vec<i64>>>,
@@ -35,7 +35,7 @@ impl FakeCommandBus {
         Self::default()
     }
 
-    pub fn with_workflow_result(mut self, result: WorkflowExecution) -> Self {
+    pub fn with_workflow_result(mut self, result: WorkflowExecutionResponse) -> Self {
         self.workflow_result = Some(result);
         self
     }
@@ -99,12 +99,12 @@ impl CommandBusPort for FakeCommandBus {
     fn dispatch_workflow(
         &self,
         cmd: ExecuteWorkflowCommand,
-    ) -> Result<WorkflowExecution, Box<dyn Error>> {
+    ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
         self.dispatched_workflows.lock().push(cmd);
         Ok(self
             .workflow_result
             .clone()
-            .unwrap_or(WorkflowExecution::new(
+            .unwrap_or(WorkflowExecutionResponse::new(
                 "fake-workflow".to_string(),
                 Vec::new(),
                 vec!["c1".to_string()],
@@ -112,15 +112,15 @@ impl CommandBusPort for FakeCommandBus {
             )))
     }
 
-    fn dispatch_job(&self, cmd: ExecuteJobCommand) -> Result<JobExecution, Box<dyn Error>> {
+    fn dispatch_job(&self, cmd: ExecuteJobCommand) -> Result<JobExecutionResponse, Box<dyn Error>> {
         let job_id = cmd.job_id().to_owned();
         let name = cmd.job().name().map(|s| s.to_owned());
         self.dispatched_jobs.lock().push(cmd);
         if let Some(message) = &self.job_error {
             return Err(message.clone().into());
         }
-        Ok(JobExecution::new(
-            JobSummary::new(
+        Ok(JobExecutionResponse::new(
+            JobSummaryResponse::new(
                 job_id.clone(),
                 name,
                 Vec::new(),
@@ -130,13 +130,13 @@ impl CommandBusPort for FakeCommandBus {
         ))
     }
 
-    fn dispatch_step(&self, cmd: ExecuteStepCommand) -> Result<ExecutedStep, StepError> {
+    fn dispatch_step(&self, cmd: ExecuteStepCommand) -> Result<ExecutedStepResponse, StepError> {
         let step = cmd.step().clone();
         self.dispatched_steps.lock().push(cmd);
         if let Some(message) = &self.step_error {
             return Err(StepError::new(message.clone()));
         }
-        Ok(ExecutedStep::new(
+        Ok(ExecutedStepResponse::new(
             step,
             ExecuteActionResponse::new(
                 self.step_exit_codes.lock().pop().unwrap_or(0),

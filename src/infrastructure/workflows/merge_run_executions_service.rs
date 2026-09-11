@@ -1,7 +1,9 @@
 use super::merge_run_executions_port::MergeRunExecutionsPort;
 use std::error::Error;
 
-use crate::application::dtos::{JobSummary, MergeRunExecutionsRequest, WorkflowExecution};
+use crate::application::dtos::requests::MergeRunExecutionsRequest;
+use crate::application::dtos::responses::JobSummaryResponse;
+use crate::application::dtos::responses::WorkflowExecutionResponse;
 
 /// Summary name used when every workflow in the repository is executed.
 pub const ALL_WORKFLOWS_SUMMARY_NAME: &str = "all-workflows";
@@ -19,9 +21,9 @@ impl MergeRunExecutionsService {
         Self
     }
 
-    fn prefix_job(wf_name: &str, job: &JobSummary) -> JobSummary {
+    fn prefix_job(wf_name: &str, job: &JobSummaryResponse) -> JobSummaryResponse {
         let prefixed_name = job.name().map(|name| format!("{wf_name} / {name}"));
-        JobSummary::new(
+        JobSummaryResponse::new(
             job.job_id().to_string(),
             prefixed_name,
             job.steps().to_vec(),
@@ -40,7 +42,7 @@ impl MergeRunExecutionsPort for MergeRunExecutionsService {
     fn execute(
         &self,
         request: MergeRunExecutionsRequest,
-    ) -> Result<WorkflowExecution, Box<dyn Error>> {
+    ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
         if !request.all_workflows() {
             return request
                 .executions()
@@ -50,7 +52,7 @@ impl MergeRunExecutionsPort for MergeRunExecutionsService {
                 .ok_or_else(|| "no workflow file resolved".into());
         }
 
-        let mut merged_jobs: Vec<JobSummary> = Vec::new();
+        let mut merged_jobs: Vec<JobSummaryResponse> = Vec::new();
         let mut merged_containers: Vec<String> = Vec::new();
         let mut merged_success = true;
 
@@ -63,7 +65,7 @@ impl MergeRunExecutionsPort for MergeRunExecutionsService {
             merged_success &= execution.success();
         }
 
-        Ok(WorkflowExecution::new(
+        Ok(WorkflowExecutionResponse::new(
             ALL_WORKFLOWS_SUMMARY_NAME,
             merged_jobs,
             merged_containers,

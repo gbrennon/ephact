@@ -2,13 +2,11 @@
 use parking_lot::Mutex;
 use std::{collections::HashMap, sync::Arc};
 
-use ephact::{
-    application::{
-        dtos::{ExecResult, FileEntry, RunnerContext},
-        ports::outbound::container_port::ContainerPort,
-    },
-    domain::errors::ContainerError,
-};
+use ephact::application::dtos::responses::ExecResultResponse;
+use ephact::application::dtos::responses::FileEntryResponse;
+use ephact::application::dtos::responses::RunnerContextResponse;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::errors::ContainerError;
 
 /// Container handle a [`super::fake_runtime::FakeRuntime`] creates.
 ///
@@ -17,7 +15,7 @@ use ephact::{
 /// queue is drained. Reading a file the runner writes (`cat`) fails, the way a
 /// container that never wrote the file behaves.
 pub struct FakeContainerHandle {
-    exec_results: Arc<Mutex<Vec<ExecResult>>>,
+    exec_results: Arc<Mutex<Vec<ExecResultResponse>>>,
     executed_commands: Arc<Mutex<Vec<Vec<String>>>>,
     exec_environments: Arc<Mutex<Vec<HashMap<String, String>>>>,
     copied_paths: Arc<Mutex<Vec<String>>>,
@@ -25,7 +23,7 @@ pub struct FakeContainerHandle {
 
 impl FakeContainerHandle {
     pub fn new(
-        exec_results: Arc<Mutex<Vec<ExecResult>>>,
+        exec_results: Arc<Mutex<Vec<ExecResultResponse>>>,
         executed_commands: Arc<Mutex<Vec<Vec<String>>>>,
         exec_environments: Arc<Mutex<Vec<HashMap<String, String>>>>,
         copied_paths: Arc<Mutex<Vec<String>>>,
@@ -45,7 +43,7 @@ impl ContainerPort for FakeContainerHandle {
         cmd: &[String],
         _workdir: Option<&str>,
         env: &HashMap<String, String>,
-    ) -> Result<ExecResult, ContainerError> {
+    ) -> Result<ExecResultResponse, ContainerError> {
         if cmd.first().map(String::as_str) == Some("cat") {
             return Err(ContainerError::ExecutionFailed(
                 "fake".into(),
@@ -58,18 +56,18 @@ impl ContainerPort for FakeContainerHandle {
 
         let mut results = self.exec_results.lock();
         if results.is_empty() {
-            Ok(ExecResult::new(0, String::new(), String::new()))
+            Ok(ExecResultResponse::new(0, String::new(), String::new()))
         } else {
             Ok(results.remove(0))
         }
     }
 
-    fn copy_to(&self, path: &str, _entries: &[FileEntry]) -> Result<(), ContainerError> {
+    fn copy_to(&self, path: &str, _entries: &[FileEntryResponse]) -> Result<(), ContainerError> {
         self.copied_paths.lock().push(path.to_string());
         Ok(())
     }
 
-    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntry>, ContainerError> {
+    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntryResponse>, ContainerError> {
         Ok(vec![])
     }
 
@@ -77,7 +75,7 @@ impl ContainerPort for FakeContainerHandle {
         Ok(())
     }
 
-    fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> {
-        Ok(RunnerContext::default())
+    fn get_runner_context(&self) -> Result<RunnerContextResponse, ContainerError> {
+        Ok(RunnerContextResponse::default())
     }
 }

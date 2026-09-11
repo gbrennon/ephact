@@ -5,7 +5,7 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use ephact::application::dtos::DetectWorkflowFileRequest;
+use ephact::application::dtos::requests::DetectWorkflowFileRequest;
 
 /// Detects a prepared workflow file, recording whether it was consulted.
 pub struct FakeDetectWorkflowFilePort {

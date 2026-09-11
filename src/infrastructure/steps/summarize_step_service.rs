@@ -1,4 +1,6 @@
-use crate::application::dtos::{StepSummary, SummarizeStepRequest, SummarizedStep};
+use crate::application::dtos::requests::SummarizeStepRequest;
+use crate::application::dtos::responses::StepSummaryResponse;
+use crate::application::dtos::responses::SummarizedStepResponse;
 use crate::application::ports::outbound::summarize_step_port::SummarizeStepPort;
 
 /// Service that turns a step's outcome into its run-summary entry, deciding
@@ -17,7 +19,7 @@ impl Default for SummarizeStepService {
 }
 
 impl SummarizeStepPort for SummarizeStepService {
-    fn execute(&self, request: SummarizeStepRequest<'_>) -> SummarizedStep {
+    fn execute(&self, request: SummarizeStepRequest<'_>) -> SummarizedStepResponse {
         let step_type = request.step().step_type();
         let continue_on_error = request.step().continues_on_error();
 
@@ -41,8 +43,8 @@ impl SummarizeStepPort for SummarizeStepService {
             ),
         };
 
-        SummarizedStep::new(
-            StepSummary::new(
+        SummarizedStepResponse::new(
+            StepSummaryResponse::new(
                 name,
                 step_type,
                 exit_code,

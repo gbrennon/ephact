@@ -1,13 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use ephact::{
-        application::{
-            dtos::{ExecuteActionResponse, RunActionRequest},
-            ports::inbound::{RunActionPort, ShowProjectBrandingInfoPort},
-        },
-        infrastructure::di::AppContainer,
-        presentation::composition_root::{Application, CompositionRoot},
-    };
+    use ephact::application::dtos::requests::RunActionRequest;
+    use ephact::application::dtos::responses::ExecuteActionResponse;
+    use ephact::application::ports::inbound::RunActionPort;
+    use ephact::application::ports::inbound::ShowProjectBrandingInfoPort;
+    use ephact::infrastructure::di::AppContainer;
+    use ephact::presentation::composition_root::Application;
+    use ephact::presentation::composition_root::CompositionRoot;
 
     use crate::common::fakes::{
         fake_list_actions_port::FakeListActionsPort,
@@ -22,11 +21,11 @@ mod tests {
         fn execute(
             &self,
         ) -> Result<
-            ephact::application::dtos::ShowProjectBrandingInfoResponse,
+            ephact::application::dtos::responses::ShowProjectBrandingInfoResponse,
             Box<dyn std::error::Error>,
         > {
             Ok(
-                ephact::application::dtos::ShowProjectBrandingInfoResponse::new(
+                ephact::application::dtos::responses::ShowProjectBrandingInfoResponse::new(
                     "ephact".to_string(),
                     "Ephemeral action runner".to_string(),
                     "0.1.0".to_string(),

@@ -2,22 +2,22 @@
 use parking_lot::Mutex;
 use std::{path::PathBuf, sync::Arc};
 
-use ephact::{
-    application::dtos::{CollectActionFilesRequest, CollectActionFilesResponse, FileEntry},
-    domain::errors::StepError,
-    infrastructure::actions::collect_action_files_port::CollectActionFilesPort,
-};
+use ephact::application::dtos::requests::CollectActionFilesRequest;
+use ephact::application::dtos::responses::CollectActionFilesResponse;
+use ephact::application::dtos::responses::FileEntryResponse;
+use ephact::domain::errors::StepError;
+use ephact::infrastructure::actions::collect_action_files_port::CollectActionFilesPort;
 
 /// Returns a prepared set of files, recording the directories it walked.
 #[derive(Clone)]
 pub struct FakeCollectActionFilesPort {
-    files: Vec<FileEntry>,
+    files: Vec<FileEntryResponse>,
     failure: Option<String>,
     walked: Arc<Mutex<Vec<PathBuf>>>,
 }
 
 impl FakeCollectActionFilesPort {
-    pub fn returning(files: Vec<FileEntry>) -> Self {
+    pub fn returning(files: Vec<FileEntryResponse>) -> Self {
         Self {
             files,
             failure: None,

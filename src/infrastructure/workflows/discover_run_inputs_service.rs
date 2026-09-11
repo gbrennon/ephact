@@ -5,17 +5,16 @@ use std::{
     path::Path,
 };
 
-use crate::{
-    application::{
-        dtos::{DiscoverRunInputsRequest, RunInputDeclaration, RunInputSource},
-        ports::outbound::{DiscoverRunInputsPort, WorkflowSourcePort},
-    },
-    domain::{
-        aggregates::Workflow,
-        value_objects::{ActionDefinition, ActionRuntime},
-    },
-    infrastructure::workflows::yaml::{ActionDefinitionYaml, WorkflowYaml},
-};
+use crate::application::dtos::requests::DiscoverRunInputsRequest;
+use crate::application::dtos::responses::RunInputDeclarationResponse;
+use crate::application::dtos::responses::RunInputSourceResponse;
+use crate::application::ports::outbound::DiscoverRunInputsPort;
+use crate::application::ports::outbound::WorkflowSourcePort;
+use crate::domain::aggregates::Workflow;
+use crate::domain::value_objects::ActionDefinition;
+use crate::domain::value_objects::ActionRuntime;
+use crate::infrastructure::workflows::yaml::ActionDefinitionYaml;
+use crate::infrastructure::workflows::yaml::WorkflowYaml;
 
 pub struct FilesystemRunInputDiscoveryService {
     workflow_source: Box<dyn WorkflowSourcePort>,
@@ -47,8 +46,8 @@ impl FilesystemRunInputDiscoveryService {
     }
 
     fn add_declaration(
-        declarations: &mut Vec<RunInputDeclaration>,
-        declaration: RunInputDeclaration,
+        declarations: &mut Vec<RunInputDeclarationResponse>,
+        declaration: RunInputDeclarationResponse,
     ) -> Result<(), Box<dyn Error>> {
         if declarations
             .iter()
@@ -62,15 +61,15 @@ impl FilesystemRunInputDiscoveryService {
 
     fn add_workflow_inputs(
         workflow: &Workflow,
-        declarations: &mut Vec<RunInputDeclaration>,
+        declarations: &mut Vec<RunInputDeclarationResponse>,
     ) -> Result<(), Box<dyn Error>> {
         if let Some(inputs) = workflow.trigger().workflow_dispatch_inputs() {
             for (name, input) in inputs {
                 Self::add_declaration(
                     declarations,
-                    RunInputDeclaration::new(
+                    RunInputDeclarationResponse::new(
                         name,
-                        RunInputSource::Workflow,
+                        RunInputSourceResponse::Workflow,
                         input.description().map(str::to_owned),
                         input.required(),
                         input.default().map(str::to_owned),
@@ -84,7 +83,7 @@ impl FilesystemRunInputDiscoveryService {
     fn add_action_inputs(
         repository: &Path,
         action_reference: &str,
-        declarations: &mut Vec<RunInputDeclaration>,
+        declarations: &mut Vec<RunInputDeclarationResponse>,
     ) -> Result<(), Box<dyn Error>> {
         let Some(relative_path) = Self::strip_local_prefix(action_reference) else {
             return Ok(());
@@ -100,7 +99,7 @@ impl FilesystemRunInputDiscoveryService {
     fn process_composite_runs(
         repository: &Path,
         runs: &ActionRuntime,
-        declarations: &mut Vec<RunInputDeclaration>,
+        declarations: &mut Vec<RunInputDeclarationResponse>,
     ) -> Result<(), Box<dyn Error>> {
         if let ActionRuntime::Composite { steps } = runs {
             Self::recurse_composite_steps(repository, steps, declarations)?;
@@ -132,14 +131,14 @@ impl FilesystemRunInputDiscoveryService {
     fn add_input_declarations(
         inputs: &HashMap<String, crate::domain::value_objects::ActionInput>,
         action_reference: &str,
-        declarations: &mut Vec<RunInputDeclaration>,
+        declarations: &mut Vec<RunInputDeclarationResponse>,
     ) -> Result<(), Box<dyn Error>> {
         for (name, input) in inputs {
             Self::add_declaration(
                 declarations,
-                RunInputDeclaration::new(
+                RunInputDeclarationResponse::new(
                     name.clone(),
-                    RunInputSource::Action(action_reference.to_owned()),
+                    RunInputSourceResponse::Action(action_reference.to_owned()),
                     input.description().map(str::to_owned),
                     input.required(),
                     input.default().map(str::to_owned),
@@ -152,7 +151,7 @@ impl FilesystemRunInputDiscoveryService {
     fn recurse_composite_steps(
         repository: &Path,
         steps: &Vec<crate::domain::entities::Step>,
-        declarations: &mut Vec<RunInputDeclaration>,
+        declarations: &mut Vec<RunInputDeclarationResponse>,
     ) -> Result<(), Box<dyn Error>> {
         for step in steps {
             if let Some(reference) = step.uses() {
@@ -165,7 +164,7 @@ impl FilesystemRunInputDiscoveryService {
     fn add_actions(
         workflow: &Workflow,
         repository: &Path,
-        declarations: &mut Vec<RunInputDeclaration>,
+        declarations: &mut Vec<RunInputDeclarationResponse>,
         provided: &mut HashSet<String>,
     ) -> Result<(), Box<dyn Error>> {
         for job in workflow.jobs().values() {
@@ -211,7 +210,7 @@ impl FilesystemRunInputDiscoveryService {
     fn process_workflows(
         contents: &[String],
         repository: &Path,
-    ) -> Result<(Vec<RunInputDeclaration>, HashSet<String>), Box<dyn Error>> {
+    ) -> Result<(Vec<RunInputDeclarationResponse>, HashSet<String>), Box<dyn Error>> {
         let mut declarations = Vec::new();
         let mut provided = HashSet::new();
         for content in contents {
@@ -223,10 +222,10 @@ impl FilesystemRunInputDiscoveryService {
     }
 
     fn resolve_declarations(
-        declarations: Vec<RunInputDeclaration>,
+        declarations: Vec<RunInputDeclarationResponse>,
         supplied: HashMap<&str, &str>,
         provided: HashSet<String>,
-    ) -> Vec<RunInputDeclaration> {
+    ) -> Vec<RunInputDeclarationResponse> {
         declarations
             .into_iter()
             .map(|input| {
@@ -242,7 +241,7 @@ impl DiscoverRunInputsPort for FilesystemRunInputDiscoveryService {
     fn execute(
         &self,
         request: DiscoverRunInputsRequest,
-    ) -> Result<Vec<RunInputDeclaration>, Box<dyn Error>> {
+    ) -> Result<Vec<RunInputDeclarationResponse>, Box<dyn Error>> {
         let contents = self.workflow_contents(&request)?;
         let supplied = Self::collect_supplied_inputs(request.config());
         let repo_path = request.repository().path().as_path();
@@ -291,7 +290,7 @@ mod tests {
             .unwrap();
         let mut names = declarations
             .iter()
-            .map(RunInputDeclaration::name)
+            .map(RunInputDeclarationResponse::name)
             .collect::<Vec<_>>();
         names.sort_unstable();
         assert_eq!(names, vec!["action_name", "optional", "workflow_name"]);

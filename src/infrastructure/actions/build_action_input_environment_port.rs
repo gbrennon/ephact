@@ -1,6 +1,5 @@
-use crate::application::dtos::{
-    BuildActionInputEnvironmentRequest, BuildActionInputEnvironmentResponse,
-};
+use crate::application::dtos::requests::BuildActionInputEnvironmentRequest;
+use crate::application::dtos::responses::BuildActionInputEnvironmentResponse;
 
 /// Outbound port for exposing an action's inputs as environment variables.
 pub trait BuildActionInputEnvironmentPort: Send + Sync {

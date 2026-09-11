@@ -6,10 +6,11 @@ use super::{
 };
 use std::error::Error;
 
-use crate::application::dtos::{
-    DetectWorkflowFileRequest, ListAllWorkflowFilesRequest, ResolveNamedWorkflowFileRequest,
-    ResolveWorkflowFilesRequest, ResolveWorkflowFilesResponse,
-};
+use crate::application::dtos::requests::DetectWorkflowFileRequest;
+use crate::application::dtos::requests::ListAllWorkflowFilesRequest;
+use crate::application::dtos::requests::ResolveNamedWorkflowFileRequest;
+use crate::application::dtos::requests::ResolveWorkflowFilesRequest;
+use crate::application::dtos::responses::ResolveWorkflowFilesResponse;
 
 /// Service that decides which workflow files a run executes: every workflow of
 /// the repository, the one the caller named, or the detected default.

@@ -7,13 +7,11 @@ use super::bollard_wrapper::types::{
 };
 use super::bollard_wrapper::{API_DEFAULT_VERSION, AuthCredentials, Client};
 use super::podman_container::PodmanContainer;
-use crate::{
-    application::{
-        dtos::{ContainerConfig, HostInfo},
-        ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
-    },
-    domain::errors::ContainerError,
-};
+use crate::application::dtos::responses::ContainerConfigResponse;
+use crate::application::dtos::responses::HostInfoResponse;
+use crate::application::ports::outbound::ContainerRuntimePort;
+use crate::application::ports::outbound::container_port::ContainerPort;
+use crate::domain::errors::ContainerError;
 
 /// Podman-based container runtime adapter using the bollard crate.
 ///
@@ -75,7 +73,7 @@ impl ContainerRuntimePort for PodmanRuntime {
 
     fn create_container(
         &self,
-        config: &ContainerConfig,
+        config: &ContainerConfigResponse,
     ) -> Result<Box<dyn ContainerPort>, ContainerError> {
         let env_list: Vec<String> = config
             .env()
@@ -193,7 +191,7 @@ impl ContainerRuntimePort for PodmanRuntime {
         })
     }
 
-    fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
+    fn get_host_info(&self) -> Result<HostInfoResponse, ContainerError> {
         self.runtime.block_on(async {
             let info = self
                 .client
@@ -201,7 +199,7 @@ impl ContainerRuntimePort for PodmanRuntime {
                 .await
                 .map_err(|_| ContainerError::NotAvailable)?;
 
-            Ok(HostInfo::new(
+            Ok(HostInfoResponse::new(
                 info.os.unwrap_or_else(|| "linux".to_string()),
                 info.arch.unwrap_or_else(|| "amd64".to_string()),
                 info.version.unwrap_or_else(|| "unknown".to_string()),

@@ -1,4 +1,4 @@
-use crate::application::dtos::ContainerCleanupRequest;
+use crate::application::dtos::requests::ContainerCleanupRequest;
 
 /// Inbound port for handling act-run-completed events.
 ///

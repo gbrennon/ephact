@@ -1,11 +1,9 @@
 #![allow(dead_code)]
-use ephact::{
-    application::{
-        dtos::{ContainerConfig, HostInfo},
-        ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
-    },
-    domain::errors::ContainerError,
-};
+use ephact::application::dtos::responses::ContainerConfigResponse;
+use ephact::application::dtos::responses::HostInfoResponse;
+use ephact::application::ports::outbound::ContainerRuntimePort;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::errors::ContainerError;
 
 #[derive(Clone, Default)]
 pub struct StubFailingContainerRuntime;
@@ -17,7 +15,7 @@ impl ContainerRuntimePort for StubFailingContainerRuntime {
 
     fn create_container(
         &self,
-        _config: &ContainerConfig,
+        _config: &ContainerConfigResponse,
     ) -> Result<Box<dyn ContainerPort>, ContainerError> {
         Err(ContainerError::NotAvailable)
     }
@@ -40,7 +38,7 @@ impl ContainerRuntimePort for StubFailingContainerRuntime {
         ))
     }
 
-    fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
+    fn get_host_info(&self) -> Result<HostInfoResponse, ContainerError> {
         Err(ContainerError::NotAvailable)
     }
 }

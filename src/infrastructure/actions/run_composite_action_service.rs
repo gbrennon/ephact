@@ -2,16 +2,13 @@ use super::super::steps::run_composite_step_port::RunCompositeStepPort;
 use crate::application::ports::outbound::run_composite_action_port::RunCompositeActionPort;
 use std::collections::HashMap;
 
-use crate::{
-    application::dtos::{
-        ExecuteActionResponse, RunCompositeActionRequest, RunCompositeStepRequest,
-    },
-    domain::{
-        errors::StepError,
-        services::StepInterpolator,
-        value_objects::{ContextValue, EvaluationContext},
-    },
-};
+use crate::application::dtos::requests::RunCompositeActionRequest;
+use crate::application::dtos::requests::RunCompositeStepRequest;
+use crate::application::dtos::responses::ExecuteActionResponse;
+use crate::domain::errors::StepError;
+use crate::domain::services::StepInterpolator;
+use crate::domain::value_objects::ContextValue;
+use crate::domain::value_objects::EvaluationContext;
 
 /// Service that runs a composite action's steps in order, accumulating their
 /// output and stopping at the first one that fails.
@@ -38,7 +35,7 @@ impl RunCompositeActionService {
     }
 
     fn process_step_outcome(
-        outcome: Result<crate::application::dtos::ExecResult, StepError>,
+        outcome: Result<crate::application::dtos::responses::ExecResultResponse, StepError>,
         stdout: &mut String,
         stderr: &mut String,
     ) -> Result<Option<ExecuteActionResponse>, StepError> {

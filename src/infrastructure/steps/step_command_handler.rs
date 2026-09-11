@@ -1,10 +1,8 @@
-use crate::{
-    application::{
-        dtos::{ExecuteStepCommand, ExecuteStepRequest, ExecutedStep},
-        ports::inbound::execute_step_port::ExecuteStepPort,
-    },
-    domain::errors::StepError,
-};
+use crate::application::commands::ExecuteStepCommand;
+use crate::application::dtos::requests::ExecuteStepRequest;
+use crate::application::dtos::responses::ExecutedStepResponse;
+use crate::application::ports::inbound::execute_step_port::ExecuteStepPort;
+use crate::domain::errors::StepError;
 
 /// Infrastructure command handler that processes `ExecuteStepCommand`.
 pub struct StepCommandHandler {
@@ -16,7 +14,7 @@ impl StepCommandHandler {
         Self { executor }
     }
 
-    pub fn handle(&self, cmd: ExecuteStepCommand) -> Result<ExecutedStep, StepError> {
+    pub fn handle(&self, cmd: ExecuteStepCommand) -> Result<ExecutedStepResponse, StepError> {
         let (step, env, context, container, repo_path) = cmd.into_parts();
         let req = ExecuteStepRequest::new(&step, &context, container, &repo_path, &env);
         self.executor.execute(req)

@@ -1,8 +1,7 @@
 #![allow(dead_code)]
-use ephact::application::{
-    dtos::{ListActionsRequest, ListActionsResponse},
-    ports::inbound::list_actions_port::ListActionsPort,
-};
+use ephact::application::dtos::requests::ListActionsRequest;
+use ephact::application::dtos::responses::ListActionsResponse;
+use ephact::application::ports::inbound::list_actions_port::ListActionsPort;
 
 #[derive(Clone)]
 pub struct FakeListActionsPort;

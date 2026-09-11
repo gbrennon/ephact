@@ -1,7 +1,6 @@
-use crate::{
-    application::dtos::{ExecuteActionResponse, RunCompositeActionRequest},
-    domain::errors::StepError,
-};
+use crate::application::dtos::requests::RunCompositeActionRequest;
+use crate::application::dtos::responses::ExecuteActionResponse;
+use crate::domain::errors::StepError;
 
 /// Inbound port for running a composite action's steps.
 pub trait RunCompositeActionPort: Send + Sync {

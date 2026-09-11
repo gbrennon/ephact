@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::application::dtos::PrefixStepPathRequest;
+use crate::application::dtos::requests::PrefixStepPathRequest;
 
 /// Inbound port for prefixing a step's `PATH` with directories earlier steps
 /// exported.

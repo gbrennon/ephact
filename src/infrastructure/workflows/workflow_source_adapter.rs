@@ -187,18 +187,21 @@ impl WorkflowSourcePort for FilesystemWorkflowSource {
     fn list_workflows(
         &self,
         repository: &Repository,
-    ) -> Result<Vec<crate::application::dtos::WorkflowListItem>, Box<dyn Error>> {
+    ) -> Result<Vec<crate::application::dtos::responses::WorkflowListItemResponse>, Box<dyn Error>>
+    {
         let files = self.find_workflow_files(repository)?;
         let mut items = Vec::new();
 
         for file in files {
             let content = Self::read_file_content(&file)?;
             if let Some(name) = Self::extract_name(&content) {
-                items.push(crate::application::dtos::WorkflowListItem::new(
-                    Some(name),
-                    Some(file.to_string_lossy().to_string()),
-                    Self::extract_events(&content),
-                ));
+                items.push(
+                    crate::application::dtos::responses::WorkflowListItemResponse::new(
+                        Some(name),
+                        Some(file.to_string_lossy().to_string()),
+                        Self::extract_events(&content),
+                    ),
+                );
             }
         }
 
