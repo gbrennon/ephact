@@ -1,18 +1,18 @@
-use std::{error::Error, sync::Arc};
+use std::error::Error;
 
-use crate::application::commands::ExecuteJobCommand;
 use crate::application::dtos::requests::ExecuteWorkflowRequest;
 use crate::application::dtos::requests::LoadWorkflowRequest;
 use crate::application::dtos::responses::WorkflowExecutionResponse;
 use crate::application::ports::inbound::execute_workflow_port::ExecuteWorkflowPort;
-use crate::application::ports::outbound::command_bus_port::CommandBusPort;
-use crate::application::ports::outbound::event_bus_port::EventBusPort;
+use crate::application::ports::outbound::command_bus_port::JobCommandBusPort;
+use crate::application::ports::outbound::event_bus_port::DomainEventBusPort;
 use crate::application::ports::outbound::load_workflow_port::LoadWorkflowPort;
 use crate::domain::entities::JobRun;
-use crate::domain::events::DomainEvent;
-use crate::domain::events::JobFinishedPayload;
-use crate::domain::events::JobStartedPayload;
-use crate::domain::events::WorkflowStartedPayload;
+use crate::domain::messages::commands::ExecuteJobCommand;
+use crate::domain::messages::events::DomainEvent;
+use crate::domain::messages::events::JobFinishedPayload;
+use crate::domain::messages::events::JobStartedPayload;
+use crate::domain::messages::events::WorkflowStartedPayload;
 use crate::domain::services::ExecutionPlanner;
 
 /// Application service coordinating the execution of a single workflow.
@@ -21,18 +21,18 @@ use crate::domain::services::ExecutionPlanner;
 /// stages, and publishes one [`ExecuteJobCommand`] per planned run. The job
 /// command handler is what turns each command into an execution, so this
 /// service never depends on the job entrypoint itself. Progress facts are
-/// announced as domain events on the outbound [`EventBusPort`].
+/// announced as domain events on the outbound [`DomainEventBusPort`].
 pub struct ExecuteWorkflowService {
     workflow_loader: Box<dyn LoadWorkflowPort>,
-    command_bus: Arc<dyn CommandBusPort>,
-    event_bus: Arc<dyn EventBusPort>,
+    command_bus: Box<JobCommandBusPort>,
+    event_bus: Box<DomainEventBusPort>,
 }
 
 impl ExecuteWorkflowService {
     pub fn new(
         workflow_loader: Box<dyn LoadWorkflowPort>,
-        command_bus: Arc<dyn CommandBusPort>,
-        event_bus: Arc<dyn EventBusPort>,
+        command_bus: Box<JobCommandBusPort>,
+        event_bus: Box<DomainEventBusPort>,
     ) -> Self {
         Self {
             workflow_loader,
@@ -102,7 +102,7 @@ impl ExecuteWorkflowService {
         context: &crate::domain::value_objects::EvaluationContext,
     ) -> Result<crate::application::dtos::responses::JobExecutionResponse, Box<dyn Error>> {
         self.announce_job_started(workflow.name().unwrap_or("unnamed"), run);
-        let execution = self.command_bus.dispatch_job(ExecuteJobCommand::new(
+        let execution = self.command_bus.dispatch(ExecuteJobCommand::new(
             run.job().clone(),
             run.job_id().to_string(),
             workflow.clone(),

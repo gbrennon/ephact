@@ -2,7 +2,11 @@ use std::sync::Arc;
 
 use crate::{
     application::{
-        ports::outbound::{CommandBusPort, ContainerRuntimePort, EventBusPort},
+        ports::outbound::{
+            ContainerRuntimePort, command_bus_port::ActionCommandBusPort,
+            command_bus_port::JobCommandBusPort, command_bus_port::StepCommandBusPort,
+            event_bus_port::DomainEventBusPort,
+        },
         services::{
             execute_job_service::ExecuteJobService, execute_step_service::ExecuteStepService,
             execute_workflow_service::ExecuteWorkflowService,
@@ -18,7 +22,7 @@ use crate::{
         di::action_execution_wiring::ActionExecutionWiring,
         images::ImageMapperPort,
         jobs::{GitHubJobEnvironmentAdapter, JobCommandHandler},
-        messaging::{DeferredCommandBus, InMemoryCommandBus},
+        messaging::{DeferredCommandBus, InMemoryCommandBus, SharedCommandBus, SharedEventBus},
         steps::{
             StepCommandHandler, build_step_context_service::BuildStepContextService,
             prefix_step_path_service::PrefixStepPathService,
@@ -48,51 +52,53 @@ impl CommandBusWiring {
         runtime: Arc<dyn ContainerRuntimePort>,
         image_mapper: Box<dyn ImageMapperPort>,
         action_fetcher: Box<dyn ActionFetcherPort>,
-        event_bus: Arc<dyn EventBusPort>,
-    ) -> Arc<dyn CommandBusPort> {
+        event_bus: SharedEventBus,
+    ) -> SharedCommandBus {
         let image_mapper: Arc<dyn ImageMapperPort> = Arc::from(image_mapper);
         let deferred = Arc::new(DeferredCommandBus::new());
-        let command_bus: Arc<dyn CommandBusPort> = deferred.clone();
+        let shared_bus = SharedCommandBus::new(deferred.clone());
 
         let workflow_handler = WorkflowCommandHandler::new(Box::new(ExecuteWorkflowService::new(
             Box::new(LoadWorkflowService::new()),
-            command_bus.clone(),
-            event_bus.clone(),
+            Box::new(shared_bus.clone()) as Box<JobCommandBusPort>,
+            Box::new(event_bus.clone()) as Box<DomainEventBusPort>,
         )));
 
         let job_handler = JobCommandHandler::new(Box::new(Self::build_job_executor(
             runtime.clone(),
             image_mapper,
-            command_bus.clone(),
-            event_bus.clone(),
+            Box::new(shared_bus.clone()) as Box<StepCommandBusPort>,
+            Box::new(event_bus.clone()) as Box<DomainEventBusPort>,
         )));
 
         let step_handler = StepCommandHandler::new(Box::new(ExecuteStepService::new(
-            Box::new(RunShellStepService::new(event_bus.clone())),
-            command_bus.clone(),
+            Box::new(RunShellStepService::new(
+                Box::new(event_bus.clone()) as Box<DomainEventBusPort>
+            )),
+            Box::new(shared_bus.clone()) as Box<ActionCommandBusPort>,
         )));
 
         let action_handler = ActionCommandHandler::new(Box::new(ActionExecutionWiring::build(
             action_fetcher,
-            command_bus,
-            event_bus,
+            Box::new(shared_bus.clone()) as Box<ActionCommandBusPort>,
+            Box::new(event_bus) as Box<DomainEventBusPort>,
         )));
 
-        deferred.bind(Box::new(InMemoryCommandBus::new(
+        deferred.bind(InMemoryCommandBus::new(
             Box::new(workflow_handler),
             Box::new(job_handler),
             Box::new(step_handler),
             Box::new(action_handler),
-        )));
+        ));
 
-        deferred
+        shared_bus
     }
 
     fn build_job_executor(
         runtime: Arc<dyn ContainerRuntimePort>,
         image_mapper: Arc<dyn ImageMapperPort>,
-        command_bus: Arc<dyn CommandBusPort>,
-        event_bus: Arc<dyn EventBusPort>,
+        command_bus: Box<StepCommandBusPort>,
+        event_bus: Box<DomainEventBusPort>,
     ) -> ExecuteJobService {
         ExecuteJobService::new(
             Box::new(GitHubJobEnvironmentAdapter::new()),

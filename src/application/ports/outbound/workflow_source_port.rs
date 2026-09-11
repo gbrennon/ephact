@@ -1,4 +1,4 @@
-use std::{error::Error, sync::Arc};
+use std::error::Error;
 
 use crate::application::dtos::responses::WorkflowListItemResponse;
 use crate::domain::entities::repository::Repository;
@@ -28,29 +28,4 @@ pub trait WorkflowSourcePort: Send + Sync {
         &self,
         repository: &Repository,
     ) -> Result<Vec<WorkflowListItemResponse>, Box<dyn Error>>;
-}
-
-impl<T: WorkflowSourcePort + ?Sized> WorkflowSourcePort for Arc<T> {
-    fn read_workflow(
-        &self,
-        repository: &Repository,
-        workflow_name: Option<&str>,
-    ) -> Result<String, Box<dyn Error>> {
-        (**self).read_workflow(repository, workflow_name)
-    }
-
-    fn read_all_workflows(&self, repository: &Repository) -> Result<Vec<String>, Box<dyn Error>> {
-        (**self).read_all_workflows(repository)
-    }
-
-    fn list_actions(&self, repository: &Repository) -> Result<Vec<String>, Box<dyn Error>> {
-        (**self).list_actions(repository)
-    }
-
-    fn list_workflows(
-        &self,
-        repository: &Repository,
-    ) -> Result<Vec<WorkflowListItemResponse>, Box<dyn Error>> {
-        (**self).list_workflows(repository)
-    }
 }

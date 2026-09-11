@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path, sync::Arc};
+use std::{collections::HashMap, path::Path};
 
 use crate::{
     application::ports::outbound::container_port::ContainerPort,
@@ -7,13 +7,9 @@ use crate::{
 
 pub struct ExecuteStepRequest<'a> {
     step: &'a Step,
-
     context: &'a EvaluationContext,
-
-    container: Arc<dyn ContainerPort>,
-
+    container: &'a dyn ContainerPort,
     repo_path: &'a Path,
-
     env: &'a HashMap<String, String>,
 }
 
@@ -21,7 +17,7 @@ impl<'a> ExecuteStepRequest<'a> {
     pub fn new(
         step: &'a Step,
         context: &'a EvaluationContext,
-        container: Arc<dyn ContainerPort>,
+        container: &'a dyn ContainerPort,
         repo_path: &'a Path,
         env: &'a HashMap<String, String>,
     ) -> Self {
@@ -42,12 +38,8 @@ impl<'a> ExecuteStepRequest<'a> {
         self.context
     }
 
-    pub fn container(&self) -> &Arc<dyn ContainerPort> {
-        &self.container
-    }
-
-    pub fn container_arc(&self) -> Arc<dyn ContainerPort> {
-        self.container.clone()
+    pub fn container(&self) -> &'a dyn ContainerPort {
+        self.container
     }
 
     pub fn repo_path(&self) -> &'a Path {

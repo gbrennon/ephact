@@ -1,28 +1,29 @@
-use std::{collections::HashMap, fmt, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, fmt, path::PathBuf};
 
-use crate::{
-    application::ports::outbound::container_port::ContainerPort,
-    domain::{entities::Step, value_objects::EvaluationContext},
+use crate::domain::{
+    entities::Step, messages::commands::command::Command, value_objects::EvaluationContext,
 };
 
-#[derive(Clone)]
-pub struct ExecuteActionCommand {
+/// Command representing the intention to execute one action.
+///
+/// Published by the step coordination service and handled by the action command handler.
+pub struct ExecuteActionCommand<'a, C: ?Sized + Sync + 'a> {
     action_ref: String,
     step: Step,
     repo_path: PathBuf,
     env: HashMap<String, String>,
     context: EvaluationContext,
-    container: Arc<dyn ContainerPort>,
+    container: &'a C,
 }
 
-impl ExecuteActionCommand {
+impl<'a, C: ?Sized + Sync + 'a> ExecuteActionCommand<'a, C> {
     pub fn new(
         action_ref: String,
         step: Step,
         repo_path: PathBuf,
         env: HashMap<String, String>,
         context: EvaluationContext,
-        container: Arc<dyn ContainerPort>,
+        container: &'a C,
     ) -> Self {
         Self {
             action_ref,
@@ -54,8 +55,8 @@ impl ExecuteActionCommand {
         &self.context
     }
 
-    pub fn container(&self) -> &Arc<dyn ContainerPort> {
-        &self.container
+    pub fn container(&self) -> &'a C {
+        self.container
     }
 
     pub fn into_parts(
@@ -66,7 +67,7 @@ impl ExecuteActionCommand {
         PathBuf,
         HashMap<String, String>,
         EvaluationContext,
-        Arc<dyn ContainerPort>,
+        &'a C,
     ) {
         (
             self.action_ref,
@@ -78,7 +79,21 @@ impl ExecuteActionCommand {
         )
     }
 }
-impl fmt::Debug for ExecuteActionCommand {
+
+impl<'a, C: ?Sized + Sync + 'a> Clone for ExecuteActionCommand<'a, C> {
+    fn clone(&self) -> Self {
+        Self {
+            action_ref: self.action_ref.clone(),
+            step: self.step.clone(),
+            repo_path: self.repo_path.clone(),
+            env: self.env.clone(),
+            context: self.context.clone(),
+            container: self.container,
+        }
+    }
+}
+
+impl<'a, C: ?Sized + Sync + 'a> fmt::Debug for ExecuteActionCommand<'a, C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ExecuteActionCommand")
             .field("action_ref", &self.action_ref)
@@ -86,3 +101,5 @@ impl fmt::Debug for ExecuteActionCommand {
             .finish_non_exhaustive()
     }
 }
+
+impl<'a, C: ?Sized + Sync + 'a> Command for ExecuteActionCommand<'a, C> {}

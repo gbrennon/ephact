@@ -2,9 +2,9 @@ use crate::application::ports::inbound::execute_workflow_port::ExecuteWorkflowPo
 use std::error::Error;
 
 use super::super::containers::workspace::CONTAINER_WORKSPACE;
-use crate::application::commands::ExecuteWorkflowCommand;
 use crate::application::dtos::requests::ExecuteWorkflowRequest;
 use crate::application::dtos::responses::WorkflowExecutionResponse;
+use crate::domain::messages::commands::ExecuteWorkflowCommand;
 use crate::domain::value_objects::ContextValue;
 use crate::domain::value_objects::EvaluationContext;
 use std::collections::BTreeMap;

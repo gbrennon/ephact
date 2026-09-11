@@ -1,24 +1,22 @@
-use std::sync::Arc;
-
 use crate::application::dtos::requests::RunShellStepRequest;
 use crate::application::dtos::responses::ExecResultResponse;
-use crate::application::ports::outbound::event_bus_port::EventBusPort;
+use crate::application::ports::outbound::event_bus_port::DomainEventBusPort;
 use crate::application::ports::outbound::run_shell_step_port::RunShellStepPort;
 use crate::domain::errors::StepError;
-use crate::domain::events::DomainEvent;
-use crate::domain::events::OutputStream;
-use crate::domain::events::StepOutputPayload;
+use crate::domain::messages::events::DomainEvent;
+use crate::domain::messages::events::OutputStream;
+use crate::domain::messages::events::StepOutputPayload;
 use crate::domain::value_objects::ShellCommand;
 
 /// Service that runs a step's shell script inside the container it was given,
 /// relaying the step's output as [`DomainEvent::StepOutput`] events while it
 /// runs.
 pub struct RunShellStepService {
-    event_bus: Arc<dyn EventBusPort>,
+    event_bus: Box<DomainEventBusPort>,
 }
 
 impl RunShellStepService {
-    pub fn new(event_bus: Arc<dyn EventBusPort>) -> Self {
+    pub fn new(event_bus: Box<DomainEventBusPort>) -> Self {
         Self { event_bus }
     }
 
@@ -42,14 +40,20 @@ impl RunShellStepPort for RunShellStepService {
             self.relay_output(step_name, stream, text);
         };
 
-        request
+        let result = request
             .container()
             .exec_streaming(
                 command.argv(),
-                command.working_directory(),
+                Some("/workspace"),
                 command.env(),
                 &mut relay,
             )
-            .map_err(|error| StepError::new(format!("{error:?}")))
+            .map_err(|error| StepError::new(format!("{error:?}")))?;
+
+        Ok(ExecResultResponse::new(
+            result.exit_code(),
+            result.stdout().to_string(),
+            result.stderr().to_string(),
+        ))
     }
 }
