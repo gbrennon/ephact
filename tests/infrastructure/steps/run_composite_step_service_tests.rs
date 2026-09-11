@@ -4,7 +4,6 @@ mod tests {
     use std::{
         collections::HashMap,
         path::{Path, PathBuf},
-        sync::Arc,
     };
 
     use ephact::application::dtos::requests::ExecuteActionRequest;
@@ -28,9 +27,9 @@ mod tests {
             .into_domain()
     }
 
-    fn action_request(
-        container: Arc<dyn ephact::application::ports::outbound::container_port::ContainerPort>,
-    ) -> ExecuteActionRequest {
+    fn action_request<'a>(
+        container: &'a dyn ephact::application::ports::outbound::container_port::ContainerPort,
+    ) -> ExecuteActionRequest<'a> {
         ExecuteActionRequest::new(
             "./actions/outer".to_string(),
             step_from("uses: ./actions/outer\n"),
@@ -47,15 +46,15 @@ mod tests {
 
     fn service(command_bus: FakeCommandBus) -> RunCompositeStepService {
         RunCompositeStepService::new(
-            Box::new(RunShellStepService::new(Arc::new(FakeEventBus::new()))),
-            Arc::new(command_bus),
+            Box::new(RunShellStepService::new(Box::new(FakeEventBus::new()))),
+            Box::new(command_bus),
         )
     }
 
     #[test]
     fn execute_runs_a_run_step_with_the_action_path_exposed() {
         let container = StubRecordingContainer::new();
-        let request = action_request(Arc::new(container.clone()));
+        let request = action_request(&container);
         let step = step_from("run: echo hi\n");
         let service = service(FakeCommandBus::new());
 
@@ -79,7 +78,7 @@ mod tests {
     #[test]
     fn execute_publishes_an_action_command_for_a_uses_step() {
         let container = StubRecordingContainer::new();
-        let request = action_request(Arc::new(container.clone()));
+        let request = action_request(&container);
         let step = step_from("uses: ./actions/inner\n");
         let command_bus = FakeCommandBus::new().with_action_result(action_response());
         let service = service(command_bus.clone());
@@ -103,7 +102,8 @@ mod tests {
 
     #[test]
     fn execute_propagates_a_shell_runner_failure() {
-        let request = action_request(Arc::new(StubFailingContainer));
+        let container = StubFailingContainer;
+        let request = action_request(&container);
         let step = step_from("run: echo hi\n");
         let service = service(FakeCommandBus::new());
 

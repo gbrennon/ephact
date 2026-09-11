@@ -1,10 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, path::PathBuf, sync::Arc};
+    use std::{collections::HashMap, path::PathBuf};
 
-    use ephact::application::commands::{
-        ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
-    };
     use ephact::application::dtos::requests::ExecuteActionRequest;
     use ephact::application::dtos::responses::ExecuteActionResponse;
     use ephact::application::dtos::responses::ExecutedStepResponse;
@@ -15,7 +12,7 @@ mod tests {
     use ephact::application::ports::inbound::execute_job_port::ExecuteJobPort;
     use ephact::application::ports::inbound::execute_step_port::ExecuteStepPort;
     use ephact::application::ports::inbound::execute_workflow_port::ExecuteWorkflowPort;
-    use ephact::application::ports::outbound::CommandBusPort;
+    use ephact::application::ports::outbound::{CommandBusPort, container_port::ContainerPort};
     use ephact::domain::ActRunConfig;
     use ephact::domain::RepoPath;
     use ephact::domain::Repository;
@@ -23,6 +20,9 @@ mod tests {
     use ephact::domain::aggregates::Workflow;
     use ephact::domain::entities::Job;
     use ephact::domain::errors::StepError;
+    use ephact::domain::messages::commands::{
+        ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
+    };
     use ephact::domain::value_objects::EvaluationContext;
     use ephact::domain::value_objects::WorkflowTrigger;
     use ephact::infrastructure::actions::ActionCommandHandler;
@@ -84,7 +84,7 @@ mod tests {
     impl ExecuteActionPort for StubActionPort {
         fn execute(
             &self,
-            _request: ExecuteActionRequest,
+            _request: ExecuteActionRequest<'_>,
         ) -> Result<ExecuteActionResponse, StepError> {
             Ok(ExecuteActionResponse::new(
                 0,
@@ -116,7 +116,7 @@ mod tests {
             repository,
         );
 
-        let result = bus.dispatch_workflow(cmd).unwrap();
+        let result = bus.dispatch(cmd).unwrap();
         assert_eq!(result.workflow_name(), "dispatched-wf");
     }
 
@@ -132,16 +132,17 @@ mod tests {
         let step = serde_yaml::from_str::<StepYaml>("uses: actions/checkout@v4")
             .unwrap()
             .into_domain();
+        let container: &dyn ContainerPort = &StubContainer;
         let cmd = ExecuteActionCommand::new(
             "actions/checkout@v4".into(),
             step,
             PathBuf::from("/repo"),
             HashMap::new(),
             EvaluationContext::new(),
-            Arc::new(StubContainer),
+            container,
         );
 
-        let result = bus.dispatch_action(cmd).unwrap();
+        let result = bus.dispatch(cmd).unwrap();
         assert_eq!(result.stdout(), "action out");
         assert_eq!(result.exit_code(), 0);
     }
@@ -213,7 +214,7 @@ mod tests {
             EvaluationContext::new(),
         );
 
-        let result = bus.dispatch_job(command).unwrap();
+        let result = bus.dispatch(command).unwrap();
 
         assert_eq!(result.job_summary().job_id(), "build-job");
         assert_eq!(result.job_summary().name(), Some("Build"));
@@ -231,15 +232,16 @@ mod tests {
         let step = serde_yaml::from_str::<StepYaml>("run: echo hello")
             .unwrap()
             .into_domain();
+        let container: &dyn ContainerPort = &StubContainer;
         let command = ExecuteStepCommand::new(
             step,
             HashMap::from([("MARKER".to_string(), "step-marker".to_string())]),
             EvaluationContext::new(),
-            Arc::new(StubContainer),
+            container,
             PathBuf::from("/repo/step"),
         );
 
-        let result = bus.dispatch_step(command).unwrap();
+        let result = bus.dispatch(command).unwrap();
 
         assert_eq!(result.step().run(), Some("echo hello"));
         assert_eq!(result.response().stdout(), "step-marker");

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ephact::{
     application::ports::outbound::EventBusPort,
-    domain::events::{ActRunCompletedPayload, DomainEvent},
+    domain::messages::events::{ActRunCompletedPayload, DomainEvent},
     infrastructure::{containers::ContainerCleanupHandler, messaging::InMemoryEventBus},
 };
 

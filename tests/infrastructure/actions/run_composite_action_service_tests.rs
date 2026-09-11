@@ -7,12 +7,12 @@ mod tests {
     use std::{
         collections::HashMap,
         path::{Path, PathBuf},
-        sync::Arc,
     };
 
     use ephact::application::dtos::requests::ExecuteActionRequest;
     use ephact::application::dtos::requests::RunCompositeActionRequest;
     use ephact::application::dtos::responses::ExecResultResponse;
+    use ephact::application::ports::outbound::container_port::ContainerPort;
     use ephact::domain::{entities::Step, errors::StepError, value_objects::EvaluationContext};
 
     use crate::common::fakes::{
@@ -28,7 +28,7 @@ mod tests {
             .collect()
     }
 
-    fn action_request() -> ExecuteActionRequest {
+    fn action_request<'a>(container: &'a dyn ContainerPort) -> ExecuteActionRequest<'a> {
         ExecuteActionRequest::new(
             "./actions/outer",
             serde_yaml::from_str::<StepYaml>("uses: ./actions/outer\n")
@@ -37,7 +37,7 @@ mod tests {
             PathBuf::from("/repo"),
             HashMap::new(),
             EvaluationContext::new(),
-            Arc::new(StubContainer),
+            container,
         )
     }
 
@@ -49,7 +49,8 @@ mod tests {
     fn execute_runs_every_step_and_concatenates_their_output() {
         let runner = FakeRunCompositeStepPort::queueing(vec![result(0, "one"), result(0, "two")]);
         let service = RunCompositeActionService::new(Box::new(runner.clone()));
-        let request_owner = action_request();
+        let container = StubContainer;
+        let request_owner = action_request(&container);
 
         let response = service
             .execute(RunCompositeActionRequest::new(
@@ -69,7 +70,8 @@ mod tests {
     fn execute_stops_at_the_first_failing_step() {
         let runner = FakeRunCompositeStepPort::queueing(vec![result(3, "one"), result(0, "two")]);
         let service = RunCompositeActionService::new(Box::new(runner.clone()));
-        let request_owner = action_request();
+        let container = StubContainer;
+        let request_owner = action_request(&container);
 
         let response = service
             .execute(RunCompositeActionRequest::new(
@@ -93,7 +95,8 @@ mod tests {
                 .with_stderr("bad".to_string()),
         );
         let service = RunCompositeActionService::new(Box::new(runner));
-        let request_owner = action_request();
+        let container = StubContainer;
+        let request_owner = action_request(&container);
 
         let error = service
             .execute(RunCompositeActionRequest::new(
@@ -113,7 +116,8 @@ mod tests {
     fn execute_exposes_the_actions_inputs_to_its_steps() {
         let runner = FakeRunCompositeStepPort::queueing(vec![result(0, "")]);
         let service = RunCompositeActionService::new(Box::new(runner.clone()));
-        let request_owner = action_request();
+        let container = StubContainer;
+        let request_owner = action_request(&container);
         let mut inputs = HashMap::new();
         inputs.insert("mode".to_string(), "staging".to_string());
 
