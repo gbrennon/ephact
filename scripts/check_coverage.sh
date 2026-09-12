@@ -6,23 +6,11 @@ source "$(dirname "$0")/lib/common.sh"
 
 readonly COVERAGE_THRESHOLD="${COVERAGE_THRESHOLD:-80}"
 
-container_runtime_available() {
-  [ -S /var/run/docker.sock ] && return 0
-  [ -S /run/podman/podman.sock ] && return 0
-  [ -S "/run/user/$(id -u)/podman/podman.sock" ] && return 0
-  return 1
-}
-
 run_coverage_and_emit_json() {
+  echo "Cleaning the instrumented build to avoid stale coverage artifacts..."
+  cargo llvm-cov clean
   echo "Running cargo-llvm-cov (generating JSON report)..."
-  local args=(--remap-path-prefix)
-  if container_runtime_available; then
-    echo "Container runtime detected; including container infrastructure in coverage."
-  else
-    echo "No container runtime detected; excluding container infrastructure from coverage."
-    args+=(--ignore-filename-regex 'src/infrastructure/(runners/.*|container\.rs)')
-  fi
-  cargo llvm-cov --tests --json --output-path cov.json "${args[@]}"
+  cargo llvm-cov --tests --json --output-path cov.json --remap-path-prefix
 }
 
 run_coverage_and_emit_json
