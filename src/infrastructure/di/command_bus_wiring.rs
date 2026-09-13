@@ -21,7 +21,7 @@ use crate::{
         },
         di::action_execution_wiring::ActionExecutionWiring,
         images::ImageMapperPort,
-        jobs::{GitHubJobEnvironmentAdapter, JobCommandHandler},
+        jobs::{JobCommandHandler, RunnerEnvironmentAdapter},
         messaging::{DeferredCommandBus, InMemoryCommandBus, SharedCommandBus, SharedEventBus},
         steps::{
             StepCommandHandler, build_step_context_service::BuildStepContextService,
@@ -101,7 +101,7 @@ impl CommandBusWiring {
         event_bus: Box<DomainEventBusPort>,
     ) -> ExecuteJobService {
         ExecuteJobService::new(
-            Box::new(GitHubJobEnvironmentAdapter::new()),
+            Box::new(RunnerEnvironmentAdapter::new()),
             Box::new(PrepareJobContainerService::new(
                 Box::new(PullJobImageService::new(runtime.clone(), image_mapper)),
                 Box::new(CreateJobContainerService::new(runtime)),
