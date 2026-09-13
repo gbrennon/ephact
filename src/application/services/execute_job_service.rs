@@ -86,6 +86,7 @@ impl ExecuteJobPort for ExecuteJobService {
                 request.run().job_id(),
                 request.run().job().runs_on(),
                 request.repo_path(),
+                request.allow_repo_writes(),
             ))?;
 
         let mut extra_path: Vec<String> = Vec::new();
@@ -163,6 +164,7 @@ impl ExecuteJobService {
     ) {
         self.event_bus
             .publish(DomainEvent::StepFinished(StepFinishedPayload::new(
+                request.run_id().to_string(),
                 request.workflow().name().unwrap_or("unnamed").to_string(),
                 request.run().job_id().to_string(),
                 summary.name().to_string(),
