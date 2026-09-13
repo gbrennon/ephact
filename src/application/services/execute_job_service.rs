@@ -20,9 +20,8 @@ use crate::application::ports::outbound::prepare_job_container_port::PrepareJobC
 use crate::application::ports::outbound::read_step_exports_port::ReadStepExportsPort;
 use crate::application::ports::outbound::summarize_step_port::SummarizeStepPort;
 use crate::domain::messages::commands::ExecuteStepCommand;
-use crate::domain::messages::events::DomainEvent;
-use crate::domain::messages::events::StepFinishedPayload;
 use crate::domain::messages::events::StepStartedPayload;
+use crate::domain::messages::events::{DomainEvent, StepFinishedDetails, StepFinishedPayload};
 
 /// Application service coordinating the execution of one job.
 ///
@@ -165,13 +164,15 @@ impl ExecuteJobService {
         self.event_bus
             .publish(DomainEvent::StepFinished(StepFinishedPayload::new(
                 request.run_id().to_string(),
-                request.workflow().name().unwrap_or("unnamed").to_string(),
-                request.run().job_id().to_string(),
-                summary.name().to_string(),
-                step_success,
-                summary.exit_code(),
-                summary.stdout().to_string(),
-                summary.stderr().to_string(),
+                StepFinishedDetails::new(
+                    request.workflow().name().unwrap_or("unnamed").to_string(),
+                    request.run().job_id().to_string(),
+                    summary.name().to_string(),
+                    step_success,
+                    summary.exit_code(),
+                    summary.stdout().to_string(),
+                    summary.stderr().to_string(),
+                ),
             )));
     }
 }
