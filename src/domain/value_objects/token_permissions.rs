@@ -1,4 +1,4 @@
-/// TokenPermissions for the `GITHUB_TOKEN` in a workflow or job.
+/// TokenPermissions for the workflow token in a workflow or job.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct TokenPermissions {
     actions: Option<String>,
