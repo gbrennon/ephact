@@ -47,6 +47,9 @@ mod tests {
                 true,
             ));
         let event_bus = FakeEventBus::new();
+        let config = ActRunConfig::new();
+        let run_id = config.run_id().to_string();
+        let repository_path = temp.path().display().to_string();
 
         let service = RunAllWorkflowsService::new(
             Box::new(workflow_source),
@@ -54,7 +57,7 @@ mod tests {
             Box::new(event_bus.clone()),
             Box::new(FakeDetectWorkflowTriggerPort::always_triggering()),
         );
-        let request = RunAllWorkflowsRequest::new(ActRunConfig::new(), repo);
+        let request = RunAllWorkflowsRequest::new(config, repo);
 
         let summary: RunSummaryResponse = service.execute(request).unwrap();
 
@@ -67,15 +70,51 @@ mod tests {
         }));
 
         let events = event_bus.events();
-        assert_eq!(events.len(), 1);
-        let DomainEvent::ActRunCompleted(payload) = &events[0] else {
+        assert_eq!(events.len(), 2);
+        let DomainEvent::RunStarted(payload) = &events[0] else {
+            panic!("expected RunStarted event");
+        };
+        assert_eq!(payload.run_id(), run_id);
+        assert_eq!(payload.repository_path(), repository_path);
+        let DomainEvent::ActRunCompleted(payload) = &events[1] else {
             panic!("expected ActRunCompleted event");
         };
+        assert_eq!(payload.run_id(), run_id);
+        assert_eq!(payload.repository_path(), repository_path);
         assert!(payload.success());
         assert_eq!(
             payload.container_names(),
             vec!["c-all".to_string(), "c-all".to_string()]
         );
+    }
+
+    #[test]
+    fn execute_publishes_run_failed_when_workflow_collection_fails() {
+        let temp = tempfile::tempdir().unwrap();
+        let repo = make_repo(temp.path());
+        let source = FakeWorkflowSource::new().failing_read_all_workflows("cannot list workflows");
+        let event_bus = FakeEventBus::new();
+        let config = ActRunConfig::new();
+        let run_id = config.run_id().to_string();
+        let service = RunAllWorkflowsService::new(
+            Box::new(source),
+            Box::new(FakeCommandBus::new()),
+            Box::new(event_bus.clone()),
+            Box::new(FakeDetectWorkflowTriggerPort::always_triggering()),
+        );
+
+        let error = service
+            .execute(RunAllWorkflowsRequest::new(config, repo))
+            .unwrap_err();
+
+        assert_eq!(error.to_string(), "cannot list workflows");
+        let events = event_bus.events();
+        assert_eq!(events.len(), 2);
+        let DomainEvent::RunFailed(payload) = &events[1] else {
+            panic!("expected RunFailed event");
+        };
+        assert_eq!(payload.run_id(), run_id);
+        assert_eq!(payload.error(), "cannot list workflows");
     }
 
     #[test]
