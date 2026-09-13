@@ -1,6 +1,6 @@
 use crate::domain::value_objects::{ActionInput, ActionRuntime};
 
-/// A parsed GitHub Actions action definition (`action.yml` / `action.yaml`).
+/// A parsed action definition (`action.yml` / `action.yaml`).
 ///
 /// Supports composite actions (`using: composite`) with nested steps.
 /// Node and Docker actions are parsed but not yet executed.

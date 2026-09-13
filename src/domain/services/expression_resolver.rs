@@ -13,7 +13,7 @@ const EXPRESSION_CLOSE: &str = "}}";
 /// Substitutes every `${{ ... }}` expression in a template string with its
 /// evaluated value.
 ///
-/// Values render the way the GitHub Actions runner renders them: strings
+/// Values render the way the runner renders them: strings
 /// verbatim, booleans and numbers via their literal form, `null` and unknown
 /// context entries as the empty string, and objects/arrays as compact JSON.
 pub struct ExpressionResolver;

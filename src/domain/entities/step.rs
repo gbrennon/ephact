@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::domain::value_objects::StepType;
 
-/// A step in a GitHub Actions job.
+/// A step in a workflow job.
 ///
 /// Steps can be shell commands (`run`) or actions (`uses`).
 /// They execute sequentially within a job and can be gated with `if`.

@@ -5,7 +5,7 @@ use crate::domain::{
     value_objects::{ConcurrencyGroup, ExecutionDefaults, TokenPermissions, WorkflowTrigger},
 };
 
-/// Represents a parsed GitHub Actions workflow file.
+/// Represents a parsed workflow file.
 ///
 /// Maps to the top-level structure of a workflow YAML file.
 /// Supports all standard fields including `name`, `on`, `env`, `jobs`,
@@ -34,7 +34,7 @@ use crate::domain::{
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Workflow {
-    /// The name of the workflow displayed on GitHub's actions page.
+    /// The display name of the workflow.
     name: Option<String>,
 
     /// The name of the workflow file (set after parsing, not from YAML).
@@ -52,7 +52,7 @@ pub struct Workflow {
     /// Default settings applied to all jobs in the workflow.
     defaults: Option<ExecutionDefaults>,
 
-    /// TokenPermissions for the `GITHUB_TOKEN`.
+    /// TokenPermissions for the workflow token.
     permissions: Option<TokenPermissions>,
 
     /// ConcurrencyGroup group to limit parallel runs.

@@ -1,6 +1,6 @@
 use crate::domain::{errors::EvalError, value_objects::ContextValue};
 
-/// Built-in function dispatcher for GitHub Actions expressions.
+/// Built-in function dispatcher for workflow expressions.
 ///
 /// Exposes each built-in as a method, plus a generic
 /// [`call`](Self::call) dispatcher that routes by function name
