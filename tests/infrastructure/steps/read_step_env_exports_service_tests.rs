@@ -8,7 +8,7 @@ mod tests {
 
     fn container(contents: &str) -> StubExportingContainer {
         StubExportingContainer::holding(vec![(
-            "/workspace/.github_env".to_string(),
+            "/tmp/.ephact_env".to_string(),
             contents.to_string(),
         )])
     }
