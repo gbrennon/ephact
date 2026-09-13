@@ -1,4 +1,4 @@
-/// AST node types for GitHub Actions `${{ }}` expressions.
+/// AST node types for workflow `${{ }}` expressions.
 ///
 /// Represents the full expression language: literals, context access,
 /// property/index dereferencing, comparisons, logical operators,
