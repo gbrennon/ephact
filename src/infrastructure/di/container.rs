@@ -19,7 +19,7 @@ use crate::{
         containers::{ContainerCleanupHandler, ContainerRuntimeAdapter},
         di::{app_container::AppContainer, command_bus_wiring::CommandBusWiring},
         images::{ImageMapperPort, PlatformImageMapper},
-        logging::{FailureLogErrorStore, FailureLogHandler, FailureLogPathStore},
+        logging::{FailureLogErrorStore, FailureLogHandler, FailureLogPathStore, FailureLogStores},
         messaging::{DomainEventHandler, InMemoryEventBus, SharedEventBus},
         project_branding_store::CargoProjectBrandingStore,
         workflows::{
@@ -112,15 +112,16 @@ impl Container {
             ShowProjectBrandingInfoService::new(Box::new(CargoProjectBrandingStore));
 
         AppContainer::new_with_discovery_and_failure_stores(
-            Box::new(show_project_branding_info_service),
-            Box::new(run_all_workflows_service),
-            Box::new(run_workflow_service),
-            Box::new(run_action_service),
-            Box::new(discover_run_inputs_service),
-            Box::new(list_workflows_service),
-            Box::new(list_actions_service),
-            failure_log_error_store,
-            failure_log_path_store,
+            (
+                Box::new(show_project_branding_info_service),
+                Box::new(run_all_workflows_service),
+                Box::new(run_workflow_service),
+                Box::new(run_action_service),
+                Box::new(discover_run_inputs_service),
+                Box::new(list_workflows_service),
+                Box::new(list_actions_service),
+            ),
+            FailureLogStores::from_stores(failure_log_error_store, failure_log_path_store),
         )
     }
 }
