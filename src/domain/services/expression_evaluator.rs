@@ -1,4 +1,4 @@
-/// AST evaluator for GitHub Actions `${{ }}` expressions.
+/// AST evaluator for workflow `${{ }}` expressions.
 ///
 /// Walks an [`Expression`] AST and produces a [`ContextValue`] result,
 /// using the built-in [`ExpressionFunctions`] dispatcher for function calls.
