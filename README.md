@@ -11,10 +11,10 @@
 
 `ephact` is a Rust crate that runs supported Forgejo and GitHub workflows
 locally in Docker or Podman containers. The selected repository is bind-mounted
-read-write at `/workspace`, so workflow steps can modify the host working tree.
-Runs may use the network to pull job images and fetch uncached remote actions.
-Job containers use the container runtime's default network configuration. Review
-untrusted workflows before executing them.
+read-only at `/workspace` by default. Pass `--allow-repo-writes` to permit
+workflow steps to modify the host working tree. Runner-managed files are
+container-local, and failed runs write diagnostics under the system temporary
+directory.
 
 ## Quick start
 
@@ -57,11 +57,9 @@ Supported platforms are **Forgejo** and **GitHub**. Workflows are discovered
 automatically from `.forgejo/workflows` and `.github/workflows`.
 
 ### Subcommands
-
 - `run [PATH]`: Run supported pull-request workflows from a Git repository
-  bind-mounted read-write into job containers (defaults to `.`).
-- `list-workflows [PATH]`: List workflow names discovered across supported
-  workflow directories.
+  bind-mounted read-only into job containers by default. Use
+  `--allow-repo-writes` to enable workflow writes.
 - `list-actions [PATH]`: List actions referenced across workflows.
 
 Built on Rust edition **2024**; the toolchain comes from
