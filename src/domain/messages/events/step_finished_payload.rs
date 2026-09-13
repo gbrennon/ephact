@@ -3,6 +3,7 @@
 /// [`DomainEvent::StepFinished`]: super::domain_event::DomainEvent::StepFinished
 #[derive(Debug, Clone)]
 pub struct StepFinishedPayload {
+    run_id: String,
     /// Name of the workflow the step belongs to.
     workflow_name: String,
     /// Identifier of the job the step belongs to.
@@ -17,6 +18,7 @@ pub struct StepFinishedPayload {
 
 impl StepFinishedPayload {
     pub fn new(
+        run_id: String,
         workflow_name: String,
         job_id: String,
         step_name: String,
@@ -26,6 +28,7 @@ impl StepFinishedPayload {
         stderr: String,
     ) -> Self {
         Self {
+            run_id,
             workflow_name,
             job_id,
             step_name,
@@ -34,6 +37,10 @@ impl StepFinishedPayload {
             stdout,
             stderr,
         }
+    }
+
+    pub fn run_id(&self) -> &str {
+        &self.run_id
     }
 
     pub fn workflow_name(&self) -> &str {
@@ -71,6 +78,7 @@ mod tests {
     #[test]
     fn new_preserves_fields() {
         let payload = StepFinishedPayload::new(
+            "run-1".into(),
             "workflow".into(),
             "job".into(),
             "step".into(),
@@ -80,6 +88,7 @@ mod tests {
             "stderr".into(),
         );
 
+        assert_eq!(payload.run_id(), "run-1");
         assert_eq!(payload.workflow_name(), "workflow");
         assert_eq!(payload.job_id(), "job");
         assert_eq!(payload.step_name(), "step");
