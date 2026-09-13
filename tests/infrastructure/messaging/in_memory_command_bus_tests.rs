@@ -114,6 +114,8 @@ mod tests {
             "name: CI\non: [push]\n".to_string(),
             ActRunConfig::new(),
             repository,
+            "test-run".to_string(),
+            false,
         );
 
         let result = bus.dispatch(cmd).unwrap();
@@ -212,6 +214,8 @@ mod tests {
             workflow_named("Build"),
             repo_path.clone(),
             EvaluationContext::new(),
+            "test-run".to_string(),
+            false,
         );
 
         let result = bus.dispatch(command).unwrap();
