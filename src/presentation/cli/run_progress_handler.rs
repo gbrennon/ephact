@@ -146,6 +146,7 @@ mod tests {
 
     fn step_finished(exit_code: Option<i64>) -> DomainEvent {
         DomainEvent::StepFinished(StepFinishedPayload::new(
+            "run-1".into(),
             "Build".into(),
             "build".into(),
             "compile".into(),
@@ -210,6 +211,7 @@ mod tests {
     fn quiet_mode_hides_failed_step_output() {
         let handler = RunProgressHandler::new(false);
         let event = DomainEvent::StepFinished(StepFinishedPayload::new(
+            "run-1".into(),
             "Build".into(),
             "build".into(),
             "clippy".into(),
@@ -233,6 +235,7 @@ mod tests {
     fn verbose_mode_reports_failed_step_output() {
         let handler = RunProgressHandler::new(true);
         let event = DomainEvent::StepFinished(StepFinishedPayload::new(
+            "run-1".into(),
             "Build".into(),
             "build".into(),
             "clippy".into(),
