@@ -104,8 +104,10 @@ impl RunHandler {
         discover_run_inputs_port: &dyn DiscoverRunInputsPort,
         list_workflows_port: &dyn ListWorkflowsPort,
         terminal: &dyn Terminal,
-        error_store: &crate::infrastructure::logging::FailureLogErrorStore,
-        path_store: &crate::infrastructure::logging::FailureLogPathStore,
+        stores: (
+            &crate::infrastructure::logging::FailureLogErrorStore,
+            &crate::infrastructure::logging::FailureLogPathStore,
+        ),
     ) -> Result<(String, bool), Box<dyn std::error::Error>> {
         let (config, repository) = Self::prepare_preflight_config(
             args,
@@ -113,6 +115,7 @@ impl RunHandler {
             list_workflows_port,
             terminal,
         )?;
+        let (error_store, path_store) = stores;
         let run_id = config.run_id().to_string();
         let summary = match Self::execute(
             config,
