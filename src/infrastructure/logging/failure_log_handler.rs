@@ -67,6 +67,47 @@ impl FailureLogPathStore {
     }
 }
 
+/// Shared stores used to report failure diagnostics.
+#[derive(Clone)]
+pub struct FailureLogStores {
+    error_store: FailureLogErrorStore,
+    path_store: FailureLogPathStore,
+}
+
+impl FailureLogStores {
+    /// Creates empty stores for failure diagnostics.
+    pub fn new() -> Self {
+        Self {
+            error_store: FailureLogErrorStore::new(),
+            path_store: FailureLogPathStore::new(),
+        }
+    }
+
+    /// Returns the shared log-write error store.
+    pub fn error_store(&self) -> FailureLogErrorStore {
+        self.error_store.clone()
+    }
+
+    /// Combines caller-owned stores for composition-root wiring.
+    pub fn from_stores(error_store: FailureLogErrorStore, path_store: FailureLogPathStore) -> Self {
+        Self {
+            error_store,
+            path_store,
+        }
+    }
+
+    /// Returns the shared diagnostics path store.
+    pub fn path_store(&self) -> FailureLogPathStore {
+        self.path_store.clone()
+    }
+}
+
+impl Default for FailureLogStores {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone)]
 struct FailedStepRecord {
     workflow_name: String,
@@ -348,7 +389,7 @@ fn render_log(run_id: &str, state: &FailureLogState) -> String {
 mod tests {
     use super::*;
     use crate::domain::messages::events::{
-        ActRunCompletedPayload, RunFailedPayload, RunStartedPayload,
+        ActRunCompletedPayload, RunFailedPayload, RunStartedPayload, StepFinishedDetails,
     };
 
     fn started(run_id: &str, repository_path: &str) -> DomainEvent {
@@ -361,13 +402,15 @@ mod tests {
     fn finished(run_id: &str) -> DomainEvent {
         DomainEvent::StepFinished(StepFinishedPayload::new(
             run_id.to_string(),
-            "Build".to_string(),
-            "build".to_string(),
-            "compile".to_string(),
-            false,
-            Some(1),
-            "stdout details".to_string(),
-            "stderr details".to_string(),
+            StepFinishedDetails::new(
+                "Build".to_string(),
+                "build".to_string(),
+                "compile".to_string(),
+                false,
+                Some(1),
+                "stdout details".to_string(),
+                "stderr details".to_string(),
+            ),
         ))
     }
 
