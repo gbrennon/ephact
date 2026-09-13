@@ -1,6 +1,6 @@
 /// ExpressionToken types produced by the expression lexer.
 ///
-/// Represents all terminal symbols in the GitHub Actions `${{ }}` expression
+/// Represents all terminal symbols in the workflow `${{ }}` expression
 /// language: literals, identifiers, operators, punctuation, and end-of-file.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ExpressionToken {
