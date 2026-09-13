@@ -54,12 +54,12 @@ pub struct RunArgs {
     all_workflows: bool,
 
     /// Preserve the ephemeral repository after execution instead of cleaning
-    /// it up.
     #[arg(long)]
     preserve: bool,
 
-    /// Use the real Docker or Podman adapter instead of the default runtime
-    /// selection.
+    #[arg(long = "allow-repo-writes")]
+    allow_repo_writes: bool,
+
     #[arg(long = "allow-real-container")]
     allow_real_container: bool,
 
@@ -103,6 +103,7 @@ impl RunArgs {
         let config = self.apply_targets(config);
         let config = config
             .with_all_workflows(self.all_workflows || self.workflow.is_none())
+            .with_allow_repo_writes(self.allow_repo_writes)
             .with_allow_real_container(self.allow_real_container)
             .with_allow_real_fetcher(self.allow_real_fetcher)
             .with_allow_network(self.allow_network);

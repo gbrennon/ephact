@@ -8,7 +8,7 @@ mod tests {
     use ephact::domain::aggregates::Workflow;
     use ephact::domain::services::ExecutionPlanner;
     use ephact::domain::value_objects::EvaluationContext;
-    use ephact::infrastructure::jobs::GitHubJobEnvironmentAdapter;
+    use ephact::infrastructure::jobs::RunnerEnvironmentAdapter;
     use ephact::infrastructure::steps::build_step_context_service::BuildStepContextService;
     use ephact::infrastructure::steps::prefix_step_path_service::PrefixStepPathService;
     use ephact::infrastructure::steps::summarize_step_service::SummarizeStepService;
@@ -41,7 +41,7 @@ mod tests {
         event_bus: FakeEventBus,
     ) -> ExecuteJobService {
         ExecuteJobService::new(
-            Box::new(GitHubJobEnvironmentAdapter::new()),
+            Box::new(RunnerEnvironmentAdapter::new()),
             Box::new(preparer),
             Box::new(PrefixStepPathService::new()),
             Box::new(BuildStepContextService::new()),
@@ -74,6 +74,8 @@ mod tests {
             &wf,
             Path::new("/repo"),
             &EvaluationContext::new(),
+            "test-run",
+            false,
         ))
         .unwrap();
 
@@ -99,6 +101,8 @@ mod tests {
             &wf,
             Path::new("/repo"),
             &EvaluationContext::new(),
+            "test-run",
+            false,
         ))
         .unwrap();
 
@@ -124,6 +128,8 @@ mod tests {
             &wf,
             Path::new("/repo"),
             &EvaluationContext::new(),
+            "test-run",
+            false,
         ))
         .unwrap();
 
@@ -151,6 +157,8 @@ mod tests {
             &wf,
             Path::new("/repo"),
             &EvaluationContext::new(),
+            "test-run",
+            false,
         ))
         .unwrap();
 
@@ -181,6 +189,8 @@ mod tests {
             &wf,
             Path::new("/repo"),
             &EvaluationContext::new(),
+            "test-run",
+            false,
         ))
         .unwrap();
 
@@ -208,6 +218,8 @@ mod tests {
             &wf,
             Path::new("/repo"),
             &EvaluationContext::new(),
+            "test-run",
+            false,
         ))
         .unwrap();
 
@@ -237,6 +249,8 @@ mod tests {
             &wf,
             Path::new("/repo"),
             &EvaluationContext::new(),
+            "test-run",
+            false,
         )) else {
             panic!("a failing container preparation should fail the job");
         };
@@ -262,6 +276,8 @@ mod tests {
             &wf,
             Path::new("/repo"),
             &EvaluationContext::new(),
+            "test-run",
+            false,
         ))
         .unwrap();
 

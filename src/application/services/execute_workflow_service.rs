@@ -90,7 +90,16 @@ impl ExecuteWorkflowService {
             .collect();
         all_runs
             .iter()
-            .map(|run| self.execute_run(workflow, run, request.repo_path(), request.context()))
+            .map(|run| {
+                self.execute_run(
+                    workflow,
+                    run,
+                    request.repo_path(),
+                    request.context(),
+                    request.run_id(),
+                    request.allow_repo_writes(),
+                )
+            })
             .collect()
     }
 
@@ -100,6 +109,8 @@ impl ExecuteWorkflowService {
         run: &crate::domain::entities::JobRun,
         repo_path: &std::path::Path,
         context: &crate::domain::value_objects::EvaluationContext,
+        run_id: &str,
+        allow_repo_writes: bool,
     ) -> Result<crate::application::dtos::responses::JobExecutionResponse, Box<dyn Error>> {
         self.announce_job_started(workflow.name().unwrap_or("unnamed"), run);
         let execution = self.command_bus.dispatch(ExecuteJobCommand::new(
@@ -108,6 +119,8 @@ impl ExecuteWorkflowService {
             workflow.clone(),
             repo_path.to_path_buf(),
             context.clone(),
+            run_id.to_string(),
+            allow_repo_writes,
         ))?;
         self.announce_job_finished(
             workflow.name().unwrap_or("unnamed"),

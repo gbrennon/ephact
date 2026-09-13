@@ -1,3 +1,5 @@
+use uuid::Uuid;
+
 use crate::domain::value_objects::{ActEvent, ActInput, ActJob, ActWorkflow, Secret};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -8,22 +10,16 @@ pub struct ActRunConfig {
     inputs: Vec<ActInput>,
     secrets: Vec<Secret>,
     all_workflows: bool,
+    allow_repo_writes: bool,
     allow_real_container: bool,
     allow_real_fetcher: bool,
     allow_network: bool,
+    run_id: String,
 }
 
 /// Constructors for [`ActRunConfig`].
 impl ActRunConfig {
-    /// Creates a new config with sensible defaults.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use ephact::domain::ActRunConfig;
-    /// let config = ActRunConfig::new();
-    /// assert!(config.workflow().is_none());
-    /// ```
+    /// Creates a new config with sensible defaults and a unique run identity.
     pub fn new() -> Self {
         Self {
             workflow: None,
@@ -32,9 +28,11 @@ impl ActRunConfig {
             inputs: Vec::new(),
             secrets: Vec::new(),
             all_workflows: false,
+            allow_repo_writes: false,
             allow_real_container: false,
             allow_real_fetcher: false,
             allow_network: false,
+            run_id: Uuid::new_v4().to_string(),
         }
     }
 }
@@ -100,6 +98,11 @@ impl ActRunConfig {
         self.allow_network = allow_network;
         self
     }
+    /// Opt into workflow writes to the repository mount.
+    pub fn with_allow_repo_writes(mut self, allow_repo_writes: bool) -> Self {
+        self.allow_repo_writes = allow_repo_writes;
+        self
+    }
 }
 
 /// Read-only access to each field of [`ActRunConfig`].
@@ -147,6 +150,15 @@ impl ActRunConfig {
     /// Returns whether containers may make outbound network requests.
     pub fn allow_network(&self) -> bool {
         self.allow_network
+    }
+    /// Returns whether workflow writes to the repository are allowed.
+    pub fn allow_repo_writes(&self) -> bool {
+        self.allow_repo_writes
+    }
+
+    /// Returns the stable identity for this run.
+    pub fn run_id(&self) -> &str {
+        &self.run_id
     }
 }
 

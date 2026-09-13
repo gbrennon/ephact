@@ -69,6 +69,21 @@ mod tests {
         assert!(!config.allow_real_fetcher());
         assert!(!config.allow_network());
     }
+    #[test]
+    fn to_domain_defaults_repository_writes_to_disabled() {
+        let args = parse_run_test_args(&[]);
+        let (config, _repo) = args.to_domain().unwrap();
+
+        assert!(!config.allow_repo_writes());
+    }
+
+    #[test]
+    fn to_domain_accepts_repository_writes_flag() {
+        let args = parse_run_test_args(&["--allow-repo-writes"]);
+        let (config, _repo) = args.to_domain().unwrap();
+
+        assert!(config.allow_repo_writes());
+    }
 
     #[test]
     fn to_domain_with_allow_real_container() {

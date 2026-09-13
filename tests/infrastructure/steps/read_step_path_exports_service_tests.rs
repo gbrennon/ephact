@@ -9,7 +9,7 @@ mod tests {
     #[test]
     fn execute_returns_the_non_empty_trimmed_lines_of_the_path_file() {
         let container = StubExportingContainer::holding(vec![(
-            "/workspace/.github_path".to_string(),
+            "/tmp/.ephact_path".to_string(),
             "/opt/bin\n\n/opt/tools\n".to_string(),
         )]);
 

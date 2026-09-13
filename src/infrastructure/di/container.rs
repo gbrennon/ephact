@@ -19,6 +19,7 @@ use crate::{
         containers::{ContainerCleanupHandler, ContainerRuntimeAdapter},
         di::{app_container::AppContainer, command_bus_wiring::CommandBusWiring},
         images::{ImageMapperPort, PlatformImageMapper},
+        logging::{FailureLogErrorStore, FailureLogHandler, FailureLogPathStore, FailureLogStores},
         messaging::{DomainEventHandler, InMemoryEventBus, SharedEventBus},
         project_branding_store::CargoProjectBrandingStore,
         workflows::{
@@ -61,8 +62,18 @@ impl Container {
     ) -> AppContainer {
         let shared_workflow_source = SharedWorkflowSource::new(workflow_source);
 
-        let mut handlers: Vec<Box<dyn DomainEventHandler>> =
-            vec![Box::new(ContainerCleanupHandler::new(runtime.clone()))];
+        let failure_log_error_store = FailureLogErrorStore::new();
+        let failure_log_path_store = FailureLogPathStore::new();
+        let failure_log_handler = FailureLogHandler::with_temp_root_and_stores(
+            std::env::temp_dir(),
+            failure_log_error_store.clone(),
+            failure_log_path_store.clone(),
+        );
+
+        let mut handlers: Vec<Box<dyn DomainEventHandler>> = vec![
+            Box::new(ContainerCleanupHandler::new(runtime.clone())),
+            Box::new(failure_log_handler),
+        ];
         if let Some(reporter) = progress_reporter {
             handlers.push(reporter);
         }
@@ -100,14 +111,17 @@ impl Container {
         let show_project_branding_info_service =
             ShowProjectBrandingInfoService::new(Box::new(CargoProjectBrandingStore));
 
-        AppContainer::new_with_discovery(
-            Box::new(show_project_branding_info_service),
-            Box::new(run_all_workflows_service),
-            Box::new(run_workflow_service),
-            Box::new(run_action_service),
-            Box::new(discover_run_inputs_service),
-            Box::new(list_workflows_service),
-            Box::new(list_actions_service),
+        AppContainer::new_with_discovery_and_failure_stores(
+            (
+                Box::new(show_project_branding_info_service),
+                Box::new(run_all_workflows_service),
+                Box::new(run_workflow_service),
+                Box::new(run_action_service),
+                Box::new(discover_run_inputs_service),
+                Box::new(list_workflows_service),
+                Box::new(list_actions_service),
+            ),
+            FailureLogStores::from_stores(failure_log_error_store, failure_log_path_store),
         )
     }
 }

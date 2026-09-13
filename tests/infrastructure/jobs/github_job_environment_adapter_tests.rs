@@ -5,7 +5,7 @@ mod tests {
     use ephact::application::dtos::requests::BuildJobEnvironmentRequest;
     use ephact::application::ports::outbound::build_job_environment_port::BuildJobEnvironmentPort;
     use ephact::domain::aggregates::Workflow;
-    use ephact::infrastructure::jobs::GitHubJobEnvironmentAdapter;
+    use ephact::infrastructure::jobs::RunnerEnvironmentAdapter;
     use ephact::infrastructure::workflows::yaml::WorkflowYaml;
 
     const DEFAULT_PATH: &str = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
@@ -27,7 +27,7 @@ mod tests {
     fn execute_lets_the_job_environment_override_the_workflow_one() {
         let workflow = workflow("name: Ci\non: push\nenv:\n  MODE: workflow\njobs: {}\n");
 
-        let response = GitHubJobEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest::new(
+        let response = RunnerEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest::new(
             &workflow,
             &job_env(&[("MODE", "job")]),
         ));
@@ -39,16 +39,16 @@ mod tests {
     fn execute_sets_the_runners_own_variables() {
         let workflow = workflow("name: Ci\non: push\njobs: {}\n");
 
-        let response = GitHubJobEnvironmentAdapter::new()
+        let response = RunnerEnvironmentAdapter::new()
             .execute(BuildJobEnvironmentRequest::new(&workflow, &HashMap::new()));
 
         assert_eq!(
             response.env().get("GITHUB_PATH").map(String::as_str),
-            Some("/workspace/.github_path")
+            Some("/tmp/.ephact_path")
         );
         assert_eq!(
             response.env().get("GITHUB_ENV").map(String::as_str),
-            Some("/workspace/.github_env")
+            Some("/tmp/.ephact_env")
         );
         assert_eq!(
             response.env().get("GITHUB_WORKSPACE").map(String::as_str),
@@ -60,7 +60,7 @@ mod tests {
     fn execute_defaults_the_path_when_neither_workflow_nor_job_declares_one() {
         let workflow = workflow("name: Ci\non: push\njobs: {}\n");
 
-        let response = GitHubJobEnvironmentAdapter::new()
+        let response = RunnerEnvironmentAdapter::new()
             .execute(BuildJobEnvironmentRequest::new(&workflow, &HashMap::new()));
 
         assert_eq!(
@@ -73,7 +73,7 @@ mod tests {
     fn execute_keeps_a_declared_path() {
         let workflow = workflow("name: Ci\non: push\nenv:\n  PATH: /custom/bin\njobs: {}\n");
 
-        let response = GitHubJobEnvironmentAdapter::new()
+        let response = RunnerEnvironmentAdapter::new()
             .execute(BuildJobEnvironmentRequest::new(&workflow, &HashMap::new()));
 
         assert_eq!(
@@ -86,7 +86,7 @@ mod tests {
     fn execute_keeps_a_job_declared_path() {
         let workflow = workflow("name: Ci\non: push\njobs: {}\n");
 
-        let response = GitHubJobEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest::new(
+        let response = RunnerEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest::new(
             &workflow,
             &job_env(&[("PATH", "/job/bin")]),
         ));

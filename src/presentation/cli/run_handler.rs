@@ -96,6 +96,50 @@ impl RunHandler {
         let rendered = BoxComponent::new(RunSummaryComponent::new(&summary), terminal).render();
         Ok((rendered, summary.success()))
     }
+
+    pub fn handle_with_preflight_output_and_diagnostics(
+        args: RunArgs,
+        run_workflow_port: &dyn RunWorkflowPort,
+        run_all_workflows_port: &dyn RunAllWorkflowsPort,
+        discover_run_inputs_port: &dyn DiscoverRunInputsPort,
+        list_workflows_port: &dyn ListWorkflowsPort,
+        terminal: &dyn Terminal,
+        stores: (
+            &crate::infrastructure::logging::FailureLogErrorStore,
+            &crate::infrastructure::logging::FailureLogPathStore,
+        ),
+    ) -> Result<(String, bool), Box<dyn std::error::Error>> {
+        let (config, repository) = Self::prepare_preflight_config(
+            args,
+            discover_run_inputs_port,
+            list_workflows_port,
+            terminal,
+        )?;
+        let (error_store, path_store) = stores;
+        let run_id = config.run_id().to_string();
+        let summary = match Self::execute(
+            config,
+            repository,
+            run_workflow_port,
+            run_all_workflows_port,
+        ) {
+            Ok(summary) => summary,
+            Err(error) => {
+                return Err(Self::augment_execution_error(
+                    error,
+                    &run_id,
+                    error_store,
+                    path_store,
+                ));
+            }
+        };
+        let diagnostics = Self::take_diagnostics(&run_id, error_store, path_store);
+        let mut rendered = BoxComponent::new(RunSummaryComponent::new(&summary), terminal).render();
+        if !summary.success() {
+            rendered.push_str(&diagnostics);
+        }
+        Ok((rendered, summary.success()))
+    }
     fn prepare_preflight_config(
         args: RunArgs,
         discover_run_inputs_port: &dyn DiscoverRunInputsPort,
@@ -395,6 +439,37 @@ impl RunHandler {
         Self::describe_input(declaration, index, total, terminal)?;
         let value = Self::read_input_value(declaration, terminal)?;
         Self::apply_input_value(config, declaration, value)
+    }
+
+    fn take_diagnostics(
+        run_id: &str,
+        error_store: &crate::infrastructure::logging::FailureLogErrorStore,
+        path_store: &crate::infrastructure::logging::FailureLogPathStore,
+    ) -> String {
+        let path = path_store.take(run_id);
+        let errors = error_store.read_and_clear();
+        let mut output = String::new();
+        if let Some(path) = path {
+            output.push_str(&format!("\nFailure diagnostics: {}\n", path.display()));
+        }
+        for error in errors {
+            output.push_str(&format!("\nFailure log write error: {error}\n"));
+        }
+        output
+    }
+
+    fn augment_execution_error(
+        error: Box<dyn std::error::Error>,
+        run_id: &str,
+        error_store: &crate::infrastructure::logging::FailureLogErrorStore,
+        path_store: &crate::infrastructure::logging::FailureLogPathStore,
+    ) -> Box<dyn std::error::Error> {
+        let diagnostics = Self::take_diagnostics(run_id, error_store, path_store);
+        if diagnostics.is_empty() {
+            error
+        } else {
+            format!("{error}{diagnostics}").into()
+        }
     }
 
     fn read_input_value(

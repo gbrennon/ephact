@@ -49,6 +49,7 @@ impl PrepareJobContainerPort for PrepareJobContainerService {
                 &container_name,
                 &legacy_container_name,
                 request.repo_path(),
+                request.allow_repo_writes(),
             ))?;
 
         Ok(PreparedJobContainerResponse::new(container, container_name))

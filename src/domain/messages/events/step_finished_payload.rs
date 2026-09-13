@@ -1,8 +1,11 @@
+use super::StepFinishedDetails;
+
 /// Payload for [`DomainEvent::StepFinished`].
 ///
 /// [`DomainEvent::StepFinished`]: super::domain_event::DomainEvent::StepFinished
 #[derive(Debug, Clone)]
 pub struct StepFinishedPayload {
+    run_id: String,
     /// Name of the workflow the step belongs to.
     workflow_name: String,
     /// Identifier of the job the step belongs to.
@@ -16,24 +19,21 @@ pub struct StepFinishedPayload {
 }
 
 impl StepFinishedPayload {
-    pub fn new(
-        workflow_name: String,
-        job_id: String,
-        step_name: String,
-        success: bool,
-        exit_code: Option<i64>,
-        stdout: String,
-        stderr: String,
-    ) -> Self {
+    pub fn new(run_id: String, details: StepFinishedDetails) -> Self {
         Self {
-            workflow_name,
-            job_id,
-            step_name,
-            success,
-            exit_code,
-            stdout,
-            stderr,
+            run_id,
+            workflow_name: details.workflow_name().to_string(),
+            job_id: details.job_id().to_string(),
+            step_name: details.step_name().to_string(),
+            success: details.success(),
+            exit_code: details.exit_code(),
+            stdout: details.stdout().to_string(),
+            stderr: details.stderr().to_string(),
         }
+    }
+
+    pub fn run_id(&self) -> &str {
+        &self.run_id
     }
 
     pub fn workflow_name(&self) -> &str {
@@ -71,15 +71,19 @@ mod tests {
     #[test]
     fn new_preserves_fields() {
         let payload = StepFinishedPayload::new(
-            "workflow".into(),
-            "job".into(),
-            "step".into(),
-            true,
-            Some(0),
-            "stdout".into(),
-            "stderr".into(),
+            "run-1".into(),
+            StepFinishedDetails::new(
+                "workflow".into(),
+                "job".into(),
+                "step".into(),
+                true,
+                Some(0),
+                "stdout".into(),
+                "stderr".into(),
+            ),
         );
 
+        assert_eq!(payload.run_id(), "run-1");
         assert_eq!(payload.workflow_name(), "workflow");
         assert_eq!(payload.job_id(), "job");
         assert_eq!(payload.step_name(), "step");

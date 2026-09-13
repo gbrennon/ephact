@@ -14,7 +14,7 @@ mod tests {
     };
 
     fn request<'a>(repo_path: &'a Path) -> PrepareJobContainerRequest<'a> {
-        PrepareJobContainerRequest::new("build", Some("ubuntu-latest"), repo_path)
+        PrepareJobContainerRequest::new("build", Some("ubuntu-latest"), repo_path, false)
     }
 
     #[test]

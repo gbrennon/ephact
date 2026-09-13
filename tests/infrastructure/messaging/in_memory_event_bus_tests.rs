@@ -15,6 +15,8 @@ fn publish_act_run_completed_stops_kills_and_removes_containers() {
     let bus = InMemoryEventBus::new(vec![cleanup_handler]);
 
     let event = DomainEvent::ActRunCompleted(ActRunCompletedPayload::new(
+        "run-1".to_string(),
+        "/repo".to_string(),
         vec!["container-a".to_string(), "container-b".to_string()],
         true,
     ));
