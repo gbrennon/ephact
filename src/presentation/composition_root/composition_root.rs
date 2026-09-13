@@ -23,8 +23,10 @@ impl CompositionRoot {
             list_workflows_port,
             list_actions_port,
             show_project_branding_info_port,
-            failure_log_error_store,
-            failure_log_path_store,
+            crate::infrastructure::logging::FailureLogStores::from_stores(
+                failure_log_error_store,
+                failure_log_path_store,
+            ),
         ))
     }
 }
