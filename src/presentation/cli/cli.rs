@@ -43,8 +43,7 @@ impl Cli {
             list_workflows_port,
             list_actions_port,
             show_project_branding_info_port,
-            crate::infrastructure::logging::FailureLogErrorStore::new(),
-            crate::infrastructure::logging::FailureLogPathStore::new(),
+            crate::infrastructure::logging::FailureLogStores::new(),
         )
     }
 
@@ -55,8 +54,7 @@ impl Cli {
         list_workflows_port: Box<dyn ListWorkflowsPort>,
         list_actions_port: Box<dyn ListActionsPort>,
         show_project_branding_info_port: Box<dyn ShowProjectBrandingInfoPort>,
-        failure_log_error_store: crate::infrastructure::logging::FailureLogErrorStore,
-        failure_log_path_store: crate::infrastructure::logging::FailureLogPathStore,
+        failure_log_stores: crate::infrastructure::logging::FailureLogStores,
     ) -> Self {
         Self {
             run_workflow_port,
@@ -65,8 +63,8 @@ impl Cli {
             list_workflows_port,
             list_actions_port,
             show_project_branding_info_port,
-            failure_log_error_store,
-            failure_log_path_store,
+            failure_log_error_store: failure_log_stores.error_store(),
+            failure_log_path_store: failure_log_stores.path_store(),
         }
     }
 }
@@ -133,8 +131,7 @@ impl Cli {
             &*self.discover_run_inputs_port,
             &*self.list_workflows_port,
             terminal,
-            &self.failure_log_error_store,
-            &self.failure_log_path_store,
+            (&self.failure_log_error_store, &self.failure_log_path_store),
         )?;
         output.push_str(&summary);
         if !success {
