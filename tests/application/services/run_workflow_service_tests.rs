@@ -30,7 +30,7 @@ mod tests {
     }
 
     #[test]
-    fn execute_runs_workflow_and_publishes_event() {
+    fn execute_runs_workflow_and_publishes_lifecycle_events() {
         let temp = tempfile::tempdir().unwrap();
         let repo = make_repo(temp.path());
 
@@ -44,6 +44,9 @@ mod tests {
                 true,
             ));
         let event_bus = FakeEventBus::new();
+        let config = ActRunConfig::new();
+        let run_id = config.run_id().to_string();
+        let repository_path = temp.path().display().to_string();
 
         let service = RunWorkflowService::new(
             Box::new(workflow_source),
@@ -51,28 +54,93 @@ mod tests {
             Box::new(event_bus.clone()),
             Box::new(FakeDetectWorkflowTriggerPort::always_triggering()),
         );
-        let request = RunWorkflowRequest::new(ActRunConfig::new(), repo);
+        let request = RunWorkflowRequest::new(config, repo);
 
         let summary: RunSummaryResponse = service.execute(request).unwrap();
 
         assert_eq!(summary.name(), "CI");
         assert!(summary.success());
         assert_eq!(command_bus.dispatched_workflows.lock().len(), 1);
-        let dispatched = command_bus.dispatched_workflows.lock();
-        assert_eq!(
-            dispatched[0].config().event().map(|event| event.as_str()),
-            Some("pull_request")
-        );
 
         let events = event_bus.events();
-        assert_eq!(events.len(), 1);
-        let DomainEvent::ActRunCompleted(payload) = &events[0] else {
+        assert_eq!(events.len(), 2);
+        let DomainEvent::RunStarted(payload) = &events[0] else {
+            panic!("expected RunStarted event");
+        };
+        assert_eq!(payload.run_id(), run_id);
+        assert_eq!(payload.repository_path(), repository_path);
+        let DomainEvent::ActRunCompleted(payload) = &events[1] else {
             panic!("expected ActRunCompleted event");
         };
+        assert_eq!(payload.run_id(), run_id);
+        assert_eq!(payload.repository_path(), repository_path);
         assert!(payload.success());
         assert_eq!(
             payload.container_names(),
             vec!["test-container-1".to_string()]
+        );
+    }
+
+    #[test]
+    fn execute_publishes_run_failed_when_workflow_read_fails() {
+        let temp = tempfile::tempdir().unwrap();
+        let repo = make_repo(temp.path());
+        let source = FakeWorkflowSource::new().failing_read_workflow("cannot read workflow");
+        let event_bus = FakeEventBus::new();
+        let config = ActRunConfig::new();
+        let run_id = config.run_id().to_string();
+
+        let service = RunWorkflowService::new(
+            Box::new(source),
+            Box::new(FakeCommandBus::new()),
+            Box::new(event_bus.clone()),
+            Box::new(FakeDetectWorkflowTriggerPort::always_triggering()),
+        );
+
+        let error = service
+            .execute(RunWorkflowRequest::new(config, repo))
+            .unwrap_err();
+
+        assert_eq!(error.to_string(), "cannot read workflow");
+        let events = event_bus.events();
+        assert_eq!(events.len(), 2);
+        let DomainEvent::RunFailed(payload) = &events[1] else {
+            panic!("expected RunFailed event");
+        };
+        assert_eq!(payload.run_id(), run_id);
+        assert_eq!(payload.error(), "cannot read workflow");
+    }
+
+    #[test]
+    fn execute_publishes_run_failed_when_trigger_is_missing() {
+        let temp = tempfile::tempdir().unwrap();
+        let repo = make_repo(temp.path());
+        let workflow_source =
+            FakeWorkflowSource::new().with_workflow_content("name: CI\non: merge_group\njobs: {}");
+        let event_bus = FakeEventBus::new();
+        let config = ActRunConfig::new();
+        let run_id = config.run_id().to_string();
+        let service = RunWorkflowService::new(
+            Box::new(workflow_source),
+            Box::new(FakeCommandBus::new()),
+            Box::new(event_bus.clone()),
+            Box::new(FakeDetectWorkflowTriggerPort::never_triggering()),
+        );
+
+        let error = service
+            .execute(RunWorkflowRequest::new(config, repo))
+            .unwrap_err();
+
+        assert!(error.to_string().contains("pull_request"));
+        let events = event_bus.events();
+        assert_eq!(events.len(), 2);
+        let DomainEvent::RunFailed(payload) = &events[1] else {
+            panic!("expected RunFailed event");
+        };
+        assert_eq!(payload.run_id(), run_id);
+        assert_eq!(
+            payload.error(),
+            "workflow does not define a pull_request event"
         );
     }
 
