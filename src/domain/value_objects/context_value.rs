@@ -5,8 +5,8 @@ use crate::domain::errors::JsonTextError;
 
 /// Value produced and consumed by expression evaluation.
 ///
-/// Mirrors the JSON data model that GitHub Actions exposes to `${{ }}`
-/// expressions, without depending on a serialization library. Mappings keep
+/// Mirrors the JSON data model that the workflow expression context exposes
+/// to `${{ }}` expressions, without depending on a serialization library. Mappings keep
 /// their keys sorted so JSON rendering is deterministic.
 ///
 /// # Example
@@ -114,7 +114,7 @@ impl ContextValue {
         matches!(self, Self::Mapping(_))
     }
 
-    /// Returns `true` when GitHub Actions expression semantics treat this
+    /// Returns `true` when workflow expression semantics treat this
     /// value as truthy.
     ///
     /// Falsy values are `null`, `false`, zero numbers and the empty text.

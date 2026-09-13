@@ -1,6 +1,6 @@
 use crate::domain::{errors::LexerError, value_objects::ExpressionToken};
 
-/// A hand-written lexer for GitHub Actions `${{ }}` expression syntax.
+/// A hand-written lexer for workflow `${{ }}` expression syntax.
 ///
 /// Tokenizes the input stream one token at a time. Supports single-character
 /// lookahead via [`peek_token`](ExpressionLexer::peek_token).

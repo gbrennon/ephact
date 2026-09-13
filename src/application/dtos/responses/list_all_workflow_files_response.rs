@@ -5,7 +5,7 @@ use std::path::PathBuf;
 /// inbound port.
 #[derive(Debug)]
 pub struct ListAllWorkflowFilesResponse {
-    /// Every workflow file in the repository, `.forgejo` before `.github`.
+    /// Every workflow file discovered in the repository.
     workflow_files: Vec<PathBuf>,
 }
 
@@ -15,7 +15,7 @@ impl ListAllWorkflowFilesResponse {
         Self { workflow_files }
     }
 
-    /// Every workflow file in the repository, `.forgejo` before `.github`.
+    /// Every workflow file discovered in the repository.
     pub fn workflow_files(&self) -> &[PathBuf] {
         &self.workflow_files
     }

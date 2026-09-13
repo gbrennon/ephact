@@ -4,7 +4,7 @@ use crate::domain::value_objects::{TriggerFilter, WorkflowDispatchInput};
 
 /// The event(s) that trigger a workflow.
 ///
-/// GitHub Actions supports three forms for the `on` field:
+/// The workflow format supports three forms for the `on` field:
 /// - **Scalar**: `on: push`
 /// - **Sequence**: `on: [push, pull_request]`
 /// - **Mapping**: `on: { push: { branches: [main] } }`

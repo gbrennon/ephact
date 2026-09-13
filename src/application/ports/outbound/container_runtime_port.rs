@@ -4,11 +4,10 @@ use crate::{
     application::ports::outbound::container_port::ContainerPort, domain::errors::ContainerError,
 };
 
-/// Outbound port for managing a container runtime (Docker, Podman, etc.).
+/// Outbound port for managing a container runtime.
 ///
 /// The application layer owns this contract; infrastructure supplies adapters
-/// (`DockerRuntime`, `PodmanRuntime`, `ContainerRuntimeAdapter`) that implement
-/// it.
+/// that implement it.
 pub trait ContainerRuntimePort: Send + Sync {
     /// Pulls a container image from a registry.
     fn pull_image(&self, image: &str, platform: Option<&str>) -> Result<(), ContainerError>;

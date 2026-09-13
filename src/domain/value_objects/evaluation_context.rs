@@ -1,6 +1,6 @@
 /// Evaluation context for `${{ }}` expressions.
 ///
-/// Mirrors the GitHub Actions context hierarchy. Each field is a
+/// Mirrors the workflow expression context hierarchy. Each field is a
 /// [`ContextValue`] so the evaluator can traverse property and
 /// index accesses naturally. Callers populate these from workflow
 /// state before evaluation.

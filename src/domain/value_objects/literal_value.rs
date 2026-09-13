@@ -1,6 +1,6 @@
 use std::fmt;
 
-/// LiteralValue value types in GitHub Actions expressions.
+/// LiteralValue value types in workflow expressions.
 #[derive(Debug, Clone, PartialEq)]
 pub enum LiteralValue {
     Boolean(bool),
