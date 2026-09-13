@@ -1,3 +1,6 @@
+pub mod step_finished_details;
+pub use step_finished_details::StepFinishedDetails;
+
 pub mod act_run_completed_payload;
 pub mod domain_event;
 pub mod event;
