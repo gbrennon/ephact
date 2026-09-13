@@ -1,3 +1,5 @@
+use super::StepFinishedDetails;
+
 /// Payload for [`DomainEvent::StepFinished`].
 ///
 /// [`DomainEvent::StepFinished`]: super::domain_event::DomainEvent::StepFinished
@@ -17,25 +19,16 @@ pub struct StepFinishedPayload {
 }
 
 impl StepFinishedPayload {
-    pub fn new(
-        run_id: String,
-        workflow_name: String,
-        job_id: String,
-        step_name: String,
-        success: bool,
-        exit_code: Option<i64>,
-        stdout: String,
-        stderr: String,
-    ) -> Self {
+    pub fn new(run_id: String, details: StepFinishedDetails) -> Self {
         Self {
             run_id,
-            workflow_name,
-            job_id,
-            step_name,
-            success,
-            exit_code,
-            stdout,
-            stderr,
+            workflow_name: details.workflow_name().to_string(),
+            job_id: details.job_id().to_string(),
+            step_name: details.step_name().to_string(),
+            success: details.success(),
+            exit_code: details.exit_code(),
+            stdout: details.stdout().to_string(),
+            stderr: details.stderr().to_string(),
         }
     }
 
@@ -79,13 +72,15 @@ mod tests {
     fn new_preserves_fields() {
         let payload = StepFinishedPayload::new(
             "run-1".into(),
-            "workflow".into(),
-            "job".into(),
-            "step".into(),
-            true,
-            Some(0),
-            "stdout".into(),
-            "stderr".into(),
+            StepFinishedDetails::new(
+                "workflow".into(),
+                "job".into(),
+                "step".into(),
+                true,
+                Some(0),
+                "stdout".into(),
+                "stderr".into(),
+            ),
         );
 
         assert_eq!(payload.run_id(), "run-1");
