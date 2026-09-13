@@ -7,7 +7,7 @@ use crate::domain::{
     },
 };
 
-/// A job in a GitHub Actions workflow.
+/// A job in a workflow.
 ///
 /// Jobs run in parallel by default but can be sequenced with `needs`.
 /// Each job runs on a fresh virtual environment specified by `runs_on`.
@@ -42,7 +42,7 @@ use crate::domain::{
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Job {
-    /// The name of the job displayed on GitHub.
+    /// The display name of the job.
     name: Option<String>,
 
     /// The type of machine to run the job on (e.g. `ubuntu-latest`).
