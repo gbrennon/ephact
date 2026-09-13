@@ -67,6 +67,8 @@ impl WorkflowCommandHandler {
             cmd.workflow_content(),
             cmd.repository().path().as_path(),
             &context,
+            cmd.run_id(),
+            cmd.allow_repo_writes(),
         );
         self.executor.execute(req)
     }
