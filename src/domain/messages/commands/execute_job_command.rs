@@ -16,6 +16,8 @@ pub struct ExecuteJobCommand {
     workflow: Workflow,
     repo_path: PathBuf,
     context: EvaluationContext,
+    run_id: String,
+    allow_repo_writes: bool,
 }
 
 impl ExecuteJobCommand {
@@ -25,6 +27,8 @@ impl ExecuteJobCommand {
         workflow: Workflow,
         repo_path: PathBuf,
         context: EvaluationContext,
+        run_id: String,
+        allow_repo_writes: bool,
     ) -> Self {
         Self {
             job,
@@ -32,6 +36,8 @@ impl ExecuteJobCommand {
             workflow,
             repo_path,
             context,
+            run_id,
+            allow_repo_writes,
         }
     }
 
@@ -55,13 +61,33 @@ impl ExecuteJobCommand {
         &self.context
     }
 
-    pub fn into_parts(self) -> (Job, String, Workflow, PathBuf, EvaluationContext) {
+    pub fn run_id(&self) -> &str {
+        &self.run_id
+    }
+
+    pub fn allow_repo_writes(&self) -> bool {
+        self.allow_repo_writes
+    }
+
+    pub fn into_parts(
+        self,
+    ) -> (
+        Job,
+        String,
+        Workflow,
+        PathBuf,
+        EvaluationContext,
+        String,
+        bool,
+    ) {
         (
             self.job,
             self.job_id,
             self.workflow,
             self.repo_path,
             self.context,
+            self.run_id,
+            self.allow_repo_writes,
         )
     }
 }
