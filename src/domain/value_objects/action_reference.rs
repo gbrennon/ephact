@@ -1,7 +1,7 @@
 use crate::domain::{errors::ActionError, value_objects::RemoteActionReference};
 
 /// Host assumed when a reference omits scheme and host, matching the shorthand
-/// `owner/repo@ref` form used by GitHub workflows.
+/// `owner/repo@ref` form used by workflows.
 const DEFAULT_HOST: &str = "github.com";
 
 /// Revision used when a reference carries no `@ref` suffix.
