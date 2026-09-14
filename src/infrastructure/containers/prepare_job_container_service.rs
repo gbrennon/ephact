@@ -1,17 +1,16 @@
 use crate::{
-    application::dtos::requests::CopyRepositoryToContainerRequest,
+    application::dtos::requests::{
+        CopyRepositoryToContainerRequest, CreateJobContainerRequest, PrepareJobContainerRequest,
+        PullJobImageRequest,
+    },
+    application::dtos::responses::PreparedJobContainerResponse,
     application::ports::outbound::prepare_job_container_port::PrepareJobContainerPort,
     infrastructure::containers::{
         copy_repository_to_container_port::CopyRepositoryToContainerPort,
         create_job_container_port::CreateJobContainerPort, pull_job_image_port::PullJobImagePort,
     },
 };
-use std::{error::Error, process};
-
-use crate::application::dtos::requests::CreateJobContainerRequest;
-use crate::application::dtos::requests::PrepareJobContainerRequest;
-use crate::application::dtos::requests::PullJobImageRequest;
-use crate::application::dtos::responses::PreparedJobContainerResponse;
+use std::{error::Error, process, time::SystemTime};
 
 pub struct PrepareJobContainerService {
     image_puller: Box<dyn PullJobImagePort>,
@@ -41,7 +40,16 @@ impl PrepareJobContainerPort for PrepareJobContainerService {
             .image_puller
             .execute(PullJobImageRequest::new(request.runs_on()))?;
 
-        let container_name = format!("ephemeral-act-{}-{}", request.job_id(), process::id());
+        let timestamp = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0);
+        let container_name = format!(
+            "ephemeral-act-{}-{}-{}",
+            request.job_id(),
+            process::id(),
+            timestamp
+        );
         let legacy_container_name = format!("ephemeral-act-{}", request.job_id());
 
         let container = self
