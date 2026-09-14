@@ -33,23 +33,11 @@ impl ExecutionPlanner {
     ///
     /// fn job(needs: Vec<String>) -> Job {
     ///     Job::new(
-    ///             None,
-    ///             None,
-    ///             Vec::new(),
-    ///             needs,
-    ///             None,
-    ///             None,
-    ///             HashMap::new(),
-    ///             None,
-    ///             HashMap::new(),
-    ///             HashMap::new(),
-    ///             None,
-    ///             None,
-    ///             None,
-    ///             None,
-    ///             None,
-    ///             None,
-    ///         )
+    ///         None,
+    ///         None,
+    ///         Vec::new(),
+    ///         needs,
+    ///     )
     /// }
     ///
     /// let jobs = HashMap::from([
@@ -58,13 +46,9 @@ impl ExecutionPlanner {
     /// ]);
     /// let workflow = Workflow::new(
     ///     None,
-    ///     None,
     ///     WorkflowTrigger::default(),
     ///     HashMap::new(),
     ///     jobs,
-    ///     None,
-    ///     None,
-    ///     None,
     /// );
     ///
     /// let plan = ExecutionPlanner.plan(&workflow).unwrap();
