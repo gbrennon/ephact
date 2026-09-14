@@ -1,6 +1,8 @@
 use ephact::application::ports::outbound::ContainerRuntimePort;
 use ephact::domain::errors::ContainerError;
-use ephact::domain::messages::events::{ActRunCompletedPayload, DomainEvent};
+use ephact::domain::messages::events::{
+    ActRunCompletedPayload, ContainerStartedPayload, DomainEvent, RunFailedPayload,
+};
 use ephact::infrastructure::containers::container_cleanup_handler::ContainerCleanupHandler;
 use ephact::infrastructure::messaging::domain_event_handler::DomainEventHandler;
 use std::sync::{Arc, Mutex};
@@ -44,6 +46,50 @@ fn cleanup_handler_attempts_to_remove_containers_from_completed_event() {
     // silently (errors are being ignored by `let _ =`)
 }
 
+#[test]
+fn cleanup_handler_removes_started_containers_when_run_fails() {
+    let spy_runtime = Arc::new(SpyContainerRuntime::new());
+    let handler = ContainerCleanupHandler::new(spy_runtime.clone());
+    let first_container = "ephemeral-act-build-1000-1";
+    let second_container = "ephemeral-act-test-1000-2";
+
+    handler.handle(&container_started("run-7", first_container));
+    handler.handle(&container_started("run-7", second_container));
+    handler.handle(&run_failed("run-7"));
+
+    let calls = spy_runtime.calls.lock().unwrap();
+    assert!(calls.contains(&format!("remove_container({})", first_container)));
+    assert!(calls.contains(&format!("remove_container({})", second_container)));
+}
+
+#[test]
+fn cleanup_handler_ignores_started_containers_from_other_runs_when_run_fails() {
+    let spy_runtime = Arc::new(SpyContainerRuntime::new());
+    let handler = ContainerCleanupHandler::new(spy_runtime.clone());
+
+    handler.handle(&container_started("run-a", "ephemeral-act-a-1000-1"));
+    handler.handle(&run_failed("run-b"));
+
+    let calls = spy_runtime.calls.lock().unwrap();
+    assert!(!calls.iter().any(|c| c.starts_with("remove_container")));
+}
+
+fn container_started(run_id: &str, container_name: &str) -> DomainEvent {
+    DomainEvent::ContainerStarted(ContainerStartedPayload::new(
+        run_id.to_string(),
+        container_name.to_string(),
+    ))
+}
+
+fn run_failed(run_id: &str) -> DomainEvent {
+    DomainEvent::RunFailed(RunFailedPayload::new(
+        run_id.to_string(),
+        "/test/repo".to_string(),
+        None,
+        "boom".to_string(),
+    ))
+}
+
 /// Spy runtime that tracks all method calls
 struct SpyContainerRuntime {
     calls: Mutex<Vec<String>>,
@@ -63,13 +109,15 @@ impl ContainerRuntimePort for SpyContainerRuntime {
         _config: &ephact::application::dtos::responses::ContainerConfigResponse,
     ) -> Result<
         Box<dyn ephact::application::ports::outbound::container_port::ContainerPort>,
-        Box<dyn std::error::Error>,
+        ContainerError,
     > {
         self.calls
             .lock()
             .unwrap()
             .push("create_container".to_string());
-        Err("not implemented in test".into())
+        Err(ContainerError::Internal(
+            "not implemented in test".to_string(),
+        ))
     }
 
     fn stop_container(&self, name: &str) -> Result<(), ContainerError> {
@@ -96,8 +144,10 @@ impl ContainerRuntimePort for SpyContainerRuntime {
         Ok(())
     }
 
-    fn pull_image(&self, _image: &str) -> Result<String, Box<dyn std::error::Error>> {
-        Err("not implemented in test".into())
+    fn pull_image(&self, _image: &str, _platform: Option<&str>) -> Result<(), ContainerError> {
+        Err(ContainerError::Internal(
+            "not implemented in test".to_string(),
+        ))
     }
 
     fn get_host_info(
