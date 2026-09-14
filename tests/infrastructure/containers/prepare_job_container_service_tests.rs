@@ -9,6 +9,7 @@ mod tests {
     use ephact::application::dtos::requests::PrepareJobContainerRequest;
 
     use crate::common::fakes::{
+        fake_copy_repository_to_container_port::FakeCopyRepositoryToContainerPort,
         fake_create_job_container_port::FakeCreateJobContainerPort,
         fake_pull_job_image_port::FakePullJobImagePort,
     };
@@ -17,18 +18,27 @@ mod tests {
         PrepareJobContainerRequest::new("build", Some("ubuntu-latest"), repo_path, false)
     }
 
+    fn request_with_writes<'a>(repo_path: &'a Path) -> PrepareJobContainerRequest<'a> {
+        PrepareJobContainerRequest::new("build", Some("ubuntu-latest"), repo_path, true)
+    }
+
     #[test]
     fn execute_names_the_container_after_the_job_and_the_process() {
         let service = PrepareJobContainerService::new(
             Box::new(FakePullJobImagePort::returning("ubuntu:latest")),
             Box::new(FakeCreateJobContainerPort::new()),
+            Box::new(FakeCopyRepositoryToContainerPort::new()),
         );
 
         let prepared = service.execute(request(Path::new("/repo"))).unwrap();
 
-        assert_eq!(
-            prepared.container_name(),
-            format!("ephemeral-act-build-{}", std::process::id())
+        let name = prepared.container_name();
+        let pid = std::process::id();
+        assert!(
+            name.starts_with(&format!("ephemeral-act-build-{}", pid)),
+            "Container name '{}' should start with 'ephemeral-act-build-{}'",
+            name,
+            pid
         );
     }
 
@@ -38,17 +48,24 @@ mod tests {
         let service = PrepareJobContainerService::new(
             Box::new(FakePullJobImagePort::returning("ubuntu:latest")),
             Box::new(creator.clone()),
+            Box::new(FakeCopyRepositoryToContainerPort::new()),
         );
 
         service.execute(request(Path::new("/repo"))).unwrap();
 
-        assert_eq!(
-            creator.legacy_container_names(),
-            vec!["ephemeral-act-build".to_string()]
-        );
-        assert_eq!(
-            creator.container_names(),
-            vec![format!("ephemeral-act-build-{}", std::process::id())]
+        let legacy_names = creator.legacy_container_names();
+        assert_eq!(legacy_names.len(), 1);
+        assert_eq!(legacy_names[0], "ephemeral-act-build");
+
+        let container_names = creator.container_names();
+        assert_eq!(container_names.len(), 1);
+        let name = &container_names[0];
+        let pid = std::process::id();
+        assert!(
+            name.starts_with(&format!("ephemeral-act-build-{}", pid)),
+            "Container name '{}' should start with 'ephemeral-act-build-{}'",
+            name,
+            pid
         );
     }
 
@@ -58,6 +75,7 @@ mod tests {
         let service = PrepareJobContainerService::new(
             Box::new(FakePullJobImagePort::returning("mapped:image")),
             Box::new(creator.clone()),
+            Box::new(FakeCopyRepositoryToContainerPort::new()),
         );
 
         service.execute(request(Path::new("/repo"))).unwrap();
@@ -71,6 +89,7 @@ mod tests {
         let service = PrepareJobContainerService::new(
             Box::new(FakePullJobImagePort::failing("no such image")),
             Box::new(creator.clone()),
+            Box::new(FakeCopyRepositoryToContainerPort::new()),
         );
 
         let Err(error) = service.execute(request(Path::new("/repo"))) else {
@@ -80,5 +99,54 @@ mod tests {
 
         assert_eq!(error, "no such image");
         assert!(creator.images().is_empty());
+    }
+
+    #[test]
+    fn execute_copies_repository_to_container_in_default_isolated_mode() {
+        let copier = FakeCopyRepositoryToContainerPort::new();
+        let service = PrepareJobContainerService::new(
+            Box::new(FakePullJobImagePort::returning("ubuntu:latest")),
+            Box::new(FakeCreateJobContainerPort::new()),
+            Box::new(copier.clone()),
+        );
+
+        service.execute(request(Path::new("/repo"))).unwrap();
+
+        let requests = copier.requests();
+        assert_eq!(requests.len(), 1);
+        assert!(requests[0].contains("/repo"));
+        assert!(requests[0].contains("/workspace"));
+    }
+
+    #[test]
+    fn execute_skips_repository_copy_when_allowing_repo_writes() {
+        let copier = FakeCopyRepositoryToContainerPort::new();
+        let service = PrepareJobContainerService::new(
+            Box::new(FakePullJobImagePort::returning("ubuntu:latest")),
+            Box::new(FakeCreateJobContainerPort::new()),
+            Box::new(copier.clone()),
+        );
+
+        service
+            .execute(request_with_writes(Path::new("/repo")))
+            .unwrap();
+
+        assert_eq!(copier.requests().len(), 0);
+    }
+
+    #[test]
+    fn execute_propagates_copy_failure() {
+        let service = PrepareJobContainerService::new(
+            Box::new(FakePullJobImagePort::returning("ubuntu:latest")),
+            Box::new(FakeCreateJobContainerPort::new()),
+            Box::new(FakeCopyRepositoryToContainerPort::failing("copy failed")),
+        );
+
+        let result = service.execute(request(Path::new("/repo")));
+
+        assert!(result.is_err());
+        if let Err(e) = result {
+            assert_eq!(e.to_string(), "copy failed");
+        }
     }
 }

@@ -37,7 +37,7 @@ mod tests {
     }
 
     #[test]
-    fn execute_mounts_the_repository_read_only_by_default() {
+    fn execute_creates_default_container_with_no_host_bind() {
         let runtime = Arc::new(FakeRuntime::new());
         let service = CreateJobContainerService::new(runtime.clone());
 
@@ -45,7 +45,7 @@ mod tests {
 
         let created = runtime.created_containers.lock();
         let config = created.first().unwrap();
-        assert_eq!(config.binds(), vec!["/repo:/workspace:ro,Z".to_string()]);
+        assert_eq!(config.binds(), Vec::<String>::new());
     }
 
     #[test]

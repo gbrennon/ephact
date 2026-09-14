@@ -25,6 +25,7 @@ impl UserInfo {
         &self.login
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

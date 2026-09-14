@@ -98,6 +98,7 @@ impl CommitInfo {
         &self.modified
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

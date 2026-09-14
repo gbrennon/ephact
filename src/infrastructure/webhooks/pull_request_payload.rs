@@ -51,6 +51,7 @@ impl PullRequestPayload {
         &self.sender
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::super::BranchRef;

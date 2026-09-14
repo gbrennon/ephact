@@ -16,6 +16,7 @@ use crate::{
     infrastructure::{
         actions::{ActionCommandHandler, ActionFetcherPort},
         containers::{
+            copy_repository_to_container_service::CopyRepositoryToContainerService,
             create_job_container_service::CreateJobContainerService,
             prepare_job_container_service::PrepareJobContainerService,
             pull_job_image_service::PullJobImageService,
@@ -104,8 +105,12 @@ impl CommandBusWiring {
         ExecuteJobService::new(ExecuteJobDependencies::new(
             Box::new(RunnerEnvironmentAdapter::new()),
             Box::new(PrepareJobContainerService::new(
-                Box::new(PullJobImageService::new(runtime.clone(), image_mapper)),
-                Box::new(CreateJobContainerService::new(runtime)),
+                Box::new(PullJobImageService::new(
+                    runtime.clone(),
+                    image_mapper.clone(),
+                )),
+                Box::new(CreateJobContainerService::new(runtime.clone())),
+                Box::new(CopyRepositoryToContainerService::new()),
             )),
             (
                 Box::new(PrefixStepPathService::new()),

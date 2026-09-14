@@ -20,6 +20,7 @@ impl LabelInfo {
         &self.color
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

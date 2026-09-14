@@ -66,6 +66,7 @@ impl ReleaseInfo {
         &self.html_url
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

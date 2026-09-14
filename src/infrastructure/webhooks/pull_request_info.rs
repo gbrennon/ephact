@@ -47,6 +47,7 @@ impl PullRequestState {
         }
     }
 }
+
 /// Groups the user, URL, and state flags of a pull request.
 pub struct PullRequestMetadata {
     user: UserInfo,
@@ -127,6 +128,7 @@ impl PullRequestInfo {
         self.mergeable
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::super::{RepositoryInfo, RepositoryLinks, UserInfo};

@@ -42,6 +42,7 @@ impl RepositoryDispatchPayload {
         &self.sender
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

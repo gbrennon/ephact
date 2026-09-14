@@ -51,6 +51,7 @@ impl WorkflowDispatchPayload {
         &self.r#ref
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

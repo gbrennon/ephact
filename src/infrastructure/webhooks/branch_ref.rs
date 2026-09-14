@@ -37,6 +37,7 @@ impl BranchRef {
         &self.label
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::super::UserInfo;

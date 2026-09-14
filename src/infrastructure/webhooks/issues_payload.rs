@@ -42,6 +42,7 @@ impl IssuesPayload {
         &self.sender
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

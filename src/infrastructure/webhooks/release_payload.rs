@@ -42,6 +42,7 @@ impl ReleasePayload {
         &self.sender
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
