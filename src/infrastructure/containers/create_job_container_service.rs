@@ -30,21 +30,20 @@ impl CreateJobContainerPort for CreateJobContainerService {
             .remove_container(request.legacy_container_name());
         let _ = self.runtime.remove_container(request.container_name());
 
-        let bind_suffix = if request.allow_repo_writes() {
-            ":Z"
+        let binds = if request.allow_repo_writes() {
+            vec![format!(
+                "{}:{}:Z",
+                request.repo_path().display(),
+                CONTAINER_WORKSPACE
+            )]
         } else {
-            ":ro,Z"
+            vec![]
         };
         let container_config = ContainerConfigResponse::new(
             request.image().to_string(),
             ContainerConfigOptions::default()
                 .with_env(HashMap::new())
-                .with_binds(vec![format!(
-                    "{}:{}{}",
-                    request.repo_path().display(),
-                    CONTAINER_WORKSPACE,
-                    bind_suffix
-                )])
+                .with_binds(binds)
                 .with_workdir(Some(CONTAINER_WORKSPACE.into()))
                 .with_cmd(Some(vec!["sleep".into(), "infinity".into()]))
                 .with_name(Some(request.container_name().to_string()))
