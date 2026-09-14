@@ -26,20 +26,9 @@ impl DomainEventHandler for ContainerCleanupHandler {
             return;
         };
         for name in payload.container_names() {
-            // Stop container with timeout
-            if let Err(e) = self.runtime.stop_container(name) {
-                eprintln!("Warning: failed to stop container {}: {:?}", name, e);
-            }
-            
-            // Force kill if stop failed
-            if let Err(e) = self.runtime.kill_container(name) {
-                eprintln!("Warning: failed to kill container {}: {:?}", name, e);
-            }
-            
-            // Remove container
-            if let Err(e) = self.runtime.remove_container(name) {
-                eprintln!("Warning: failed to remove container {}: {:?}", name, e);
-            }
+            let _ = self.runtime.stop_container(name);
+            let _ = self.runtime.kill_container(name);
+            let _ = self.runtime.remove_container(name);
         }
     }
 }
