@@ -3,7 +3,6 @@ mod tests {
     use std::path::Path;
 
     use ephact::application::dtos::requests::RunAllWorkflowsRequest;
-    use ephact::application::dtos::responses::RunSummaryResponse;
     use ephact::application::dtos::responses::WorkflowExecutionResponse;
     use ephact::application::ports::inbound::RunAllWorkflowsPort;
     use ephact::application::services::run_all_workflows_service::ALL_WORKFLOWS_SUMMARY_NAME;
