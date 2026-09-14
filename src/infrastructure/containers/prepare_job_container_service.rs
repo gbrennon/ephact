@@ -1,6 +1,8 @@
 use crate::{
+    application::dtos::requests::CopyRepositoryToContainerRequest,
     application::ports::outbound::prepare_job_container_port::PrepareJobContainerPort,
     infrastructure::containers::{
+        copy_repository_to_container_port::CopyRepositoryToContainerPort,
         create_job_container_port::CreateJobContainerPort, pull_job_image_port::PullJobImagePort,
     },
 };
@@ -11,25 +13,25 @@ use crate::application::dtos::requests::PrepareJobContainerRequest;
 use crate::application::dtos::requests::PullJobImageRequest;
 use crate::application::dtos::responses::PreparedJobContainerResponse;
 
-/// Service that prepares a job's container: pulls the image the job needs and
-/// creates the container its steps run in.
 pub struct PrepareJobContainerService {
     image_puller: Box<dyn PullJobImagePort>,
     container_creator: Box<dyn CreateJobContainerPort>,
+    repository_copier: Box<dyn CopyRepositoryToContainerPort>,
 }
 
 impl PrepareJobContainerService {
     pub fn new(
         image_puller: Box<dyn PullJobImagePort>,
         container_creator: Box<dyn CreateJobContainerPort>,
+        repository_copier: Box<dyn CopyRepositoryToContainerPort>,
     ) -> Self {
         Self {
             image_puller,
             container_creator,
+            repository_copier,
         }
     }
 }
-
 impl PrepareJobContainerPort for PrepareJobContainerService {
     fn execute(
         &self,
@@ -51,6 +53,13 @@ impl PrepareJobContainerPort for PrepareJobContainerService {
                 request.repo_path(),
                 request.allow_repo_writes(),
             ))?;
+
+        if !request.allow_repo_writes() {
+            self.repository_copier.execute(
+                CopyRepositoryToContainerRequest::new(request.repo_path(), "/workspace"),
+                container.as_ref(),
+            )?;
+        }
 
         Ok(PreparedJobContainerResponse::new(container, container_name))
     }
