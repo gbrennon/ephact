@@ -42,6 +42,7 @@ impl DeletePayload {
         &self.sender
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

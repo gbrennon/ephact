@@ -1,7 +1,7 @@
-use ephact::infrastructure::containers::container_cleanup_handler::ContainerCleanupHandler;
 use ephact::application::ports::outbound::ContainerRuntimePort;
 use ephact::domain::errors::ContainerError;
-use ephact::domain::messages::events::{DomainEvent, ActRunCompletedPayload};
+use ephact::domain::messages::events::{ActRunCompletedPayload, DomainEvent};
+use ephact::infrastructure::containers::container_cleanup_handler::ContainerCleanupHandler;
 use ephact::infrastructure::messaging::domain_event_handler::DomainEventHandler;
 use std::sync::{Arc, Mutex};
 
@@ -61,9 +61,14 @@ impl ContainerRuntimePort for SpyContainerRuntime {
     fn create_container(
         &self,
         _config: &ephact::application::dtos::responses::ContainerConfigResponse,
-    ) -> Result<Box<dyn ephact::application::ports::outbound::container_port::ContainerPort>, Box<dyn std::error::Error>>
-    {
-        self.calls.lock().unwrap().push("create_container".to_string());
+    ) -> Result<
+        Box<dyn ephact::application::ports::outbound::container_port::ContainerPort>,
+        Box<dyn std::error::Error>,
+    > {
+        self.calls
+            .lock()
+            .unwrap()
+            .push("create_container".to_string());
         Err("not implemented in test".into())
     }
 
@@ -91,14 +96,13 @@ impl ContainerRuntimePort for SpyContainerRuntime {
         Ok(())
     }
 
-    fn pull_image(
-        &self,
-        _image: &str,
-    ) -> Result<String, Box<dyn std::error::Error>> {
+    fn pull_image(&self, _image: &str) -> Result<String, Box<dyn std::error::Error>> {
         Err("not implemented in test".into())
     }
 
-    fn get_host_info(&self) -> Result<ephact::application::dtos::responses::HostInfoResponse, ContainerError> {
+    fn get_host_info(
+        &self,
+    ) -> Result<ephact::application::dtos::responses::HostInfoResponse, ContainerError> {
         Err(ContainerError::Internal("not implemented".to_string()))
     }
 }

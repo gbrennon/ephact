@@ -25,6 +25,7 @@ impl WorkflowCallPayload {
         &self.secrets
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

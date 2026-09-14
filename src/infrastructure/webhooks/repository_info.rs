@@ -92,6 +92,7 @@ impl RepositoryInfo {
         &self.ssh_url
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

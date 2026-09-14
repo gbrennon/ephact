@@ -1,8 +1,8 @@
+use ephact::domain::messages::events::{ActRunCompletedPayload, DomainEvent};
 use ephact::infrastructure::containers::{
     container_cleanup_handler::ContainerCleanupHandler,
     container_runtime_adapter::ContainerRuntimeAdapter,
 };
-use ephact::domain::messages::events::{DomainEvent, ActRunCompletedPayload};
 use ephact::infrastructure::messaging::domain_event_handler::DomainEventHandler;
 use std::sync::Arc;
 
@@ -37,12 +37,12 @@ fn container_cleanup_removes_containers_after_run_completes() {
     // Assert: Containers should be removed
     // This test will FAIL if containers are not being cleaned up
     // because the containers created during the run will still exist
-    
+
     // If this test fails, it means:
     // 1. The container names are being collected correctly
     // 2. The ActRunCompleted event is being published correctly
     // 3. BUT the containers are not being removed by the handler
-    
+
     // The handler calls:
     // - stop_container()
     // - kill_container()

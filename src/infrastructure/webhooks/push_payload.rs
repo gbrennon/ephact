@@ -151,6 +151,7 @@ impl PushPayload {
         &self.compare
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
