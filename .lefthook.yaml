@@ -30,8 +30,11 @@ pre-push:
         export CARGO_TARGET_DIR="${TMPDIR:-/tmp}/ephact-target"
         just semgrep
         semgrep_status=$?
-        just lizard
+        cargo clippy --all-targets --locked -- -D warnings
+        clippy_status=$?
+        lizard -C 5 src
         lizard_status=$?
-        if [ "$semgrep_status" -ne 0 ] || [ "$lizard_status" -ne 0 ]; then
+        if [ "$semgrep_status" -ne 0 ] || [ "$clippy_status" -ne 0 ] ||
+            [ "$lizard_status" -ne 0 ]; then
           exit 1
         fi

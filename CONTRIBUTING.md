@@ -27,8 +27,8 @@ just install-hooks
 
 `just tools` installs `rustfmt`, `clippy`, and `cargo-llvm-cov`.
 `just install-hooks` invokes the separately installed `lefthook` executable.
-The installed pre-push hook runs both quality checks and blocks pushes when
-either check fails.
+The installed pre-push hook runs Semgrep, locked Clippy, and Lizard checks
+sequentially, and blocks pushes when any check fails.
 
 ## Just Commands Reference
 
@@ -122,7 +122,7 @@ cargo clippy --all-targets --locked -- -D warnings
   the repository's cyclomatic-complexity, function-length, argument-count, and
   zero-ignore thresholds.
 - **Git hooks**: After `lefthook install`, the pre-commit hook formats staged
-  Rust paths and runs Clippy auto-fix. The pre-push hook runs Semgrep and Lizard
-  sequentially and blocks pushes when either check fails. Do not bypass
-  installed hooks. Tests and workflow lint are not part of the current hook
-  configuration.
+  Rust paths and runs Clippy auto-fix. The pre-push hook runs Semgrep, locked
+  Clippy, and Lizard sequentially and blocks pushes when any check fails. Do
+  not bypass installed hooks. Tests and workflow lint are not part of the
+  current hook configuration.

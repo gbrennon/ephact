@@ -22,8 +22,8 @@ just install-hooks
 
 `just tools` installs `rustfmt`, `clippy`, and `cargo-llvm-cov`.
 `just install-hooks` invokes the separately installed `lefthook` executable.
-The installed pre-push hook runs both quality checks and blocks pushes when
-either check fails.
+The installed pre-push hook runs Semgrep, locked Clippy, and Lizard checks
+sequentially, and blocks pushes when any check fails.
 
 ## Common Tasks
 
