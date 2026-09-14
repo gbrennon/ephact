@@ -29,7 +29,6 @@ pub mod fake_run_shell_step_port;
 pub mod fake_run_workflow_port;
 pub mod fake_runtime;
 pub mod fake_workflow_source;
-pub mod spy_cleanup_handler;
 pub mod spy_container_runtime;
 pub mod stub_container;
 pub mod stub_docker_erroring_runtime;
