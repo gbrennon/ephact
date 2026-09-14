@@ -1,7 +1,7 @@
 use super::domain_event_handler::DomainEventHandler;
 use crate::{
     application::ports::outbound::event_bus_port::EventBusPort,
-    domain::messages::events::DomainEvent, infrastructure::containers::ContainerCleanupHandler,
+    domain::messages::events::DomainEvent,
 };
 
 /// Event bus that dispatches published domain events to the in-process
@@ -13,11 +13,6 @@ pub struct InMemoryEventBus {
 impl InMemoryEventBus {
     pub fn new(handlers: Vec<Box<dyn DomainEventHandler>>) -> Self {
         Self { handlers }
-    }
-
-    /// Bus with only the container cleanup handler registered.
-    pub fn with_cleanup_handler(cleanup_handler: Box<ContainerCleanupHandler>) -> Self {
-        Self::new(vec![cleanup_handler])
     }
 }
 
