@@ -21,7 +21,9 @@ use crate::application::ports::outbound::read_step_exports_port::ReadStepExports
 use crate::application::ports::outbound::summarize_step_port::SummarizeStepPort;
 use crate::domain::messages::commands::ExecuteStepCommand;
 use crate::domain::messages::events::StepStartedPayload;
-use crate::domain::messages::events::{DomainEvent, StepFinishedDetails, StepFinishedPayload};
+use crate::domain::messages::events::{
+    ContainerStartedPayload, DomainEvent, StepFinishedDetails, StepFinishedPayload,
+};
 
 /// Application service coordinating the execution of one job.
 ///
@@ -124,6 +126,7 @@ impl ExecuteJobPort for ExecuteJobService {
         request: ExecuteJobRequest<'_>,
     ) -> Result<JobExecutionResponse, Box<dyn Error>> {
         let mut state = self.prepare_execution(&request)?;
+        self.announce_container_started(&request, &state);
         for step in request.run().job().steps() {
             self.execute_step(&request, step, &mut state);
         }
@@ -152,6 +155,18 @@ impl ExecuteJobService {
                 request.allow_repo_writes(),
             ))?;
         Ok(JobExecutionState::new(step_env, prepared))
+    }
+
+    fn announce_container_started(
+        &self,
+        request: &ExecuteJobRequest<'_>,
+        state: &JobExecutionState,
+    ) {
+        self.event_bus
+            .publish(DomainEvent::ContainerStarted(ContainerStartedPayload::new(
+                request.run_id().to_string(),
+                state.prepared.container_name().to_string(),
+            )));
     }
 
     fn execute_step(
