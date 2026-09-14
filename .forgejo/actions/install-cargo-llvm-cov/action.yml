@@ -1,0 +1,32 @@
+name: Install cargo-llvm-cov
+description: Install the pinned cargo-llvm-cov release
+
+runs:
+  using: composite
+
+  steps:
+    - name: Install cargo-llvm-cov
+      shell: bash
+      run: |
+        export PATH="$HOME/.cargo/bin:$PATH"
+        if command -v cargo-llvm-cov >/dev/null 2>&1; then
+          echo "cargo-llvm-cov already installed: $(cargo llvm-cov --version)"
+          exit 0
+        fi
+
+        arch=$(uname -m)
+        case "$arch" in
+          x86_64) target="x86_64-unknown-linux-gnu" ;;
+          aarch64) target="aarch64-unknown-linux-gnu" ;;
+          *)
+            echo "unsupported architecture: $arch" >&2
+            exit 1
+            ;;
+        esac
+
+        curl -fsSL --proto '=https' --tlsv1.2 \
+          -o /tmp/cargo-llvm-cov.tar.gz \
+          "https://github.com/taiki-e/cargo-llvm-cov/releases/download/v0.8.7/cargo-llvm-cov-${target}.tar.gz"
+        tar -xzf /tmp/cargo-llvm-cov.tar.gz -C "$HOME/.cargo/bin"
+        rm -f /tmp/cargo-llvm-cov.tar.gz
+        "$HOME/.cargo/bin/cargo" llvm-cov --version
