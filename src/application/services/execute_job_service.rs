@@ -1,4 +1,4 @@
-use std::{error::Error, time::Instant};
+use std::{collections::HashMap, error::Error, time::Instant};
 
 use crate::application::dtos::requests::BuildJobEnvironmentRequest;
 use crate::application::dtos::requests::BuildStepContextRequest;
@@ -9,7 +9,7 @@ use crate::application::dtos::requests::ReadStepExportsRequest;
 use crate::application::dtos::requests::SummarizeStepRequest;
 use crate::application::dtos::responses::JobExecutionResponse;
 use crate::application::dtos::responses::JobSummaryResponse;
-use crate::application::dtos::responses::StepSummaryResponse;
+use crate::application::dtos::responses::{PreparedJobContainerResponse, StepSummaryResponse};
 use crate::application::ports::inbound::execute_job_port::ExecuteJobPort;
 use crate::application::ports::outbound::build_job_environment_port::BuildJobEnvironmentPort;
 use crate::application::ports::outbound::build_step_context_port::BuildStepContextPort;
@@ -41,18 +41,35 @@ pub struct ExecuteJobService {
     event_bus: Box<DomainEventBusPort>,
 }
 
-impl ExecuteJobService {
-    #[allow(clippy::too_many_arguments)]
+pub type ExecuteJobStepDependencies = (
+    Box<dyn PrefixStepPathPort>,
+    Box<dyn BuildStepContextPort>,
+    Box<dyn SummarizeStepPort>,
+    Box<dyn ReadStepExportsPort>,
+);
+pub type ExecuteJobMessagingDependencies = (Box<StepCommandBusPort>, Box<DomainEventBusPort>);
+
+pub struct ExecuteJobDependencies {
+    job_environment_builder: Box<dyn BuildJobEnvironmentPort>,
+    container_preparer: Box<dyn PrepareJobContainerPort>,
+    step_path_prefixer: Box<dyn PrefixStepPathPort>,
+    step_context_builder: Box<dyn BuildStepContextPort>,
+    step_summarizer: Box<dyn SummarizeStepPort>,
+    step_exports_reader: Box<dyn ReadStepExportsPort>,
+    command_bus: Box<StepCommandBusPort>,
+    event_bus: Box<DomainEventBusPort>,
+}
+
+impl ExecuteJobDependencies {
     pub fn new(
         job_environment_builder: Box<dyn BuildJobEnvironmentPort>,
         container_preparer: Box<dyn PrepareJobContainerPort>,
-        step_path_prefixer: Box<dyn PrefixStepPathPort>,
-        step_context_builder: Box<dyn BuildStepContextPort>,
-        step_summarizer: Box<dyn SummarizeStepPort>,
-        step_exports_reader: Box<dyn ReadStepExportsPort>,
-        command_bus: Box<StepCommandBusPort>,
-        event_bus: Box<DomainEventBusPort>,
+        step_dependencies: ExecuteJobStepDependencies,
+        messaging_dependencies: ExecuteJobMessagingDependencies,
     ) -> Self {
+        let (step_path_prefixer, step_context_builder, step_summarizer, step_exports_reader) =
+            step_dependencies;
+        let (command_bus, event_bus) = messaging_dependencies;
         Self {
             job_environment_builder,
             container_preparer,
@@ -66,19 +83,66 @@ impl ExecuteJobService {
     }
 }
 
+struct JobExecutionState {
+    step_env: HashMap<String, String>,
+    extra_path: Vec<String>,
+    prepared: PreparedJobContainerResponse,
+    steps: Vec<StepSummaryResponse>,
+    job_success: bool,
+}
+
+impl JobExecutionState {
+    fn new(step_env: HashMap<String, String>, prepared: PreparedJobContainerResponse) -> Self {
+        Self {
+            step_env,
+            extra_path: Vec::new(),
+            prepared,
+            steps: Vec::new(),
+            job_success: true,
+        }
+    }
+}
+
+impl ExecuteJobService {
+    pub fn new(dependencies: ExecuteJobDependencies) -> Self {
+        Self {
+            job_environment_builder: dependencies.job_environment_builder,
+            container_preparer: dependencies.container_preparer,
+            step_path_prefixer: dependencies.step_path_prefixer,
+            step_context_builder: dependencies.step_context_builder,
+            step_summarizer: dependencies.step_summarizer,
+            step_exports_reader: dependencies.step_exports_reader,
+            command_bus: dependencies.command_bus,
+            event_bus: dependencies.event_bus,
+        }
+    }
+}
+
 impl ExecuteJobPort for ExecuteJobService {
     fn execute(
         &self,
         request: ExecuteJobRequest<'_>,
     ) -> Result<JobExecutionResponse, Box<dyn Error>> {
-        let mut step_env = self
+        let mut state = self.prepare_execution(&request)?;
+        for step in request.run().job().steps() {
+            self.execute_step(&request, step, &mut state);
+        }
+        Ok(self.build_response(&request, state))
+    }
+}
+
+impl ExecuteJobService {
+    fn prepare_execution(
+        &self,
+        request: &ExecuteJobRequest<'_>,
+    ) -> Result<JobExecutionState, Box<dyn Error>> {
+        let step_env = self
             .job_environment_builder
             .execute(BuildJobEnvironmentRequest::new(
                 request.workflow(),
                 request.run().job().env(),
             ))
             .into_env();
-
         let prepared = self
             .container_preparer
             .execute(PrepareJobContainerRequest::new(
@@ -87,57 +151,62 @@ impl ExecuteJobPort for ExecuteJobService {
                 request.repo_path(),
                 request.allow_repo_writes(),
             ))?;
+        Ok(JobExecutionState::new(step_env, prepared))
+    }
 
-        let mut extra_path: Vec<String> = Vec::new();
-        let mut job_success = true;
-        let mut steps: Vec<StepSummaryResponse> = Vec::new();
-
-        for step in request.run().job().steps() {
-            step_env = self
-                .step_path_prefixer
-                .execute(PrefixStepPathRequest::new(&step_env, &extra_path));
-
-            let started_at = Instant::now();
-            let step_context = self
-                .step_context_builder
-                .execute(BuildStepContextRequest::new(request.context(), &step_env));
-
-            self.announce_step_started(&request, step);
-            let outcome = self.command_bus.dispatch(ExecuteStepCommand::new(
-                step.clone(),
-                step_env.clone(),
-                step_context,
-                prepared.container(),
-                request.repo_path().to_path_buf(),
+    fn execute_step(
+        &self,
+        request: &ExecuteJobRequest<'_>,
+        step: &crate::domain::entities::Step,
+        state: &mut JobExecutionState,
+    ) {
+        state.step_env = self.step_path_prefixer.execute(PrefixStepPathRequest::new(
+            &state.step_env,
+            &state.extra_path,
+        ));
+        let started_at = Instant::now();
+        let step_context = self
+            .step_context_builder
+            .execute(BuildStepContextRequest::new(
+                request.context(),
+                &state.step_env,
             ));
+        self.announce_step_started(request, step);
+        let outcome = self.command_bus.dispatch(ExecuteStepCommand::new(
+            step.clone(),
+            state.step_env.clone(),
+            step_context,
+            state.prepared.container(),
+            request.repo_path().to_path_buf(),
+        ));
+        let summarized = self.step_summarizer.execute(SummarizeStepRequest::new(
+            step,
+            outcome,
+            started_at.elapsed(),
+        ));
+        state.job_success &= !summarized.fails_job();
+        self.announce_step_finished(request, summarized.summary(), !summarized.fails_job());
+        state.steps.push(summarized.into_summary());
+        let exports = self
+            .step_exports_reader
+            .execute(ReadStepExportsRequest::new(state.prepared.container()));
+        let (path_additions, env) = exports.into_parts();
+        state.extra_path.extend(path_additions);
+        state.step_env.extend(env);
+    }
 
-            let summarized = self.step_summarizer.execute(SummarizeStepRequest::new(
-                step,
-                outcome,
-                started_at.elapsed(),
-            ));
-            job_success &= !summarized.fails_job();
-            self.announce_step_finished(&request, summarized.summary(), !summarized.fails_job());
-            steps.push(summarized.summary().clone());
-
-            let exports = self
-                .step_exports_reader
-                .execute(ReadStepExportsRequest::new(prepared.container()));
-            let (path_additions, env) = exports.into_parts();
-            extra_path.extend(path_additions);
-            step_env.extend(env);
-        }
-
+    fn build_response(
+        &self,
+        request: &ExecuteJobRequest<'_>,
+        state: JobExecutionState,
+    ) -> JobExecutionResponse {
         let job_summary = JobSummaryResponse::new(
             request.run().job_id().to_string(),
             request.run().job().name().map(str::to_string),
-            steps,
-            job_success,
+            state.steps,
+            state.job_success,
         );
-        Ok(JobExecutionResponse::new(
-            job_summary,
-            prepared.container_name().to_string(),
-        ))
+        JobExecutionResponse::new(job_summary, state.prepared.container_name().to_string())
     }
 }
 
@@ -170,9 +239,9 @@ impl ExecuteJobService {
                     summary.name().to_string(),
                     step_success,
                     summary.exit_code(),
-                    summary.stdout().to_string(),
-                    summary.stderr().to_string(),
-                ),
+                )
+                .with_stdout(summary.stdout().to_string())
+                .with_stderr(summary.stderr().to_string()),
             )));
     }
 }

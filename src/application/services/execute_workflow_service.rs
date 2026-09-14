@@ -28,6 +28,32 @@ pub struct ExecuteWorkflowService {
     event_bus: Box<DomainEventBusPort>,
 }
 
+struct JobExecutionInput<'a> {
+    workflow: &'a crate::domain::aggregates::Workflow,
+    run: &'a crate::domain::entities::JobRun,
+    repo_path: &'a std::path::Path,
+    context: &'a crate::domain::value_objects::EvaluationContext,
+    run_id: &'a str,
+    allow_repo_writes: bool,
+}
+
+impl<'a> JobExecutionInput<'a> {
+    fn new(
+        workflow: &'a crate::domain::aggregates::Workflow,
+        run: &'a crate::domain::entities::JobRun,
+        request: &ExecuteWorkflowRequest<'a>,
+    ) -> Self {
+        Self {
+            workflow,
+            run,
+            repo_path: request.repo_path(),
+            context: request.context(),
+            run_id: request.run_id(),
+            allow_repo_writes: request.allow_repo_writes(),
+        }
+    }
+}
+
 impl ExecuteWorkflowService {
     pub fn new(
         workflow_loader: Box<dyn LoadWorkflowPort>,
@@ -90,41 +116,29 @@ impl ExecuteWorkflowService {
             .collect();
         all_runs
             .iter()
-            .map(|run| {
-                self.execute_run(
-                    workflow,
-                    run,
-                    request.repo_path(),
-                    request.context(),
-                    request.run_id(),
-                    request.allow_repo_writes(),
-                )
-            })
+            .map(|run| self.execute_run(JobExecutionInput::new(workflow, run, &request)))
             .collect()
     }
 
     fn execute_run(
         &self,
-        workflow: &crate::domain::aggregates::Workflow,
-        run: &crate::domain::entities::JobRun,
-        repo_path: &std::path::Path,
-        context: &crate::domain::value_objects::EvaluationContext,
-        run_id: &str,
-        allow_repo_writes: bool,
+        input: JobExecutionInput<'_>,
     ) -> Result<crate::application::dtos::responses::JobExecutionResponse, Box<dyn Error>> {
-        self.announce_job_started(workflow.name().unwrap_or("unnamed"), run);
-        let execution = self.command_bus.dispatch(ExecuteJobCommand::new(
-            run.job().clone(),
-            run.job_id().to_string(),
-            workflow.clone(),
-            repo_path.to_path_buf(),
-            context.clone(),
-            run_id.to_string(),
-            allow_repo_writes,
-        ))?;
+        self.announce_job_started(input.workflow.name().unwrap_or("unnamed"), input.run);
+        let execution = self.command_bus.dispatch(
+            ExecuteJobCommand::new(
+                input.run.job().clone(),
+                input.run.job_id().to_string(),
+                input.workflow.clone(),
+                input.repo_path.to_path_buf(),
+                input.context.clone(),
+            )
+            .with_run_id(input.run_id.to_string())
+            .with_allow_repo_writes(input.allow_repo_writes),
+        )?;
         self.announce_job_finished(
-            workflow.name().unwrap_or("unnamed"),
-            run,
+            input.workflow.name().unwrap_or("unnamed"),
+            input.run,
             execution.job_summary().success(),
         );
         Ok(execution)

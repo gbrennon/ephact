@@ -16,8 +16,6 @@ impl StepFinishedDetails {
         step_name: String,
         success: bool,
         exit_code: Option<i64>,
-        stdout: String,
-        stderr: String,
     ) -> Self {
         Self {
             workflow_name,
@@ -25,9 +23,19 @@ impl StepFinishedDetails {
             step_name,
             success,
             exit_code,
-            stdout,
-            stderr,
+            stdout: String::new(),
+            stderr: String::new(),
         }
+    }
+
+    pub fn with_stdout(mut self, stdout: String) -> Self {
+        self.stdout = stdout;
+        self
+    }
+
+    pub fn with_stderr(mut self, stderr: String) -> Self {
+        self.stderr = stderr;
+        self
     }
 
     pub fn workflow_name(&self) -> &str {

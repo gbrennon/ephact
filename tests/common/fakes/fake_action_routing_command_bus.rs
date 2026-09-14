@@ -3,7 +3,12 @@ use std::sync::{Arc, OnceLock};
 
 use ephact::{
     application::{
-        dtos::{requests::ExecuteActionRequest, responses::ExecuteActionResponse},
+        dtos::{
+            requests::{
+                ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
+            },
+            responses::ExecuteActionResponse,
+        },
         ports::{
             inbound::ExecuteActionPort,
             outbound::{command_bus_port::CommandBusPort, container_port::ContainerPort},
@@ -50,8 +55,10 @@ impl<'a> CommandBusPort<ExecuteActionCommand<'a, dyn ContainerPort>>
             .get()
             .ok_or_else(|| StepError::new("no action executor bound"))?;
         let (action_ref, step, repo_path, env, context, container) = cmd.into_parts();
-        executor.execute(ExecuteActionRequest::new(
-            action_ref, step, repo_path, env, context, container,
-        ))
+        executor.execute(ExecuteActionRequest::new(ExecuteActionRequestInput::new(
+            action_ref,
+            step,
+            ExecuteActionExecutionInput::new(repo_path, env, context, container),
+        )))
     }
 }

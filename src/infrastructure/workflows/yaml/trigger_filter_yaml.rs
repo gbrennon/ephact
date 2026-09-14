@@ -50,16 +50,15 @@ impl TriggerFilterYaml {
             .into_iter()
             .map(|(name, input)| (name, input.into_domain()))
             .collect();
-        TriggerFilter::new(
-            self.branches,
-            self.branches_ignore,
-            self.tags,
-            self.tags_ignore,
-            self.paths,
-            self.paths_ignore,
-            self.types,
-            inputs,
-            self.cron,
-        )
+        TriggerFilter::new()
+            .with_branches(self.branches)
+            .with_branches_ignore(self.branches_ignore)
+            .with_tags(self.tags)
+            .with_tags_ignore(self.tags_ignore)
+            .with_paths(self.paths)
+            .with_paths_ignore(self.paths_ignore)
+            .with_types(self.types)
+            .with_inputs(inputs)
+            .with_cron(self.cron)
     }
 }

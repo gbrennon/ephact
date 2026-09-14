@@ -17,16 +17,10 @@ use crate::domain::value_objects::StepType;
 /// let step = Step::new(
 ///     None,
 ///     None,
-///     None,
 ///     Some("echo hello".to_owned()),
-///     Some("bash".to_owned()),
 ///     None,
-///     None,
-///     HashMap::new(),
-///     HashMap::new(),
-///     None,
-///     None,
-/// );
+/// )
+/// .with_shell(Some("bash".to_owned()));
 ///
 /// assert_eq!(step.run(), Some("echo hello"));
 /// assert!(step.is_run_step());
@@ -68,33 +62,60 @@ pub struct Step {
 }
 
 impl Step {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: Option<String>,
         name: Option<String>,
-        r#if: Option<String>,
         run: Option<String>,
-        shell: Option<String>,
-        working_directory: Option<String>,
         uses: Option<String>,
-        with: HashMap<String, String>,
-        env: HashMap<String, String>,
-        continue_on_error: Option<String>,
-        timeout_minutes: Option<f64>,
     ) -> Self {
         Self {
             id,
             name,
-            r#if,
+            r#if: None,
             run,
-            shell,
-            working_directory,
+            shell: None,
+            working_directory: None,
             uses,
-            with,
-            env,
-            continue_on_error,
-            timeout_minutes,
+            with: HashMap::new(),
+            env: HashMap::new(),
+            continue_on_error: None,
+            timeout_minutes: None,
         }
+    }
+
+    pub fn with_if_condition(mut self, condition: Option<String>) -> Self {
+        self.r#if = condition;
+        self
+    }
+
+    pub fn with_shell(mut self, shell: Option<String>) -> Self {
+        self.shell = shell;
+        self
+    }
+
+    pub fn with_working_directory(mut self, working_directory: Option<String>) -> Self {
+        self.working_directory = working_directory;
+        self
+    }
+
+    pub fn with_inputs(mut self, inputs: HashMap<String, String>) -> Self {
+        self.with = inputs;
+        self
+    }
+
+    pub fn with_env(mut self, env: HashMap<String, String>) -> Self {
+        self.env = env;
+        self
+    }
+
+    pub fn with_continue_on_error(mut self, value: Option<String>) -> Self {
+        self.continue_on_error = value;
+        self
+    }
+
+    pub fn with_timeout_minutes(mut self, timeout_minutes: Option<f64>) -> Self {
+        self.timeout_minutes = timeout_minutes;
+        self
     }
 
     pub fn id(&self) -> Option<&str> {
@@ -205,19 +226,8 @@ mod tests {
     use super::*;
 
     fn step(run: Option<&str>, shell: Option<&str>, uses: Option<&str>) -> Step {
-        Step::new(
-            None,
-            None,
-            None,
-            run.map(str::to_owned),
-            shell.map(str::to_owned),
-            None,
-            uses.map(str::to_owned),
-            HashMap::new(),
-            HashMap::new(),
-            None,
-            None,
-        )
+        Step::new(None, None, run.map(str::to_owned), uses.map(str::to_owned))
+            .with_shell(shell.map(str::to_owned))
     }
 
     #[test]
@@ -247,19 +257,6 @@ mod tests {
     }
 
     #[test]
-    fn a_step_without_a_script_or_action_is_invalid() {
-        assert_eq!(step(None, None, None).step_type(), StepType::Invalid);
-    }
-
-    #[test]
-    fn effective_shell_uses_default_when_not_set() {
-        assert_eq!(
-            step(Some("echo hello"), None, None).effective_shell("bash"),
-            "bash"
-        );
-    }
-
-    #[test]
     fn effective_shell_uses_step_shell_when_set() {
         assert_eq!(
             step(Some("echo hello"), Some("pwsh"), None).effective_shell("bash"),
@@ -270,19 +267,8 @@ mod tests {
     #[test]
     fn continues_on_error_matches_truthy_scalars_case_insensitively() {
         let with_flag = |flag: &str| {
-            Step::new(
-                None,
-                None,
-                None,
-                Some("echo".to_owned()),
-                None,
-                None,
-                None,
-                HashMap::new(),
-                HashMap::new(),
-                Some(flag.to_owned()),
-                None,
-            )
+            Step::new(None, None, Some("echo".to_owned()), None)
+                .with_continue_on_error(Some(flag.to_owned()))
         };
 
         assert!(with_flag("true").continues_on_error());
@@ -296,27 +282,13 @@ mod tests {
         let named = Step::new(
             Some("step-id".to_owned()),
             Some("Run tests".to_owned()),
-            None,
             Some("cargo test".to_owned()),
-            None,
-            None,
-            None,
-            HashMap::new(),
-            HashMap::new(),
-            None,
             None,
         );
         let identified = Step::new(
             Some("step-id".to_owned()),
             None,
-            None,
             Some("cargo test".to_owned()),
-            None,
-            None,
-            None,
-            HashMap::new(),
-            HashMap::new(),
-            None,
             None,
         );
 

@@ -6,8 +6,10 @@ mod tests {
         path::{Path, PathBuf},
     };
 
-    use ephact::application::dtos::requests::ExecuteActionRequest;
-    use ephact::application::dtos::requests::RunCompositeStepRequest;
+    use ephact::application::dtos::requests::{
+        ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
+        RunCompositeStepRequest,
+    };
     use ephact::application::dtos::responses::ExecuteActionResponse;
     use ephact::domain::entities::Step;
     use ephact::domain::value_objects::EvaluationContext;
@@ -30,14 +32,16 @@ mod tests {
     fn action_request<'a>(
         container: &'a dyn ephact::application::ports::outbound::container_port::ContainerPort,
     ) -> ExecuteActionRequest<'a> {
-        ExecuteActionRequest::new(
-            "./actions/outer".to_string(),
+        ExecuteActionRequest::new(ExecuteActionRequestInput::new(
+            "./actions/outer",
             step_from("uses: ./actions/outer\n"),
-            PathBuf::from("/repo"),
-            HashMap::new(),
-            EvaluationContext::new(),
-            container,
-        )
+            ExecuteActionExecutionInput::new(
+                PathBuf::from("/repo"),
+                HashMap::new(),
+                EvaluationContext::new(),
+                container,
+            ),
+        ))
     }
 
     fn action_response() -> ExecuteActionResponse {

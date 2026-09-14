@@ -8,7 +8,8 @@ use crate::{
             event_bus_port::DomainEventBusPort,
         },
         services::{
-            execute_job_service::ExecuteJobService, execute_step_service::ExecuteStepService,
+            execute_job_service::{ExecuteJobDependencies, ExecuteJobService},
+            execute_step_service::ExecuteStepService,
             execute_workflow_service::ExecuteWorkflowService,
         },
     },
@@ -100,21 +101,22 @@ impl CommandBusWiring {
         command_bus: Box<StepCommandBusPort>,
         event_bus: Box<DomainEventBusPort>,
     ) -> ExecuteJobService {
-        ExecuteJobService::new(
+        ExecuteJobService::new(ExecuteJobDependencies::new(
             Box::new(RunnerEnvironmentAdapter::new()),
             Box::new(PrepareJobContainerService::new(
                 Box::new(PullJobImageService::new(runtime.clone(), image_mapper)),
                 Box::new(CreateJobContainerService::new(runtime)),
             )),
-            Box::new(PrefixStepPathService::new()),
-            Box::new(BuildStepContextService::new()),
-            Box::new(SummarizeStepService::new()),
-            Box::new(ReadStepExportsService::new(
-                Box::new(ReadStepPathExportsService::new()),
-                Box::new(ReadStepEnvExportsService::new()),
-            )),
-            command_bus,
-            event_bus,
-        )
+            (
+                Box::new(PrefixStepPathService::new()),
+                Box::new(BuildStepContextService::new()),
+                Box::new(SummarizeStepService::new()),
+                Box::new(ReadStepExportsService::new(
+                    Box::new(ReadStepPathExportsService::new()),
+                    Box::new(ReadStepEnvExportsService::new()),
+                )),
+            ),
+            (command_bus, event_bus),
+        ))
     }
 }

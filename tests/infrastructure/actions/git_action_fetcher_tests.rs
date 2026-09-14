@@ -39,7 +39,6 @@ mod tests {
             mirror.display().to_string(),
             owner.into(),
             repo.into(),
-            None,
             git_ref.into(),
         )
     }

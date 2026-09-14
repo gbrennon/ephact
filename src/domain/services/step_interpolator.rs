@@ -30,19 +30,14 @@ impl StepInterpolator {
     pub fn interpolate(step: &Step, context: &EvaluationContext) -> Result<Step, EvalError> {
         let (name, run, working_directory) = Self::interpolate_core_fields(step, context)?;
         let (uses, with, env) = Self::interpolate_action_fields(step, context)?;
-        Ok(Step::new(
-            step.id().map(str::to_string),
-            name,
-            step.r#if().map(str::to_string),
-            run,
-            step.shell().map(str::to_string),
-            working_directory,
-            uses,
-            with,
-            env,
-            step.continue_on_error().map(str::to_string),
-            step.timeout_minutes(),
-        ))
+        Ok(Step::new(step.id().map(str::to_string), name, run, uses)
+            .with_if_condition(step.r#if().map(str::to_string))
+            .with_shell(step.shell().map(str::to_string))
+            .with_working_directory(working_directory)
+            .with_inputs(with)
+            .with_env(env)
+            .with_continue_on_error(step.continue_on_error().map(str::to_string))
+            .with_timeout_minutes(step.timeout_minutes()))
     }
 
     fn interpolate_core_fields(
@@ -108,35 +103,11 @@ mod tests {
     }
 
     fn run_step(script: &str) -> Step {
-        Step::new(
-            None,
-            None,
-            None,
-            Some(script.to_owned()),
-            None,
-            None,
-            None,
-            HashMap::new(),
-            HashMap::new(),
-            None,
-            None,
-        )
+        Step::new(None, None, Some(script.to_owned()), None)
     }
 
     fn action_step(uses: &str, with: HashMap<String, String>) -> Step {
-        Step::new(
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            Some(uses.to_owned()),
-            with,
-            HashMap::new(),
-            None,
-            None,
-        )
+        Step::new(None, None, None, Some(uses.to_owned())).with_inputs(with)
     }
 
     #[test]
@@ -150,19 +121,9 @@ mod tests {
 
     #[test]
     fn interpolate_resolves_env_values() {
-        let step = Step::new(
-            None,
-            None,
-            None,
-            Some("publish".to_owned()),
-            None,
-            None,
-            None,
-            HashMap::new(),
-            HashMap::from([("TOKEN".to_owned(), "${{ secrets.TOKEN }}".to_owned())]),
-            None,
-            None,
-        );
+        let step = Step::new(None, None, Some("publish".to_owned()), None).with_env(HashMap::from(
+            [("TOKEN".to_owned(), "${{ secrets.TOKEN }}".to_owned())],
+        ));
 
         let interpolated =
             StepInterpolator::interpolate(&step, &context_with_secret("TOKEN", "abc123")).unwrap();
@@ -201,19 +162,8 @@ mod tests {
 
     #[test]
     fn interpolate_keeps_condition_as_authored() {
-        let step = Step::new(
-            None,
-            None,
-            Some("${{ success() }}".to_owned()),
-            Some("echo hi".to_owned()),
-            None,
-            None,
-            None,
-            HashMap::new(),
-            HashMap::new(),
-            None,
-            None,
-        );
+        let step = Step::new(None, None, Some("echo hi".to_owned()), None)
+            .with_if_condition(Some("${{ success() }}".to_owned()));
 
         let interpolated = StepInterpolator::interpolate(&step, &EvaluationContext::new()).unwrap();
 

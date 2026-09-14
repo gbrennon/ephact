@@ -27,8 +27,6 @@ impl ExecuteJobCommand {
         workflow: Workflow,
         repo_path: PathBuf,
         context: EvaluationContext,
-        run_id: String,
-        allow_repo_writes: bool,
     ) -> Self {
         Self {
             job,
@@ -36,9 +34,19 @@ impl ExecuteJobCommand {
             workflow,
             repo_path,
             context,
-            run_id,
-            allow_repo_writes,
+            run_id: String::new(),
+            allow_repo_writes: false,
         }
+    }
+
+    pub fn with_run_id(mut self, run_id: String) -> Self {
+        self.run_id = run_id;
+        self
+    }
+
+    pub fn with_allow_repo_writes(mut self, allow_repo_writes: bool) -> Self {
+        self.allow_repo_writes = allow_repo_writes;
+        self
     }
 
     pub fn job(&self) -> &Job {

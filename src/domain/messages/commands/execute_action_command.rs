@@ -22,7 +22,6 @@ impl<'a, C: ?Sized + Sync + 'a> ExecuteActionCommand<'a, C> {
         step: Step,
         repo_path: PathBuf,
         env: HashMap<String, String>,
-        context: EvaluationContext,
         container: &'a C,
     ) -> Self {
         Self {
@@ -30,9 +29,14 @@ impl<'a, C: ?Sized + Sync + 'a> ExecuteActionCommand<'a, C> {
             step,
             repo_path,
             env,
-            context,
+            context: EvaluationContext::default(),
             container,
         }
+    }
+
+    pub fn with_context(mut self, context: EvaluationContext) -> Self {
+        self.context = context;
+        self
     }
 
     pub fn action_ref(&self) -> &str {

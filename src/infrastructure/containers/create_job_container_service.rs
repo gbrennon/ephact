@@ -2,8 +2,9 @@ use super::{create_job_container_port::CreateJobContainerPort, workspace::CONTAI
 use std::{collections::HashMap, error::Error, sync::Arc};
 
 use crate::application::dtos::requests::CreateJobContainerRequest;
-use crate::application::dtos::responses::ContainerConfigResponse;
-use crate::application::dtos::responses::RunnerContextResponse;
+use crate::application::dtos::responses::{
+    ContainerConfigOptions, ContainerConfigResponse, RunnerContextResponse,
+};
 use crate::application::ports::outbound::ContainerRuntimePort;
 use crate::application::ports::outbound::container_port::ContainerPort;
 
@@ -36,20 +37,18 @@ impl CreateJobContainerPort for CreateJobContainerService {
         };
         let container_config = ContainerConfigResponse::new(
             request.image().to_string(),
-            None,
-            HashMap::new(),
-            vec![format!(
-                "{}:{}{}",
-                request.repo_path().display(),
-                CONTAINER_WORKSPACE,
-                bind_suffix
-            )],
-            Some(CONTAINER_WORKSPACE.into()),
-            Some(vec!["sleep".into(), "infinity".into()]),
-            None,
-            None,
-            Some(request.container_name().to_string()),
-            RunnerContextResponse::default(),
+            ContainerConfigOptions::default()
+                .with_env(HashMap::new())
+                .with_binds(vec![format!(
+                    "{}:{}{}",
+                    request.repo_path().display(),
+                    CONTAINER_WORKSPACE,
+                    bind_suffix
+                )])
+                .with_workdir(Some(CONTAINER_WORKSPACE.into()))
+                .with_cmd(Some(vec!["sleep".into(), "infinity".into()]))
+                .with_name(Some(request.container_name().to_string()))
+                .with_runner_context(RunnerContextResponse::default()),
         );
 
         self.runtime

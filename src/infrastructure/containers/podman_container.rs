@@ -8,7 +8,7 @@ use super::tar_transfer::{download_archive, pack_entries, unpack_entries, upload
 use crate::application::dtos::responses::ExecResultResponse;
 use crate::application::dtos::responses::FileEntryResponse;
 use crate::application::dtos::responses::RunnerContextResponse;
-use crate::application::ports::outbound::container_port::ContainerPort;
+use crate::application::ports::outbound::container_port::{ContainerPort, ExecOptions};
 use crate::domain::errors::ContainerError;
 use crate::domain::messages::events::OutputStream;
 
@@ -43,21 +43,19 @@ impl ContainerPort for PodmanContainer {
         workdir: Option<&str>,
         env: &HashMap<String, String>,
     ) -> Result<ExecResultResponse, ContainerError> {
-        self.exec_streaming(cmd, workdir, env, &mut |_, _| {})
+        self.exec_streaming(ExecOptions::new(cmd, workdir, env), &mut |_, _| {})
     }
 
     fn exec_streaming(
         &self,
-        cmd: &[String],
-        workdir: Option<&str>,
-        env: &HashMap<String, String>,
+        options: ExecOptions<'_>,
         on_output: &mut dyn FnMut(OutputStream, &str),
     ) -> Result<ExecResultResponse, ContainerError> {
-        let options = exec_options(cmd, workdir, env);
+        let exec_options = exec_options(options.cmd(), options.workdir(), options.env());
         self.runtime.block_on(run_streaming_exec(
             &self.client,
             &self.container_id,
-            options,
+            exec_options,
             on_output,
         ))
     }

@@ -68,9 +68,11 @@ mod tests {
             "title".into(),
             None,
             "open".into(),
-            UserInfo::new("name".into(), "email".into(), "login".into()),
-            Vec::new(),
-            "url".into(),
+            super::super::issue_info::IssueMetadata::new(
+                UserInfo::new("name".into(), "email".into(), "login".into()),
+                Vec::new(),
+                "url".into(),
+            ),
         );
         let payload = IssuesPayload::new(
             "opened".into(),

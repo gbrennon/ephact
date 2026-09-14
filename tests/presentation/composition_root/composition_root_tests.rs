@@ -41,14 +41,14 @@ mod tests {
 
     #[test]
     fn compose_creates_app_with_container_services() {
-        let container = AppContainer::new(
+        let container = AppContainer::new((
             Box::new(FakeShowProjectBrandingInfoPort),
             Box::new(FakeRunAllWorkflowsPort::new(true)),
             Box::new(FakeRunWorkflowPort::new(true)),
             Box::new(FakeRunActionPort),
             Box::new(FakeListWorkflowsPort::new()),
             Box::new(FakeListActionsPort::new()),
-        );
+        ));
 
         let _app = CompositionRoot::compose(container);
     }

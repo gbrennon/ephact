@@ -9,8 +9,10 @@ mod tests {
         path::{Path, PathBuf},
     };
 
-    use ephact::application::dtos::requests::ExecuteActionRequest;
     use ephact::application::dtos::requests::RunCompositeActionRequest;
+    use ephact::application::dtos::requests::{
+        ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
+    };
     use ephact::application::dtos::responses::ExecResultResponse;
     use ephact::application::ports::outbound::container_port::ContainerPort;
     use ephact::domain::{entities::Step, errors::StepError, value_objects::EvaluationContext};
@@ -29,16 +31,18 @@ mod tests {
     }
 
     fn action_request<'a>(container: &'a dyn ContainerPort) -> ExecuteActionRequest<'a> {
-        ExecuteActionRequest::new(
+        ExecuteActionRequest::new(ExecuteActionRequestInput::new(
             "./actions/outer",
             serde_yaml::from_str::<StepYaml>("uses: ./actions/outer\n")
                 .unwrap()
                 .into_domain(),
-            PathBuf::from("/repo"),
-            HashMap::new(),
-            EvaluationContext::new(),
-            container,
-        )
+            ExecuteActionExecutionInput::new(
+                PathBuf::from("/repo"),
+                HashMap::new(),
+                EvaluationContext::new(),
+                container,
+            ),
+        ))
     }
 
     fn result(exit_code: i64, stdout: &str) -> ExecResultResponse {

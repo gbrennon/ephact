@@ -140,17 +140,7 @@ mod tests {
             "name".to_owned(),
             WorkflowDispatchInput::new(None, true, None, Some("string".to_owned()), Vec::new()),
         )]);
-        let filter = TriggerFilter::new(
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            inputs.clone(),
-            Vec::new(),
-        );
+        let filter = TriggerFilter::new().with_inputs(inputs.clone());
         let trigger = WorkflowTrigger::WithTypes(HashMap::from([(
             "workflow_dispatch".to_owned(),
             Some(filter),

@@ -47,14 +47,14 @@ mod tests {
     }
 
     fn compose_application() -> Application {
-        CompositionRoot::compose(AppContainer::new(
+        CompositionRoot::compose(AppContainer::new((
             Box::new(FakeShowProjectBrandingInfoPort),
             Box::new(FakeRunAllWorkflowsPort::new(true)),
             Box::new(FakeRunWorkflowPort::new(true)),
             Box::new(FakeRunActionPort),
             Box::new(FakeListWorkflowsPort::new()),
             Box::new(FakeListActionsPort::new()),
-        ))
+        )))
     }
 
     #[test]

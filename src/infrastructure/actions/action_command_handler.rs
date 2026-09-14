@@ -1,4 +1,6 @@
-use crate::application::dtos::requests::ExecuteActionRequest;
+use crate::application::dtos::requests::{
+    ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
+};
 use crate::application::dtos::responses::ExecuteActionResponse;
 use crate::application::ports::inbound::execute_action_port::ExecuteActionPort;
 use crate::application::ports::outbound::container_port::ContainerPort;
@@ -20,7 +22,11 @@ impl ActionCommandHandler {
         cmd: ExecuteActionCommand<'a, dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {
         let (action_ref, step, repo_path, env, context, container) = cmd.into_parts();
-        let req = ExecuteActionRequest::new(action_ref, step, repo_path, env, context, container);
+        let req = ExecuteActionRequest::new(ExecuteActionRequestInput::new(
+            action_ref,
+            step,
+            ExecuteActionExecutionInput::new(repo_path, env, context, container),
+        ));
         self.executor.execute(req)
     }
 }

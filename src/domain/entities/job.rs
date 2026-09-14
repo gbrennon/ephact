@@ -24,18 +24,6 @@ use crate::domain::{
 ///     Some("ubuntu-latest".to_owned()),
 ///     Vec::new(),
 ///     Vec::new(),
-///     None,
-///     None,
-///     HashMap::new(),
-///     None,
-///     HashMap::new(),
-///     HashMap::new(),
-///     None,
-///     None,
-///     None,
-///     None,
-///     None,
-///     None,
 /// );
 ///
 /// assert_eq!(job.runs_on(), Some("ubuntu-latest"));
@@ -92,43 +80,90 @@ pub struct Job {
 }
 
 impl Job {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: Option<String>,
         runs_on: Option<String>,
         steps: Vec<Step>,
         needs: Vec<String>,
-        r#if: Option<String>,
-        strategy: Option<JobStrategy>,
-        env: HashMap<String, String>,
-        container: Option<ContainerSpecification>,
-        services: HashMap<String, ContainerSpecification>,
-        outputs: HashMap<String, String>,
-        with: Option<ContextValue>,
-        secrets: Option<ContextValue>,
-        timeout_minutes: Option<f64>,
-        continue_on_error: Option<String>,
-        permissions: Option<TokenPermissions>,
-        concurrency: Option<ConcurrencyGroup>,
     ) -> Self {
         Self {
             name,
             runs_on,
             steps,
             needs,
-            r#if,
-            strategy,
-            env,
-            container,
-            services,
-            outputs,
-            with,
-            secrets,
-            timeout_minutes,
-            continue_on_error,
-            permissions,
-            concurrency,
+            r#if: None,
+            strategy: None,
+            env: HashMap::new(),
+            container: None,
+            services: HashMap::new(),
+            outputs: HashMap::new(),
+            with: None,
+            secrets: None,
+            timeout_minutes: None,
+            continue_on_error: None,
+            permissions: None,
+            concurrency: None,
         }
+    }
+
+    pub fn with_if_condition(mut self, condition: Option<String>) -> Self {
+        self.r#if = condition;
+        self
+    }
+
+    pub fn with_strategy(mut self, strategy: Option<JobStrategy>) -> Self {
+        self.strategy = strategy;
+        self
+    }
+
+    pub fn with_env(mut self, env: HashMap<String, String>) -> Self {
+        self.env = env;
+        self
+    }
+
+    pub fn with_container(mut self, container: Option<ContainerSpecification>) -> Self {
+        self.container = container;
+        self
+    }
+
+    pub fn with_services(mut self, services: HashMap<String, ContainerSpecification>) -> Self {
+        self.services = services;
+        self
+    }
+
+    pub fn with_outputs(mut self, outputs: HashMap<String, String>) -> Self {
+        self.outputs = outputs;
+        self
+    }
+
+    pub fn with_inputs(mut self, inputs: Option<ContextValue>) -> Self {
+        self.with = inputs;
+        self
+    }
+
+    pub fn with_secrets(mut self, secrets: Option<ContextValue>) -> Self {
+        self.secrets = secrets;
+        self
+    }
+
+    pub fn with_timeout_minutes(mut self, timeout_minutes: Option<f64>) -> Self {
+        self.timeout_minutes = timeout_minutes;
+        self
+    }
+
+    pub fn with_continue_on_error(mut self, value: Option<String>) -> Self {
+        self.continue_on_error = value;
+        self
+    }
+
+    pub fn with_permissions(mut self, permissions: Option<TokenPermissions>) -> Self {
+        self.permissions = permissions;
+        self
+    }
+
+    pub fn with_concurrency(mut self, concurrency: Option<ConcurrencyGroup>) -> Self {
+        self.concurrency = concurrency;
+        self
     }
 
     pub fn name(&self) -> Option<&str> {
@@ -221,22 +256,17 @@ mod tests {
             Some("ubuntu".into()),
             Vec::new(),
             vec!["setup".into()],
-            Some("always()".into()),
-            None,
-            HashMap::from([("KEY".into(), "value".into())]),
-            None,
-            HashMap::new(),
-            HashMap::from([("output".into(), "value".into())]),
-            Some(ContextValue::mapping([(
-                "token".to_owned(),
-                ContextValue::text("value"),
-            )])),
-            Some(ContextValue::empty_mapping()),
-            Some(10.0),
-            Some("true".into()),
-            None,
-            None,
-        );
+        )
+        .with_if_condition(Some("always()".into()))
+        .with_env(HashMap::from([("KEY".into(), "value".into())]))
+        .with_outputs(HashMap::from([("output".into(), "value".into())]))
+        .with_inputs(Some(ContextValue::mapping([(
+            "token".to_owned(),
+            ContextValue::text("value"),
+        )])))
+        .with_secrets(Some(ContextValue::empty_mapping()))
+        .with_timeout_minutes(Some(10.0))
+        .with_continue_on_error(Some("true".into()));
 
         assert_eq!(job.name(), Some("Build"));
         assert_eq!(job.runs_on(), Some("ubuntu"));
@@ -261,24 +291,8 @@ mod tests {
     }
     #[test]
     fn exposes_dependency_and_failure_policy_behavior() {
-        let job = Job::new(
-            None,
-            None,
-            Vec::new(),
-            vec!["setup".into()],
-            None,
-            None,
-            HashMap::new(),
-            None,
-            HashMap::new(),
-            HashMap::new(),
-            None,
-            None,
-            None,
-            Some("true".into()),
-            None,
-            None,
-        );
+        let job = Job::new(None, None, Vec::new(), vec!["setup".into()])
+            .with_continue_on_error(Some("true".into()));
 
         assert!(job.depends_on("setup"));
         assert!(!job.depends_on("build"));

@@ -100,28 +100,24 @@ impl ExpressionFunctions {
         let tmpl = Self::expect_string(template, "format", "template")?;
         let mut result = String::with_capacity(tmpl.len());
         let mut rest = tmpl;
-        let mut chars = rest.char_indices();
 
-        while let Some((i, ch)) = chars.next() {
-            Self::process_format_char(ch, i, &mut chars, &mut rest, &mut result, args)?;
+        while let Some(ch) = rest.chars().next() {
+            Self::process_format_char(ch, &mut rest, &mut result, args)?;
         }
         Ok(ContextValue::Text(result))
     }
 
-    fn process_format_char<'a>(
+    fn process_format_char(
         ch: char,
-        i: usize,
-        chars: &mut std::str::CharIndices<'a>,
-        rest: &mut &'a str,
+        rest: &mut &str,
         result: &mut String,
         args: &[ContextValue],
     ) -> Result<(), EvalError> {
         match ch {
             '{' => {
-                let (end, idx) = Self::parse_placeholder(chars, rest, i + 1)?;
+                let (end, idx) = Self::parse_placeholder(rest)?;
                 Self::append_formatted_arg(result, args, idx)?;
                 *rest = &rest[end + 1..];
-                *chars = rest.char_indices();
                 Ok(())
             }
             '}' => Err(EvalError::FormatError(
@@ -129,6 +125,7 @@ impl ExpressionFunctions {
             )),
             other => {
                 result.push(other);
+                *rest = &rest[other.len_utf8()..];
                 Ok(())
             }
         }
@@ -149,25 +146,20 @@ impl ExpressionFunctions {
         Ok(())
     }
 
-    fn parse_placeholder(
-        chars: &mut std::str::CharIndices<'_>,
-        rest: &str,
-        start: usize,
-    ) -> Result<(usize, usize), EvalError> {
-        let end = Self::find_placeholder_end(chars, start)?;
-        let idx_str = &rest[start..end];
+    fn parse_placeholder(rest: &str) -> Result<(usize, usize), EvalError> {
+        let mut chars = rest.char_indices();
+        chars.next();
+        let end = Self::find_placeholder_end(&mut chars)?;
+        let idx_str = &rest[1..end];
         let idx: usize = idx_str.parse().map_err(|_| {
             EvalError::FormatError(format!("format: invalid placeholder index '{idx_str}'"))
         })?;
         Ok((end, idx))
     }
 
-    fn find_placeholder_end(
-        chars: &mut std::str::CharIndices<'_>,
-        start: usize,
-    ) -> Result<usize, EvalError> {
-        let mut end = start;
+    fn find_placeholder_end(chars: &mut std::str::CharIndices<'_>) -> Result<usize, EvalError> {
         let mut found_close = false;
+        let mut end = 1;
         for (j, c) in chars.by_ref() {
             if c == '}' {
                 found_close = true;

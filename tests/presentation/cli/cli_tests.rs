@@ -5,6 +5,7 @@ mod tests {
     use ephact::application::dtos::responses::ShowProjectBrandingInfoResponse;
     use ephact::application::ports::inbound::ShowProjectBrandingInfoPort;
     use ephact::presentation::cli::Cli;
+    use ephact::presentation::cli::cli::CliDependencies;
     use ephact::presentation::components::terminal::Terminal;
 
     use crate::common::fakes::{
@@ -44,14 +45,18 @@ mod tests {
     }
 
     fn make_cli() -> Cli {
-        Cli::new(
-            Box::new(FakeRunWorkflowPort::new(true)),
-            Box::new(FakeRunAllWorkflowsPort::new(true)),
-            Box::new(FakeDiscoverRunInputsPort::new()),
-            Box::new(FakeListWorkflowsPort::new()),
-            Box::new(FakeListActionsPort::new()),
-            Box::new(FakeShowProjectBrandingInfoPort),
-        )
+        Cli::new(CliDependencies::new(
+            (
+                Box::new(FakeRunWorkflowPort::new(true)),
+                Box::new(FakeRunAllWorkflowsPort::new(true)),
+                Box::new(FakeDiscoverRunInputsPort::new()),
+            ),
+            (
+                Box::new(FakeListWorkflowsPort::new()),
+                Box::new(FakeListActionsPort::new()),
+                Box::new(FakeShowProjectBrandingInfoPort),
+            ),
+        ))
     }
 
     #[test]
@@ -82,14 +87,18 @@ mod tests {
 
     #[test]
     fn run_run_subcommand_propagates_workflow_failure() {
-        let cli = Cli::new(
-            Box::new(FakeRunWorkflowPort::new(false)),
-            Box::new(FakeRunAllWorkflowsPort::new(false)),
-            Box::new(FakeDiscoverRunInputsPort::new()),
-            Box::new(FakeListWorkflowsPort::new()),
-            Box::new(FakeListActionsPort::new()),
-            Box::new(FakeShowProjectBrandingInfoPort),
-        );
+        let cli = Cli::new(CliDependencies::new(
+            (
+                Box::new(FakeRunWorkflowPort::new(false)),
+                Box::new(FakeRunAllWorkflowsPort::new(false)),
+                Box::new(FakeDiscoverRunInputsPort::new()),
+            ),
+            (
+                Box::new(FakeListWorkflowsPort::new()),
+                Box::new(FakeListActionsPort::new()),
+                Box::new(FakeShowProjectBrandingInfoPort),
+            ),
+        ));
         let result = cli.run(["ephact", "run"]);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("workflow failed"));

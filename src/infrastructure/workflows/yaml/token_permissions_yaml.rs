@@ -25,18 +25,17 @@ impl TokenPermissionsYaml {
     /// Builds the domain token permissions this YAML describes.
     #[must_use]
     pub fn into_domain(self) -> TokenPermissions {
-        TokenPermissions::new(
-            self.actions,
-            self.checks,
-            self.contents,
-            self.deployments,
-            self.issues,
-            self.packages,
-            self.pages,
-            self.pull_requests,
-            self.repository_projects,
-            self.security_events,
-            self.statuses,
-        )
+        TokenPermissions::new()
+            .with_actions(self.actions)
+            .with_checks(self.checks)
+            .with_contents(self.contents)
+            .with_deployments(self.deployments)
+            .with_issues(self.issues)
+            .with_packages(self.packages)
+            .with_pages(self.pages)
+            .with_pull_requests(self.pull_requests)
+            .with_repository_projects(self.repository_projects)
+            .with_security_events(self.security_events)
+            .with_statuses(self.statuses)
     }
 }

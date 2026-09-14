@@ -31,14 +31,7 @@ impl ShellCommand {
     /// let step = Step::new(
     ///     None,
     ///     None,
-    ///     None,
     ///     Some("echo hi".to_owned()),
-    ///     None,
-    ///     None,
-    ///     None,
-    ///     HashMap::new(),
-    ///     HashMap::new(),
-    ///     None,
     ///     None,
     /// );
     /// let command = ShellCommand::for_step(&step, &HashMap::new()).unwrap();
@@ -102,25 +95,15 @@ mod tests {
         env: HashMap<String, String>,
         uses: Option<&str>,
     ) -> Step {
-        Step::new(
-            None,
-            None,
-            None,
-            run.map(str::to_owned),
-            shell.map(str::to_owned),
-            working_directory.map(str::to_owned),
-            uses.map(str::to_owned),
-            HashMap::new(),
-            env,
-            None,
-            None,
-        )
+        Step::new(None, None, run.map(str::to_owned), uses.map(str::to_owned))
+            .with_shell(shell.map(str::to_owned))
+            .with_working_directory(working_directory.map(str::to_owned))
+            .with_env(env)
     }
 
     fn run_step(script: &str) -> Step {
         step(Some(script), None, None, HashMap::new(), None)
     }
-
     #[test]
     fn for_step_defaults_to_bash() {
         let command = ShellCommand::for_step(&run_step("echo hi"), &HashMap::new()).unwrap();

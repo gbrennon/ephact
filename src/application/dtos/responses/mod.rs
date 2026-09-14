@@ -34,7 +34,7 @@ pub use build_action_input_environment_response::BuildActionInputEnvironmentResp
 pub use build_job_environment_response::BuildJobEnvironmentResponse;
 pub use build_run_context_response::BuildRunContextResponse;
 pub use collect_action_files_response::CollectActionFilesResponse;
-pub use container_config_response::ContainerConfigResponse;
+pub use container_config_response::{ContainerConfigOptions, ContainerConfigResponse};
 pub use exec_result_response::ExecResultResponse;
 pub use execute_action_response::ExecuteActionResponse;
 pub use executed_step_response::ExecutedStepResponse;
@@ -53,10 +53,12 @@ pub use run_input_declaration_response::RunInputDeclarationResponse;
 pub use run_input_source_response::RunInputSourceResponse;
 pub use run_node_action_response::RunNodeActionResponse;
 pub use run_summary_response::RunSummaryResponse;
-pub use runner_context_response::RunnerContextResponse;
+pub use runner_context_response::{RunnerContextPaths, RunnerContextResponse};
 pub use show_project_branding_info_response::ShowProjectBrandingInfoResponse;
 pub use step_exports_response::StepExportsResponse;
-pub use step_summary_response::StepSummaryResponse;
+pub use step_summary_response::{
+    StepSummaryDetails, StepSummaryResponse, StepSummaryResponseInput,
+};
 pub use summarized_step_response::SummarizedStepResponse;
 pub use workflow_execution_response::WorkflowExecutionResponse;
 pub use workflow_input_source_response::WorkflowInputSourceResponse;
