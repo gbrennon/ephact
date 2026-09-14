@@ -303,13 +303,57 @@ mod tests {
         .unwrap();
 
         let events = event_bus.events();
-        let ephact::domain::messages::events::DomainEvent::StepStarted(payload) = &events[0] else {
-            panic!("the first event should announce the step start");
-        };
+        let payload = events
+            .iter()
+            .find_map(|event| match event {
+                ephact::domain::messages::events::DomainEvent::StepStarted(payload) => {
+                    Some(payload)
+                }
+                _ => None,
+            })
+            .expect("a step start should be announced");
 
         assert_eq!(
             payload.step_name(),
             execution.job_summary().steps()[0].name()
         );
+    }
+
+    #[test]
+    fn execute_announces_the_prepared_container_as_started_for_the_run() {
+        let wf = single_job_workflow("      - run: echo hi\n");
+        let plan = ExecutionPlanner.plan(&wf).unwrap();
+        let run = &plan.stages()[0].runs()[0];
+        let event_bus = FakeEventBus::new();
+
+        service_with_event_bus(
+            FakePrepareJobContainerPort::named("job-container"),
+            FakeCommandBus::new(),
+            FakeReadStepExportsPort::new(),
+            event_bus.clone(),
+        )
+        .execute(ExecuteJobRequest::new(ExecuteJobRequestInput::new(
+            run,
+            &wf,
+            ExecuteJobExecutionInput::new(
+                Path::new("/repo"),
+                &EvaluationContext::new(),
+                "test-run",
+                false,
+            ),
+        )))
+        .unwrap();
+
+        let events = event_bus.events();
+        let started = events.iter().find_map(|event| match event {
+            ephact::domain::messages::events::DomainEvent::ContainerStarted(payload) => {
+                Some(payload)
+            }
+            _ => None,
+        });
+
+        let started = started.expect("the prepared container should be announced as started");
+        assert_eq!(started.run_id(), "test-run");
+        assert_eq!(started.container_name(), "job-container");
     }
 }
