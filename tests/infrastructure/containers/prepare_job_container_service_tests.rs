@@ -56,7 +56,7 @@ mod tests {
         let legacy_names = creator.legacy_container_names();
         assert_eq!(legacy_names.len(), 1);
         assert_eq!(legacy_names[0], "ephemeral-act-build");
-        
+
         let container_names = creator.container_names();
         assert_eq!(container_names.len(), 1);
         let name = &container_names[0];
