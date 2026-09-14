@@ -2,10 +2,11 @@
 mod tests {
     use std::{collections::HashMap, path::Path, sync::Arc};
 
-    use ephact::application::dtos::requests::ExecuteActionRequest;
-    use ephact::application::dtos::responses::ContainerConfigResponse;
+    use ephact::application::dtos::requests::{
+        ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
+    };
     use ephact::application::dtos::responses::ExecResultResponse;
-    use ephact::application::dtos::responses::RunnerContextResponse;
+    use ephact::application::dtos::responses::{ContainerConfigOptions, ContainerConfigResponse};
     use ephact::application::ports::inbound::execute_action_port::ExecuteActionPort;
     use ephact::application::ports::outbound::ContainerRuntimePort;
     use ephact::application::ports::outbound::container_port::ContainerPort;
@@ -36,15 +37,7 @@ mod tests {
         runtime
             .create_container(&ContainerConfigResponse::new(
                 "image",
-                None,
-                HashMap::new(),
-                vec![],
-                None,
-                None,
-                None,
-                None,
-                None,
-                RunnerContextResponse::default(),
+                ContainerConfigOptions::default(),
             ))
             .unwrap()
     }
@@ -62,14 +55,16 @@ mod tests {
         container: &'a dyn ContainerPort,
         context: EvaluationContext,
     ) -> ExecuteActionRequest<'a> {
-        ExecuteActionRequest::new(
+        ExecuteActionRequest::new(ExecuteActionRequestInput::new(
             action_ref,
             step,
-            repo_path.to_path_buf(),
-            HashMap::new(),
-            context,
-            container,
-        )
+            ExecuteActionExecutionInput::new(
+                repo_path.to_path_buf(),
+                HashMap::new(),
+                context,
+                container,
+            ),
+        ))
     }
 
     fn write_action(dir: &Path, body: &str) {

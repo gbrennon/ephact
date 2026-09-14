@@ -47,6 +47,23 @@ impl PullRequestState {
         }
     }
 }
+/// Groups the user, URL, and state flags of a pull request.
+pub struct PullRequestMetadata {
+    user: UserInfo,
+    html_url: String,
+    state: PullRequestState,
+}
+
+impl PullRequestMetadata {
+    /// Creates the metadata associated with a pull request.
+    pub fn new(user: UserInfo, html_url: String, state: PullRequestState) -> Self {
+        Self {
+            user,
+            html_url,
+            state,
+        }
+    }
+}
 
 impl PullRequestInfo {
     pub fn new(
@@ -54,9 +71,7 @@ impl PullRequestInfo {
         title: String,
         body: Option<String>,
         branches: PullRequestBranches,
-        user: UserInfo,
-        html_url: String,
-        state: PullRequestState,
+        metadata: PullRequestMetadata,
     ) -> Self {
         Self {
             number,
@@ -64,11 +79,11 @@ impl PullRequestInfo {
             body,
             head: branches.head,
             base: branches.base,
-            user,
-            html_url,
-            draft: state.draft,
-            merged: state.merged,
-            mergeable: state.mergeable,
+            user: metadata.user,
+            html_url: metadata.html_url,
+            draft: metadata.state.draft,
+            merged: metadata.state.merged,
+            mergeable: metadata.state.mergeable,
         }
     }
 
@@ -139,9 +154,11 @@ mod tests {
             "title".into(),
             Some("body".into()),
             PullRequestBranches::new(branch(), branch()),
-            UserInfo::new("name".into(), "email".into(), "login".into()),
-            "url".into(),
-            PullRequestState::new(true, true, Some(true)),
+            PullRequestMetadata::new(
+                UserInfo::new("name".into(), "email".into(), "login".into()),
+                "url".into(),
+                PullRequestState::new(true, true, Some(true)),
+            ),
         );
 
         assert_eq!(info.number(), 1);

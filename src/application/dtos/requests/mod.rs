@@ -50,8 +50,12 @@ pub use copy_action_to_container_request::CopyActionToContainerRequest;
 pub use create_job_container_request::CreateJobContainerRequest;
 pub use detect_workflow_file_request::DetectWorkflowFileRequest;
 pub use discover_run_inputs_request::DiscoverRunInputsRequest;
-pub use execute_action_request::ExecuteActionRequest;
-pub use execute_job_request::ExecuteJobRequest;
+pub use execute_action_request::{
+    ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
+};
+pub use execute_job_request::{
+    ExecuteJobExecutionInput, ExecuteJobRequest, ExecuteJobRequestInput,
+};
 pub use execute_step_request::ExecuteStepRequest;
 pub use execute_workflow_request::ExecuteWorkflowRequest;
 pub use fetch_remote_action_request::FetchRemoteActionRequest;
@@ -73,7 +77,7 @@ pub use resolve_action_inputs_request::ResolveActionInputsRequest;
 pub use resolve_named_workflow_file_request::ResolveNamedWorkflowFileRequest;
 pub use resolve_node_binary_request::ResolveNodeBinaryRequest;
 pub use resolve_workflow_files_request::ResolveWorkflowFilesRequest;
-pub use run_action_request::RunActionRequest;
+pub use run_action_request::{RunActionExecutionInput, RunActionRequest, RunActionRequestInput};
 pub use run_all_workflows_request::RunAllWorkflowsRequest;
 pub use run_composite_action_request::RunCompositeActionRequest;
 pub use run_composite_step_request::RunCompositeStepRequest;

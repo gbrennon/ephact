@@ -8,23 +8,27 @@ mod tests {
 
     use ephact::application::dtos::requests::MergeRunExecutionsRequest;
     use ephact::application::dtos::responses::JobSummaryResponse;
-    use ephact::application::dtos::responses::StepSummaryResponse;
     use ephact::application::dtos::responses::WorkflowExecutionResponse;
+    use ephact::application::dtos::responses::{
+        StepSummaryDetails, StepSummaryResponse, StepSummaryResponseInput,
+    };
     use ephact::domain::value_objects::StepType;
 
     fn job(job_id: &str, name: Option<&str>, success: bool) -> JobSummaryResponse {
         JobSummaryResponse::new(
             job_id,
             name.map(str::to_string),
-            vec![StepSummaryResponse::new(
-                "step".to_string(),
+            vec![StepSummaryResponse::new(StepSummaryResponseInput::new(
+                "step",
                 StepType::Run,
-                Some(0),
-                false,
-                Duration::from_secs(0),
-                String::new(),
-                String::new(),
-            )],
+                StepSummaryDetails::new(
+                    Some(0),
+                    false,
+                    Duration::from_secs(0),
+                    String::new(),
+                    String::new(),
+                ),
+            ))],
             success,
         )
     }

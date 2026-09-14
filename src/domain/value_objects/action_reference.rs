@@ -35,6 +35,14 @@ pub enum ActionReference {
     /// An action delivered as a container image (`docker://image:tag`).
     Docker(String),
 }
+struct RemoteReferenceParts<'a> {
+    scheme: String,
+    host: String,
+    owner: &'a str,
+    repo: &'a str,
+    git_ref: &'a str,
+    directory: Vec<&'a str>,
+}
 
 impl ActionReference {
     /// Classifies a raw `uses:` value.
@@ -62,31 +70,37 @@ impl ActionReference {
         let (location, git_ref) = Self::split_git_ref(reference).ok_or_else(invalid)?;
         let (scheme, host, path) = Self::parse_scheme_host_path(location).ok_or_else(invalid)?;
         let (owner, repo, directory) = Self::parse_segments(path).ok_or_else(invalid)?;
-        Ok(Self::Remote(Self::build_remote(
-            scheme, host, owner, repo, directory, git_ref,
-        )))
+        Ok(Self::Remote(Self::build_remote(RemoteReferenceParts {
+            scheme,
+            host,
+            owner,
+            repo,
+            git_ref,
+            directory,
+        })))
     }
 
-    fn build_remote(
-        scheme: String,
-        host: String,
-        owner: &str,
-        repo: &str,
-        directory: Vec<&str>,
-        git_ref: &str,
-    ) -> RemoteActionReference {
-        let dir = match directory.is_empty() {
-            true => None,
-            false => Some(directory.join("/")),
-        };
-        RemoteActionReference::new(
+    fn build_remote(parts: RemoteReferenceParts<'_>) -> RemoteActionReference {
+        let RemoteReferenceParts {
+            scheme,
+            host,
+            owner,
+            repo,
+            git_ref,
+            directory,
+        } = parts;
+        let remote = RemoteActionReference::new(
             scheme,
             host,
             owner.to_string(),
             repo.to_string(),
-            dir,
             git_ref.to_string(),
-        )
+        );
+        if directory.is_empty() {
+            remote
+        } else {
+            remote.with_directory(Some(directory.join("/")))
+        }
     }
 
     fn split_git_ref(reference: &str) -> Option<(&str, &str)> {

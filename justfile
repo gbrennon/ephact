@@ -72,6 +72,9 @@ lint-workflows:
 semgrep:
 	EIO_BACKEND=posix semgrep scan --config .semgrep --error .
 
+
+lizard:
+	lizard -C 5 -L 50 -a 5 -i 0 .
 # Install lefthook pre-commit hooks
 install-hooks:
 	lefthook install

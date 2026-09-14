@@ -17,29 +17,53 @@ pub struct TriggerFilter {
 }
 
 impl TriggerFilter {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        branches: Vec<String>,
-        branches_ignore: Vec<String>,
-        tags: Vec<String>,
-        tags_ignore: Vec<String>,
-        paths: Vec<String>,
-        paths_ignore: Vec<String>,
-        types: Vec<String>,
-        inputs: HashMap<String, WorkflowDispatchInput>,
-        cron: Vec<String>,
-    ) -> Self {
-        Self {
-            branches,
-            branches_ignore,
-            tags,
-            tags_ignore,
-            paths,
-            paths_ignore,
-            types,
-            inputs,
-            cron,
-        }
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_branches(mut self, branches: Vec<String>) -> Self {
+        self.branches = branches;
+        self
+    }
+
+    pub fn with_branches_ignore(mut self, branches_ignore: Vec<String>) -> Self {
+        self.branches_ignore = branches_ignore;
+        self
+    }
+
+    pub fn with_tags(mut self, tags: Vec<String>) -> Self {
+        self.tags = tags;
+        self
+    }
+
+    pub fn with_tags_ignore(mut self, tags_ignore: Vec<String>) -> Self {
+        self.tags_ignore = tags_ignore;
+        self
+    }
+
+    pub fn with_paths(mut self, paths: Vec<String>) -> Self {
+        self.paths = paths;
+        self
+    }
+
+    pub fn with_paths_ignore(mut self, paths_ignore: Vec<String>) -> Self {
+        self.paths_ignore = paths_ignore;
+        self
+    }
+
+    pub fn with_types(mut self, types: Vec<String>) -> Self {
+        self.types = types;
+        self
+    }
+
+    pub fn with_inputs(mut self, inputs: HashMap<String, WorkflowDispatchInput>) -> Self {
+        self.inputs = inputs;
+        self
+    }
+
+    pub fn with_cron(mut self, cron: Vec<String>) -> Self {
+        self.cron = cron;
+        self
     }
 
     pub fn branches(&self) -> &[String] {
@@ -85,17 +109,16 @@ mod tests {
     #[test]
     fn new_exposes_all_filters() {
         let input = WorkflowDispatchInput::new(None, false, None, None, Vec::new());
-        let config = TriggerFilter::new(
-            vec!["main".into()],
-            vec!["dev".into()],
-            vec!["v1".into()],
-            vec!["v2".into()],
-            vec!["src/**".into()],
-            vec!["docs/**".into()],
-            vec!["opened".into()],
-            HashMap::from([("name".into(), input)]),
-            vec!["0 0 * * *".into()],
-        );
+        let config = TriggerFilter::new()
+            .with_branches(vec!["main".into()])
+            .with_branches_ignore(vec!["dev".into()])
+            .with_tags(vec!["v1".into()])
+            .with_tags_ignore(vec!["v2".into()])
+            .with_paths(vec!["src/**".into()])
+            .with_paths_ignore(vec!["docs/**".into()])
+            .with_types(vec!["opened".into()])
+            .with_inputs(HashMap::from([("name".into(), input)]))
+            .with_cron(vec!["0 0 * * *".into()]);
 
         assert_eq!(config.branches(), &["main".to_string()]);
         assert_eq!(config.branches_ignore(), &["dev".to_string()]);

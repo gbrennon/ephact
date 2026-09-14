@@ -33,21 +33,33 @@ impl CommitChanges {
     }
 }
 
+/// Groups the users associated with a commit.
+pub struct CommitAuthors {
+    author: UserInfo,
+    committer: UserInfo,
+}
+
+impl CommitAuthors {
+    /// Creates a commit's author and committer.
+    pub fn new(author: UserInfo, committer: UserInfo) -> Self {
+        Self { author, committer }
+    }
+}
+
 impl CommitInfo {
     pub fn new(
         id: String,
         message: String,
         timestamp: String,
-        author: UserInfo,
-        committer: UserInfo,
+        authors: CommitAuthors,
         changes: CommitChanges,
     ) -> Self {
         Self {
             id,
             message,
             timestamp,
-            author,
-            committer,
+            author: authors.author,
+            committer: authors.committer,
             added: changes.added,
             removed: changes.removed,
             modified: changes.modified,
@@ -99,8 +111,7 @@ mod tests {
             "id".into(),
             "message".into(),
             "timestamp".into(),
-            user(),
-            user(),
+            CommitAuthors::new(user(), user()),
             CommitChanges::new(
                 vec!["added".into()],
                 vec!["removed".into()],

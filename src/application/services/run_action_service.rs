@@ -25,9 +25,9 @@ impl RunActionPort for RunActionService {
             request.step().clone(),
             request.repo_path().to_path_buf(),
             request.env().clone(),
-            request.context().clone(),
             request.container(),
-        );
+        )
+        .with_context(request.context().clone());
         self.command_bus.dispatch(cmd)
     }
 }

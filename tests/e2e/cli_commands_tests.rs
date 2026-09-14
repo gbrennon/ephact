@@ -11,8 +11,10 @@ mod tests {
     use ephact::application::dtos::responses::ListWorkflowsResponse;
     use ephact::application::dtos::responses::RunSummaryResponse;
     use ephact::application::dtos::responses::ShowProjectBrandingInfoResponse;
-    use ephact::application::dtos::responses::StepSummaryResponse;
     use ephact::application::dtos::responses::WorkflowListItemResponse;
+    use ephact::application::dtos::responses::{
+        StepSummaryDetails, StepSummaryResponse, StepSummaryResponseInput,
+    };
     use ephact::application::ports::inbound::ListActionsPort;
     use ephact::application::ports::inbound::ListWorkflowsPort;
     use ephact::application::ports::inbound::RunAllWorkflowsPort;
@@ -20,6 +22,7 @@ mod tests {
     use ephact::application::ports::inbound::ShowProjectBrandingInfoPort;
     use ephact::domain::value_objects::StepType;
     use ephact::presentation::cli::Cli;
+    use ephact::presentation::cli::cli::CliDependencies;
     use ephact::presentation::components::terminal::Terminal;
 
     use super::super::support::workflow_repository::WorkflowRepository;
@@ -125,16 +128,20 @@ mod tests {
     }
 
     fn cli(summary: RunSummaryResponse) -> Cli {
-        Cli::new(
-            Box::new(RunFake {
-                summary: summary.clone(),
-            }),
-            Box::new(RunFake { summary }),
-            Box::new(InputDiscoveryFake),
-            Box::new(WorkflowListFake),
-            Box::new(ActionListFake),
-            Box::new(BrandingFake),
-        )
+        Cli::new(CliDependencies::new(
+            (
+                Box::new(RunFake {
+                    summary: summary.clone(),
+                }),
+                Box::new(RunFake { summary }),
+                Box::new(InputDiscoveryFake),
+            ),
+            (
+                Box::new(WorkflowListFake),
+                Box::new(ActionListFake),
+                Box::new(BrandingFake),
+            ),
+        ))
     }
 
     fn repository() -> WorkflowRepository {
@@ -152,24 +159,28 @@ mod tests {
                 "build",
                 Some("Build job".into()),
                 vec![
-                    StepSummaryResponse::new(
+                    StepSummaryResponse::new(StepSummaryResponseInput::new(
                         "Checkout",
                         StepType::Run,
-                        Some(0),
-                        false,
-                        Duration::ZERO,
-                        String::new(),
-                        String::new(),
-                    ),
-                    StepSummaryResponse::new(
+                        StepSummaryDetails::new(
+                            Some(0),
+                            false,
+                            Duration::ZERO,
+                            String::new(),
+                            String::new(),
+                        ),
+                    )),
+                    StepSummaryResponse::new(StepSummaryResponseInput::new(
                         "Compile",
                         StepType::Run,
-                        Some(0),
-                        false,
-                        Duration::ZERO,
-                        String::new(),
-                        String::new(),
-                    ),
+                        StepSummaryDetails::new(
+                            Some(0),
+                            false,
+                            Duration::ZERO,
+                            String::new(),
+                            String::new(),
+                        ),
+                    )),
                 ],
                 true,
             )],

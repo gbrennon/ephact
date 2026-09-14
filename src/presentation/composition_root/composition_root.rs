@@ -1,5 +1,8 @@
 use super::application::Application;
-use crate::{infrastructure::di::AppContainer, presentation::cli::Cli};
+use crate::{
+    infrastructure::di::AppContainer,
+    presentation::cli::{Cli, cli::CliDependencies},
+};
 
 pub struct CompositionRoot;
 
@@ -17,12 +20,18 @@ impl CompositionRoot {
             list_actions_port,
         ) = container.into_parts();
         Application::new(Cli::new_with_failure_stores(
-            run_workflow_port,
-            run_all_workflows_port,
-            discover_run_inputs_port,
-            list_workflows_port,
-            list_actions_port,
-            show_project_branding_info_port,
+            CliDependencies::new(
+                (
+                    run_workflow_port,
+                    run_all_workflows_port,
+                    discover_run_inputs_port,
+                ),
+                (
+                    list_workflows_port,
+                    list_actions_port,
+                    show_project_branding_info_port,
+                ),
+            ),
             crate::infrastructure::logging::FailureLogStores::from_stores(
                 failure_log_error_store,
                 failure_log_path_store,

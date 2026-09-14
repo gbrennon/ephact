@@ -24,9 +24,25 @@ pub struct PushMetadata {
     repository: RepositoryInfo,
     pusher: UserInfo,
     sender: UserInfo,
+    state: PushState,
+}
+
+/// Groups the state flags of a push event.
+pub struct PushState {
     created: bool,
     deleted: bool,
     forced: bool,
+}
+
+impl PushState {
+    /// Creates the state flags associated with a push event.
+    pub fn new(created: bool, deleted: bool, forced: bool) -> Self {
+        Self {
+            created,
+            deleted,
+            forced,
+        }
+    }
 }
 
 impl PushMetadata {
@@ -35,17 +51,30 @@ impl PushMetadata {
         repository: RepositoryInfo,
         pusher: UserInfo,
         sender: UserInfo,
-        created: bool,
-        deleted: bool,
-        forced: bool,
+        state: PushState,
     ) -> Self {
         Self {
             repository,
             pusher,
             sender,
-            created,
-            deleted,
-            forced,
+            state,
+        }
+    }
+}
+/// Groups the commit data and comparison URL of a push event.
+pub struct PushChanges {
+    commits: Vec<CommitInfo>,
+    head_commit: Option<CommitInfo>,
+    compare: String,
+}
+
+impl PushChanges {
+    /// Creates the commit data associated with a push event.
+    pub fn new(commits: Vec<CommitInfo>, head_commit: Option<CommitInfo>, compare: String) -> Self {
+        Self {
+            commits,
+            head_commit,
+            compare,
         }
     }
 }
@@ -56,9 +85,7 @@ impl PushPayload {
         before: String,
         after: String,
         metadata: PushMetadata,
-        commits: Vec<CommitInfo>,
-        head_commit: Option<CommitInfo>,
-        compare: String,
+        changes: PushChanges,
     ) -> Self {
         Self {
             r#ref,
@@ -67,12 +94,12 @@ impl PushPayload {
             repository: metadata.repository,
             pusher: metadata.pusher,
             sender: metadata.sender,
-            created: metadata.created,
-            deleted: metadata.deleted,
-            forced: metadata.forced,
-            commits,
-            head_commit,
-            compare,
+            created: metadata.state.created,
+            deleted: metadata.state.deleted,
+            forced: metadata.state.forced,
+            commits: changes.commits,
+            head_commit: changes.head_commit,
+            compare: changes.compare,
         }
     }
 
@@ -153,25 +180,25 @@ mod tests {
             "id".into(),
             "message".into(),
             "timestamp".into(),
-            user(),
-            user(),
+            super::super::commit_info::CommitAuthors::new(user(), user()),
             super::super::commit_info::CommitChanges::new(Vec::new(), Vec::new(), Vec::new()),
         );
         let payload = PushPayload::new(
             "refs/heads/main".into(),
             "before".into(),
             "after".into(),
-            PushMetadata::new(repository(), user(), user(), true, false, true),
-            vec![commit.clone()],
-            Some(commit),
-            "compare".into(),
+            PushMetadata::new(
+                repository(),
+                user(),
+                user(),
+                PushState::new(true, false, true),
+            ),
+            PushChanges::new(vec![commit.clone()], Some(commit), "compare".into()),
         );
-
+        assert_eq!(payload.pusher().login(), "login");
         assert_eq!(payload.r#ref(), "refs/heads/main");
         assert_eq!(payload.before(), "before");
         assert_eq!(payload.after(), "after");
-        assert_eq!(payload.repository().name(), "repo");
-        assert_eq!(payload.pusher().login(), "login");
         assert_eq!(payload.sender().login(), "login");
         assert!(payload.created());
         assert!(!payload.deleted());

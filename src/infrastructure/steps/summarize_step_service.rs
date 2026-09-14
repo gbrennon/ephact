@@ -1,6 +1,7 @@
 use crate::application::dtos::requests::SummarizeStepRequest;
-use crate::application::dtos::responses::StepSummaryResponse;
-use crate::application::dtos::responses::SummarizedStepResponse;
+use crate::application::dtos::responses::{
+    StepSummaryDetails, StepSummaryResponse, StepSummaryResponseInput, SummarizedStepResponse,
+};
 use crate::application::ports::outbound::summarize_step_port::SummarizeStepPort;
 
 /// Service that turns a step's outcome into its run-summary entry, deciding
@@ -44,15 +45,17 @@ impl SummarizeStepPort for SummarizeStepService {
         };
 
         SummarizedStepResponse::new(
-            StepSummaryResponse::new(
+            StepSummaryResponse::new(StepSummaryResponseInput::new(
                 name,
                 step_type,
-                exit_code,
-                continue_on_error,
-                request.duration(),
-                stdout,
-                stderr,
-            ),
+                StepSummaryDetails::new(
+                    exit_code,
+                    continue_on_error,
+                    request.duration(),
+                    stdout,
+                    stderr,
+                ),
+            )),
             fails_job,
         )
     }

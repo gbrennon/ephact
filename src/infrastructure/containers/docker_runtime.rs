@@ -31,6 +31,27 @@ impl DockerRuntime {
         Ok(Self { docker, runtime })
     }
 }
+fn build_container_config(config: &ContainerConfigResponse) -> ContainerCreateBody {
+    let env_list = config
+        .env()
+        .iter()
+        .map(|(key, value)| format!("{}={}", key, value))
+        .collect();
+    let host_config = HostConfig {
+        binds: Some(config.binds().to_vec()),
+        network_mode: config.network().map(str::to_string),
+        ..Default::default()
+    };
+    ContainerCreateBody {
+        image: Some(config.image().to_string()),
+        env: Some(env_list),
+        cmd: config.cmd().map(<[String]>::to_vec),
+        entrypoint: config.entrypoint().map(<[String]>::to_vec),
+        working_dir: config.workdir().map(str::to_string),
+        host_config: Some(host_config),
+        ..Default::default()
+    }
+}
 
 impl ContainerRuntimePort for DockerRuntime {
     fn pull_image(&self, image: &str, platform: Option<&str>) -> Result<(), ContainerError> {
@@ -63,32 +84,11 @@ impl ContainerRuntimePort for DockerRuntime {
         &self,
         config: &ContainerConfigResponse,
     ) -> Result<Box<dyn ContainerPort>, ContainerError> {
-        let env_list: Vec<String> = config
-            .env()
-            .iter()
-            .map(|(k, v)| format!("{}={}", k, v))
-            .collect();
-
-        let host_config = HostConfig {
-            binds: Some(config.binds().to_vec()),
-            network_mode: config.network().map(str::to_string),
-            ..Default::default()
-        };
-
         let create_options = CreateContainerOptionsBuilder::new()
             .name(config.name().unwrap_or(""))
             .platform(config.platform().unwrap_or(""))
             .build();
-
-        let container_config = ContainerCreateBody {
-            image: Some(config.image().to_string()),
-            env: Some(env_list),
-            cmd: config.cmd().map(<[String]>::to_vec),
-            entrypoint: config.entrypoint().map(<[String]>::to_vec),
-            working_dir: config.workdir().map(str::to_string),
-            host_config: Some(host_config),
-            ..Default::default()
-        };
+        let container_config = build_container_config(config);
 
         let container = self.runtime.block_on(async {
             self.docker

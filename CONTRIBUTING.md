@@ -14,7 +14,8 @@ conventions.
   ([https://github.com/casey/just](https://github.com/casey/just)).
 - **actionlint**: Install the workflow-file checker separately.
 - **lefthook**: Install the Git hook manager separately.
-- **semgrep**: Install it separately if you intend to run `just semgrep`.
+- **semgrep** and **lizard**: Install them separately to run the configured
+  quality checks.
 
 After installing those prerequisites, install the Rust development components,
 coverage tool, and Git hooks:
@@ -26,6 +27,8 @@ just install-hooks
 
 `just tools` installs `rustfmt`, `clippy`, and `cargo-llvm-cov`.
 `just install-hooks` invokes the separately installed `lefthook` executable.
+The installed pre-push hook runs Semgrep, locked Clippy, and Lizard checks
+sequentially, and blocks pushes when any check fails.
 
 ## Just Commands Reference
 
@@ -50,6 +53,7 @@ All common contributor tasks are automated via `just`. Run `just` or
 | `just clean`                   | Remove Cargo build artifacts                                                                                                       | `cargo clean`                                                                          |
 | `just lint-workflows`          | Lint Forgejo Actions workflows                                                                                                     | `actionlint -config-file .actionlint.yaml .forgejo/workflows/*.yml`                    |
 | `just semgrep`                 | Run the configured Semgrep rules and report findings as errors                                                                     | `semgrep scan --config .semgrep --error .`                                             |
+| `just lizard`                  | Run Lizard with the repository's complexity, length, argument-count, and ignore thresholds | `lizard -C 5 -L 50 -a 5 -i 0 .` |
 | `just install-hooks`           | Install the configured `lefthook` Git hooks                                                                                        | `lefthook install`                                                                     |
 | `just install-dev`             | Install a debug binary for local iteration                                                                                         | `cargo install --path . --debug`                                                       |
 | `just install`                 | Install a release binary to `~/.cargo/bin`                                                                                         | `cargo install --path .`                                                               |
@@ -114,10 +118,11 @@ cargo clippy --all-targets --locked -- -D warnings
 - **Architecture**: Adhere to hexagonal architecture layer boundaries (`domain`,
   `application`, `infrastructure`, and `presentation`).
 - **Complexity**: Target a maximum control-flow nesting depth of 2.
-  `just semgrep` checks the configured nesting rule, but neither CI nor
-  `lefthook` runs it. No cyclomatic-complexity threshold is currently automated.
+  `just semgrep` checks the configured nesting rule, and `just lizard` enforces
+  the repository's cyclomatic-complexity, function-length, argument-count, and
+  zero-ignore thresholds.
 - **Git hooks**: After `lefthook install`, the pre-commit hook formats staged
-  Rust paths and runs Clippy auto-fix. It reports when fixes leave staged paths
-  modified in the worktree, but that report does not fail the hook or restage
-  files. Do not bypass installed hooks. Tests, Semgrep, and workflow lint are
-  not part of the current pre-commit configuration.
+  Rust paths and runs Clippy auto-fix. The pre-push hook runs Semgrep, locked
+  Clippy, and Lizard sequentially and blocks pushes when any check fails. Do
+  not bypass installed hooks. Tests and workflow lint are not part of the
+  current hook configuration.

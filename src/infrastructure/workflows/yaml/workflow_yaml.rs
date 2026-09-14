@@ -48,15 +48,9 @@ impl WorkflowYaml {
             .into_iter()
             .map(|(id, job)| (id, job.into_domain()))
             .collect();
-        Workflow::new(
-            self.name,
-            None,
-            self.trigger.into_domain(),
-            self.env,
-            jobs,
-            self.defaults.map(ExecutionDefaultsYaml::into_domain),
-            self.permissions.map(TokenPermissionsYaml::into_domain),
-            self.concurrency.map(ConcurrencyGroupYaml::into_domain),
-        )
+        Workflow::new(self.name, self.trigger.into_domain(), self.env, jobs)
+            .with_defaults(self.defaults.map(ExecutionDefaultsYaml::into_domain))
+            .with_permissions(self.permissions.map(TokenPermissionsYaml::into_domain))
+            .with_concurrency(self.concurrency.map(ConcurrencyGroupYaml::into_domain))
     }
 }

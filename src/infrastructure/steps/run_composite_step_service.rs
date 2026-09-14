@@ -37,14 +37,16 @@ impl RunCompositeStepPort for RunCompositeStepService {
         match request.step().uses() {
             Some(nested) => self
                 .command_bus
-                .dispatch(ExecuteActionCommand::new(
-                    nested.to_string(),
-                    request.step().clone(),
-                    action_request.repo_path().to_path_buf(),
-                    action_request.env().clone(),
-                    request.context().clone(),
-                    action_request.container(),
-                ))
+                .dispatch(
+                    ExecuteActionCommand::new(
+                        nested.to_string(),
+                        request.step().clone(),
+                        action_request.repo_path().to_path_buf(),
+                        action_request.env().clone(),
+                        action_request.container(),
+                    )
+                    .with_context(request.context().clone()),
+                )
                 .map(|response| {
                     ExecResultResponse::new(
                         response.exit_code(),

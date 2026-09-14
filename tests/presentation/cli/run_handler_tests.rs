@@ -17,7 +17,7 @@ mod tests {
     use ephact::application::ports::inbound::RunWorkflowPort;
     use ephact::application::ports::outbound::DiscoverRunInputsPort;
     use ephact::presentation::cli::parse_run_test_args;
-    use ephact::presentation::cli::run_handler::RunHandler;
+    use ephact::presentation::cli::run_handler::{PreflightPorts, RunHandler};
     use ephact::presentation::components::terminal::SystemTerminal;
     use ephact::presentation::components::terminal::Terminal;
 
@@ -360,28 +360,32 @@ mod tests {
         );
     }
 
+    fn declared_preflight_inputs() -> Vec<RunInputDeclarationResponse> {
+        vec![
+            RunInputDeclarationResponse::new(
+                "cache-key-prefix",
+                RunInputSourceResponse::Action("./.forgejo/actions/cache-rust-deps".into()),
+                Some("Prefix for the cache key".into()),
+                true,
+                None,
+            ),
+            RunInputDeclarationResponse::new(
+                "rustc-version",
+                RunInputSourceResponse::Action("./.forgejo/actions/cache-rust-deps".into()),
+                Some("Rust compiler version".into()),
+                false,
+                Some("stable".into()),
+            ),
+        ]
+    }
+
     #[test]
     fn interactive_preflight_prompts_for_each_declared_input() {
         let args = parse_run_test_args(&["--interactive"]);
         let run_port = RecordingRunWorkflowPort::new();
         let all_run_port = UnusedRunAllWorkflowsPort;
         let discovery_port = DiscoverInputsFake {
-            declarations: vec![
-                RunInputDeclarationResponse::new(
-                    "cache-key-prefix",
-                    RunInputSourceResponse::Action("./.forgejo/actions/cache-rust-deps".into()),
-                    Some("Prefix for the cache key".into()),
-                    true,
-                    None,
-                ),
-                RunInputDeclarationResponse::new(
-                    "rustc-version",
-                    RunInputSourceResponse::Action("./.forgejo/actions/cache-rust-deps".into()),
-                    Some("Rust compiler version".into()),
-                    false,
-                    Some("stable".into()),
-                ),
-            ],
+            declarations: declared_preflight_inputs(),
         };
         let list_port = WorkflowListPortFake::new(vec![WorkflowListItemResponse::new(
             Some("CI".into()),
@@ -394,18 +398,22 @@ mod tests {
             args,
             &run_port,
             &all_run_port,
-            &discovery_port,
-            &list_port,
-            &terminal,
+            PreflightPorts::new(&discovery_port, &list_port, &terminal),
         )
         .unwrap();
+        assert_preflight_inputs(&run_port);
+        assert_preflight_prompts(&terminal);
+    }
 
+    fn assert_preflight_inputs(run_port: &RecordingRunWorkflowPort) {
         let requests = run_port.requests();
         assert_eq!(requests[0].config().inputs()[0].key(), "cache-key-prefix");
         assert_eq!(requests[0].config().inputs()[0].value(), "ephact");
         assert_eq!(requests[0].config().inputs()[1].key(), "rustc-version");
         assert_eq!(requests[0].config().inputs()[1].value(), "stable");
+    }
 
+    fn assert_preflight_prompts(terminal: &ScriptedTerminal) {
         let output = terminal.written_text();
         assert!(output.contains("Name: cache-key-prefix"));
         assert!(output.contains("Description: Prefix for the cache key"));

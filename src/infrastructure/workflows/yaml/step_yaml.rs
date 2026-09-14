@@ -43,18 +43,13 @@ impl StepYaml {
     /// Builds the domain step this YAML describes.
     #[must_use]
     pub fn into_domain(self) -> Step {
-        Step::new(
-            self.id,
-            self.name,
-            self.r#if,
-            self.run,
-            self.shell,
-            self.working_directory,
-            self.uses,
-            self.with,
-            self.env,
-            self.continue_on_error,
-            self.timeout_minutes,
-        )
+        Step::new(self.id, self.name, self.run, self.uses)
+            .with_if_condition(self.r#if)
+            .with_shell(self.shell)
+            .with_working_directory(self.working_directory)
+            .with_inputs(self.with)
+            .with_env(self.env)
+            .with_continue_on_error(self.continue_on_error)
+            .with_timeout_minutes(self.timeout_minutes)
     }
 }

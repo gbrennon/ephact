@@ -20,13 +20,9 @@ use crate::domain::{
 ///
 /// let workflow = Workflow::new(
 ///     Some("CI".to_owned()),
-///     None,
 ///     WorkflowTrigger::Single("push".to_owned()),
 ///     HashMap::new(),
 ///     HashMap::new(),
-///     None,
-///     None,
-///     None,
 /// );
 ///
 /// assert_eq!(workflow.name(), Some("CI"));
@@ -60,27 +56,37 @@ pub struct Workflow {
 }
 
 impl Workflow {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: Option<String>,
-        file: Option<String>,
         trigger: WorkflowTrigger,
         env: HashMap<String, String>,
         jobs: HashMap<String, Job>,
-        defaults: Option<ExecutionDefaults>,
-        permissions: Option<TokenPermissions>,
-        concurrency: Option<ConcurrencyGroup>,
     ) -> Self {
         Self {
             name,
-            file,
+            file: None,
             trigger,
             env,
             jobs,
-            defaults,
-            permissions,
-            concurrency,
+            defaults: None,
+            permissions: None,
+            concurrency: None,
         }
+    }
+
+    pub fn with_defaults(mut self, defaults: Option<ExecutionDefaults>) -> Self {
+        self.defaults = defaults;
+        self
+    }
+
+    pub fn with_permissions(mut self, permissions: Option<TokenPermissions>) -> Self {
+        self.permissions = permissions;
+        self
+    }
+
+    pub fn with_concurrency(mut self, concurrency: Option<ConcurrencyGroup>) -> Self {
+        self.concurrency = concurrency;
+        self
     }
 
     pub fn name(&self) -> Option<&str> {
@@ -137,13 +143,9 @@ mod tests {
     fn new_and_with_file_preserve_fields() {
         let workflow = Workflow::new(
             Some("CI".into()),
-            None,
             WorkflowTrigger::default(),
             HashMap::from([("KEY".into(), "value".into())]),
             HashMap::new(),
-            None,
-            None,
-            None,
         )
         .with_file("workflow.yml");
 
@@ -161,13 +163,9 @@ mod tests {
         let job = Job::default();
         let workflow = Workflow::new(
             Some("CI".into()),
-            None,
             WorkflowTrigger::Single("push".into()),
             HashMap::new(),
             HashMap::from([("build".into(), job)]),
-            None,
-            None,
-            None,
         );
 
         assert!(workflow.triggers_on("push"));

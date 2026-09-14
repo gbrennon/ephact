@@ -78,9 +78,9 @@ mod tests {
                 "step".into(),
                 true,
                 Some(0),
-                "stdout".into(),
-                "stderr".into(),
-            ),
+            )
+            .with_stdout("stdout".into())
+            .with_stderr("stderr".into()),
         );
 
         assert_eq!(payload.run_id(), "run-1");

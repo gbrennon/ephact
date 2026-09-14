@@ -1,5 +1,6 @@
 use crate::application::dtos::requests::RunShellStepRequest;
 use crate::application::dtos::responses::ExecResultResponse;
+use crate::application::ports::outbound::container_port::ExecOptions;
 use crate::application::ports::outbound::event_bus_port::DomainEventBusPort;
 use crate::application::ports::outbound::run_shell_step_port::RunShellStepPort;
 use crate::domain::errors::StepError;
@@ -43,9 +44,7 @@ impl RunShellStepPort for RunShellStepService {
         let result = request
             .container()
             .exec_streaming(
-                command.argv(),
-                Some("/workspace"),
-                command.env(),
+                ExecOptions::new(command.argv(), Some("/workspace"), command.env()),
                 &mut relay,
             )
             .map_err(|error| StepError::new(format!("{error:?}")))?;

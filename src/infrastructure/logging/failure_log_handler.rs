@@ -408,9 +408,9 @@ mod tests {
                 "compile".to_string(),
                 false,
                 Some(1),
-                "stdout details".to_string(),
-                "stderr details".to_string(),
-            ),
+            )
+            .with_stdout("stdout details".to_string())
+            .with_stderr("stderr details".to_string()),
         ))
     }
 

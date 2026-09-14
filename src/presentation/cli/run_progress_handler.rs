@@ -153,9 +153,9 @@ mod tests {
                 "compile".into(),
                 exit_code == Some(0),
                 exit_code,
-                String::new(),
-                String::new(),
-            ),
+            )
+            .with_stdout(String::new())
+            .with_stderr(String::new()),
         ))
     }
 
@@ -220,9 +220,9 @@ mod tests {
                 "clippy".into(),
                 false,
                 Some(101),
-                "stdout text".into(),
-                "clippy failed".into(),
-            ),
+            )
+            .with_stdout("stdout text".into())
+            .with_stderr("clippy failed".into()),
         ));
 
         let rendered = handler.render(&event);
@@ -246,9 +246,9 @@ mod tests {
                 "clippy".into(),
                 false,
                 Some(101),
-                "stdout text".into(),
-                "clippy failed".into(),
-            ),
+            )
+            .with_stdout("stdout text".into())
+            .with_stderr("clippy failed".into()),
         ));
 
         let rendered = handler.render(&event).unwrap();

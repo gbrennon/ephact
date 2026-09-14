@@ -5,6 +5,7 @@ mod tests {
     use ephact::application::dtos::responses::ShowProjectBrandingInfoResponse;
     use ephact::application::ports::inbound::ShowProjectBrandingInfoPort;
     use ephact::presentation::cli::Cli;
+    use ephact::presentation::cli::cli::CliDependencies;
 
     use crate::common::fakes::{
         fake_list_actions_port::FakeListActionsPort,
@@ -24,14 +25,18 @@ mod tests {
 
     #[test]
     fn run_reports_branding_failure_before_cli_parse_failure() {
-        let cli = Cli::new(
-            Box::new(FakeRunWorkflowPort::new(true)),
-            Box::new(FakeRunAllWorkflowsPort::new(true)),
-            Box::new(FakeDiscoverRunInputsPort::new()),
-            Box::new(FakeListWorkflowsPort::new()),
-            Box::new(FakeListActionsPort::new()),
-            Box::new(FailingBrandingPort),
-        );
+        let cli = Cli::new(CliDependencies::new(
+            (
+                Box::new(FakeRunWorkflowPort::new(true)),
+                Box::new(FakeRunAllWorkflowsPort::new(true)),
+                Box::new(FakeDiscoverRunInputsPort::new()),
+            ),
+            (
+                Box::new(FakeListWorkflowsPort::new()),
+                Box::new(FakeListActionsPort::new()),
+                Box::new(FailingBrandingPort),
+            ),
+        ));
 
         let error = cli.run(["ephact", "--unknown"]).unwrap_err();
 

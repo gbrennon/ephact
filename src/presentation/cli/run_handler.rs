@@ -25,6 +25,43 @@ use crate::domain::value_objects::ActWorkflow;
 /// summary and interprets the result for the process exit code.
 pub struct RunHandler;
 
+pub struct PreflightPorts<'a> {
+    discover_run_inputs_port: &'a dyn DiscoverRunInputsPort,
+    list_workflows_port: &'a dyn ListWorkflowsPort,
+    terminal: &'a dyn Terminal,
+}
+
+impl<'a> PreflightPorts<'a> {
+    pub fn new(
+        discover_run_inputs_port: &'a dyn DiscoverRunInputsPort,
+        list_workflows_port: &'a dyn ListWorkflowsPort,
+        terminal: &'a dyn Terminal,
+    ) -> Self {
+        Self {
+            discover_run_inputs_port,
+            list_workflows_port,
+            terminal,
+        }
+    }
+}
+
+pub struct DiagnosticStores<'a> {
+    error_store: &'a crate::infrastructure::logging::FailureLogErrorStore,
+    path_store: &'a crate::infrastructure::logging::FailureLogPathStore,
+}
+
+impl<'a> DiagnosticStores<'a> {
+    pub fn new(
+        error_store: &'a crate::infrastructure::logging::FailureLogErrorStore,
+        path_store: &'a crate::infrastructure::logging::FailureLogPathStore,
+    ) -> Self {
+        Self {
+            error_store,
+            path_store,
+        }
+    }
+}
+
 impl RunHandler {
     /// Executes the `run` subcommand: converts CLI args to domain objects,
     pub fn handle(
@@ -73,19 +110,18 @@ impl RunHandler {
         let rendered = BoxComponent::new(RunSummaryComponent::new(&summary), terminal).render();
         Ok((rendered, summary.success()))
     }
+
     pub fn handle_with_preflight_output(
         args: RunArgs,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
-        discover_run_inputs_port: &dyn DiscoverRunInputsPort,
-        list_workflows_port: &dyn ListWorkflowsPort,
-        terminal: &dyn Terminal,
+        preflight_ports: PreflightPorts<'_>,
     ) -> Result<(String, bool), Box<dyn std::error::Error>> {
         let (config, repository) = Self::prepare_preflight_config(
             args,
-            discover_run_inputs_port,
-            list_workflows_port,
-            terminal,
+            preflight_ports.discover_run_inputs_port,
+            preflight_ports.list_workflows_port,
+            preflight_ports.terminal,
         )?;
         let summary = Self::execute(
             config,
@@ -93,7 +129,9 @@ impl RunHandler {
             run_workflow_port,
             run_all_workflows_port,
         )?;
-        let rendered = BoxComponent::new(RunSummaryComponent::new(&summary), terminal).render();
+        let rendered =
+            BoxComponent::new(RunSummaryComponent::new(&summary), preflight_ports.terminal)
+                .render();
         Ok((rendered, summary.success()))
     }
 
@@ -101,21 +139,15 @@ impl RunHandler {
         args: RunArgs,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
-        discover_run_inputs_port: &dyn DiscoverRunInputsPort,
-        list_workflows_port: &dyn ListWorkflowsPort,
-        terminal: &dyn Terminal,
-        stores: (
-            &crate::infrastructure::logging::FailureLogErrorStore,
-            &crate::infrastructure::logging::FailureLogPathStore,
-        ),
+        preflight_ports: PreflightPorts<'_>,
+        diagnostics: DiagnosticStores<'_>,
     ) -> Result<(String, bool), Box<dyn std::error::Error>> {
         let (config, repository) = Self::prepare_preflight_config(
             args,
-            discover_run_inputs_port,
-            list_workflows_port,
-            terminal,
+            preflight_ports.discover_run_inputs_port,
+            preflight_ports.list_workflows_port,
+            preflight_ports.terminal,
         )?;
-        let (error_store, path_store) = stores;
         let run_id = config.run_id().to_string();
         let summary = match Self::execute(
             config,
@@ -128,15 +160,18 @@ impl RunHandler {
                 return Err(Self::augment_execution_error(
                     error,
                     &run_id,
-                    error_store,
-                    path_store,
+                    diagnostics.error_store,
+                    diagnostics.path_store,
                 ));
             }
         };
-        let diagnostics = Self::take_diagnostics(&run_id, error_store, path_store);
-        let mut rendered = BoxComponent::new(RunSummaryComponent::new(&summary), terminal).render();
+        let diagnostic_text =
+            Self::take_diagnostics(&run_id, diagnostics.error_store, diagnostics.path_store);
+        let mut rendered =
+            BoxComponent::new(RunSummaryComponent::new(&summary), preflight_ports.terminal)
+                .render();
         if !summary.success() {
-            rendered.push_str(&diagnostics);
+            rendered.push_str(&diagnostic_text);
         }
         Ok((rendered, summary.success()))
     }
@@ -307,17 +342,6 @@ impl RunHandler {
             .collect();
         declarations.is_empty() || (!interactive && missing.is_empty())
     }
-
-    fn prompt_or_describe_inputs(
-        config: &mut ActRunConfig,
-        declarations: &[crate::application::dtos::responses::RunInputDeclarationResponse],
-        interactive: bool,
-        terminal: &dyn Terminal,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        Self::fail_if_missing_required_noninteractive(declarations, interactive, terminal)?;
-        Self::prompt_or_describe_all(config, declarations, interactive, terminal)
-    }
-
     fn fail_if_missing_required_noninteractive(
         declarations: &[crate::application::dtos::responses::RunInputDeclarationResponse],
         interactive: bool,
@@ -330,6 +354,16 @@ impl RunHandler {
         Ok(())
     }
 
+    fn prompt_or_describe_inputs(
+        config: &mut ActRunConfig,
+        declarations: &[crate::application::dtos::responses::RunInputDeclarationResponse],
+        interactive: bool,
+        terminal: &dyn Terminal,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        Self::fail_if_missing_required_noninteractive(declarations, interactive, terminal)?;
+        Self::prompt_or_describe_all(config, declarations, interactive, terminal)
+    }
+
     fn prompt_or_describe_all(
         config: &mut ActRunConfig,
         declarations: &[crate::application::dtos::responses::RunInputDeclarationResponse],
@@ -337,38 +371,39 @@ impl RunHandler {
         terminal: &dyn Terminal,
     ) -> Result<(), Box<dyn std::error::Error>> {
         terminal.write_text("\nInputs\n")?;
+        Self::prompt_or_describe_each(config, declarations, interactive, terminal)
+    }
+
+    fn prompt_or_describe_each(
+        config: &mut ActRunConfig,
+        declarations: &[crate::application::dtos::responses::RunInputDeclarationResponse],
+        interactive: bool,
+        terminal: &dyn Terminal,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         for (index, declaration) in declarations.iter().enumerate() {
-            Self::prompt_or_describe_one(
-                config,
-                declaration,
-                index,
-                declarations.len(),
-                interactive,
-                terminal,
-            )?;
+            if Self::should_prompt(declaration, interactive) {
+                Self::prompt_and_apply(config, declaration, index, declarations.len(), terminal)?;
+            } else {
+                Self::describe_input(declaration, index + 1, declarations.len(), terminal)?;
+            }
         }
         Ok(())
     }
 
-    fn prompt_or_describe_one(
+    fn prompt_and_apply(
         config: &mut ActRunConfig,
         declaration: &crate::application::dtos::responses::RunInputDeclarationResponse,
         index: usize,
         total: usize,
-        interactive: bool,
         terminal: &dyn Terminal,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        if Self::should_prompt(declaration, interactive) {
-            *config = Self::prompt_for_input(
-                std::mem::take(config),
-                declaration,
-                index + 1,
-                total,
-                terminal,
-            )?;
-        } else {
-            Self::describe_input(declaration, index + 1, total, terminal)?;
-        }
+        *config = Self::prompt_for_input(
+            std::mem::take(config),
+            declaration,
+            index + 1,
+            total,
+            terminal,
+        )?;
         Ok(())
     }
 
@@ -537,7 +572,9 @@ mod tests {
 
     use super::*;
     use crate::application::dtos::responses::JobSummaryResponse;
-    use crate::application::dtos::responses::StepSummaryResponse;
+    use crate::application::dtos::responses::{
+        StepSummaryDetails, StepSummaryResponse, StepSummaryResponseInput,
+    };
     use crate::domain::value_objects::StepType;
 
     fn job(job_id: &str, name: Option<&str>, success: bool) -> JobSummaryResponse {
@@ -581,24 +618,28 @@ mod tests {
                 "compile",
                 Some("Compile".to_string()),
                 vec![
-                    StepSummaryResponse::new(
+                    StepSummaryResponse::new(StepSummaryResponseInput::new(
                         "Checkout",
                         StepType::Run,
-                        Some(0),
-                        false,
-                        Duration::ZERO,
-                        String::new(),
-                        String::new(),
-                    ),
-                    StepSummaryResponse::new(
+                        StepSummaryDetails::new(
+                            Some(0),
+                            false,
+                            Duration::ZERO,
+                            String::new(),
+                            String::new(),
+                        ),
+                    )),
+                    StepSummaryResponse::new(StepSummaryResponseInput::new(
                         "Build",
                         StepType::Run,
-                        Some(1),
-                        false,
-                        Duration::ZERO,
-                        String::new(),
-                        String::new(),
-                    ),
+                        StepSummaryDetails::new(
+                            Some(1),
+                            false,
+                            Duration::ZERO,
+                            String::new(),
+                            String::new(),
+                        ),
+                    )),
                 ],
                 false,
             )],
@@ -620,15 +661,17 @@ mod tests {
             vec![JobSummaryResponse::new(
                 "lint",
                 Some("Lint".to_string()),
-                vec![StepSummaryResponse::new(
+                vec![StepSummaryResponse::new(StepSummaryResponseInput::new(
                     "Clippy",
                     StepType::Run,
-                    Some(101),
-                    false,
-                    Duration::ZERO,
-                    String::new(),
-                    "clippy failed".to_string(),
-                )],
+                    StepSummaryDetails::new(
+                        Some(101),
+                        false,
+                        Duration::ZERO,
+                        String::new(),
+                        "clippy failed".to_string(),
+                    ),
+                ))],
                 false,
             )],
             false,

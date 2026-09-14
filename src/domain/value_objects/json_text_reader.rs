@@ -30,12 +30,20 @@ impl<'a> JsonTextReader<'a> {
         let character = self
             .peek()
             .ok_or_else(|| JsonTextError::new("unexpected end of JSON text"))?;
-        match character {
-            '{' => self.read_mapping(),
-            '[' => self.read_list(),
-            '"' => self.read_text_literal().map(ContextValue::Text),
-            't' | 'f' | 'n' => self.read_keyword(),
-            _ => self.read_number(),
+        self.read_value_starting_with(character)
+    }
+
+    fn read_value_starting_with(&mut self, character: char) -> Result<ContextValue, JsonTextError> {
+        if character == '{' {
+            self.read_mapping()
+        } else if character == '[' {
+            self.read_list()
+        } else if character == '"' {
+            self.read_text_literal().map(ContextValue::Text)
+        } else if matches!(character, 't' | 'f' | 'n') {
+            self.read_keyword()
+        } else {
+            self.read_number()
         }
     }
 

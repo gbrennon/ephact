@@ -37,14 +37,16 @@ impl ExecuteStepPort for ExecuteStepService {
             .map_err(|error| StepError::new(format!("failed to resolve expressions: {error:?}")))?;
 
         let response = match interpolated.uses() {
-            Some(action_ref) => self.command_bus.dispatch(ExecuteActionCommand::new(
-                action_ref.to_string(),
-                interpolated.clone(),
-                request.repo_path().to_path_buf(),
-                request.env().clone(),
-                request.context().clone(),
-                request.container(),
-            ))?,
+            Some(action_ref) => self.command_bus.dispatch(
+                ExecuteActionCommand::new(
+                    action_ref.to_string(),
+                    interpolated.clone(),
+                    request.repo_path().to_path_buf(),
+                    request.env().clone(),
+                    request.container(),
+                )
+                .with_context(request.context().clone()),
+            )?,
             None => {
                 let result = self.shell_runner.execute(RunShellStepRequest::new(
                     &interpolated,

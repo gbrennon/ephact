@@ -79,9 +79,7 @@ mod tests {
             "title".into(),
             None,
             "open".into(),
-            user.clone(),
-            Vec::new(),
-            "url".into(),
+            super::super::issue_info::IssueMetadata::new(user.clone(), Vec::new(), "url".into()),
         );
         let comment = CommentInfo::new(2, "body".into(), user.clone(), "comment".into());
         let payload =
