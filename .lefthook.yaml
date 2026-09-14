@@ -20,3 +20,18 @@ pre-commit:
         if [ -n "$STAGED_FILES" ] && ! git diff --quiet -- $STAGED_FILES; then
           echo "Auto-fixed files detected. Run: git add -A && git commit --amend --no-edit"
         fi
+
+pre-push:
+  parallel: false
+  jobs:
+    - name: Run quality checks
+      run: |
+        set -u
+        export CARGO_TARGET_DIR="${TMPDIR:-/tmp}/ephact-target"
+        just semgrep
+        semgrep_status=$?
+        just lizard
+        lizard_status=$?
+        if [ "$semgrep_status" -ne 0 ] || [ "$lizard_status" -ne 0 ]; then
+          exit 1
+        fi
