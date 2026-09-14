@@ -5,6 +5,7 @@ pub mod fake_collect_action_files_port;
 pub mod fake_command_bus;
 pub mod fake_container_handle;
 pub mod fake_copy_action_to_container_port;
+pub mod fake_copy_repository_to_container_port;
 pub mod fake_create_job_container_port;
 pub mod fake_detect_workflow_file_port;
 pub mod fake_detect_workflow_trigger_port;
