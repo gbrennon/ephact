@@ -48,7 +48,7 @@ impl RunCompositeStepPort for FakeRunCompositeStepPort {
     fn execute(
         &self,
         request: RunCompositeStepRequest<'_>,
-        _container: &dyn ContainerPort,
+        _container: std::sync::Arc<dyn ContainerPort>,
     ) -> Result<ExecResultResponse, StepError> {
         self.steps.lock().push(request.step().clone());
 
