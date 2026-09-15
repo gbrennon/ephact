@@ -28,7 +28,7 @@ mod tests {
         std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
         let repo = repository(tmp.path());
         BuildRunContextService::new()
-            .execute(BuildRunContextRequest::new(&config, &repo))
+            .execute(BuildRunContextRequest::new(config, repo))
             .context()
             .clone()
     }
