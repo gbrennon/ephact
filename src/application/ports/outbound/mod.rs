@@ -7,6 +7,8 @@ pub mod copy_repository_to_container_port;
 pub mod detect_workflow_trigger_port;
 pub mod discover_run_inputs_port;
 pub mod domain_event_bus_port;
+pub mod exec_options;
+pub use exec_options::ExecOptions;
 pub mod job_command_bus_port;
 pub mod load_action_definition_port;
 pub mod load_workflow_port;

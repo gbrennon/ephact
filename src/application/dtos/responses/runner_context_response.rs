@@ -1,3 +1,4 @@
+use crate::application::dtos::responses::RunnerContextPaths;
 use std::collections::HashMap;
 
 /// Context describing the runner environment inside the container.
@@ -11,42 +12,9 @@ pub struct RunnerContextResponse {
     env: HashMap<String, String>,
 }
 
-#[derive(Debug, Clone)]
-pub struct RunnerContextPaths {
-    workspace: String,
-    home: String,
-    action_path: String,
-    temp: String,
-    tool_cache: String,
-}
-
-impl RunnerContextPaths {
-    pub fn new(
-        workspace: impl Into<String>,
-        home: impl Into<String>,
-        action_path: impl Into<String>,
-        temp: impl Into<String>,
-        tool_cache: impl Into<String>,
-    ) -> Self {
-        Self {
-            workspace: workspace.into(),
-            home: home.into(),
-            action_path: action_path.into(),
-            temp: temp.into(),
-            tool_cache: tool_cache.into(),
-        }
-    }
-}
-
 impl RunnerContextResponse {
     pub fn new(paths: RunnerContextPaths, env: HashMap<String, String>) -> Self {
-        let RunnerContextPaths {
-            workspace,
-            home,
-            action_path,
-            temp,
-            tool_cache,
-        } = paths;
+        let (workspace, home, action_path, temp, tool_cache) = paths.into_parts();
         Self {
             workspace,
             home,

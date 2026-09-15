@@ -3,6 +3,7 @@ use std::error::Error;
 use crate::application::dtos::requests::ExecuteWorkflowRequest;
 use crate::application::dtos::requests::LoadWorkflowRequest;
 use crate::application::dtos::responses::WorkflowExecutionResponse;
+use crate::application::errors::ExecuteWorkflowError;
 use crate::application::ports::inbound::execute_workflow_port::ExecuteWorkflowPort;
 use crate::application::ports::outbound::domain_event_bus_port::DomainEventBusPort;
 use crate::application::ports::outbound::job_command_bus_port::JobCommandBusPort;
@@ -14,6 +15,8 @@ use crate::domain::messages::events::JobFinishedPayload;
 use crate::domain::messages::events::JobStartedPayload;
 use crate::domain::messages::events::WorkflowStartedPayload;
 use crate::domain::services::ExecutionPlanner;
+use crate::domain::services::evaluation_context_mapper::EvaluationContextMapper;
+use crate::domain::value_objects::EvaluationContext;
 
 /// Application service coordinating the execution of a single workflow.
 ///
@@ -41,13 +44,14 @@ impl<'a> JobExecutionInput<'a> {
     fn new(
         workflow: &'a crate::domain::aggregates::Workflow,
         run: &'a crate::domain::entities::JobRun,
-        request: &ExecuteWorkflowRequest<'a>,
+        request: &'a ExecuteWorkflowRequest,
+        context: &'a EvaluationContext,
     ) -> Self {
         Self {
             workflow,
             run,
             repo_path: request.repo_path(),
-            context: request.context(),
+            context,
             run_id: request.run_id(),
             allow_repo_writes: request.allow_repo_writes(),
         }
@@ -71,19 +75,26 @@ impl ExecuteWorkflowService {
 impl ExecuteWorkflowPort for ExecuteWorkflowService {
     fn execute(
         &self,
-        request: ExecuteWorkflowRequest<'_>,
-    ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
-        let workflow = self.workflow_loader.execute(LoadWorkflowRequest::new(
-            request.workflow_content().to_string(),
-        ))?;
+        request: ExecuteWorkflowRequest,
+    ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
+        let context = EvaluationContextMapper::from_parts(request.context().to_vec())
+            .map_err(|error| ExecuteWorkflowError::Workflow(format!("{error:?}")))?;
+        let workflow = self
+            .workflow_loader
+            .execute(LoadWorkflowRequest::new(
+                request.workflow_content().to_string(),
+            ))
+            .map_err(|error| ExecuteWorkflowError::Workflow(error.to_string()))?;
         let workflow_name = workflow.name().unwrap_or("unnamed");
         let plan = ExecutionPlanner
             .plan(&workflow)
-            .map_err(|e| format!("{:?}", e))?;
+            .map_err(|error| ExecuteWorkflowError::Workflow(format!("{error:?}")))?;
 
         self.announce_workflow_started(workflow_name);
 
-        let executions = self.execute_planned_runs(&workflow, &plan, request)?;
+        let executions = self
+            .execute_planned_runs(&workflow, &plan, &context, request)
+            .map_err(|error| ExecuteWorkflowError::Workflow(error.to_string()))?;
 
         let job_summaries = executions.iter().map(|e| e.job_summary().clone()).collect();
         let container_names = executions
@@ -106,7 +117,8 @@ impl ExecuteWorkflowService {
         &self,
         workflow: &crate::domain::aggregates::Workflow,
         plan: &crate::domain::value_objects::ExecutionPlan,
-        request: ExecuteWorkflowRequest<'_>,
+        context: &EvaluationContext,
+        request: ExecuteWorkflowRequest,
     ) -> Result<Vec<crate::application::dtos::responses::JobExecutionResponse>, Box<dyn Error>>
     {
         let all_runs: Vec<&crate::domain::entities::JobRun> = plan
@@ -116,7 +128,7 @@ impl ExecuteWorkflowService {
             .collect();
         all_runs
             .iter()
-            .map(|run| self.execute_run(JobExecutionInput::new(workflow, run, &request)))
+            .map(|run| self.execute_run(JobExecutionInput::new(workflow, run, &request, context)))
             .collect()
     }
 

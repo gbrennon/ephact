@@ -10,6 +10,7 @@ use crate::application::dtos::requests::SummarizeStepRequest;
 use crate::application::dtos::responses::JobExecutionResponse;
 use crate::application::dtos::responses::JobSummaryResponse;
 use crate::application::dtos::responses::{PreparedJobContainerResponse, StepSummaryResponse};
+use crate::application::errors::ExecuteJobError;
 use crate::application::ports::inbound::execute_job_port::ExecuteJobPort;
 use crate::application::ports::outbound::build_job_environment_port::BuildJobEnvironmentPort;
 use crate::application::ports::outbound::build_step_context_port::BuildStepContextPort;
@@ -124,45 +125,44 @@ impl ExecuteJobService {
 impl ExecuteJobPort for ExecuteJobService {
     fn execute(
         &self,
-        request: ExecuteJobRequest<'_>,
-    ) -> Result<JobExecutionResponse, Box<dyn Error>> {
-        let mut state = self.prepare_execution(&request)?;
+        request: ExecuteJobRequest,
+        run: &crate::domain::entities::JobRun,
+        workflow: &crate::domain::aggregates::Workflow,
+    ) -> Result<JobExecutionResponse, ExecuteJobError> {
+        let mut state = self
+            .prepare_execution(&request, run, workflow)
+            .map_err(|error| ExecuteJobError::Preparation(error.to_string()))?;
         self.announce_container_started(&request, &state);
-        for step in request.run().job().steps() {
-            self.execute_step(&request, step, &mut state);
+        for step in run.job().steps() {
+            self.execute_step(&request, workflow, run, step, &mut state);
         }
-        Ok(self.build_response(&request, state))
+        Ok(self.build_response(&request, run, state))
     }
 }
 
 impl ExecuteJobService {
     fn prepare_execution(
         &self,
-        request: &ExecuteJobRequest<'_>,
+        request: &ExecuteJobRequest,
+        run: &crate::domain::entities::JobRun,
+        workflow: &crate::domain::aggregates::Workflow,
     ) -> Result<JobExecutionState, Box<dyn Error>> {
         let step_env = self
             .job_environment_builder
-            .execute(BuildJobEnvironmentRequest::new(
-                request.workflow(),
-                request.run().job().env(),
-            ))
+            .execute(BuildJobEnvironmentRequest::new(workflow, run.job().env()))
             .into_env();
         let prepared = self
             .container_preparer
             .execute(PrepareJobContainerRequest::new(
-                request.run().job_id().to_string(),
-                request.run().job().runs_on().map(str::to_string),
+                run.job_id().to_string(),
+                run.job().runs_on().map(str::to_string),
                 request.repo_path().to_path_buf(),
                 request.allow_repo_writes(),
             ))?;
         Ok(JobExecutionState::new(step_env, prepared))
     }
 
-    fn announce_container_started(
-        &self,
-        request: &ExecuteJobRequest<'_>,
-        state: &JobExecutionState,
-    ) {
+    fn announce_container_started(&self, request: &ExecuteJobRequest, state: &JobExecutionState) {
         self.event_bus
             .publish(DomainEvent::ContainerStarted(ContainerStartedPayload::new(
                 request.run_id().to_string(),
@@ -172,7 +172,9 @@ impl ExecuteJobService {
 
     fn execute_step(
         &self,
-        request: &ExecuteJobRequest<'_>,
+        request: &ExecuteJobRequest,
+        workflow: &crate::domain::aggregates::Workflow,
+        run: &crate::domain::entities::JobRun,
         step: &crate::domain::entities::Step,
         state: &mut JobExecutionState,
     ) {
@@ -184,10 +186,10 @@ impl ExecuteJobService {
         let step_context = self
             .step_context_builder
             .execute(BuildStepContextRequest::new(
-                request.context(),
-                &state.step_env,
+                request.context().to_vec(),
+                state.step_env.clone(),
             ));
-        self.announce_step_started(request, step);
+        self.announce_step_started(request, workflow, run, step);
         let outcome = self.command_bus.dispatch(ExecuteStepCommand::new(
             step.clone(),
             state.step_env.clone(),
@@ -201,11 +203,17 @@ impl ExecuteJobService {
             started_at.elapsed(),
         ));
         state.job_success &= !summarized.fails_job();
-        self.announce_step_finished(request, summarized.summary(), !summarized.fails_job());
+        self.announce_step_finished(
+            request,
+            workflow,
+            run,
+            summarized.summary(),
+            !summarized.fails_job(),
+        );
         state.steps.push(summarized.into_summary());
         let exports = self
             .step_exports_reader
-            .execute(ReadStepExportsRequest::new(state.prepared.container()));
+            .execute(ReadStepExportsRequest::new(), state.prepared.container());
         let (path_additions, env) = exports.into_parts();
         state.extra_path.extend(path_additions);
         state.step_env.extend(env);
@@ -213,12 +221,13 @@ impl ExecuteJobService {
 
     fn build_response(
         &self,
-        request: &ExecuteJobRequest<'_>,
+        _request: &ExecuteJobRequest,
+        run: &crate::domain::entities::JobRun,
         state: JobExecutionState,
     ) -> JobExecutionResponse {
         let job_summary = JobSummaryResponse::new(
-            request.run().job_id().to_string(),
-            request.run().job().name().map(str::to_string),
+            run.job_id().to_string(),
+            run.job().name().map(str::to_string),
             state.steps,
             state.job_success,
         );
@@ -229,20 +238,24 @@ impl ExecuteJobService {
 impl ExecuteJobService {
     fn announce_step_started(
         &self,
-        request: &ExecuteJobRequest<'_>,
+        _request: &ExecuteJobRequest,
+        workflow: &crate::domain::aggregates::Workflow,
+        run: &crate::domain::entities::JobRun,
         step: &crate::domain::entities::Step,
     ) {
         self.event_bus
             .publish(DomainEvent::StepStarted(StepStartedPayload::new(
-                request.workflow().name().unwrap_or("unnamed").to_string(),
-                request.run().job_id().to_string(),
+                workflow.name().unwrap_or("unnamed").to_string(),
+                run.job_id().to_string(),
                 step.display_name().to_string(),
             )));
     }
 
     fn announce_step_finished(
         &self,
-        request: &ExecuteJobRequest<'_>,
+        request: &ExecuteJobRequest,
+        workflow: &crate::domain::aggregates::Workflow,
+        run: &crate::domain::entities::JobRun,
         summary: &StepSummaryResponse,
         step_success: bool,
     ) {
@@ -250,8 +263,8 @@ impl ExecuteJobService {
             .publish(DomainEvent::StepFinished(StepFinishedPayload::new(
                 request.run_id().to_string(),
                 StepFinishedDetails::new(
-                    request.workflow().name().unwrap_or("unnamed").to_string(),
-                    request.run().job_id().to_string(),
+                    workflow.name().unwrap_or("unnamed").to_string(),
+                    run.job_id().to_string(),
                     summary.name().to_string(),
                     step_success,
                     summary.exit_code(),

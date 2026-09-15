@@ -1,24 +1,28 @@
-use crate::domain::entities::repository::Repository;
+use std::path::{Path, PathBuf};
 
 /// Request DTO for listing workflows in a repository.
-///
-/// Carries the domain repository only: no filesystem paths are exposed to the
-/// application layer.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListWorkflowsRequest {
-    repository: Repository,
+    repository_path: PathBuf,
+    repository_name: String,
 }
 
 impl ListWorkflowsRequest {
-    pub fn new(repository: Repository) -> Self {
-        Self { repository }
+    /// Creates a request from primitive repository data.
+    pub fn new(repository_path: PathBuf, repository_name: String) -> Self {
+        Self {
+            repository_path,
+            repository_name,
+        }
     }
 
-    pub fn repository(&self) -> &Repository {
-        &self.repository
+    /// Returns the repository path.
+    pub fn repository_path(&self) -> &Path {
+        &self.repository_path
     }
 
-    pub fn into_repository(self) -> Repository {
-        self.repository
+    /// Returns the repository name.
+    pub fn repository_name(&self) -> &str {
+        &self.repository_name
     }
 }

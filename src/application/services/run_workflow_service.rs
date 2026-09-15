@@ -4,6 +4,7 @@ use std::{error::Error, time::Instant};
 
 use crate::application::dtos::requests::RunWorkflowRequest;
 use crate::application::dtos::responses::{RunSummaryResponse, WorkflowExecutionResponse};
+use crate::application::errors::RunWorkflowError;
 use crate::application::ports::inbound::RunWorkflowPort;
 use crate::application::ports::outbound::DetectWorkflowTriggerPort;
 use crate::application::ports::outbound::WorkflowSourcePort;
@@ -11,11 +12,14 @@ use crate::application::ports::outbound::domain_event_bus_port::DomainEventBusPo
 use crate::application::ports::outbound::workflow_command_bus_port::WorkflowCommandBusPort;
 use crate::application::services::pull_request_workflow::PULL_REQUEST_EVENT_NAME;
 use crate::application::services::pull_request_workflow::config_for_pull_request_event;
+use crate::domain::Repository;
 use crate::domain::messages::events::ActRunCompletedPayload;
 use crate::domain::messages::events::DomainEvent;
 use crate::domain::messages::events::RunFailedPayload;
 use crate::domain::messages::events::RunStartedPayload;
-use crate::domain::{Repository, value_objects::act_run_config::ActRunConfig};
+use crate::domain::services::act_run_config_factory::{ActRunConfigFactory, ActRunConfigInput};
+use crate::domain::services::repository_factory::RepositoryFactory;
+use crate::domain::value_objects::act_run_config::ActRunConfig;
 ///
 /// Agnostic by construction: it never touches files, containers, or any external
 /// service. It reads the workflow definition through the outbound
@@ -39,22 +43,39 @@ struct RunExecutionContext {
 }
 
 impl RunExecutionContext {
-    fn new(request: RunWorkflowRequest) -> Self {
-        let repository = request.repository().clone();
+    fn new(request: RunWorkflowRequest) -> Result<Self, Box<dyn Error>> {
+        let repository = RepositoryFactory::create(
+            request.repository_path().to_path_buf(),
+            request.repository_name().to_string(),
+        )
+        .map_err(|error| format!("{error:?}"))?;
         let repository_path = repository.path().as_path().display().to_string();
-        let config = request.into_config();
+        let config = ActRunConfigFactory::create(
+            ActRunConfigInput::default()
+                .with_workflow(request.workflow().map(str::to_string))
+                .with_job(request.job().map(str::to_string))
+                .with_event(request.event().map(str::to_string))
+                .with_inputs(request.inputs().to_vec())
+                .with_secrets(request.secrets().to_vec())
+                .with_all_workflows(request.all_workflows())
+                .with_allow_repo_writes(request.allow_repo_writes())
+                .with_allow_real_container(request.allow_real_container())
+                .with_allow_real_fetcher(request.allow_real_fetcher())
+                .with_allow_network(request.allow_network())
+                .with_run_id(request.run_id().to_string()),
+        );
         let run_id = config.run_id().to_string();
         let workflow_name = config
             .workflow()
             .map(|workflow| workflow.as_str().to_string());
-        Self {
+        Ok(Self {
             repository,
             repository_path,
             config,
             run_id,
             workflow_name,
             started_at: Instant::now(),
-        }
+        })
     }
 }
 
@@ -75,12 +96,18 @@ impl RunWorkflowService {
 }
 
 impl RunWorkflowPort for RunWorkflowService {
-    fn execute(&self, request: RunWorkflowRequest) -> Result<RunSummaryResponse, Box<dyn Error>> {
-        let context = RunExecutionContext::new(request);
+    fn execute(&self, request: RunWorkflowRequest) -> Result<RunSummaryResponse, RunWorkflowError> {
+        let context = RunExecutionContext::new(request)
+            .map_err(|error| RunWorkflowError::Workflow(error.to_string()))?;
         self.announce_run_started(&context);
-        let workflow_content = self.read_workflow(&context)?;
-        self.ensure_pull_request_trigger(&context, &workflow_content)?;
-        let execution = self.dispatch_workflow(&context, workflow_content)?;
+        let workflow_content = self
+            .read_workflow(&context)
+            .map_err(|error| RunWorkflowError::Workflow(error.to_string()))?;
+        self.ensure_pull_request_trigger(&context, &workflow_content)
+            .map_err(|error| RunWorkflowError::Workflow(error.to_string()))?;
+        let execution = self
+            .dispatch_workflow(&context, workflow_content)
+            .map_err(|error| RunWorkflowError::Workflow(error.to_string()))?;
         Ok(self.complete_run(&context, execution))
     }
 }
@@ -101,7 +128,8 @@ impl RunWorkflowService {
         ) {
             Ok(content) => Ok(content),
             Err(error) => {
-                self.announce_run_failed(context, &*error);
+                let error: Box<dyn Error> = Box::new(error);
+                self.announce_run_failed(context, error.as_ref());
                 Err(error)
             }
         }
@@ -138,7 +166,8 @@ impl RunWorkflowService {
         )) {
             Ok(execution) => Ok(execution),
             Err(error) => {
-                self.announce_run_failed(context, &*error);
+                let error: Box<dyn Error> = Box::new(error);
+                self.announce_run_failed(context, error.as_ref());
                 Err(error)
             }
         }
