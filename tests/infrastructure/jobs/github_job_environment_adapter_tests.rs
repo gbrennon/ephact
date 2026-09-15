@@ -28,8 +28,8 @@ mod tests {
         let workflow = workflow("name: Ci\non: push\nenv:\n  MODE: workflow\njobs: {}\n");
 
         let response = RunnerEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest::new(
-            &workflow,
-            &job_env(&[("MODE", "job")]),
+            workflow.clone(),
+            job_env(&[("MODE", "job")]),
         ));
 
         assert_eq!(response.env().get("MODE").map(String::as_str), Some("job"));
@@ -39,8 +39,10 @@ mod tests {
     fn execute_sets_the_runners_own_variables() {
         let workflow = workflow("name: Ci\non: push\njobs: {}\n");
 
-        let response = RunnerEnvironmentAdapter::new()
-            .execute(BuildJobEnvironmentRequest::new(&workflow, &HashMap::new()));
+        let response = RunnerEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest::new(
+            workflow.clone(),
+            HashMap::new(),
+        ));
 
         assert_eq!(
             response.env().get("GITHUB_PATH").map(String::as_str),
@@ -60,8 +62,10 @@ mod tests {
     fn execute_defaults_the_path_when_neither_workflow_nor_job_declares_one() {
         let workflow = workflow("name: Ci\non: push\njobs: {}\n");
 
-        let response = RunnerEnvironmentAdapter::new()
-            .execute(BuildJobEnvironmentRequest::new(&workflow, &HashMap::new()));
+        let response = RunnerEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest::new(
+            workflow.clone(),
+            HashMap::new(),
+        ));
 
         assert_eq!(
             response.env().get("PATH").map(String::as_str),
@@ -73,8 +77,10 @@ mod tests {
     fn execute_keeps_a_declared_path() {
         let workflow = workflow("name: Ci\non: push\nenv:\n  PATH: /custom/bin\njobs: {}\n");
 
-        let response = RunnerEnvironmentAdapter::new()
-            .execute(BuildJobEnvironmentRequest::new(&workflow, &HashMap::new()));
+        let response = RunnerEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest::new(
+            workflow.clone(),
+            HashMap::new(),
+        ));
 
         assert_eq!(
             response.env().get("PATH").map(String::as_str),
@@ -87,8 +93,8 @@ mod tests {
         let workflow = workflow("name: Ci\non: push\njobs: {}\n");
 
         let response = RunnerEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest::new(
-            &workflow,
-            &job_env(&[("PATH", "/job/bin")]),
+            workflow.clone(),
+            job_env(&[("PATH", "/job/bin")]),
         ));
 
         assert_eq!(
