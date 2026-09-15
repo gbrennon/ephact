@@ -1,10 +1,11 @@
-use super::super::steps::run_composite_step_port::RunCompositeStepPort;
-use crate::application::ports::outbound::run_composite_action_port::RunCompositeActionPort;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
+use super::super::steps::run_composite_step_port::RunCompositeStepPort;
 use crate::application::dtos::requests::RunCompositeActionRequest;
 use crate::application::dtos::requests::RunCompositeStepRequest;
 use crate::application::dtos::responses::ExecuteActionResponse;
+use crate::application::ports::outbound::container_port::ContainerPort;
+use crate::application::ports::outbound::run_composite_action_port::RunCompositeActionPort;
 use crate::domain::errors::StepError;
 use crate::domain::services::StepInterpolator;
 use crate::domain::services::evaluation_context_mapper::EvaluationContextMapper;
@@ -39,7 +40,7 @@ impl RunCompositeActionService {
         &self,
         request: &RunCompositeActionRequest<'_>,
         context: &EvaluationContext,
-        container: &dyn crate::application::ports::outbound::container_port::ContainerPort,
+        container: Arc<dyn ContainerPort>,
         stdout: &mut String,
         stderr: &mut String,
     ) -> Result<Option<ExecuteActionResponse>, StepError> {
@@ -57,7 +58,7 @@ impl RunCompositeActionService {
                     request.action_request(),
                     context,
                 ),
-                container,
+                container.clone(),
             );
 
             if let Some(early_exit) = Self::process_step_outcome(outcome, stdout, stderr)? {
@@ -98,7 +99,7 @@ impl RunCompositeActionPort for RunCompositeActionService {
     fn execute(
         &self,
         request: RunCompositeActionRequest<'_>,
-        container: &dyn crate::application::ports::outbound::container_port::ContainerPort,
+        container: Arc<dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {
         let base_context =
             EvaluationContextMapper::from_parts(request.action_request().context().to_vec())
