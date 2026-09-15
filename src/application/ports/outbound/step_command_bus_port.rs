@@ -16,8 +16,8 @@ pub trait StepCommandBusPort: Send + Sync {
     ///
     /// Returns [`StepError`] when the command cannot be dispatched or the step
     /// fails to run.
-    fn dispatch<'a>(
+    fn dispatch(
         &self,
-        command: ExecuteStepCommand<'a, dyn ContainerPort>,
+        command: ExecuteStepCommand<dyn ContainerPort>,
     ) -> Result<ExecutedStepResponse, StepError>;
 }
