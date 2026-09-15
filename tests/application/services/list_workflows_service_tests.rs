@@ -33,7 +33,10 @@ mod tests {
         ];
         let source = FakeWorkflowSource::new().with_workflows(workflows.clone());
         let service = ListWorkflowsService::new(Box::new(source));
-        let request = ListWorkflowsRequest::new(make_repo());
+        let request = ListWorkflowsRequest::new(
+            make_repo().path().as_path().to_path_buf(),
+            "test-repo".to_string(),
+        );
 
         let response = service.execute(request).unwrap();
 
@@ -45,7 +48,10 @@ mod tests {
         let source = FakeWorkflowSource::new();
         let service = ListWorkflowsService::new(Box::new(source.clone()));
         let repository = make_repo();
-        let request = ListWorkflowsRequest::new(repository.clone());
+        let request = ListWorkflowsRequest::new(
+            repository.path().as_path().to_path_buf(),
+            repository.name().as_str().to_string(),
+        );
 
         service.execute(request).unwrap();
 
@@ -55,7 +61,10 @@ mod tests {
     #[test]
     fn execute_returns_an_empty_response_when_the_source_finds_no_workflows() {
         let service = ListWorkflowsService::new(Box::new(FakeWorkflowSource::new()));
-        let request = ListWorkflowsRequest::new(make_repo());
+        let request = ListWorkflowsRequest::new(
+            make_repo().path().as_path().to_path_buf(),
+            "test-repo".to_string(),
+        );
 
         let response = service.execute(request).unwrap();
 
@@ -66,7 +75,10 @@ mod tests {
     fn execute_propagates_a_source_failure() {
         let source = FakeWorkflowSource::new().failing_list_workflows("cannot list workflows");
         let service = ListWorkflowsService::new(Box::new(source));
-        let request = ListWorkflowsRequest::new(make_repo());
+        let request = ListWorkflowsRequest::new(
+            make_repo().path().as_path().to_path_buf(),
+            "test-repo".to_string(),
+        );
 
         let error = service.execute(request).unwrap_err();
 

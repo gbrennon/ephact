@@ -6,6 +6,7 @@ mod tests {
     use ephact::application::dtos::responses::WorkflowExecutionResponse;
     use ephact::application::ports::inbound::execute_workflow_port::ExecuteWorkflowPort;
     use ephact::application::services::execute_workflow_service::ExecuteWorkflowService;
+    use ephact::domain::services::evaluation_context_mapper::EvaluationContextMapper;
     use ephact::domain::value_objects::EvaluationContext;
 
     use crate::common::fakes::{
@@ -20,17 +21,17 @@ mod tests {
     fn execute(
         loader: FakeLoadWorkflowPort,
         command_bus: FakeCommandBus,
-    ) -> Result<WorkflowExecutionResponse, Box<dyn std::error::Error>> {
+    ) -> Result<WorkflowExecutionResponse, ephact::application::errors::ExecuteWorkflowError> {
         ExecuteWorkflowService::new(
             Box::new(loader),
             Box::new(command_bus),
             Box::new(FakeEventBus::new()),
         )
         .execute(ExecuteWorkflowRequest::new(
-            REQUESTED_CONTENT,
-            Path::new("/repo"),
-            &EvaluationContext::new(),
-            "test-run",
+            REQUESTED_CONTENT.to_string(),
+            Path::new("/repo").to_path_buf(),
+            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            "test-run".to_string(),
             false,
         ))
     }
