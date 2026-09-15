@@ -20,7 +20,7 @@ impl Default for LoadWorkflowService {
 }
 
 impl LoadWorkflowPort for LoadWorkflowService {
-    fn execute(&self, request: LoadWorkflowRequest<'_>) -> Result<Workflow, Box<dyn Error>> {
+    fn execute(&self, request: LoadWorkflowRequest) -> Result<Workflow, Box<dyn Error>> {
         let parsed: WorkflowYaml = serde_yaml::from_str(request.workflow_content())?;
         Ok(parsed.into_domain())
     }

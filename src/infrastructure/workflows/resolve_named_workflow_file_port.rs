@@ -8,6 +8,6 @@ pub trait ResolveNamedWorkflowFilePort: Send + Sync {
     /// supported platform directories.
     fn execute(
         &self,
-        request: ResolveNamedWorkflowFileRequest<'_>,
+        request: ResolveNamedWorkflowFileRequest,
     ) -> Result<PathBuf, Box<dyn std::error::Error>>;
 }

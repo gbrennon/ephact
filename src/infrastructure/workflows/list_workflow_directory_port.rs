@@ -6,6 +6,6 @@ pub trait ListWorkflowDirectoryPort: Send + Sync {
     /// Lists the `.yml`/`.yaml` files of the requested directory, sorted by path.
     fn execute(
         &self,
-        request: ListWorkflowDirectoryRequest<'_>,
+        request: ListWorkflowDirectoryRequest,
     ) -> Result<ListWorkflowDirectoryResponse, Box<dyn std::error::Error>>;
 }

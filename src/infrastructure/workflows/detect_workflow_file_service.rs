@@ -21,13 +21,13 @@ impl DetectWorkflowFileService {
 }
 
 impl DetectWorkflowFilePort for DetectWorkflowFileService {
-    fn execute(&self, request: DetectWorkflowFileRequest<'_>) -> Result<PathBuf, Box<dyn Error>> {
+    fn execute(&self, request: DetectWorkflowFileRequest) -> Result<PathBuf, Box<dyn Error>> {
         for platform_dir in &WORKFLOW_DIRECTORIES {
             let workflows_dir = request.repo_path().join(platform_dir);
             if workflows_dir.exists() {
                 return match self
                     .directory_lister
-                    .execute(ListWorkflowDirectoryRequest::new(&workflows_dir))?
+                    .execute(ListWorkflowDirectoryRequest::new(workflows_dir.clone()))?
                     .workflow_files()
                     .iter()
                     .next()

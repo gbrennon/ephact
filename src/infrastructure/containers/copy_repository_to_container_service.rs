@@ -105,7 +105,7 @@ impl Default for CopyRepositoryToContainerService {
 impl CopyRepositoryToContainerPort for CopyRepositoryToContainerService {
     fn execute(
         &self,
-        request: CopyRepositoryToContainerRequest<'_>,
+        request: CopyRepositoryToContainerRequest,
         container: &dyn ContainerPort,
     ) -> Result<(), Box<dyn Error>> {
         let mut files = Vec::new();

@@ -5,7 +5,7 @@ use std::error::Error;
 pub trait CopyRepositoryToContainerPort: Send + Sync {
     fn execute(
         &self,
-        request: CopyRepositoryToContainerRequest<'_>,
+        request: CopyRepositoryToContainerRequest,
         container: &dyn ContainerPort,
     ) -> Result<(), Box<dyn Error>>;
 }

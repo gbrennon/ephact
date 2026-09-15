@@ -7,6 +7,6 @@ pub trait DetectWorkflowFilePort: Send + Sync {
     /// Returns the first workflow file of the repository's platform directory.
     fn execute(
         &self,
-        request: DetectWorkflowFileRequest<'_>,
+        request: DetectWorkflowFileRequest,
     ) -> Result<PathBuf, Box<dyn std::error::Error>>;
 }

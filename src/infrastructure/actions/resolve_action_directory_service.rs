@@ -35,7 +35,7 @@ impl ResolveActionDirectoryService {
 impl ResolveActionDirectoryPort for ResolveActionDirectoryService {
     fn execute(
         &self,
-        request: ResolveActionDirectoryRequest<'_>,
+        request: ResolveActionDirectoryRequest,
     ) -> Result<ResolvedActionDirectoryResponse, StepError> {
         let reference = ActionReference::parse(request.action_ref())
             .map_err(|error| StepError::new(error.to_string()))?;

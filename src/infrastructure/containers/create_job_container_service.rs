@@ -23,7 +23,7 @@ impl CreateJobContainerService {
 impl CreateJobContainerPort for CreateJobContainerService {
     fn execute(
         &self,
-        request: CreateJobContainerRequest<'_>,
+        request: CreateJobContainerRequest,
     ) -> Result<Box<dyn ContainerPort>, Box<dyn Error>> {
         let _ = self
             .runtime

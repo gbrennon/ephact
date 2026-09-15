@@ -34,7 +34,7 @@ impl PrepareJobContainerService {
 impl PrepareJobContainerPort for PrepareJobContainerService {
     fn execute(
         &self,
-        request: PrepareJobContainerRequest<'_>,
+        request: PrepareJobContainerRequest,
     ) -> Result<PreparedJobContainerResponse, Box<dyn Error>> {
         let image = self
             .image_puller
@@ -55,16 +55,19 @@ impl PrepareJobContainerPort for PrepareJobContainerService {
         let container = self
             .container_creator
             .execute(CreateJobContainerRequest::new(
-                &image,
-                &container_name,
-                &legacy_container_name,
-                request.repo_path(),
+                image.clone(),
+                container_name.clone(),
+                legacy_container_name.clone(),
+                request.repo_path().to_path_buf(),
                 request.allow_repo_writes(),
             ))?;
 
         if !request.allow_repo_writes() {
             self.repository_copier.execute(
-                CopyRepositoryToContainerRequest::new(request.repo_path(), "/workspace"),
+                CopyRepositoryToContainerRequest::new(
+                    request.repo_path().to_path_buf(),
+                    "/workspace".to_string(),
+                ),
                 container.as_ref(),
             )?;
         }

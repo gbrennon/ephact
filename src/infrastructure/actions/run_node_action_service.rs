@@ -46,9 +46,9 @@ impl RunNodeActionPort for RunNodeActionService {
             ))?;
 
         let action_request = BuildActionInputEnvironmentRequest::new(
-            request.env(),
-            request.inputs(),
-            &container_dir,
+            request.env().clone(),
+            request.inputs().clone(),
+            container_dir.clone(),
         );
         let action_response = self.environment_builder.execute(action_request);
         let binary = self

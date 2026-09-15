@@ -27,7 +27,7 @@ impl Default for GitHubActionInputEnvironmentAdapter {
 impl BuildActionInputEnvironmentPort for GitHubActionInputEnvironmentAdapter {
     fn execute(
         &self,
-        request: BuildActionInputEnvironmentRequest<'_>,
+        request: BuildActionInputEnvironmentRequest,
     ) -> BuildActionInputEnvironmentResponse {
         let mut action_env = request.env().clone();
         action_env.insert(
