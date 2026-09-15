@@ -29,11 +29,10 @@ impl FakeActionRoutingCommandBus {
         );
     }
 }
-
 impl ActionCommandBusPort for FakeActionRoutingCommandBus {
-    fn dispatch<'a>(
+    fn dispatch(
         &self,
-        cmd: ExecuteActionCommand<'a, dyn ContainerPort>,
+        cmd: ExecuteActionCommand<dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {
         let factory = self
             .executor_factory
