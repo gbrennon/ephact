@@ -15,6 +15,7 @@ mod tests {
     };
     use ephact::application::dtos::responses::ExecResultResponse;
     use ephact::application::ports::outbound::container_port::ContainerPort;
+    use ephact::domain::services::step_factory::StepFactory;
     use ephact::domain::{entities::Step, errors::StepError, value_objects::EvaluationContext};
 
     use crate::common::fakes::{
@@ -30,17 +31,19 @@ mod tests {
             .collect()
     }
 
-    fn action_request<'a>(container: &'a dyn ContainerPort) -> ExecuteActionRequest<'a> {
+    fn action_request(_container: &dyn ContainerPort) -> ExecuteActionRequest {
         ExecuteActionRequest::new(ExecuteActionRequestInput::new(
             "./actions/outer",
-            serde_yaml::from_str::<StepYaml>("uses: ./actions/outer\n")
-                .unwrap()
-                .into_domain(),
+            StepFactory::to_text(
+                &serde_yaml::from_str::<StepYaml>("uses: ./actions/outer\n")
+                    .unwrap()
+                    .into_domain(),
+            )
+            .unwrap(),
             ExecuteActionExecutionInput::new(
                 PathBuf::from("/repo"),
                 HashMap::new(),
                 EvaluationContext::new(),
-                container,
             ),
         ))
     }
@@ -57,12 +60,15 @@ mod tests {
         let request_owner = action_request(&container);
 
         let response = service
-            .execute(RunCompositeActionRequest::new(
-                &steps("- run: one\n- run: two\n"),
-                &HashMap::new(),
-                Path::new("/repo/actions/outer"),
-                &request_owner,
-            ))
+            .execute(
+                RunCompositeActionRequest::new(
+                    &steps("- run: one\n- run: two\n"),
+                    &HashMap::new(),
+                    Path::new("/repo/actions/outer"),
+                    &request_owner,
+                ),
+                &container,
+            )
             .unwrap();
 
         assert_eq!(response.exit_code(), 0);
@@ -78,12 +84,15 @@ mod tests {
         let request_owner = action_request(&container);
 
         let response = service
-            .execute(RunCompositeActionRequest::new(
-                &steps("- run: one\n- run: two\n"),
-                &HashMap::new(),
-                Path::new("/repo/actions/outer"),
-                &request_owner,
-            ))
+            .execute(
+                RunCompositeActionRequest::new(
+                    &steps("- run: one\n- run: two\n"),
+                    &HashMap::new(),
+                    Path::new("/repo/actions/outer"),
+                    &request_owner,
+                ),
+                &container,
+            )
             .unwrap();
 
         assert_eq!(response.exit_code(), 3);
@@ -103,12 +112,15 @@ mod tests {
         let request_owner = action_request(&container);
 
         let error = service
-            .execute(RunCompositeActionRequest::new(
-                &steps("- run: one\n"),
-                &HashMap::new(),
-                Path::new("/repo/actions/outer"),
-                &request_owner,
-            ))
+            .execute(
+                RunCompositeActionRequest::new(
+                    &steps("- run: one\n"),
+                    &HashMap::new(),
+                    Path::new("/repo/actions/outer"),
+                    &request_owner,
+                ),
+                &container,
+            )
             .unwrap_err();
 
         assert_eq!(error.message(), "boom");
@@ -126,12 +138,15 @@ mod tests {
         inputs.insert("mode".to_string(), "staging".to_string());
 
         service
-            .execute(RunCompositeActionRequest::new(
-                &steps("- run: deploy ${{ inputs.mode }}\n"),
-                &inputs,
-                Path::new("/repo/actions/outer"),
-                &request_owner,
-            ))
+            .execute(
+                RunCompositeActionRequest::new(
+                    &steps("- run: deploy ${{ inputs.mode }}\n"),
+                    &inputs,
+                    Path::new("/repo/actions/outer"),
+                    &request_owner,
+                ),
+                &container,
+            )
             .unwrap();
 
         assert_eq!(runner.steps()[0].run(), Some("deploy staging"));

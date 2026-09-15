@@ -31,7 +31,11 @@ impl FakeReadStepEnvExportsPort {
 }
 
 impl ReadStepEnvExportsPort for FakeReadStepEnvExportsPort {
-    fn execute(&self, _request: ReadStepEnvExportsRequest<'_>) -> HashMap<String, String> {
+    fn execute(
+        &self,
+        _request: ReadStepEnvExportsRequest,
+        _container: &dyn ephact::application::ports::outbound::ContainerPort,
+    ) -> HashMap<String, String> {
         self.called.store(true, Ordering::SeqCst);
         self.env.clone()
     }

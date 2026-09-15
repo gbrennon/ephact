@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use std::error::Error;
 
     use ephact::application::dtos::responses::ShowProjectBrandingInfoResponse;
     use ephact::application::ports::inbound::ShowProjectBrandingInfoPort;
@@ -19,7 +18,12 @@ mod tests {
     struct FakeShowProjectBrandingInfoPort;
 
     impl ShowProjectBrandingInfoPort for FakeShowProjectBrandingInfoPort {
-        fn execute(&self) -> Result<ShowProjectBrandingInfoResponse, Box<dyn Error>> {
+        fn execute(
+            &self,
+        ) -> Result<
+            ShowProjectBrandingInfoResponse,
+            ephact::application::errors::ShowProjectBrandingInfoError,
+        > {
             Ok(ShowProjectBrandingInfoResponse::new(
                 "ephact".to_string(),
                 "Ephemeral action runner".to_string(),

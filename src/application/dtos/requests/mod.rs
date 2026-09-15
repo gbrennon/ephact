@@ -8,7 +8,9 @@ pub mod copy_repository_to_container_request;
 pub mod create_job_container_request;
 pub mod detect_workflow_file_request;
 pub mod discover_run_inputs_request;
+pub mod execute_action_execution_input;
 pub mod execute_action_request;
+pub mod execute_action_request_input;
 pub mod execute_job_request;
 pub mod execute_step_request;
 pub mod execute_workflow_request;
@@ -31,7 +33,9 @@ pub mod resolve_action_inputs_request;
 pub mod resolve_named_workflow_file_request;
 pub mod resolve_node_binary_request;
 pub mod resolve_workflow_files_request;
+pub mod run_action_execution_input;
 pub mod run_action_request;
+pub mod run_action_request_input;
 pub mod run_all_workflows_request;
 pub mod run_composite_action_request;
 pub mod run_composite_step_request;
@@ -50,12 +54,10 @@ pub use copy_repository_to_container_request::CopyRepositoryToContainerRequest;
 pub use create_job_container_request::CreateJobContainerRequest;
 pub use detect_workflow_file_request::DetectWorkflowFileRequest;
 pub use discover_run_inputs_request::DiscoverRunInputsRequest;
-pub use execute_action_request::{
-    ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
-};
-pub use execute_job_request::{
-    ExecuteJobExecutionInput, ExecuteJobRequest, ExecuteJobRequestInput,
-};
+pub use execute_action_execution_input::ExecuteActionExecutionInput;
+pub use execute_action_request::ExecuteActionRequest;
+pub use execute_action_request_input::ExecuteActionRequestInput;
+pub use execute_job_request::ExecuteJobRequest;
 pub use execute_step_request::ExecuteStepRequest;
 pub use execute_workflow_request::ExecuteWorkflowRequest;
 pub use fetch_remote_action_request::FetchRemoteActionRequest;
@@ -77,7 +79,9 @@ pub use resolve_action_inputs_request::ResolveActionInputsRequest;
 pub use resolve_named_workflow_file_request::ResolveNamedWorkflowFileRequest;
 pub use resolve_node_binary_request::ResolveNodeBinaryRequest;
 pub use resolve_workflow_files_request::ResolveWorkflowFilesRequest;
-pub use run_action_request::{RunActionExecutionInput, RunActionRequest, RunActionRequestInput};
+pub use run_action_execution_input::RunActionExecutionInput;
+pub use run_action_request::RunActionRequest;
+pub use run_action_request_input::RunActionRequestInput;
 pub use run_all_workflows_request::RunAllWorkflowsRequest;
 pub use run_composite_action_request::RunCompositeActionRequest;
 pub use run_composite_step_request::RunCompositeStepRequest;

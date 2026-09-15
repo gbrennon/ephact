@@ -93,7 +93,7 @@ impl Default for CollectActionFilesService {
 impl CollectActionFilesPort for CollectActionFilesService {
     fn execute(
         &self,
-        request: CollectActionFilesRequest<'_>,
+        request: CollectActionFilesRequest,
     ) -> Result<CollectActionFilesResponse, StepError> {
         let mut files = Vec::new();
         Self::collect_files_into(request.action_dir(), request.action_dir(), &mut files)?;

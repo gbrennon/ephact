@@ -26,7 +26,7 @@ mod tests {
         );
         let container = StubExportingContainer::empty();
 
-        let exports = service.execute(ReadStepExportsRequest::new(&container));
+        let exports = service.execute(ReadStepExportsRequest::new(), &container);
 
         assert_eq!(exports.path_additions(), vec!["/opt/bin".to_string()]);
         assert_eq!(exports.env().get("A").map(String::as_str), Some("1"));

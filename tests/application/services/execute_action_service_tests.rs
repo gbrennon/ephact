@@ -7,14 +7,12 @@ mod tests {
     };
     use ephact::application::dtos::responses::ExecResultResponse;
     use ephact::application::dtos::responses::{ContainerConfigOptions, ContainerConfigResponse};
-    use ephact::application::ports::inbound::execute_action_port::ExecuteActionPort;
     use ephact::application::ports::outbound::ContainerRuntimePort;
     use ephact::application::ports::outbound::container_port::ContainerPort;
-    use ephact::application::services::execute_action_service::ExecuteActionService;
     use ephact::domain::entities::Step;
     use ephact::domain::value_objects::ContextValue;
     use ephact::domain::value_objects::EvaluationContext;
-    use ephact::infrastructure::actions::ActionFetcherPort;
+    use ephact::infrastructure::actions::{ActionFetcherPort, ExecuteActionFactory};
     use ephact::infrastructure::di::ActionExecutionWiring;
     use ephact::infrastructure::workflows::yaml::StepYaml;
 
@@ -25,7 +23,7 @@ mod tests {
         stub_failing_action_fetcher::StubFailingActionFetcher,
     };
 
-    fn wiring(fetcher: Box<dyn ActionFetcherPort>) -> ExecuteActionService {
+    fn wiring(fetcher: Box<dyn ActionFetcherPort>) -> ExecuteActionFactory {
         ActionExecutionWiring::build(
             fetcher,
             Box::new(FakeCommandBus::new()),
@@ -48,22 +46,16 @@ mod tests {
             .into_domain()
     }
 
-    fn request<'a>(
+    fn request(
         action_ref: &str,
         step: Step,
         repo_path: &Path,
-        container: &'a dyn ContainerPort,
         context: EvaluationContext,
-    ) -> ExecuteActionRequest<'a> {
+    ) -> ExecuteActionRequest {
         ExecuteActionRequest::new(ExecuteActionRequestInput::new(
             action_ref,
             step,
-            ExecuteActionExecutionInput::new(
-                repo_path.to_path_buf(),
-                HashMap::new(),
-                context,
-                container,
-            ),
+            ExecuteActionExecutionInput::new(repo_path.to_path_buf(), HashMap::new(), context),
         ))
     }
 
@@ -88,15 +80,16 @@ mod tests {
         );
         let runtime = FakeRuntime::new();
         push_result(&runtime, 0, "hi\n");
-        let service = wiring(Box::new(FakeActionFetcher::returning(repo.path().into())));
         let container = container(&runtime);
+
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.as_ref());
 
         let response = service
             .execute(request(
                 "./actions/greet",
                 step_from("uses: ./actions/greet\n"),
                 repo.path(),
-                container.as_ref(),
                 EvaluationContext::new(),
             ))
             .unwrap();
@@ -114,15 +107,16 @@ mod tests {
             "name: Deploy\ninputs:\n  mode:\n    description: target\n    default: production\nruns:\n  using: composite\n  steps:\n    - run: deploy ${{ inputs.mode }}\n      shell: bash\n",
         );
         let runtime = FakeRuntime::new();
-        let service = wiring(Box::new(FakeActionFetcher::returning(repo.path().into())));
         let container = container(&runtime);
+
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.as_ref());
 
         service
             .execute(request(
                 "./actions/deploy",
                 step_from("uses: ./actions/deploy\nwith:\n  mode: staging\n"),
                 repo.path(),
-                container.as_ref(),
                 EvaluationContext::new(),
             ))
             .unwrap();
@@ -141,15 +135,16 @@ mod tests {
             "name: Deploy\ninputs:\n  mode:\n    description: target\n    default: production\nruns:\n  using: composite\n  steps:\n    - run: deploy ${{ inputs.mode }}\n      shell: bash\n",
         );
         let runtime = FakeRuntime::new();
-        let service = wiring(Box::new(FakeActionFetcher::returning(repo.path().into())));
         let container = container(&runtime);
+
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.as_ref());
 
         service
             .execute(request(
                 "./actions/deploy",
                 step_from("uses: ./actions/deploy\n"),
                 repo.path(),
-                container.as_ref(),
                 EvaluationContext::new(),
             ))
             .unwrap();
@@ -168,17 +163,17 @@ mod tests {
             "name: Publish\nruns:\n  using: composite\n  steps:\n    - run: publish --token ${{ secrets.TOKEN }}\n      shell: bash\n",
         );
         let runtime = FakeRuntime::new();
-        let service = wiring(Box::new(FakeActionFetcher::returning(repo.path().into())));
         let secrets = ContextValue::mapping([("TOKEN".to_string(), ContextValue::text("abc123"))]);
         let context = EvaluationContext::new().with_secrets(secrets);
         let container = container(&runtime);
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.as_ref());
 
         service
             .execute(request(
                 "./actions/publish",
                 step_from("uses: ./actions/publish\n"),
                 repo.path(),
-                container.as_ref(),
                 context,
             ))
             .unwrap();
@@ -198,15 +193,16 @@ mod tests {
         );
         let runtime = FakeRuntime::new();
         push_result(&runtime, 2, "boom\n");
-        let service = wiring(Box::new(FakeActionFetcher::returning(repo.path().into())));
         let container = container(&runtime);
+
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.as_ref());
 
         let response = service
             .execute(request(
                 "./actions/build",
                 step_from("uses: ./actions/build\n"),
                 repo.path(),
-                container.as_ref(),
                 EvaluationContext::new(),
             ))
             .unwrap();
@@ -225,15 +221,15 @@ mod tests {
         );
         let runtime = FakeRuntime::new();
         let fetcher = FakeActionFetcher::returning(mirror.path().into());
-        let service = wiring(Box::new(fetcher));
         let container = container(&runtime);
+
+        let service = wiring(Box::new(fetcher))(container.as_ref());
 
         let response = service
             .execute(request(
                 "https://data.forgejo.org/actions/cache@v4",
                 step_from("uses: https://data.forgejo.org/actions/cache@v4\n"),
                 repo.path(),
-                container.as_ref(),
                 EvaluationContext::new(),
             ))
             .unwrap();
@@ -256,8 +252,11 @@ mod tests {
         std::fs::create_dir_all(mirror.path().join("dist")).unwrap();
         std::fs::write(mirror.path().join("dist/index.js"), "console.log('cached')").unwrap();
         let runtime = FakeRuntime::new();
-        let service = wiring(Box::new(FakeActionFetcher::returning(mirror.path().into())));
         let container = container(&runtime);
+
+        let service = wiring(Box::new(FakeActionFetcher::returning(mirror.path().into())))(
+            container.as_ref(),
+        );
 
         let response = service
             .execute(request(
@@ -266,7 +265,6 @@ mod tests {
                     "uses: https://data.forgejo.org/actions/cache@v4\nwith:\n  key: build-cache\n",
                 ),
                 repo.path(),
-                container.as_ref(),
                 EvaluationContext::new(),
             ))
             .unwrap();
@@ -307,15 +305,17 @@ mod tests {
         push_result(&runtime, 0, "");
         push_result(&runtime, 0, "/opt/acttoolcache/node/24/bin/node\n");
         push_result(&runtime, 0, "cached\n");
-        let service = wiring(Box::new(FakeActionFetcher::returning(mirror.path().into())));
         let container = container(&runtime);
+
+        let service = wiring(Box::new(FakeActionFetcher::returning(mirror.path().into())))(
+            container.as_ref(),
+        );
 
         let response = service
             .execute(request(
                 "https://data.forgejo.org/actions/cache@v4",
                 step_from("uses: https://data.forgejo.org/actions/cache@v4\n"),
                 repo.path(),
-                container.as_ref(),
                 EvaluationContext::new(),
             ))
             .unwrap();
@@ -337,15 +337,16 @@ mod tests {
     fn execute_skips_checkout_because_the_workspace_is_mounted() {
         let repo = tempfile::tempdir().unwrap();
         let runtime = FakeRuntime::new();
-        let service = wiring(Box::new(FakeActionFetcher::returning(repo.path().into())));
         let container = container(&runtime);
+
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.as_ref());
 
         let response = service
             .execute(request(
                 "actions/checkout@v4",
                 step_from("uses: actions/checkout@v4\n"),
                 repo.path(),
-                container.as_ref(),
                 EvaluationContext::new(),
             ))
             .unwrap();
@@ -363,15 +364,15 @@ mod tests {
     fn execute_reports_a_failed_fetch() {
         let repo = tempfile::tempdir().unwrap();
         let runtime = FakeRuntime::new();
-        let service = wiring(Box::new(StubFailingActionFetcher));
         let container = container(&runtime);
+
+        let service = wiring(Box::new(StubFailingActionFetcher))(container.as_ref());
 
         let error = service
             .execute(request(
                 "https://data.forgejo.org/actions/cache@v4",
                 step_from("uses: https://data.forgejo.org/actions/cache@v4\n"),
                 repo.path(),
-                container.as_ref(),
                 EvaluationContext::new(),
             ))
             .unwrap_err();
@@ -387,15 +388,16 @@ mod tests {
     fn execute_reports_container_actions_as_unsupported() {
         let repo = tempfile::tempdir().unwrap();
         let runtime = FakeRuntime::new();
-        let service = wiring(Box::new(FakeActionFetcher::returning(repo.path().into())));
         let container = container(&runtime);
+
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.as_ref());
 
         let error = service
             .execute(request(
                 "docker://node:20",
                 step_from("uses: docker://node:20\n"),
                 repo.path(),
-                container.as_ref(),
                 EvaluationContext::new(),
             ))
             .unwrap_err();
@@ -411,15 +413,16 @@ mod tests {
     fn execute_reports_a_missing_action_definition() {
         let repo = tempfile::tempdir().unwrap();
         let runtime = FakeRuntime::new();
-        let service = wiring(Box::new(FakeActionFetcher::returning(repo.path().into())));
         let container = container(&runtime);
+
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.as_ref());
 
         let error = service
             .execute(request(
                 "./actions/absent",
                 step_from("uses: ./actions/absent\n"),
                 repo.path(),
-                container.as_ref(),
                 EvaluationContext::new(),
             ))
             .unwrap_err();
@@ -451,13 +454,13 @@ mod tests {
         ));
         command_bus.bind(service.clone());
         let container = container(&runtime);
+        let executor = service(container.as_ref());
 
-        let response = service
+        let response = executor
             .execute(request(
                 "./actions/outer",
                 step_from("uses: ./actions/outer\n"),
                 repo.path(),
-                container.as_ref(),
                 EvaluationContext::new(),
             ))
             .unwrap();

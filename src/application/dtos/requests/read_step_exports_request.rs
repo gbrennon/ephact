@@ -1,21 +1,12 @@
-use crate::application::ports::outbound::container_port::ContainerPort;
+pub struct ReadStepExportsRequest;
 
-/// Request DTO for the
-/// [`ReadStepExportsPort`](crate::application::ports::inbound::read_step_exports_port::ReadStepExportsPort)
-/// inbound port.
-pub struct ReadStepExportsRequest<'a> {
-    /// Container the step just ran in.
-    container: &'a dyn ContainerPort,
-}
-
-impl<'a> ReadStepExportsRequest<'a> {
-    /// Creates a new request.
-    pub fn new(container: &'a dyn ContainerPort) -> Self {
-        Self { container }
+impl ReadStepExportsRequest {
+    pub fn new() -> Self {
+        Self
     }
-
-    /// Container the step just ran in.
-    pub fn container(&self) -> &'a dyn ContainerPort {
-        self.container
+}
+impl Default for ReadStepExportsRequest {
+    fn default() -> Self {
+        Self::new()
     }
 }

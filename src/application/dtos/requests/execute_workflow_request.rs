@@ -1,22 +1,21 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-use crate::domain::value_objects::EvaluationContext;
-
-/// Infrastructure-facing request carrying already-resolved workflow content.
-pub struct ExecuteWorkflowRequest<'a> {
-    workflow_content: &'a str,
-    repo_path: &'a Path,
-    context: &'a EvaluationContext,
-    run_id: &'a str,
+/// Primitive request for executing a parsed workflow.
+pub struct ExecuteWorkflowRequest {
+    workflow_content: String,
+    repo_path: PathBuf,
+    context: Vec<(String, String)>,
+    run_id: String,
     allow_repo_writes: bool,
 }
 
-impl<'a> ExecuteWorkflowRequest<'a> {
+impl ExecuteWorkflowRequest {
+    /// Creates a workflow execution request from owned primitive values.
     pub fn new(
-        workflow_content: &'a str,
-        repo_path: &'a Path,
-        context: &'a EvaluationContext,
-        run_id: &'a str,
+        workflow_content: String,
+        repo_path: PathBuf,
+        context: Vec<(String, String)>,
+        run_id: String,
         allow_repo_writes: bool,
     ) -> Self {
         Self {
@@ -28,21 +27,27 @@ impl<'a> ExecuteWorkflowRequest<'a> {
         }
     }
 
-    pub fn workflow_content(&self) -> &'a str {
-        self.workflow_content
+    /// Returns the workflow content.
+    pub fn workflow_content(&self) -> &str {
+        &self.workflow_content
     }
 
-    pub fn repo_path(&self) -> &'a Path {
-        self.repo_path
+    /// Returns the repository path.
+    pub fn repo_path(&self) -> &Path {
+        &self.repo_path
     }
 
-    pub fn context(&self) -> &'a EvaluationContext {
-        self.context
-    }
-    pub fn run_id(&self) -> &'a str {
-        self.run_id
+    /// Returns named JSON-text context roots.
+    pub fn context(&self) -> &[(String, String)] {
+        &self.context
     }
 
+    /// Returns the run identity.
+    pub fn run_id(&self) -> &str {
+        &self.run_id
+    }
+
+    /// Returns whether repository writes are allowed.
     pub fn allow_repo_writes(&self) -> bool {
         self.allow_repo_writes
     }

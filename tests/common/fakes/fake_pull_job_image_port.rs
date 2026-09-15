@@ -27,10 +27,7 @@ impl FakePullJobImagePort {
 }
 
 impl PullJobImagePort for FakePullJobImagePort {
-    fn execute(
-        &self,
-        request: PullJobImageRequest<'_>,
-    ) -> Result<String, Box<dyn std::error::Error>> {
+    fn execute(&self, request: PullJobImageRequest) -> Result<String, Box<dyn std::error::Error>> {
         self.requested_labels
             .lock()
             .push(request.runs_on().map(str::to_string));

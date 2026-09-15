@@ -28,8 +28,8 @@ mod tests {
             "/cache",
         )))
         .execute(ResolveActionDirectoryRequest::new(
-            "./actions/greet",
-            Path::new("/repo"),
+            "./actions/greet".to_string(),
+            Path::new("/repo").to_path_buf(),
         ))
         .unwrap();
 
@@ -42,8 +42,8 @@ mod tests {
             "/cache",
         )))
         .execute(ResolveActionDirectoryRequest::new(
-            "actions/checkout@v4",
-            Path::new("/repo"),
+            "actions/checkout@v4".to_string(),
+            Path::new("/repo").to_path_buf(),
         ))
         .unwrap();
 
@@ -68,8 +68,8 @@ mod tests {
             "/cache",
         )))
         .execute(ResolveActionDirectoryRequest::new(
-            "docker://node:20",
-            Path::new("/repo"),
+            "docker://node:20".to_string(),
+            Path::new("/repo").to_path_buf(),
         ))
         .unwrap_err();
 
@@ -86,8 +86,8 @@ mod tests {
 
         let resolved = service(fetcher.clone())
             .execute(ResolveActionDirectoryRequest::new(
-                "https://data.forgejo.org/actions/cache@v4",
-                Path::new("/repo"),
+                "https://data.forgejo.org/actions/cache@v4".to_string(),
+                Path::new("/repo").to_path_buf(),
             ))
             .unwrap();
 
@@ -100,8 +100,8 @@ mod tests {
     fn execute_surfaces_a_fetch_failure_as_a_step_error() {
         let error = service(FakeFetchRemoteActionPort::failing("network down"))
             .execute(ResolveActionDirectoryRequest::new(
-                "https://data.forgejo.org/actions/cache@v4",
-                Path::new("/repo"),
+                "https://data.forgejo.org/actions/cache@v4".to_string(),
+                Path::new("/repo").to_path_buf(),
             ))
             .unwrap_err();
 
@@ -117,7 +117,10 @@ mod tests {
         let error = service(FakeFetchRemoteActionPort::returning(PathBuf::from(
             "/cache",
         )))
-        .execute(ResolveActionDirectoryRequest::new("", Path::new("/repo")))
+        .execute(ResolveActionDirectoryRequest::new(
+            "".to_string(),
+            Path::new("/repo").to_path_buf(),
+        ))
         .unwrap_err();
 
         assert!(

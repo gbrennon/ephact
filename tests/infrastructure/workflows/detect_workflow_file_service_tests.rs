@@ -19,7 +19,7 @@ mod tests {
         fs::write(tmp.path().join(".forgejo/workflows/a.yml"), "").unwrap();
 
         let path = service()
-            .execute(DetectWorkflowFileRequest::new(tmp.path()))
+            .execute(DetectWorkflowFileRequest::new(tmp.path().to_path_buf()))
             .unwrap();
 
         assert_eq!(path, tmp.path().join(".forgejo/workflows/a.yml"));
@@ -34,7 +34,7 @@ mod tests {
         fs::write(tmp.path().join(".github/workflows/github.yml"), "").unwrap();
 
         let path = service()
-            .execute(DetectWorkflowFileRequest::new(tmp.path()))
+            .execute(DetectWorkflowFileRequest::new(tmp.path().to_path_buf()))
             .unwrap();
 
         assert_eq!(path, tmp.path().join(".forgejo/workflows/forgejo.yml"));
@@ -48,7 +48,7 @@ mod tests {
         fs::write(tmp.path().join(".github/workflows/github.yml"), "").unwrap();
 
         let error = service()
-            .execute(DetectWorkflowFileRequest::new(tmp.path()))
+            .execute(DetectWorkflowFileRequest::new(tmp.path().to_path_buf()))
             .unwrap_err()
             .to_string();
 
@@ -60,7 +60,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
 
         let error = service()
-            .execute(DetectWorkflowFileRequest::new(tmp.path()))
+            .execute(DetectWorkflowFileRequest::new(tmp.path().to_path_buf()))
             .unwrap_err()
             .to_string();
 

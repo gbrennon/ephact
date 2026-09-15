@@ -1,106 +1,36 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-use crate::domain::{aggregates::Workflow, entities::JobRun, value_objects::EvaluationContext};
-
-pub struct ExecuteJobRequest<'a> {
-    run: &'a JobRun,
-    workflow: &'a Workflow,
-    repo_path: &'a Path,
-    context: &'a EvaluationContext,
-    run_id: &'a str,
+pub struct ExecuteJobRequest {
+    repo_path: PathBuf,
+    context: Vec<(String, String)>,
+    run_id: String,
     allow_repo_writes: bool,
 }
 
-pub struct ExecuteJobRequestInput<'a> {
-    run: &'a JobRun,
-    workflow: &'a Workflow,
-    execution: ExecuteJobExecutionInput<'a>,
-}
-
-impl<'a> ExecuteJobRequestInput<'a> {
+impl ExecuteJobRequest {
     pub fn new(
-        run: &'a JobRun,
-        workflow: &'a Workflow,
-        execution: ExecuteJobExecutionInput<'a>,
-    ) -> Self {
-        Self {
-            run,
-            workflow,
-            execution,
-        }
-    }
-}
-
-pub struct ExecuteJobExecutionInput<'a> {
-    repo_path: &'a Path,
-    context: &'a EvaluationContext,
-    run_id: &'a str,
-    allow_repo_writes: bool,
-}
-
-impl<'a> ExecuteJobExecutionInput<'a> {
-    pub fn new(
-        repo_path: &'a Path,
-        context: &'a EvaluationContext,
-        run_id: &'a str,
+        repo_path: impl Into<PathBuf>,
+        context: Vec<(String, String)>,
+        run_id: impl Into<String>,
         allow_repo_writes: bool,
     ) -> Self {
         Self {
-            repo_path,
+            repo_path: repo_path.into(),
             context,
-            run_id,
-            allow_repo_writes,
-        }
-    }
-}
-
-impl<'a> ExecuteJobRequest<'a> {
-    pub fn new(input: ExecuteJobRequestInput<'a>) -> Self {
-        let ExecuteJobRequestInput {
-            run,
-            workflow,
-            execution:
-                ExecuteJobExecutionInput {
-                    repo_path,
-                    context,
-                    run_id,
-                    allow_repo_writes,
-                },
-        } = input;
-        Self {
-            run,
-            workflow,
-            repo_path,
-            context,
-            run_id,
+            run_id: run_id.into(),
             allow_repo_writes,
         }
     }
 
-    /// Planned job to run.
-    pub fn run(&self) -> &'a JobRun {
-        self.run
+    pub fn repo_path(&self) -> &Path {
+        &self.repo_path
     }
-
-    /// Workflow the job belongs to.
-    pub fn workflow(&self) -> &'a Workflow {
-        self.workflow
+    pub fn context(&self) -> &[(String, String)] {
+        &self.context
     }
-
-    /// Repository directory the run executes against.
-    pub fn repo_path(&self) -> &'a Path {
-        self.repo_path
+    pub fn run_id(&self) -> &str {
+        &self.run_id
     }
-
-    /// Context the job's steps are evaluated against.
-    pub fn context(&self) -> &'a EvaluationContext {
-        self.context
-    }
-
-    pub fn run_id(&self) -> &'a str {
-        self.run_id
-    }
-
     pub fn allow_repo_writes(&self) -> bool {
         self.allow_repo_writes
     }

@@ -39,7 +39,7 @@ impl ResolveWorkflowFilesService {
     ) -> Result<Vec<std::path::PathBuf>, Box<dyn Error>> {
         let response = self
             .all_lister
-            .execute(ListAllWorkflowFilesRequest::new(repo_path))?;
+            .execute(ListAllWorkflowFilesRequest::new(repo_path.to_path_buf()))?;
         Ok(response.workflow_files().to_vec().to_vec())
     }
 
@@ -50,7 +50,10 @@ impl ResolveWorkflowFilesService {
     ) -> Result<Vec<std::path::PathBuf>, Box<dyn Error>> {
         let file = self
             .named_resolver
-            .execute(ResolveNamedWorkflowFileRequest::new(workflow, repo_path))?;
+            .execute(ResolveNamedWorkflowFileRequest::new(
+                workflow.to_string(),
+                repo_path.to_path_buf(),
+            ))?;
         Ok(vec![file])
     }
 
@@ -60,7 +63,7 @@ impl ResolveWorkflowFilesService {
     ) -> Result<Vec<std::path::PathBuf>, Box<dyn Error>> {
         let file = self
             .detector
-            .execute(DetectWorkflowFileRequest::new(repo_path))?;
+            .execute(DetectWorkflowFileRequest::new(repo_path.to_path_buf()))?;
         Ok(vec![file])
     }
 

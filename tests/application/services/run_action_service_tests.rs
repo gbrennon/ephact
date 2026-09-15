@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, path::PathBuf};
+    use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
     use ephact::application::dtos::requests::{
         RunActionExecutionInput, RunActionRequest, RunActionRequestInput,
@@ -8,6 +8,8 @@ mod tests {
     use ephact::application::dtos::responses::ExecuteActionResponse;
     use ephact::application::ports::inbound::RunActionPort;
     use ephact::application::services::run_action_service::RunActionService;
+    use ephact::domain::services::evaluation_context_mapper::EvaluationContextMapper;
+    use ephact::domain::services::step_factory::StepFactory;
     use ephact::domain::value_objects::EvaluationContext;
 
     use crate::common::fakes::{fake_command_bus::FakeCommandBus, stub_container::StubContainer};
@@ -21,23 +23,21 @@ mod tests {
             String::new(),
         ));
 
-        let service = RunActionService::new(Box::new(command_bus.clone()));
+        let container = Arc::new(StubContainer);
+        let service = RunActionService::new(Box::new(command_bus.clone()), container);
         let step = serde_yaml::from_str::<StepYaml>("uses: actions/checkout@v4")
             .unwrap()
             .into_domain();
-        let container = StubContainer;
 
         let request = RunActionRequest::new(RunActionRequestInput::new(
             "actions/checkout@v4",
-            step,
+            StepFactory::to_text(&step).unwrap(),
             RunActionExecutionInput::new(
                 PathBuf::from("/repo"),
                 HashMap::new(),
-                EvaluationContext::new(),
-                &container,
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
             ),
         ));
-
         let response = service.execute(request).unwrap();
 
         assert_eq!(response.exit_code(), 0);

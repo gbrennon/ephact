@@ -1,4 +1,5 @@
 pub mod build_step_context_service;
+pub mod execute_step_factory;
 pub mod prefix_step_path_service;
 pub mod read_step_env_exports_port;
 pub mod read_step_env_exports_service;
@@ -12,6 +13,7 @@ pub mod step_command_handler;
 pub mod summarize_step_service;
 
 pub use build_step_context_service::BuildStepContextService;
+pub use execute_step_factory::ExecuteStepFactory;
 pub use prefix_step_path_service::PrefixStepPathService;
 pub use read_step_env_exports_port::ReadStepEnvExportsPort;
 pub use read_step_env_exports_service::ReadStepEnvExportsService;

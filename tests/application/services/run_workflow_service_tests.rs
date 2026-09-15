@@ -29,6 +29,32 @@ mod tests {
         Repository::new(repo_path, name)
     }
 
+    fn primitive_request(config: ActRunConfig, repository: Repository) -> RunWorkflowRequest {
+        RunWorkflowRequest::new(
+            repository.path().as_path().to_path_buf(),
+            repository.name().as_str().to_string(),
+            config.workflow().map(|value| value.as_str().to_string()),
+            config.job().map(|value| value.as_str().to_string()),
+            config.event().map(|value| value.as_str().to_string()),
+            config
+                .inputs()
+                .iter()
+                .map(|input| (input.key().to_string(), input.value().to_string()))
+                .collect(),
+            config
+                .secrets()
+                .iter()
+                .map(|secret| (secret.name().to_string(), secret.value().to_string()))
+                .collect(),
+            config.all_workflows(),
+            config.allow_repo_writes(),
+            config.allow_real_container(),
+            config.allow_real_fetcher(),
+            config.allow_network(),
+            config.run_id().to_string(),
+        )
+    }
+
     #[test]
     fn execute_runs_workflow_and_publishes_lifecycle_events() {
         let temp = tempfile::tempdir().unwrap();
@@ -54,7 +80,7 @@ mod tests {
             Box::new(event_bus.clone()),
             Box::new(FakeDetectWorkflowTriggerPort::always_triggering()),
         );
-        let request = RunWorkflowRequest::new(config, repo);
+        let request = primitive_request(config, repo);
 
         let summary: RunSummaryResponse = service.execute(request).unwrap();
 
@@ -98,7 +124,7 @@ mod tests {
         );
 
         let error = service
-            .execute(RunWorkflowRequest::new(config, repo))
+            .execute(primitive_request(config, repo))
             .unwrap_err();
 
         assert_eq!(error.to_string(), "cannot read workflow");
@@ -128,7 +154,7 @@ mod tests {
         );
 
         let error = service
-            .execute(RunWorkflowRequest::new(config, repo))
+            .execute(primitive_request(config, repo))
             .unwrap_err();
 
         assert!(error.to_string().contains("pull_request"));
@@ -158,7 +184,7 @@ mod tests {
             Box::new(event_bus),
             Box::new(FakeDetectWorkflowTriggerPort::never_triggering()),
         );
-        let request = RunWorkflowRequest::new(ActRunConfig::new(), repo);
+        let request = primitive_request(ActRunConfig::new(), repo);
 
         let error = service.execute(request).unwrap_err();
 

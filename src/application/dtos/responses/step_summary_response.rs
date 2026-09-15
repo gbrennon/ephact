@@ -1,3 +1,5 @@
+use crate::application::dtos::responses::StepSummaryResponseInput;
+
 /// Summary of a step within a job run.
 #[derive(Debug, Clone, PartialEq)]
 pub struct StepSummaryResponse {
@@ -10,66 +12,10 @@ pub struct StepSummaryResponse {
     stderr: String,
 }
 
-pub struct StepSummaryResponseInput {
-    name: String,
-    step_type: crate::domain::value_objects::StepType,
-    details: StepSummaryDetails,
-}
-
-impl StepSummaryResponseInput {
-    pub fn new(
-        name: impl Into<String>,
-        step_type: crate::domain::value_objects::StepType,
-        details: StepSummaryDetails,
-    ) -> Self {
-        Self {
-            name: name.into(),
-            step_type,
-            details,
-        }
-    }
-}
-
-pub struct StepSummaryDetails {
-    exit_code: Option<i64>,
-    continue_on_error: bool,
-    duration: std::time::Duration,
-    stdout: String,
-    stderr: String,
-}
-
-impl StepSummaryDetails {
-    pub fn new(
-        exit_code: Option<i64>,
-        continue_on_error: bool,
-        duration: std::time::Duration,
-        stdout: impl Into<String>,
-        stderr: impl Into<String>,
-    ) -> Self {
-        Self {
-            exit_code,
-            continue_on_error,
-            duration,
-            stdout: stdout.into(),
-            stderr: stderr.into(),
-        }
-    }
-}
-
 impl StepSummaryResponse {
     pub fn new(input: StepSummaryResponseInput) -> Self {
-        let StepSummaryResponseInput {
-            name,
-            step_type,
-            details:
-                StepSummaryDetails {
-                    exit_code,
-                    continue_on_error,
-                    duration,
-                    stdout,
-                    stderr,
-                },
-        } = input;
+        let (name, step_type, details) = input.into_parts();
+        let (exit_code, continue_on_error, duration, stdout, stderr) = details.into_parts();
         Self {
             name,
             step_type,

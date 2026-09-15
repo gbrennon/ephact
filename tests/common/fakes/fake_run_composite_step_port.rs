@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use ephact::application::dtos::requests::RunCompositeStepRequest;
 use ephact::application::dtos::responses::ExecResultResponse;
+use ephact::application::ports::outbound::ContainerPort;
 use ephact::domain::entities::Step;
 use ephact::domain::errors::StepError;
 use ephact::infrastructure::steps::run_composite_step_port::RunCompositeStepPort;
@@ -47,6 +48,7 @@ impl RunCompositeStepPort for FakeRunCompositeStepPort {
     fn execute(
         &self,
         request: RunCompositeStepRequest<'_>,
+        _container: &dyn ContainerPort,
     ) -> Result<ExecResultResponse, StepError> {
         self.steps.lock().push(request.step().clone());
 

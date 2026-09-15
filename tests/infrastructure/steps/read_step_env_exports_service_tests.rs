@@ -18,7 +18,7 @@ mod tests {
         let container = container("A=1\nnot-an-assignment\nB=2\n");
 
         let env =
-            ReadStepEnvExportsService::new().execute(ReadStepEnvExportsRequest::new(&container));
+            ReadStepEnvExportsService::new().execute(ReadStepEnvExportsRequest::new(), &container);
 
         assert_eq!(env.len(), 2);
         assert_eq!(env.get("A").map(String::as_str), Some("1"));
@@ -30,7 +30,7 @@ mod tests {
         let container = container("QUERY=a=b=c\n");
 
         let env =
-            ReadStepEnvExportsService::new().execute(ReadStepEnvExportsRequest::new(&container));
+            ReadStepEnvExportsService::new().execute(ReadStepEnvExportsRequest::new(), &container);
 
         assert_eq!(env.get("QUERY").map(String::as_str), Some("a=b=c"));
     }
@@ -40,7 +40,7 @@ mod tests {
         let container = StubExportingContainer::empty();
 
         let env =
-            ReadStepEnvExportsService::new().execute(ReadStepEnvExportsRequest::new(&container));
+            ReadStepEnvExportsService::new().execute(ReadStepEnvExportsRequest::new(), &container);
 
         assert!(env.is_empty());
     }

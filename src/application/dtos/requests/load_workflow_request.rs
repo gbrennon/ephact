@@ -1,13 +1,13 @@
-pub struct LoadWorkflowRequest<'a> {
-    workflow_content: &'a str,
+pub struct LoadWorkflowRequest {
+    workflow_content: String,
 }
 
-impl<'a> LoadWorkflowRequest<'a> {
-    pub fn new(workflow_content: &'a str) -> Self {
+impl LoadWorkflowRequest {
+    pub fn new(workflow_content: String) -> Self {
         Self { workflow_content }
     }
 
-    pub fn workflow_content(&self) -> &'a str {
-        self.workflow_content
+    pub fn workflow_content(&self) -> &str {
+        &self.workflow_content
     }
 }

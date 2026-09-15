@@ -15,7 +15,7 @@ impl ListWorkflowsPort for FakeListWorkflowsPort {
     fn execute(
         &self,
         _request: ListWorkflowsRequest,
-    ) -> Result<ListWorkflowsResponse, Box<dyn std::error::Error>> {
+    ) -> Result<ListWorkflowsResponse, ephact::application::errors::ListWorkflowsError> {
         Ok(ListWorkflowsResponse::new(vec![]))
     }
 }

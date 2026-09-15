@@ -26,6 +26,9 @@ impl ListActionsArgs {
         let repo_name =
             RepositoryName::from_repo_path(&repo_path).map_err(|e| format!("{:?}", e))?;
         let repository = Repository::new(repo_path, repo_name);
-        Ok(ListActionsRequest::new(repository))
+        Ok(ListActionsRequest::new(
+            repository.path().as_path().to_path_buf(),
+            repository.name().as_str().to_string(),
+        ))
     }
 }

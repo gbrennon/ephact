@@ -7,6 +7,7 @@ mod tests {
     use std::collections::HashMap;
 
     use ephact::application::dtos::requests::BuildStepContextRequest;
+    use ephact::domain::services::evaluation_context_mapper::EvaluationContextMapper;
     use ephact::domain::value_objects::ContextValue;
     use ephact::domain::value_objects::EvaluationContext;
 
@@ -16,8 +17,8 @@ mod tests {
         env.insert("MODE".to_string(), "staging".to_string());
 
         let context = BuildStepContextService::new().execute(BuildStepContextRequest::new(
-            &EvaluationContext::new(),
-            &env,
+            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            env.clone(),
         ));
 
         assert_eq!(
@@ -34,8 +35,10 @@ mod tests {
             .with_runner(ContextValue::text("runner"))
             .with_inputs(ContextValue::text("inputs"));
 
-        let context = BuildStepContextService::new()
-            .execute(BuildStepContextRequest::new(&source, &HashMap::new()));
+        let context = BuildStepContextService::new().execute(BuildStepContextRequest::new(
+            EvaluationContextMapper::to_parts(&source),
+            HashMap::new(),
+        ));
 
         assert_eq!(context.secrets(), source.secrets());
         assert_eq!(context.github(), source.github());

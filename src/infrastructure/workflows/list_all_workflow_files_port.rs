@@ -6,6 +6,6 @@ pub trait ListAllWorkflowFilesPort: Send + Sync {
     /// Lists the workflow files of every platform directory the repository has.
     fn execute(
         &self,
-        request: ListAllWorkflowFilesRequest<'_>,
+        request: ListAllWorkflowFilesRequest,
     ) -> Result<ListAllWorkflowFilesResponse, Box<dyn std::error::Error>>;
 }

@@ -20,7 +20,7 @@ mod tests {
         fs::write(tmp.path().join(".github/workflows/beta.yml"), "").unwrap();
 
         let response = service()
-            .execute(ListAllWorkflowFilesRequest::new(tmp.path()))
+            .execute(ListAllWorkflowFilesRequest::new(tmp.path().to_path_buf()))
             .unwrap();
 
         assert_eq!(
@@ -39,7 +39,7 @@ mod tests {
         fs::write(tmp.path().join(".github/workflows/beta.yml"), "").unwrap();
 
         let response = service()
-            .execute(ListAllWorkflowFilesRequest::new(tmp.path()))
+            .execute(ListAllWorkflowFilesRequest::new(tmp.path().to_path_buf()))
             .unwrap();
 
         assert_eq!(
@@ -53,7 +53,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
 
         let error = service()
-            .execute(ListAllWorkflowFilesRequest::new(tmp.path()))
+            .execute(ListAllWorkflowFilesRequest::new(tmp.path().to_path_buf()))
             .unwrap_err()
             .to_string();
 

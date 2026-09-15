@@ -8,7 +8,7 @@ pub struct RunCompositeActionRequest<'a> {
     steps: &'a [Step],
     inputs: &'a HashMap<String, String>,
     action_dir: &'a Path,
-    action_request: &'a ExecuteActionRequest<'a>,
+    action_request: &'a ExecuteActionRequest,
 }
 
 impl<'a> RunCompositeActionRequest<'a> {
@@ -16,7 +16,7 @@ impl<'a> RunCompositeActionRequest<'a> {
         steps: &'a [Step],
         inputs: &'a HashMap<String, String>,
         action_dir: &'a Path,
-        action_request: &'a ExecuteActionRequest<'a>,
+        action_request: &'a ExecuteActionRequest,
     ) -> Self {
         Self {
             steps,
@@ -38,7 +38,7 @@ impl<'a> RunCompositeActionRequest<'a> {
         self.action_dir
     }
 
-    pub fn action_request(&self) -> &'a ExecuteActionRequest<'a> {
+    pub fn action_request(&self) -> &'a ExecuteActionRequest {
         self.action_request
     }
 }

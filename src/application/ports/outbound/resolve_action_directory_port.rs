@@ -7,6 +7,6 @@ pub trait ResolveActionDirectoryPort: Send + Sync {
     /// Classifies the reference and resolves it to a directory.
     fn execute(
         &self,
-        request: ResolveActionDirectoryRequest<'_>,
+        request: ResolveActionDirectoryRequest,
     ) -> Result<ResolvedActionDirectoryResponse, StepError>;
 }

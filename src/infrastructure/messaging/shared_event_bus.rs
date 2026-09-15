@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    application::ports::outbound::event_bus_port::EventBusPort,
+    application::ports::outbound::domain_event_bus_port::DomainEventBusPort,
     domain::messages::events::DomainEvent,
     infrastructure::messaging::in_memory_event_bus::InMemoryEventBus,
 };
@@ -17,7 +17,7 @@ impl SharedEventBus {
     }
 }
 
-impl EventBusPort<DomainEvent> for SharedEventBus {
+impl DomainEventBusPort for SharedEventBus {
     fn publish(&self, event: DomainEvent) {
         self.inner.publish(event);
     }

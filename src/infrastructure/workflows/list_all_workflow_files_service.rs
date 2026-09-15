@@ -23,7 +23,7 @@ impl ListAllWorkflowFilesService {
 impl ListAllWorkflowFilesPort for ListAllWorkflowFilesService {
     fn execute(
         &self,
-        request: ListAllWorkflowFilesRequest<'_>,
+        request: ListAllWorkflowFilesRequest,
     ) -> Result<ListAllWorkflowFilesResponse, Box<dyn Error>> {
         let mut workflows = Vec::new();
         for platform_dir in &WORKFLOW_DIRECTORIES {
@@ -31,7 +31,7 @@ impl ListAllWorkflowFilesPort for ListAllWorkflowFilesService {
             if workflows_dir.exists() {
                 workflows.extend(
                     self.directory_lister
-                        .execute(ListWorkflowDirectoryRequest::new(&workflows_dir))?
+                        .execute(ListWorkflowDirectoryRequest::new(workflows_dir.clone()))?
                         .workflow_files()
                         .iter()
                         .cloned(),

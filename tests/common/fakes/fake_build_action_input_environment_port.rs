@@ -29,7 +29,7 @@ impl FakeBuildActionInputEnvironmentPort {
 impl BuildActionInputEnvironmentPort for FakeBuildActionInputEnvironmentPort {
     fn execute(
         &self,
-        request: BuildActionInputEnvironmentRequest<'_>,
+        request: BuildActionInputEnvironmentRequest,
     ) -> BuildActionInputEnvironmentResponse {
         self.action_paths
             .lock()

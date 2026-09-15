@@ -1,3 +1,5 @@
+use std::fmt;
+
 /// Error raised while executing a workflow step, carrying any partial output
 /// produced before the failure so it can be surfaced in the run summary.
 #[derive(Debug)]
@@ -6,6 +8,14 @@ pub struct StepError {
     stdout: String,
     stderr: String,
 }
+
+impl fmt::Display for StepError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{}", self.message)
+    }
+}
+
+impl std::error::Error for StepError {}
 
 impl StepError {
     pub fn new(message: impl Into<String>) -> Self {

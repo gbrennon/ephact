@@ -1,19 +1,19 @@
 /// Request DTO for the
 /// [`PullJobImagePort`](crate::application::ports::inbound::pull_job_image_port::PullJobImagePort)
 /// inbound port.
-pub struct PullJobImageRequest<'a> {
+pub struct PullJobImageRequest {
     /// Runner label the job declared, when it declared one.
-    runs_on: Option<&'a str>,
+    runs_on: Option<String>,
 }
 
-impl<'a> PullJobImageRequest<'a> {
+impl PullJobImageRequest {
     /// Creates a new request.
-    pub fn new(runs_on: Option<&'a str>) -> Self {
+    pub fn new(runs_on: Option<String>) -> Self {
         Self { runs_on }
     }
 
     /// Runner label the job declared, when it declared one.
-    pub fn runs_on(&self) -> Option<&'a str> {
-        self.runs_on
+    pub fn runs_on(&self) -> Option<&str> {
+        self.runs_on.as_deref()
     }
 }

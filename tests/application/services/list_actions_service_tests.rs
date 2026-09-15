@@ -24,7 +24,10 @@ mod tests {
         ];
         let source = FakeWorkflowSource::new().with_actions(actions.clone());
         let service = ListActionsService::new(Box::new(source));
-        let request = ListActionsRequest::new(make_repo());
+        let request = ListActionsRequest::new(
+            make_repo().path().as_path().to_path_buf(),
+            "test-repo".to_string(),
+        );
 
         let response = service.execute(request).unwrap();
 
@@ -40,7 +43,10 @@ mod tests {
         ];
         let source = FakeWorkflowSource::new().with_actions(actions.clone());
         let service = ListActionsService::new(Box::new(source));
-        let request = ListActionsRequest::new(make_repo());
+        let request = ListActionsRequest::new(
+            make_repo().path().as_path().to_path_buf(),
+            "test-repo".to_string(),
+        );
 
         let response = service.execute(request).unwrap();
 
@@ -52,7 +58,10 @@ mod tests {
         let source = FakeWorkflowSource::new();
         let service = ListActionsService::new(Box::new(source.clone()));
         let repository = make_repo();
-        let request = ListActionsRequest::new(repository.clone());
+        let request = ListActionsRequest::new(
+            repository.path().as_path().to_path_buf(),
+            repository.name().as_str().to_string(),
+        );
 
         service.execute(request).unwrap();
 
@@ -62,7 +71,10 @@ mod tests {
     #[test]
     fn execute_returns_an_empty_response_when_the_source_finds_no_actions() {
         let service = ListActionsService::new(Box::new(FakeWorkflowSource::new()));
-        let request = ListActionsRequest::new(make_repo());
+        let request = ListActionsRequest::new(
+            make_repo().path().as_path().to_path_buf(),
+            "test-repo".to_string(),
+        );
 
         let response = service.execute(request).unwrap();
 
@@ -73,7 +85,10 @@ mod tests {
     fn execute_propagates_a_source_failure() {
         let source = FakeWorkflowSource::new().failing_list_actions("cannot list actions");
         let service = ListActionsService::new(Box::new(source));
-        let request = ListActionsRequest::new(make_repo());
+        let request = ListActionsRequest::new(
+            make_repo().path().as_path().to_path_buf(),
+            "test-repo".to_string(),
+        );
 
         let error = service.execute(request).unwrap_err();
 

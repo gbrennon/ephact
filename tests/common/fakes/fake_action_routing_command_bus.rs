@@ -1,64 +1,52 @@
 #![allow(dead_code)]
 use std::sync::{Arc, OnceLock};
 
-use ephact::{
-    application::{
-        dtos::{
-            requests::{
-                ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
-            },
-            responses::ExecuteActionResponse,
-        },
-        ports::{
-            inbound::ExecuteActionPort,
-            outbound::{command_bus_port::CommandBusPort, container_port::ContainerPort},
-        },
-    },
-    domain::{errors::StepError, messages::commands::ExecuteActionCommand},
+use ephact::application::dtos::requests::{
+    ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
 };
+use ephact::application::dtos::responses::ExecuteActionResponse;
+use ephact::application::ports::outbound::action_command_bus_port::ActionCommandBusPort;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::{errors::StepError, messages::commands::ExecuteActionCommand};
+use ephact::infrastructure::actions::ExecuteActionFactory;
 
-/// Routes dispatched action commands to a bound action executor, so a
-/// composite action nesting another action exercises the real recursion the
-/// command bus provides in production.
 #[derive(Clone, Default)]
 pub struct FakeActionRoutingCommandBus {
-    executor: Arc<OnceLock<Arc<dyn ExecuteActionPort>>>,
+    executor_factory: Arc<OnceLock<Arc<ExecuteActionFactory>>>,
 }
 
 impl FakeActionRoutingCommandBus {
     pub fn new() -> Self {
         Self {
-            executor: Arc::new(OnceLock::new()),
+            executor_factory: Arc::new(OnceLock::new()),
         }
     }
 
-    pub fn bind(&self, executor: Arc<dyn ExecuteActionPort>) {
+    pub fn bind(&self, executor_factory: Arc<ExecuteActionFactory>) {
         assert!(
-            self.executor.set(executor).is_ok(),
+            self.executor_factory.set(executor_factory).is_ok(),
             "executor already bound"
         );
     }
 }
 
-impl<'a> CommandBusPort<ExecuteActionCommand<'a, dyn ContainerPort>>
-    for FakeActionRoutingCommandBus
-{
-    type Response = ExecuteActionResponse;
-    type Error = StepError;
-
-    fn dispatch(
+impl ActionCommandBusPort for FakeActionRoutingCommandBus {
+    fn dispatch<'a>(
         &self,
         cmd: ExecuteActionCommand<'a, dyn ContainerPort>,
-    ) -> Result<Self::Response, Self::Error> {
-        let executor = self
-            .executor
+    ) -> Result<ExecuteActionResponse, StepError> {
+        let factory = self
+            .executor_factory
             .get()
             .ok_or_else(|| StepError::new("no action executor bound"))?;
         let (action_ref, step, repo_path, env, context, container) = cmd.into_parts();
-        executor.execute(ExecuteActionRequest::new(ExecuteActionRequestInput::new(
-            action_ref,
-            step,
-            ExecuteActionExecutionInput::new(repo_path, env, context, container),
-        )))
+        let executor = factory(container);
+        executor
+            .execute(ExecuteActionRequest::new(ExecuteActionRequestInput::new(
+                action_ref,
+                step,
+                ExecuteActionExecutionInput::new(repo_path, env, context),
+            )))
+            .map_err(|error| StepError::new(error.to_string()))
     }
 }

@@ -1,87 +1,35 @@
-use std::{
-    collections::HashMap,
-    fmt,
-    path::{Path, PathBuf},
-};
+use std::collections::HashMap;
+use std::fmt;
+use std::path::{Path, PathBuf};
 
-use crate::{
-    application::ports::outbound::container_port::ContainerPort,
-    domain::{entities::Step, value_objects::EvaluationContext},
-};
+use super::execute_action_request_input::ExecuteActionRequestInput;
 
 #[derive(Clone)]
-pub struct ExecuteActionRequest<'a> {
+pub struct ExecuteActionRequest {
     action_ref: String,
-    step: Step,
+    step: String,
     repo_path: PathBuf,
     env: HashMap<String, String>,
-    context: EvaluationContext,
-    container: &'a dyn ContainerPort,
+    context: Vec<(String, String)>,
 }
+pub type ExecuteActionRequestParts = (
+    String,
+    String,
+    PathBuf,
+    HashMap<String, String>,
+    Vec<(String, String)>,
+);
 
-pub struct ExecuteActionRequestInput<'a> {
-    action_ref: String,
-    step: Step,
-    execution: ExecuteActionExecutionInput<'a>,
-}
-
-impl<'a> ExecuteActionRequestInput<'a> {
-    pub fn new(
-        action_ref: impl Into<String>,
-        step: Step,
-        execution: ExecuteActionExecutionInput<'a>,
-    ) -> Self {
-        Self {
-            action_ref: action_ref.into(),
-            step,
-            execution,
-        }
-    }
-}
-
-pub struct ExecuteActionExecutionInput<'a> {
-    repo_path: PathBuf,
-    env: HashMap<String, String>,
-    context: EvaluationContext,
-    container: &'a dyn ContainerPort,
-}
-
-impl<'a> ExecuteActionExecutionInput<'a> {
-    pub fn new(
-        repo_path: impl Into<PathBuf>,
-        env: HashMap<String, String>,
-        context: EvaluationContext,
-        container: &'a dyn ContainerPort,
-    ) -> Self {
-        Self {
-            repo_path: repo_path.into(),
-            env,
-            context,
-            container,
-        }
-    }
-}
-
-impl<'a> ExecuteActionRequest<'a> {
-    pub fn new(input: ExecuteActionRequestInput<'a>) -> Self {
-        let ExecuteActionRequestInput {
-            action_ref,
-            step,
-            execution:
-                ExecuteActionExecutionInput {
-                    repo_path,
-                    env,
-                    context,
-                    container,
-                },
-        } = input;
+impl ExecuteActionRequest {
+    pub fn new(input: ExecuteActionRequestInput) -> Self {
+        let (action_ref, step, execution) = input.into_parts();
+        let (repo_path, env, context) = execution.into_parts();
         Self {
             action_ref,
             step,
             repo_path,
             env,
             context,
-            container,
         }
     }
 
@@ -89,7 +37,7 @@ impl<'a> ExecuteActionRequest<'a> {
         &self.action_ref
     }
 
-    pub fn step(&self) -> &Step {
+    pub fn step(&self) -> &str {
         &self.step
     }
 
@@ -101,38 +49,25 @@ impl<'a> ExecuteActionRequest<'a> {
         &self.env
     }
 
-    pub fn context(&self) -> &EvaluationContext {
+    pub fn context(&self) -> &[(String, String)] {
         &self.context
     }
 
-    pub fn container(&self) -> &'a dyn ContainerPort {
-        self.container
-    }
-
-    pub fn into_parts(
-        self,
-    ) -> (
-        String,
-        Step,
-        PathBuf,
-        HashMap<String, String>,
-        EvaluationContext,
-        &'a dyn ContainerPort,
-    ) {
+    pub fn into_parts(self) -> ExecuteActionRequestParts {
         (
             self.action_ref,
             self.step,
             self.repo_path,
             self.env,
             self.context,
-            self.container,
         )
     }
 }
 
-impl fmt::Debug for ExecuteActionRequest<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ExecuteActionRequest")
+impl fmt::Debug for ExecuteActionRequest {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ExecuteActionRequest")
             .field("action_ref", &self.action_ref)
             .field("repo_path", &self.repo_path)
             .finish_non_exhaustive()

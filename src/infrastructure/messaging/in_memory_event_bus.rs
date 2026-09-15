@@ -1,6 +1,6 @@
 use super::domain_event_handler::DomainEventHandler;
 use crate::{
-    application::ports::outbound::event_bus_port::EventBusPort,
+    application::ports::outbound::domain_event_bus_port::DomainEventBusPort,
     domain::messages::events::DomainEvent,
 };
 
@@ -16,7 +16,7 @@ impl InMemoryEventBus {
     }
 }
 
-impl EventBusPort<DomainEvent> for InMemoryEventBus {
+impl DomainEventBusPort for InMemoryEventBus {
     fn publish(&self, event: DomainEvent) {
         for handler in &self.handlers {
             handler.handle(&event);

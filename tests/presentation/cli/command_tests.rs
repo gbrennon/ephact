@@ -16,7 +16,12 @@ mod tests {
     struct FakeShowProjectBrandingInfoPort;
 
     impl ShowProjectBrandingInfoPort for FakeShowProjectBrandingInfoPort {
-        fn execute(&self) -> Result<ShowProjectBrandingInfoResponse, Box<dyn std::error::Error>> {
+        fn execute(
+            &self,
+        ) -> Result<
+            ShowProjectBrandingInfoResponse,
+            ephact::application::errors::ShowProjectBrandingInfoError,
+        > {
             Ok(ShowProjectBrandingInfoResponse::new(
                 "ephact".to_string(),
                 "Ephemeral action runner".to_string(),

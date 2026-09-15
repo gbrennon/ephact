@@ -8,6 +8,6 @@ pub trait CreateJobContainerPort: Send + Sync {
     /// Removes any stale container of the same job and creates a fresh one.
     fn execute(
         &self,
-        request: CreateJobContainerRequest<'_>,
+        request: CreateJobContainerRequest,
     ) -> Result<Box<dyn ContainerPort>, Box<dyn Error>>;
 }

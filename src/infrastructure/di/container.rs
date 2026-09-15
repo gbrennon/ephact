@@ -3,8 +3,8 @@ use std::sync::Arc;
 use crate::{
     application::{
         ports::outbound::{
-            ContainerRuntimePort, WorkflowSourcePort, command_bus_port::ActionCommandBusPort,
-            command_bus_port::WorkflowCommandBusPort, event_bus_port::DomainEventBusPort,
+            ContainerRuntimePort, WorkflowSourcePort, domain_event_bus_port::DomainEventBusPort,
+            workflow_command_bus_port::WorkflowCommandBusPort,
         },
         services::{
             list_actions_service::ListActionsService, list_workflows_service::ListWorkflowsService,
@@ -15,7 +15,7 @@ use crate::{
         },
     },
     infrastructure::{
-        actions::{ActionFetcherPort, GitActionFetcher},
+        actions::{ActionFetcherPort, GitActionFetcher, RunActionFactory},
         containers::{ContainerCleanupHandler, ContainerRuntimeAdapter},
         di::{
             app_container::{AppContainer, AppContainerParts},
@@ -87,20 +87,24 @@ impl Container {
         let list_actions_service = ListActionsService::new(Box::new(workflow_source.clone()));
         let run_workflow_service = RunWorkflowService::new(
             Box::new(workflow_source.clone()),
-            Box::new(command_bus.clone()) as Box<WorkflowCommandBusPort>,
-            Box::new(event_bus.clone()) as Box<DomainEventBusPort>,
+            Box::new(command_bus.clone()) as Box<dyn WorkflowCommandBusPort>,
+            Box::new(event_bus.clone()) as Box<dyn DomainEventBusPort>,
             Box::new(DetectWorkflowTriggerService::new()),
         );
         let discover_run_inputs_service =
             FilesystemRunInputDiscoveryService::new(Box::new(workflow_source.clone()));
         let run_all_workflows_service = RunAllWorkflowsService::new(
             Box::new(workflow_source),
-            Box::new(command_bus.clone()) as Box<WorkflowCommandBusPort>,
-            Box::new(event_bus) as Box<DomainEventBusPort>,
+            Box::new(command_bus.clone()) as Box<dyn WorkflowCommandBusPort>,
+            Box::new(event_bus) as Box<dyn DomainEventBusPort>,
             Box::new(DetectWorkflowTriggerService::new()),
         );
-        let run_action_service =
-            RunActionService::new(Box::new(command_bus) as Box<ActionCommandBusPort>);
+        let run_action_factory: RunActionFactory = Box::new(move |container| {
+            Box::new(RunActionService::new(
+                Box::new(command_bus.clone()),
+                container,
+            ))
+        });
         let show_project_branding_info_service =
             ShowProjectBrandingInfoService::new(Box::new(CargoProjectBrandingStore));
 
@@ -108,7 +112,7 @@ impl Container {
             Box::new(show_project_branding_info_service),
             Box::new(run_all_workflows_service),
             Box::new(run_workflow_service),
-            Box::new(run_action_service),
+            run_action_factory,
             Box::new(discover_run_inputs_service),
             Box::new(list_workflows_service),
             Box::new(list_actions_service),

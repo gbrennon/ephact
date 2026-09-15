@@ -8,7 +8,7 @@ use crate::domain::value_objects::EvaluationContext;
 pub struct RunCompositeStepRequest<'a> {
     step: &'a Step,
     action_dir: &'a Path,
-    action_request: &'a ExecuteActionRequest<'a>,
+    action_request: &'a ExecuteActionRequest,
     context: &'a EvaluationContext,
 }
 
@@ -16,7 +16,7 @@ impl<'a> RunCompositeStepRequest<'a> {
     pub fn new(
         step: &'a Step,
         action_dir: &'a Path,
-        action_request: &'a ExecuteActionRequest<'a>,
+        action_request: &'a ExecuteActionRequest,
         context: &'a EvaluationContext,
     ) -> Self {
         Self {
@@ -35,7 +35,7 @@ impl<'a> RunCompositeStepRequest<'a> {
         self.action_dir
     }
 
-    pub fn action_request(&self) -> &'a ExecuteActionRequest<'a> {
+    pub fn action_request(&self) -> &'a ExecuteActionRequest {
         self.action_request
     }
 

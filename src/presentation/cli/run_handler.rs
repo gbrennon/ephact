@@ -219,8 +219,10 @@ impl RunHandler {
         terminal: &dyn Terminal,
         collect_inputs: bool,
     ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
-        let response =
-            list_workflows_port.execute(ListWorkflowsRequest::new(repository.clone()))?;
+        let response = list_workflows_port.execute(ListWorkflowsRequest::new(
+            repository.path().as_path().to_path_buf(),
+            repository.name().as_str().to_string(),
+        ))?;
         let workflows: Vec<_> = response
             .workflows()
             .iter()
@@ -554,10 +556,60 @@ impl RunHandler {
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
     ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
-        if config.all_workflows() {
-            run_all_workflows_port.execute(RunAllWorkflowsRequest::new(config, repository))
+        let repository_path = repository.path().as_path().to_path_buf();
+        let repository_name = repository.name().as_str().to_string();
+        let workflow = config.workflow().map(|value| value.as_str().to_string());
+        let job = config.job().map(|value| value.as_str().to_string());
+        let event = config.event().map(|value| value.as_str().to_string());
+        let inputs = config
+            .inputs()
+            .iter()
+            .map(|input| (input.key().to_string(), input.value().to_string()))
+            .collect();
+        let secrets = config
+            .secrets()
+            .iter()
+            .map(|secret| (secret.name().to_string(), secret.value().to_string()))
+            .collect();
+        let all_workflows = config.all_workflows();
+        let allow_repo_writes = config.allow_repo_writes();
+        let allow_real_container = config.allow_real_container();
+        let allow_real_fetcher = config.allow_real_fetcher();
+        let allow_network = config.allow_network();
+        let run_id = config.run_id().to_string();
+
+        if all_workflows {
+            Ok(run_all_workflows_port.execute(RunAllWorkflowsRequest::new(
+                repository_path,
+                repository_name,
+                workflow,
+                job,
+                event,
+                inputs,
+                secrets,
+                all_workflows,
+                allow_repo_writes,
+                allow_real_container,
+                allow_real_fetcher,
+                allow_network,
+                run_id,
+            ))?)
         } else {
-            run_workflow_port.execute(RunWorkflowRequest::new(config, repository))
+            Ok(run_workflow_port.execute(RunWorkflowRequest::new(
+                repository_path,
+                repository_name,
+                workflow,
+                job,
+                event,
+                inputs,
+                secrets,
+                all_workflows,
+                allow_repo_writes,
+                allow_real_container,
+                allow_real_fetcher,
+                allow_network,
+                run_id,
+            ))?)
         }
     }
 

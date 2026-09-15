@@ -3,10 +3,9 @@ use std::sync::Arc;
 use ephact::{
     application::ports::inbound::{
         list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
-        run_action_port::RunActionPort, run_all_workflows_port::RunAllWorkflowsPort,
-        run_workflow_port::RunWorkflowPort,
+        run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
     },
-    infrastructure::{AppContainer, Container},
+    infrastructure::{AppContainer, Container, actions::RunActionFactory},
 };
 
 use crate::common::fakes::{
@@ -37,7 +36,7 @@ mod tests {
         );
         fn _assert_run_all_workflows(_: Box<dyn RunAllWorkflowsPort>) {}
         fn _assert_run_workflow(_: Box<dyn RunWorkflowPort>) {}
-        fn _assert_run_action(_: Box<dyn RunActionPort>) {}
+        fn _assert_run_action(_: RunActionFactory) {}
         fn _assert_list_workflows(_: Box<dyn ListWorkflowsPort>) {}
         fn _assert_list_actions(_: Box<dyn ListActionsPort>) {}
         let (

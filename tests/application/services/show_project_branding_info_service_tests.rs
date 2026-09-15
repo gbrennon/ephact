@@ -1,8 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use std::error::Error;
-
     use ephact::application::dtos::responses::ShowProjectBrandingInfoResponse;
+    use ephact::application::errors::ProjectBrandingStoreError;
     use ephact::application::ports::inbound::ShowProjectBrandingInfoPort;
     use ephact::application::ports::outbound::ProjectBrandingStorePort;
     use ephact::application::services::show_project_branding_info_service::ShowProjectBrandingInfoService;
@@ -17,10 +16,10 @@ mod tests {
     }
 
     impl ProjectBrandingStorePort for FakeBrandingStore {
-        fn read_project_branding(&self) -> Result<ProjectBranding, Box<dyn Error>> {
+        fn read_project_branding(&self) -> Result<ProjectBranding, ProjectBrandingStoreError> {
             match &self.result {
                 Ok(branding) => Ok(branding.clone()),
-                Err(message) => Err(std::io::Error::other(message.as_str()).into()),
+                Err(message) => Err(ProjectBrandingStoreError::Read(message.clone())),
             }
         }
     }

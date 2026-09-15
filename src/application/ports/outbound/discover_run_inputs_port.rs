@@ -1,11 +1,10 @@
-use std::error::Error;
-
 use crate::application::dtos::requests::DiscoverRunInputsRequest;
 use crate::application::dtos::responses::RunInputDeclarationResponse;
+use crate::application::errors::DiscoverRunInputsError;
 
 pub trait DiscoverRunInputsPort {
     fn execute(
         &self,
         request: DiscoverRunInputsRequest,
-    ) -> Result<Vec<RunInputDeclarationResponse>, Box<dyn Error>>;
+    ) -> Result<Vec<RunInputDeclarationResponse>, DiscoverRunInputsError>;
 }

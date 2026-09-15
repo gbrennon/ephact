@@ -1,6 +1,5 @@
-use std::error::Error;
-
 use crate::application::dtos::responses::ShowProjectBrandingInfoResponse;
+use crate::application::errors::ShowProjectBrandingInfoError;
 use crate::application::ports::inbound::ShowProjectBrandingInfoPort;
 use crate::application::ports::outbound::ProjectBrandingStorePort;
 
@@ -15,8 +14,11 @@ impl ShowProjectBrandingInfoService {
 }
 
 impl ShowProjectBrandingInfoPort for ShowProjectBrandingInfoService {
-    fn execute(&self) -> Result<ShowProjectBrandingInfoResponse, Box<dyn Error>> {
-        let branding = self.branding_store.read_project_branding()?;
+    fn execute(&self) -> Result<ShowProjectBrandingInfoResponse, ShowProjectBrandingInfoError> {
+        let branding = self
+            .branding_store
+            .read_project_branding()
+            .map_err(ShowProjectBrandingInfoError::Store)?;
 
         Ok(ShowProjectBrandingInfoResponse::new(
             branding.name().as_str().to_string(),
