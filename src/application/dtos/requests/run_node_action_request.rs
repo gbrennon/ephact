@@ -1,63 +1,38 @@
-use std::{collections::HashMap, path::Path};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
-use crate::application::ports::outbound::container_port::ContainerPort;
-
-/// Request DTO for the
-/// [`RunNodeActionPort`](crate::application::ports::inbound::run_node_action_port::RunNodeActionPort)
-/// outbound port.
-pub struct RunNodeActionRequest<'a> {
-    /// Directory holding the action on the host.
-    action_dir: &'a Path,
-    /// Entry point the action declared.
-    entry_point: &'a str,
-    /// Inputs the action was called with.
-    inputs: &'a HashMap<String, String>,
-    /// Environment the action runs with.
-    env: &'a HashMap<String, String>,
-    /// Container the action runs in.
-    container: &'a dyn ContainerPort,
+pub struct RunNodeActionRequest {
+    action_dir: PathBuf,
+    entry_point: String,
+    inputs: HashMap<String, String>,
+    env: HashMap<String, String>,
 }
 
-impl<'a> RunNodeActionRequest<'a> {
-    /// Creates a new request.
+impl RunNodeActionRequest {
     pub fn new(
-        action_dir: &'a Path,
-        entry_point: &'a str,
-        inputs: &'a HashMap<String, String>,
-        env: &'a HashMap<String, String>,
-        container: &'a dyn ContainerPort,
+        action_dir: impl Into<PathBuf>,
+        entry_point: impl Into<String>,
+        inputs: HashMap<String, String>,
+        env: HashMap<String, String>,
     ) -> Self {
         Self {
-            action_dir,
-            entry_point,
+            action_dir: action_dir.into(),
+            entry_point: entry_point.into(),
             inputs,
             env,
-            container,
         }
     }
 
-    /// Directory holding the action on the host.
-    pub fn action_dir(&self) -> &'a Path {
-        self.action_dir
+    pub fn action_dir(&self) -> &Path {
+        &self.action_dir
     }
-
-    /// Entry point the action declared.
-    pub fn entry_point(&self) -> &'a str {
-        self.entry_point
+    pub fn entry_point(&self) -> &str {
+        &self.entry_point
     }
-
-    /// Inputs the action was called with.
-    pub fn inputs(&self) -> &'a HashMap<String, String> {
-        self.inputs
+    pub fn inputs(&self) -> &HashMap<String, String> {
+        &self.inputs
     }
-
-    /// Environment the action runs with.
-    pub fn env(&self) -> &'a HashMap<String, String> {
-        self.env
-    }
-
-    /// Container the action runs in.
-    pub fn container(&self) -> &'a dyn ContainerPort {
-        self.container
+    pub fn env(&self) -> &HashMap<String, String> {
+        &self.env
     }
 }

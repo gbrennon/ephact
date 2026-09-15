@@ -1,23 +1,23 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-pub struct CopyRepositoryToContainerRequest<'a> {
-    repo_path: &'a Path,
-    container_path: &'a str,
+pub struct CopyRepositoryToContainerRequest {
+    repo_path: PathBuf,
+    container_path: String,
 }
 
-impl<'a> CopyRepositoryToContainerRequest<'a> {
-    pub fn new(repo_path: &'a Path, container_path: &'a str) -> Self {
+impl CopyRepositoryToContainerRequest {
+    pub fn new(repo_path: PathBuf, container_path: String) -> Self {
         Self {
             repo_path,
             container_path,
         }
     }
 
-    pub fn repo_path(&self) -> &'a Path {
-        self.repo_path
+    pub fn repo_path(&self) -> &Path {
+        &self.repo_path
     }
 
-    pub fn container_path(&self) -> &'a str {
-        self.container_path
+    pub fn container_path(&self) -> &str {
+        &self.container_path
     }
 }

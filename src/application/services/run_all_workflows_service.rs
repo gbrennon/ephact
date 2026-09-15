@@ -6,17 +6,20 @@ use crate::application::dtos::requests::RunAllWorkflowsRequest;
 use crate::application::dtos::responses::JobSummaryResponse;
 use crate::application::dtos::responses::RunSummaryResponse;
 use crate::application::dtos::responses::WorkflowExecutionResponse;
+use crate::application::errors::RunAllWorkflowsError;
 use crate::application::ports::inbound::run_all_workflows_port::RunAllWorkflowsPort;
 use crate::application::ports::outbound::DetectWorkflowTriggerPort;
 use crate::application::ports::outbound::WorkflowSourcePort;
-use crate::application::ports::outbound::command_bus_port::WorkflowCommandBusPort;
-use crate::application::ports::outbound::event_bus_port::DomainEventBusPort;
+use crate::application::ports::outbound::domain_event_bus_port::DomainEventBusPort;
+use crate::application::ports::outbound::workflow_command_bus_port::WorkflowCommandBusPort;
 use crate::application::services::pull_request_workflow::PULL_REQUEST_EVENT_NAME;
 use crate::application::services::pull_request_workflow::config_for_pull_request_event;
 use crate::domain::messages::events::ActRunCompletedPayload;
 use crate::domain::messages::events::DomainEvent;
 use crate::domain::messages::events::RunFailedPayload;
 use crate::domain::messages::events::RunStartedPayload;
+use crate::domain::services::act_run_config_factory::{ActRunConfigFactory, ActRunConfigInput};
+use crate::domain::services::repository_factory::RepositoryFactory;
 
 /// Name reported for the aggregate summary of a full multi-workflow run.
 pub const ALL_WORKFLOWS_SUMMARY_NAME: &str = "All Workflows";
@@ -29,16 +32,16 @@ pub const ALL_WORKFLOWS_SUMMARY_NAME: &str = "All Workflows";
 /// infrastructure handlers can clean up.
 pub struct RunAllWorkflowsService {
     workflow_source: Box<dyn WorkflowSourcePort>,
-    command_bus: Box<WorkflowCommandBusPort>,
-    event_bus: Box<DomainEventBusPort>,
+    command_bus: Box<dyn WorkflowCommandBusPort>,
+    event_bus: Box<dyn DomainEventBusPort>,
     trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
 }
 
 impl RunAllWorkflowsService {
     pub fn new(
         workflow_source: Box<dyn WorkflowSourcePort>,
-        command_bus: Box<WorkflowCommandBusPort>,
-        event_bus: Box<DomainEventBusPort>,
+        command_bus: Box<dyn WorkflowCommandBusPort>,
+        event_bus: Box<dyn DomainEventBusPort>,
         trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
     ) -> Self {
         Self {
@@ -54,19 +57,39 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
     fn execute(
         &self,
         request: RunAllWorkflowsRequest,
-    ) -> Result<RunSummaryResponse, Box<dyn Error>> {
+    ) -> Result<RunSummaryResponse, RunAllWorkflowsError> {
         let started_at = Instant::now();
-        let run_id = request.config().run_id().to_string();
-        let repository_path = request.repository().path().as_path().display().to_string();
+        let repository = RepositoryFactory::create(
+            request.repository_path().to_path_buf(),
+            request.repository_name().to_string(),
+        )
+        .map_err(|error| RunAllWorkflowsError::Workflow(format!("{error:?}")))?;
+        let config = ActRunConfigFactory::create(
+            ActRunConfigInput::default()
+                .with_workflow(request.workflow().map(str::to_string))
+                .with_job(request.job().map(str::to_string))
+                .with_event(request.event().map(str::to_string))
+                .with_inputs(request.inputs().to_vec())
+                .with_secrets(request.secrets().to_vec())
+                .with_all_workflows(request.all_workflows())
+                .with_allow_repo_writes(request.allow_repo_writes())
+                .with_allow_real_container(request.allow_real_container())
+                .with_allow_real_fetcher(request.allow_real_fetcher())
+                .with_allow_network(request.allow_network())
+                .with_run_id(request.run_id().to_string()),
+        );
+        let run_id = config.run_id().to_string();
+        let repository_path = repository.path().as_path().display().to_string();
         self.event_bus
             .publish(DomainEvent::RunStarted(RunStartedPayload::new(
                 run_id.clone(),
                 repository_path.clone(),
             )));
-        let executions = match self.execute_all_workflows(&request) {
+        let executions = match self.execute_all_workflows(&repository, &config) {
             Ok(executions) => executions,
             Err(error) => {
-                self.announce_run_failed(&run_id, &repository_path, &*error);
+                let error = RunAllWorkflowsError::Workflow(error.to_string());
+                self.announce_run_failed(&run_id, &repository_path, &error);
                 return Err(error);
             }
         };
@@ -86,11 +109,13 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
 impl RunAllWorkflowsService {
     fn execute_all_workflows(
         &self,
-        request: &RunAllWorkflowsRequest,
-    ) -> Result<Vec<WorkflowExecutionResponse>, Box<dyn Error>> {
+        repository: &crate::domain::Repository,
+        config: &crate::domain::value_objects::ActRunConfig,
+    ) -> Result<Vec<WorkflowExecutionResponse>, RunAllWorkflowsError> {
         let workflow_contents = self
             .workflow_source
-            .read_all_workflows(request.repository())?;
+            .read_all_workflows(repository)
+            .map_err(|error| RunAllWorkflowsError::Workflow(error.to_string()))?;
         workflow_contents
             .into_iter()
             .filter(|content| {
@@ -98,13 +123,15 @@ impl RunAllWorkflowsService {
                     .triggers_on_event(content, PULL_REQUEST_EVENT_NAME)
             })
             .map(|content| {
-                self.command_bus.dispatch(ExecuteWorkflowCommand::new(
-                    content,
-                    config_for_pull_request_event(request.config().clone()),
-                    request.repository().clone(),
-                    request.config().run_id().to_string(),
-                    request.config().allow_repo_writes(),
-                ))
+                self.command_bus
+                    .dispatch(ExecuteWorkflowCommand::new(
+                        content,
+                        config_for_pull_request_event(config.clone()),
+                        repository.clone(),
+                        config.run_id().to_string(),
+                        config.allow_repo_writes(),
+                    ))
+                    .map_err(|error| RunAllWorkflowsError::Workflow(error.to_string()))
             })
             .collect()
     }

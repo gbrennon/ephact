@@ -14,6 +14,8 @@ pub enum ActionError {
     Unsupported(String),
 }
 
+impl std::error::Error for ActionError {}
+
 impl fmt::Display for ActionError {
     /// Renders the error as a single line suitable for a step summary.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

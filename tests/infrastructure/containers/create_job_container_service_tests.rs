@@ -12,12 +12,12 @@ mod tests {
         fake_runtime::FakeRuntime, stub_failing_container_runtime::StubFailingContainerRuntime,
     };
 
-    fn request<'a>(repo_path: &'a Path, allow_repo_writes: bool) -> CreateJobContainerRequest<'a> {
+    fn request(repo_path: &Path, allow_repo_writes: bool) -> CreateJobContainerRequest {
         CreateJobContainerRequest::new(
-            "ubuntu:latest",
-            "ephemeral-act-build-42",
-            "ephemeral-act-build",
-            repo_path,
+            "ubuntu:latest".to_string(),
+            "ephemeral-act-build-42".to_string(),
+            "ephemeral-act-build".to_string(),
+            repo_path.to_path_buf(),
             allow_repo_writes,
         )
     }

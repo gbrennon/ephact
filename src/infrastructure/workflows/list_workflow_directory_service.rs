@@ -29,7 +29,7 @@ impl Default for ListWorkflowDirectoryService {
 impl ListWorkflowDirectoryPort for ListWorkflowDirectoryService {
     fn execute(
         &self,
-        request: ListWorkflowDirectoryRequest<'_>,
+        request: ListWorkflowDirectoryRequest,
     ) -> Result<ListWorkflowDirectoryResponse, Box<dyn Error>> {
         let entries = read_dir(request.directory())?;
         let mut files = Vec::new();

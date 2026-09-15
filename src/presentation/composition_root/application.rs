@@ -1,4 +1,5 @@
 use super::super::cli::Cli;
+use crate::presentation::components::terminal::Terminal;
 
 /// Fully-wired presentation layer, returned by [`super::CompositionRoot::compose`].
 pub struct Application {
@@ -20,6 +21,17 @@ impl Application {
         T: Into<std::ffi::OsString> + Clone,
     {
         self.cli.run(args)
+    }
+    pub fn run_with_terminal<I, T>(
+        self,
+        args: I,
+        terminal: &dyn Terminal,
+    ) -> Result<String, Box<dyn std::error::Error>>
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<std::ffi::OsString> + Clone,
+    {
+        self.cli.run_with_terminal(args, terminal)
     }
 }
 

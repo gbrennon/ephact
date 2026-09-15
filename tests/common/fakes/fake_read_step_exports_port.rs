@@ -33,7 +33,11 @@ impl FakeReadStepExportsPort {
 }
 
 impl ReadStepExportsPort for FakeReadStepExportsPort {
-    fn execute(&self, _request: ReadStepExportsRequest<'_>) -> StepExportsResponse {
+    fn execute(
+        &self,
+        _request: ReadStepExportsRequest,
+        _container: &dyn ephact::application::ports::outbound::ContainerPort,
+    ) -> StepExportsResponse {
         *self.calls.lock() += 1;
         let mut queued = self.queued.lock();
         if queued.is_empty() {

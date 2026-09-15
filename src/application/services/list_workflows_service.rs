@@ -1,9 +1,9 @@
-use std::error::Error;
-
 use crate::application::dtos::requests::ListWorkflowsRequest;
 use crate::application::dtos::responses::ListWorkflowsResponse;
+use crate::application::errors::ListWorkflowsError;
 use crate::application::ports::inbound::list_workflows_port::ListWorkflowsPort;
 use crate::application::ports::outbound::WorkflowSourcePort;
+use crate::domain::services::repository_factory::RepositoryFactory;
 
 /// Application service implementing the `ListWorkflowsPort` entrypoint.
 ///
@@ -24,8 +24,16 @@ impl ListWorkflowsPort for ListWorkflowsService {
     fn execute(
         &self,
         request: ListWorkflowsRequest,
-    ) -> Result<ListWorkflowsResponse, Box<dyn Error>> {
-        let workflows = self.workflow_source.list_workflows(request.repository())?;
+    ) -> Result<ListWorkflowsResponse, ListWorkflowsError> {
+        let repository = RepositoryFactory::create(
+            request.repository_path().to_path_buf(),
+            request.repository_name().to_string(),
+        )
+        .map_err(|error| ListWorkflowsError::WorkflowSource(format!("{error:?}")))?;
+        let workflows = self
+            .workflow_source
+            .list_workflows(&repository)
+            .map_err(|error| ListWorkflowsError::WorkflowSource(error.to_string()))?;
         Ok(ListWorkflowsResponse::new(workflows))
     }
 }

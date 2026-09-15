@@ -22,10 +22,7 @@ impl Default for LoadActionDefinitionService {
 }
 
 impl LoadActionDefinitionPort for LoadActionDefinitionService {
-    fn execute(
-        &self,
-        request: LoadActionDefinitionRequest<'_>,
-    ) -> Result<ActionDefinition, StepError> {
+    fn execute(&self, request: LoadActionDefinitionRequest) -> Result<ActionDefinition, StepError> {
         let candidates = [
             request.action_dir().join("action.yml"),
             request.action_dir().join("action.yaml"),

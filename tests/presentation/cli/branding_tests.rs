@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use std::error::Error;
 
     use ephact::application::dtos::responses::ShowProjectBrandingInfoResponse;
     use ephact::application::ports::inbound::ShowProjectBrandingInfoPort;
@@ -18,8 +17,19 @@ mod tests {
     struct FailingBrandingPort;
 
     impl ShowProjectBrandingInfoPort for FailingBrandingPort {
-        fn execute(&self) -> Result<ShowProjectBrandingInfoResponse, Box<dyn Error>> {
-            Err(std::io::Error::other("branding unavailable").into())
+        fn execute(
+            &self,
+        ) -> Result<
+            ShowProjectBrandingInfoResponse,
+            ephact::application::errors::ShowProjectBrandingInfoError,
+        > {
+            Err(
+                ephact::application::errors::ShowProjectBrandingInfoError::Store(
+                    ephact::application::errors::ProjectBrandingStoreError::Read(
+                        "branding unavailable".to_string(),
+                    ),
+                ),
+            )
         }
     }
 

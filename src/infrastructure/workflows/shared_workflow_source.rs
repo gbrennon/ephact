@@ -1,7 +1,10 @@
-use std::{error::Error, sync::Arc};
+use std::sync::Arc;
 
 use crate::{
-    application::{dtos::responses::WorkflowListItemResponse, ports::outbound::WorkflowSourcePort},
+    application::{
+        dtos::responses::WorkflowListItemResponse, errors::WorkflowSourceError,
+        ports::outbound::WorkflowSourcePort,
+    },
     domain::entities::repository::Repository,
 };
 
@@ -21,22 +24,25 @@ impl WorkflowSourcePort for SharedWorkflowSource {
         &self,
         repository: &Repository,
         workflow_name: Option<&str>,
-    ) -> Result<String, Box<dyn Error>> {
+    ) -> Result<String, WorkflowSourceError> {
         self.inner.read_workflow(repository, workflow_name)
     }
 
-    fn read_all_workflows(&self, repository: &Repository) -> Result<Vec<String>, Box<dyn Error>> {
+    fn read_all_workflows(
+        &self,
+        repository: &Repository,
+    ) -> Result<Vec<String>, WorkflowSourceError> {
         self.inner.read_all_workflows(repository)
     }
 
-    fn list_actions(&self, repository: &Repository) -> Result<Vec<String>, Box<dyn Error>> {
+    fn list_actions(&self, repository: &Repository) -> Result<Vec<String>, WorkflowSourceError> {
         self.inner.list_actions(repository)
     }
 
     fn list_workflows(
         &self,
         repository: &Repository,
-    ) -> Result<Vec<WorkflowListItemResponse>, Box<dyn Error>> {
+    ) -> Result<Vec<WorkflowListItemResponse>, WorkflowSourceError> {
         self.inner.list_workflows(repository)
     }
 }

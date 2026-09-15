@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, path::Path};
+    use std::{collections::HashMap, path::Path, sync::Arc};
 
     use ephact::application::dtos::requests::ExecuteStepRequest;
     use ephact::application::dtos::responses::ExecResultResponse;
@@ -9,6 +9,8 @@ mod tests {
     use ephact::application::services::execute_step_service::ExecuteStepService;
     use ephact::domain::entities::Step;
     use ephact::domain::errors::StepError;
+    use ephact::domain::services::evaluation_context_mapper::EvaluationContextMapper;
+    use ephact::domain::services::step_factory::StepFactory;
     use ephact::domain::value_objects::ContextValue;
     use ephact::domain::value_objects::EvaluationContext;
 
@@ -32,8 +34,12 @@ mod tests {
         ExecuteActionResponse::new(0, "action\n".to_string(), String::new())
     }
 
-    fn service(shell: FakeRunShellStepPort, command_bus: FakeCommandBus) -> ExecuteStepService {
-        ExecuteStepService::new(Box::new(shell), Box::new(command_bus))
+    fn service(
+        shell: FakeRunShellStepPort,
+        command_bus: FakeCommandBus,
+    ) -> ExecuteStepService<'static> {
+        let container = Box::leak(Box::new(StubContainer));
+        ExecuteStepService::new(container, Arc::new(shell), Arc::new(command_bus))
     }
 
     #[test]
@@ -45,15 +51,12 @@ mod tests {
         ));
         let service = service(shell.clone(), FakeCommandBus::new());
         let step = step_from("run: echo hi\n");
-        let container = StubContainer;
-
         let executed = service
             .execute(ExecuteStepRequest::new(
-                &step,
-                &EvaluationContext::new(),
-                &container,
+                StepFactory::to_text(&step).unwrap(),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 Path::new("/repo"),
-                &HashMap::new(),
+                HashMap::new(),
             ))
             .unwrap();
 
@@ -73,15 +76,12 @@ mod tests {
         let step = step_from("uses: ./actions/greet\n");
         let mut env = HashMap::new();
         env.insert("MODE".to_string(), "staging".to_string());
-        let container = StubContainer;
-
         let executed = service
             .execute(ExecuteStepRequest::new(
-                &step,
-                &EvaluationContext::new(),
-                &container,
+                StepFactory::to_text(&step).unwrap(),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 Path::new("/repo"),
-                &env,
+                env.clone(),
             ))
             .unwrap();
 
@@ -101,15 +101,12 @@ mod tests {
             command_bus.clone(),
         );
         let step = step_from("run: echo hi\n");
-        let container = StubContainer;
-
         service
             .execute(ExecuteStepRequest::new(
-                &step,
-                &EvaluationContext::new(),
-                &container,
+                StepFactory::to_text(&step).unwrap(),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 Path::new("/repo"),
-                &HashMap::new(),
+                HashMap::new(),
             ))
             .unwrap();
 
@@ -123,15 +120,12 @@ mod tests {
         let step = step_from("run: deploy ${{ inputs.mode }}\n");
         let inputs = ContextValue::mapping([("mode".to_string(), ContextValue::text("staging"))]);
         let context = EvaluationContext::new().with_inputs(inputs);
-        let container = StubContainer;
-
         service
             .execute(ExecuteStepRequest::new(
-                &step,
-                &context,
-                &container,
+                StepFactory::to_text(&step).unwrap(),
+                EvaluationContextMapper::to_parts(&context),
                 Path::new("/repo"),
-                &HashMap::new(),
+                HashMap::new(),
             ))
             .unwrap();
 
@@ -145,15 +139,12 @@ mod tests {
             FakeCommandBus::new(),
         );
         let step = step_from("run: deploy ${{ }}\n");
-        let container = StubContainer;
-
         let error = service
             .execute(ExecuteStepRequest::new(
-                &step,
-                &EvaluationContext::new(),
-                &container,
+                StepFactory::to_text(&step).unwrap(),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 Path::new("/repo"),
-                &HashMap::new(),
+                HashMap::new(),
             ))
             .unwrap_err();
 
@@ -177,15 +168,12 @@ mod tests {
             FakeCommandBus::new(),
         );
         let step = step_from("run: echo hi\n");
-        let container = StubContainer;
-
         let error = service
             .execute(ExecuteStepRequest::new(
-                &step,
-                &EvaluationContext::new(),
-                &container,
+                StepFactory::to_text(&step).unwrap(),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 Path::new("/repo"),
-                &HashMap::new(),
+                HashMap::new(),
             ))
             .unwrap_err();
 

@@ -3,9 +3,9 @@ use std::sync::Arc;
 use crate::{
     application::{
         ports::outbound::{
-            ContainerRuntimePort, command_bus_port::ActionCommandBusPort,
-            command_bus_port::JobCommandBusPort, command_bus_port::StepCommandBusPort,
-            event_bus_port::DomainEventBusPort,
+            ContainerRuntimePort, action_command_bus_port::ActionCommandBusPort,
+            domain_event_bus_port::DomainEventBusPort, job_command_bus_port::JobCommandBusPort,
+            step_command_bus_port::StepCommandBusPort,
         },
         services::{
             execute_job_service::{ExecuteJobDependencies, ExecuteJobService},
@@ -26,7 +26,8 @@ use crate::{
         jobs::{JobCommandHandler, RunnerEnvironmentAdapter},
         messaging::{DeferredCommandBus, InMemoryCommandBus, SharedCommandBus, SharedEventBus},
         steps::{
-            StepCommandHandler, build_step_context_service::BuildStepContextService,
+            ExecuteStepFactory, StepCommandHandler,
+            build_step_context_service::BuildStepContextService,
             prefix_step_path_service::PrefixStepPathService,
             read_step_env_exports_service::ReadStepEnvExportsService,
             read_step_exports_service::ReadStepExportsService,
@@ -62,29 +63,36 @@ impl CommandBusWiring {
 
         let workflow_handler = WorkflowCommandHandler::new(Box::new(ExecuteWorkflowService::new(
             Box::new(LoadWorkflowService::new()),
-            Box::new(shared_bus.clone()) as Box<JobCommandBusPort>,
-            Box::new(event_bus.clone()) as Box<DomainEventBusPort>,
+            Box::new(shared_bus.clone()) as Box<dyn JobCommandBusPort>,
+            Box::new(event_bus.clone()) as Box<dyn DomainEventBusPort>,
         )));
 
         let job_handler = JobCommandHandler::new(Box::new(Self::build_job_executor(
             runtime.clone(),
             image_mapper,
-            Box::new(shared_bus.clone()) as Box<StepCommandBusPort>,
-            Box::new(event_bus.clone()) as Box<DomainEventBusPort>,
+            Box::new(shared_bus.clone()) as Box<dyn StepCommandBusPort>,
+            Box::new(event_bus.clone()) as Box<dyn DomainEventBusPort>,
         )));
 
-        let step_handler = StepCommandHandler::new(Box::new(ExecuteStepService::new(
-            Box::new(RunShellStepService::new(
-                Box::new(event_bus.clone()) as Box<DomainEventBusPort>
-            )),
-            Box::new(shared_bus.clone()) as Box<ActionCommandBusPort>,
-        )));
+        let shell_runner = Arc::new(RunShellStepService::new(
+            Box::new(event_bus.clone()) as Box<dyn DomainEventBusPort>
+        ));
+        let action_command_bus = Arc::new(shared_bus.clone()) as Arc<dyn ActionCommandBusPort>;
+        let step_factory: ExecuteStepFactory = Box::new(move |container| {
+            Box::new(ExecuteStepService::new(
+                container,
+                shell_runner.clone(),
+                action_command_bus.clone(),
+            ))
+        });
+        let step_handler = StepCommandHandler::new(step_factory);
 
-        let action_handler = ActionCommandHandler::new(Box::new(ActionExecutionWiring::build(
+        let action_factory = ActionExecutionWiring::build(
             action_fetcher,
-            Box::new(shared_bus.clone()) as Box<ActionCommandBusPort>,
-            Box::new(event_bus) as Box<DomainEventBusPort>,
-        )));
+            Box::new(shared_bus.clone()) as Box<dyn ActionCommandBusPort>,
+            Box::new(event_bus) as Box<dyn DomainEventBusPort>,
+        );
+        let action_handler = ActionCommandHandler::new(action_factory);
 
         deferred.bind(InMemoryCommandBus::new(
             Box::new(workflow_handler),
@@ -99,8 +107,8 @@ impl CommandBusWiring {
     fn build_job_executor(
         runtime: Arc<dyn ContainerRuntimePort>,
         image_mapper: Arc<dyn ImageMapperPort>,
-        command_bus: Box<StepCommandBusPort>,
-        event_bus: Box<DomainEventBusPort>,
+        command_bus: Box<dyn StepCommandBusPort>,
+        event_bus: Box<dyn DomainEventBusPort>,
     ) -> ExecuteJobService {
         ExecuteJobService::new(ExecuteJobDependencies::new(
             Box::new(RunnerEnvironmentAdapter::new()),

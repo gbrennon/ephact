@@ -4,6 +4,7 @@ pub mod build_run_context_port;
 pub mod build_run_context_service;
 pub mod container_cleanup_handler;
 pub mod container_runtime_adapter;
+pub mod container_streaming;
 pub mod copy_repository_to_container_port;
 pub mod copy_repository_to_container_service;
 pub mod create_job_container_port;

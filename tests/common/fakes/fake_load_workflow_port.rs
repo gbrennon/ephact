@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use ephact::application::errors::LoadWorkflowError;
 use ephact::application::ports::outbound::load_workflow_port::LoadWorkflowPort;
 use parking_lot::Mutex;
 use std::sync::Arc;
@@ -35,16 +36,15 @@ impl FakeLoadWorkflowPort {
 }
 
 impl LoadWorkflowPort for FakeLoadWorkflowPort {
-    fn execute(
-        &self,
-        request: LoadWorkflowRequest<'_>,
-    ) -> Result<Workflow, Box<dyn std::error::Error>> {
+    fn execute(&self, request: LoadWorkflowRequest) -> Result<Workflow, LoadWorkflowError> {
         self.loaded_contents
             .lock()
             .push(request.workflow_content().to_string());
         match &self.yaml {
-            Ok(yaml) => Ok(serde_yaml::from_str::<WorkflowYaml>(yaml)?.into_domain()),
-            Err(message) => Err(message.clone().into()),
+            Ok(yaml) => serde_yaml::from_str::<WorkflowYaml>(yaml)
+                .map(|workflow| workflow.into_domain())
+                .map_err(LoadWorkflowError::Parse),
+            Err(message) => Err(LoadWorkflowError::Message(message.clone())),
         }
     }
 }

@@ -1,5 +1,5 @@
+use crate::application::errors::LoadWorkflowError;
 use crate::application::ports::outbound::load_workflow_port::LoadWorkflowPort;
-use std::error::Error;
 
 use crate::application::dtos::requests::LoadWorkflowRequest;
 use crate::domain::aggregates::Workflow;
@@ -20,8 +20,9 @@ impl Default for LoadWorkflowService {
 }
 
 impl LoadWorkflowPort for LoadWorkflowService {
-    fn execute(&self, request: LoadWorkflowRequest<'_>) -> Result<Workflow, Box<dyn Error>> {
-        let parsed: WorkflowYaml = serde_yaml::from_str(request.workflow_content())?;
+    fn execute(&self, request: LoadWorkflowRequest) -> Result<Workflow, LoadWorkflowError> {
+        let parsed: WorkflowYaml =
+            serde_yaml::from_str(request.workflow_content()).map_err(LoadWorkflowError::Parse)?;
         Ok(parsed.into_domain())
     }
 }

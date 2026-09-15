@@ -7,6 +7,6 @@ pub trait CollectActionFilesPort: Send + Sync {
     /// Walks the action directory and reads every file it holds.
     fn execute(
         &self,
-        request: CollectActionFilesRequest<'_>,
+        request: CollectActionFilesRequest,
     ) -> Result<CollectActionFilesResponse, StepError>;
 }

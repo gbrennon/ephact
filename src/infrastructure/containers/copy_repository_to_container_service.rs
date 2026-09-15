@@ -1,8 +1,8 @@
 use super::copy_repository_to_container_port::CopyRepositoryToContainerPort;
 use crate::application::dtos::requests::CopyRepositoryToContainerRequest;
+use crate::application::errors::CopyRepositoryToContainerError;
 use crate::application::ports::outbound::container_port::ContainerPort;
 use std::{
-    error::Error,
     fs::{read, read_dir},
     os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
@@ -33,31 +33,28 @@ impl CopyRepositoryToContainerService {
     }
 
     fn should_exclude(path: &Path, root: &Path) -> bool {
-        // Only check immediate children of root for exclusion
-        if let Ok(relative) = path.strip_prefix(root)
-            && let Some(name) = relative.components().next()
-            && let Some(name_str) = name.as_os_str().to_str()
-        {
-            return EXCLUDED_DIRS.contains(&name_str);
-        }
-        false
+        path.strip_prefix(root)
+            .ok()
+            .and_then(|relative| relative.components().next())
+            .and_then(|component| component.as_os_str().to_str())
+            .is_some_and(|name| EXCLUDED_DIRS.contains(&name))
     }
 
     fn read_file_entry(
         root: &Path,
         path: &Path,
-    ) -> Result<crate::application::dtos::responses::FileEntryResponse, Box<dyn Error>> {
-        let relative = path
-            .strip_prefix(root)
-            .map_err(|error| format!("file outside repository: {error}"))?;
-        let content =
-            read(path).map_err(|error| format!("failed to read {}: {error}", path.display()))?;
-        let mode = Self::file_mode(path);
-
+    ) -> Result<
+        crate::application::dtos::responses::FileEntryResponse,
+        CopyRepositoryToContainerError,
+    > {
+        let relative = path.strip_prefix(root).map_err(|error| {
+            CopyRepositoryToContainerError::Filesystem(std::io::Error::other(error.to_string()))
+        })?;
+        let content = read(path).map_err(CopyRepositoryToContainerError::Filesystem)?;
         Ok(crate::application::dtos::responses::FileEntryResponse::new(
             relative.display().to_string(),
             content,
-            mode,
+            Self::file_mode(path),
         ))
     }
 
@@ -65,7 +62,7 @@ impl CopyRepositoryToContainerService {
         root: &Path,
         path: PathBuf,
         files: &mut Vec<crate::application::dtos::responses::FileEntryResponse>,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<(), CopyRepositoryToContainerError> {
         if Self::should_exclude(&path, root) {
             return Ok(());
         }
@@ -80,18 +77,13 @@ impl CopyRepositoryToContainerService {
         root: &Path,
         directory: &Path,
         files: &mut Vec<crate::application::dtos::responses::FileEntryResponse>,
-    ) -> Result<(), Box<dyn Error>> {
-        let listing = read_dir(directory).map_err(|error| {
-            format!("failed to read directory {}: {error}", directory.display())
-        })?;
-
-        for entry in listing {
-            let path: PathBuf = entry
-                .map_err(|error| format!("failed to read entry: {error}"))?
+    ) -> Result<(), CopyRepositoryToContainerError> {
+        for entry in read_dir(directory).map_err(CopyRepositoryToContainerError::Filesystem)? {
+            let path = entry
+                .map_err(CopyRepositoryToContainerError::Filesystem)?
                 .path();
             Self::process_entry(root, path, files)?;
         }
-
         Ok(())
     }
 }
@@ -105,14 +97,13 @@ impl Default for CopyRepositoryToContainerService {
 impl CopyRepositoryToContainerPort for CopyRepositoryToContainerService {
     fn execute(
         &self,
-        request: CopyRepositoryToContainerRequest<'_>,
+        request: CopyRepositoryToContainerRequest,
         container: &dyn ContainerPort,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<(), CopyRepositoryToContainerError> {
         let mut files = Vec::new();
         Self::collect_files_into(request.repo_path(), request.repo_path(), &mut files)?;
-
         container
             .copy_to(request.container_path(), &files)
-            .map_err(|e| format!("{:?}", e).into())
+            .map_err(|error| CopyRepositoryToContainerError::Container(format!("{error:?}")))
     }
 }

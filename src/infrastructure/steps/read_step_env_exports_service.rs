@@ -24,9 +24,13 @@ impl Default for ReadStepEnvExportsService {
 }
 
 impl ReadStepEnvExportsPort for ReadStepEnvExportsService {
-    fn execute(&self, request: ReadStepEnvExportsRequest<'_>) -> HashMap<String, String> {
+    fn execute(
+        &self,
+        _request: ReadStepEnvExportsRequest,
+        container: &dyn crate::application::ports::outbound::container_port::ContainerPort,
+    ) -> HashMap<String, String> {
         let mut exported = HashMap::new();
-        if let Ok(output) = request.container().exec(
+        if let Ok(output) = container.exec(
             &["cat".into(), RUNNER_ENV_FILE.into()],
             None,
             &HashMap::new(),

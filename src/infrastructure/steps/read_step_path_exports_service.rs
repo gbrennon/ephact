@@ -23,9 +23,13 @@ impl Default for ReadStepPathExportsService {
 }
 
 impl ReadStepPathExportsPort for ReadStepPathExportsService {
-    fn execute(&self, request: ReadStepPathExportsRequest<'_>) -> Vec<String> {
+    fn execute(
+        &self,
+        _request: ReadStepPathExportsRequest,
+        container: &dyn crate::application::ports::outbound::container_port::ContainerPort,
+    ) -> Vec<String> {
         let mut additions = Vec::new();
-        if let Ok(output) = request.container().exec(
+        if let Ok(output) = container.exec(
             &["cat".into(), RUNNER_PATH_FILE.into()],
             None,
             &HashMap::new(),

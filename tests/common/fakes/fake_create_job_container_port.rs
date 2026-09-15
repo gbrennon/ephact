@@ -39,7 +39,7 @@ impl FakeCreateJobContainerPort {
 impl CreateJobContainerPort for FakeCreateJobContainerPort {
     fn execute(
         &self,
-        request: CreateJobContainerRequest<'_>,
+        request: CreateJobContainerRequest,
     ) -> Result<Box<dyn ContainerPort>, Box<dyn Error>> {
         self.images.lock().push(request.image().to_string());
         self.container_names

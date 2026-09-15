@@ -1,6 +1,6 @@
 use crate::application::dtos::requests::ExecuteActionRequest;
 use crate::application::dtos::responses::ExecuteActionResponse;
-use crate::domain::errors::StepError;
+use crate::application::errors::ExecuteActionError;
 
 /// Inbound port for executing a single action referenced by a workflow step.
 ///
@@ -21,6 +21,6 @@ pub trait ExecuteActionPort: Send + Sync {
     /// definition cannot be read, or the container refuses to run it.
     fn execute(
         &self,
-        request: ExecuteActionRequest<'_>,
-    ) -> Result<ExecuteActionResponse, StepError>;
+        request: ExecuteActionRequest,
+    ) -> Result<ExecuteActionResponse, ExecuteActionError>;
 }

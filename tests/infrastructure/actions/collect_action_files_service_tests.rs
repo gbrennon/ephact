@@ -14,7 +14,7 @@ mod tests {
         fs::write(tmp.path().join("action.yml"), "name: Greet\n").unwrap();
 
         let response = CollectActionFilesService::new()
-            .execute(CollectActionFilesRequest::new(tmp.path()))
+            .execute(CollectActionFilesRequest::new(tmp.path().to_path_buf()))
             .unwrap();
 
         assert_eq!(response.files().len(), 1);
@@ -29,7 +29,7 @@ mod tests {
         fs::write(tmp.path().join("dist/index.js"), "run()").unwrap();
 
         let response = CollectActionFilesService::new()
-            .execute(CollectActionFilesRequest::new(tmp.path()))
+            .execute(CollectActionFilesRequest::new(tmp.path().to_path_buf()))
             .unwrap();
 
         assert_eq!(response.files()[0].path(), "dist/index.js");
@@ -43,7 +43,7 @@ mod tests {
         fs::write(tmp.path().join(".git/config"), "[core]").unwrap();
 
         let response = CollectActionFilesService::new()
-            .execute(CollectActionFilesRequest::new(tmp.path()))
+            .execute(CollectActionFilesRequest::new(tmp.path().to_path_buf()))
             .unwrap();
 
         assert_eq!(response.files().len(), 1);
@@ -58,7 +58,7 @@ mod tests {
         fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).unwrap();
 
         let response = CollectActionFilesService::new()
-            .execute(CollectActionFilesRequest::new(tmp.path()))
+            .execute(CollectActionFilesRequest::new(tmp.path().to_path_buf()))
             .unwrap();
 
         assert_eq!(response.files()[0].mode(), 0o755);
@@ -69,7 +69,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
 
         let error = CollectActionFilesService::new()
-            .execute(CollectActionFilesRequest::new(&tmp.path().join("absent")))
+            .execute(CollectActionFilesRequest::new(tmp.path().join("absent")))
             .unwrap_err();
 
         assert!(

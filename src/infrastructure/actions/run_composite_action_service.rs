@@ -7,6 +7,7 @@ use crate::application::dtos::requests::RunCompositeStepRequest;
 use crate::application::dtos::responses::ExecuteActionResponse;
 use crate::domain::errors::StepError;
 use crate::domain::services::StepInterpolator;
+use crate::domain::services::evaluation_context_mapper::EvaluationContextMapper;
 use crate::domain::value_objects::ContextValue;
 use crate::domain::value_objects::EvaluationContext;
 
@@ -32,6 +33,39 @@ impl RunCompositeActionService {
                 .map(|(name, value)| (name.clone(), ContextValue::text(value.clone()))),
         );
         context.clone().with_inputs(input_values)
+    }
+
+    fn execute_steps(
+        &self,
+        request: &RunCompositeActionRequest<'_>,
+        context: &EvaluationContext,
+        container: &dyn crate::application::ports::outbound::container_port::ContainerPort,
+        stdout: &mut String,
+        stderr: &mut String,
+    ) -> Result<Option<ExecuteActionResponse>, StepError> {
+        for step in request.steps() {
+            let interpolated = StepInterpolator::interpolate(step, context).map_err(|error| {
+                StepError::new(format!("failed to resolve expressions: {error:?}"))
+                    .with_stdout(stdout.clone())
+                    .with_stderr(stderr.clone())
+            })?;
+
+            let outcome = self.step_runner.execute(
+                RunCompositeStepRequest::new(
+                    &interpolated,
+                    request.action_dir(),
+                    request.action_request(),
+                    context,
+                ),
+                container,
+            );
+
+            if let Some(early_exit) = Self::process_step_outcome(outcome, stdout, stderr)? {
+                return Ok(Some(early_exit));
+            }
+        }
+
+        Ok(None)
     }
 
     fn process_step_outcome(
@@ -64,30 +98,19 @@ impl RunCompositeActionPort for RunCompositeActionService {
     fn execute(
         &self,
         request: RunCompositeActionRequest<'_>,
+        container: &dyn crate::application::ports::outbound::container_port::ContainerPort,
     ) -> Result<ExecuteActionResponse, StepError> {
-        let context =
-            Self::context_with_inputs(request.action_request().context(), request.inputs());
+        let base_context =
+            EvaluationContextMapper::from_parts(request.action_request().context().to_vec())
+                .map_err(|error| StepError::new(error.to_string()))?;
+        let context = Self::context_with_inputs(&base_context, request.inputs());
         let mut stdout = String::new();
         let mut stderr = String::new();
 
-        for step in request.steps() {
-            let interpolated = StepInterpolator::interpolate(step, &context).map_err(|error| {
-                StepError::new(format!("failed to resolve expressions: {error:?}"))
-                    .with_stdout(stdout.clone())
-                    .with_stderr(stderr.clone())
-            })?;
-
-            let outcome = self.step_runner.execute(RunCompositeStepRequest::new(
-                &interpolated,
-                request.action_dir(),
-                request.action_request(),
-                &context,
-            ));
-
-            if let Some(early_exit) = Self::process_step_outcome(outcome, &mut stdout, &mut stderr)?
-            {
-                return Ok(early_exit);
-            }
+        if let Some(early_exit) =
+            self.execute_steps(&request, &context, container, &mut stdout, &mut stderr)?
+        {
+            return Ok(early_exit);
         }
 
         Ok(ExecuteActionResponse::new(0, stdout, stderr))

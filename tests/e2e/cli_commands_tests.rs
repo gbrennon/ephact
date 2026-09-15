@@ -15,6 +15,7 @@ mod tests {
     use ephact::application::dtos::responses::{
         StepSummaryDetails, StepSummaryResponse, StepSummaryResponseInput,
     };
+    use ephact::application::errors::DiscoverRunInputsError;
     use ephact::application::ports::inbound::ListActionsPort;
     use ephact::application::ports::inbound::ListWorkflowsPort;
     use ephact::application::ports::inbound::RunAllWorkflowsPort;
@@ -46,7 +47,12 @@ mod tests {
     struct BrandingFake;
 
     impl ShowProjectBrandingInfoPort for BrandingFake {
-        fn execute(&self) -> Result<ShowProjectBrandingInfoResponse, Box<dyn std::error::Error>> {
+        fn execute(
+            &self,
+        ) -> Result<
+            ShowProjectBrandingInfoResponse,
+            ephact::application::errors::ShowProjectBrandingInfoError,
+        > {
             Ok(ShowProjectBrandingInfoResponse::new(
                 "ephact".into(),
                 "test runner".into(),
@@ -62,7 +68,8 @@ mod tests {
         fn execute(
             &self,
             _request: ListWorkflowsRequest,
-        ) -> Result<ListWorkflowsResponse, Box<dyn std::error::Error>> {
+        ) -> Result<ListWorkflowsResponse, ephact::application::errors::ListWorkflowsError>
+        {
             Ok(ListWorkflowsResponse::new(vec![
                 WorkflowListItemResponse::new(
                     Some("Build".into()),
@@ -84,7 +91,7 @@ mod tests {
         fn execute(
             &self,
             _request: ListActionsRequest,
-        ) -> Result<ListActionsResponse, Box<dyn std::error::Error>> {
+        ) -> Result<ListActionsResponse, ephact::application::errors::ListActionsError> {
             Ok(ListActionsResponse::new(vec![
                 "custom/build-action".into(),
                 "custom/release-action".into(),
@@ -100,7 +107,7 @@ mod tests {
             _request: ephact::application::dtos::requests::DiscoverRunInputsRequest,
         ) -> Result<
             Vec<ephact::application::dtos::responses::RunInputDeclarationResponse>,
-            Box<dyn std::error::Error>,
+            DiscoverRunInputsError,
         > {
             Ok(Vec::new())
         }
@@ -113,7 +120,7 @@ mod tests {
         fn execute(
             &self,
             _request: RunWorkflowRequest,
-        ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
+        ) -> Result<RunSummaryResponse, ephact::application::errors::RunWorkflowError> {
             Ok(self.summary.clone())
         }
     }
@@ -122,7 +129,7 @@ mod tests {
         fn execute(
             &self,
             _request: RunAllWorkflowsRequest,
-        ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
+        ) -> Result<RunSummaryResponse, ephact::application::errors::RunAllWorkflowsError> {
             Ok(self.summary.clone())
         }
     }

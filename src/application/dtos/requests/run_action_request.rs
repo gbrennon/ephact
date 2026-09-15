@@ -1,138 +1,52 @@
-use std::{
-    collections::HashMap,
-    fmt,
-    path::{Path, PathBuf},
-};
+use std::collections::HashMap;
+use std::fmt;
+use std::path::{Path, PathBuf};
 
-use crate::{
-    application::ports::outbound::container_port::ContainerPort,
-    domain::{entities::Step, value_objects::EvaluationContext},
-};
+use super::run_action_request_input::RunActionRequestInput;
 
 #[derive(Clone)]
-pub struct RunActionRequest<'a> {
+pub struct RunActionRequest {
     action_ref: String,
-    step: Step,
+    step: String,
     repo_path: PathBuf,
     env: HashMap<String, String>,
-    context: EvaluationContext,
-    container: &'a dyn ContainerPort,
+    context: Vec<(String, String)>,
 }
 
-pub struct RunActionRequestInput<'a> {
-    action_ref: String,
-    step: Step,
-    execution: RunActionExecutionInput<'a>,
-}
-
-impl<'a> RunActionRequestInput<'a> {
-    pub fn new(
-        action_ref: impl Into<String>,
-        step: Step,
-        execution: RunActionExecutionInput<'a>,
-    ) -> Self {
-        Self {
-            action_ref: action_ref.into(),
-            step,
-            execution,
-        }
-    }
-}
-
-pub struct RunActionExecutionInput<'a> {
-    repo_path: PathBuf,
-    env: HashMap<String, String>,
-    context: EvaluationContext,
-    container: &'a dyn ContainerPort,
-}
-
-impl<'a> RunActionExecutionInput<'a> {
-    pub fn new(
-        repo_path: impl Into<PathBuf>,
-        env: HashMap<String, String>,
-        context: EvaluationContext,
-        container: &'a dyn ContainerPort,
-    ) -> Self {
-        Self {
-            repo_path: repo_path.into(),
-            env,
-            context,
-            container,
-        }
-    }
-}
-
-impl<'a> RunActionRequest<'a> {
-    pub fn new(input: RunActionRequestInput<'a>) -> Self {
-        let RunActionRequestInput {
-            action_ref,
-            step,
-            execution:
-                RunActionExecutionInput {
-                    repo_path,
-                    env,
-                    context,
-                    container,
-                },
-        } = input;
+impl RunActionRequest {
+    pub fn new(input: RunActionRequestInput) -> Self {
+        let (action_ref, step, execution) = input.into_parts();
+        let (repo_path, env, context) = execution.into_parts();
         Self {
             action_ref,
             step,
             repo_path,
             env,
             context,
-            container,
         }
     }
 
     pub fn action_ref(&self) -> &str {
         &self.action_ref
     }
-
-    pub fn into_action_ref(self) -> String {
-        self.action_ref
-    }
-
-    pub fn step(&self) -> &Step {
+    pub fn step(&self) -> &str {
         &self.step
     }
-
-    pub fn into_step(self) -> Step {
-        self.step
-    }
-
     pub fn repo_path(&self) -> &Path {
         &self.repo_path
     }
-
-    pub fn into_repo_path(self) -> PathBuf {
-        self.repo_path
-    }
-
     pub fn env(&self) -> &HashMap<String, String> {
         &self.env
     }
-
-    pub fn into_env(self) -> HashMap<String, String> {
-        self.env
-    }
-
-    pub fn context(&self) -> &EvaluationContext {
+    pub fn context(&self) -> &[(String, String)] {
         &self.context
-    }
-
-    pub fn into_context(self) -> EvaluationContext {
-        self.context
-    }
-
-    pub fn container(&self) -> &'a dyn ContainerPort {
-        self.container
     }
 }
 
-impl fmt::Debug for RunActionRequest<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("RunActionRequest")
+impl fmt::Debug for RunActionRequest {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("RunActionRequest")
             .field("action_ref", &self.action_ref)
             .field("repo_path", &self.repo_path)
             .finish_non_exhaustive()

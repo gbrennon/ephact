@@ -1,52 +1,38 @@
-use std::{collections::HashMap, path::Path};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
-use crate::{
-    application::ports::outbound::container_port::ContainerPort,
-    domain::{entities::Step, value_objects::EvaluationContext},
-};
-
-pub struct ExecuteStepRequest<'a> {
-    step: &'a Step,
-    context: &'a EvaluationContext,
-    container: &'a dyn ContainerPort,
-    repo_path: &'a Path,
-    env: &'a HashMap<String, String>,
+pub struct ExecuteStepRequest {
+    step: String,
+    context: Vec<(String, String)>,
+    repo_path: PathBuf,
+    env: HashMap<String, String>,
 }
 
-impl<'a> ExecuteStepRequest<'a> {
+impl ExecuteStepRequest {
     pub fn new(
-        step: &'a Step,
-        context: &'a EvaluationContext,
-        container: &'a dyn ContainerPort,
-        repo_path: &'a Path,
-        env: &'a HashMap<String, String>,
+        step: impl Into<String>,
+        context: Vec<(String, String)>,
+        repo_path: impl Into<PathBuf>,
+        env: HashMap<String, String>,
     ) -> Self {
         Self {
-            step,
+            step: step.into(),
             context,
-            container,
-            repo_path,
+            repo_path: repo_path.into(),
             env,
         }
     }
 
-    pub fn step(&self) -> &'a Step {
-        self.step
+    pub fn step(&self) -> &str {
+        &self.step
     }
-
-    pub fn context(&self) -> &'a EvaluationContext {
-        self.context
+    pub fn context(&self) -> &[(String, String)] {
+        &self.context
     }
-
-    pub fn container(&self) -> &'a dyn ContainerPort {
-        self.container
+    pub fn repo_path(&self) -> &Path {
+        &self.repo_path
     }
-
-    pub fn repo_path(&self) -> &'a Path {
-        self.repo_path
-    }
-
-    pub fn env(&self) -> &'a HashMap<String, String> {
-        self.env
+    pub fn env(&self) -> &HashMap<String, String> {
+        &self.env
     }
 }

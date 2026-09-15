@@ -8,5 +8,6 @@ pub trait RunCompositeStepPort: Send + Sync {
     fn execute(
         &self,
         request: RunCompositeStepRequest<'_>,
+        container: &dyn crate::application::ports::outbound::container_port::ContainerPort,
     ) -> Result<ExecResultResponse, StepError>;
 }

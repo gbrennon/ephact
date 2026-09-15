@@ -1,5 +1,6 @@
 use crate::application::dtos::requests::ListWorkflowsRequest;
 use crate::application::dtos::responses::ListWorkflowsResponse;
+use crate::application::errors::ListWorkflowsError;
 
 /// Inbound port for listing workflows in a repository.
 pub trait ListWorkflowsPort {
@@ -7,5 +8,5 @@ pub trait ListWorkflowsPort {
     fn execute(
         &self,
         request: ListWorkflowsRequest,
-    ) -> Result<ListWorkflowsResponse, Box<dyn std::error::Error>>;
+    ) -> Result<ListWorkflowsResponse, ListWorkflowsError>;
 }

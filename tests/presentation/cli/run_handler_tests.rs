@@ -1,7 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use std::{cell::RefCell, error::Error, time::Duration};
-
     use ephact::application::dtos::requests::DiscoverRunInputsRequest;
     use ephact::application::dtos::requests::ListWorkflowsRequest;
     use ephact::application::dtos::requests::RunAllWorkflowsRequest;
@@ -12,6 +10,7 @@ mod tests {
     use ephact::application::dtos::responses::RunInputSourceResponse;
     use ephact::application::dtos::responses::RunSummaryResponse;
     use ephact::application::dtos::responses::WorkflowListItemResponse;
+    use ephact::application::errors::DiscoverRunInputsError;
     use ephact::application::ports::inbound::ListWorkflowsPort;
     use ephact::application::ports::inbound::RunAllWorkflowsPort;
     use ephact::application::ports::inbound::RunWorkflowPort;
@@ -20,6 +19,7 @@ mod tests {
     use ephact::presentation::cli::run_handler::{PreflightPorts, RunHandler};
     use ephact::presentation::components::terminal::SystemTerminal;
     use ephact::presentation::components::terminal::Terminal;
+    use std::{cell::RefCell, time::Duration};
 
     use crate::common::fakes::{
         fake_list_workflows_port::FakeListWorkflowsPort,
@@ -56,7 +56,7 @@ mod tests {
         fn execute(
             &self,
             request: RunWorkflowRequest,
-        ) -> Result<RunSummaryResponse, Box<dyn Error>> {
+        ) -> Result<RunSummaryResponse, ephact::application::errors::RunWorkflowError> {
             self.requests.borrow_mut().push(request);
             Ok(summary(true))
         }
@@ -68,8 +68,10 @@ mod tests {
         fn execute(
             &self,
             _request: RunAllWorkflowsRequest,
-        ) -> Result<RunSummaryResponse, Box<dyn Error>> {
-            Err("all workflows should not run interactively".into())
+        ) -> Result<RunSummaryResponse, ephact::application::errors::RunAllWorkflowsError> {
+            Err(ephact::application::errors::RunAllWorkflowsError::Workflow(
+                "all workflows should not run interactively".to_string(),
+            ))
         }
     }
 
@@ -89,7 +91,8 @@ mod tests {
         fn execute(
             &self,
             _request: ListWorkflowsRequest,
-        ) -> Result<ListWorkflowsResponse, Box<dyn Error>> {
+        ) -> Result<ListWorkflowsResponse, ephact::application::errors::ListWorkflowsError>
+        {
             Ok(self.response.clone())
         }
     }
@@ -102,7 +105,7 @@ mod tests {
         fn execute(
             &self,
             _request: DiscoverRunInputsRequest,
-        ) -> Result<Vec<RunInputDeclarationResponse>, Box<dyn Error>> {
+        ) -> Result<Vec<RunInputDeclarationResponse>, DiscoverRunInputsError> {
             Ok(self.declarations.clone())
         }
     }
@@ -237,17 +240,8 @@ mod tests {
 
         let requests = run_port.requests();
         assert_eq!(requests.len(), 1);
-        assert_eq!(
-            requests[0]
-                .config()
-                .workflow()
-                .map(|workflow| workflow.as_str()),
-            Some("CI")
-        );
-        assert_eq!(
-            requests[0].config().event().map(|event| event.as_str()),
-            Some("pull_request")
-        );
+        assert_eq!(requests[0].workflow(), Some("CI"));
+        assert_eq!(requests[0].event(), Some("pull_request"));
     }
 
     #[test]
@@ -266,8 +260,8 @@ mod tests {
             .unwrap();
 
         let requests = run_port.requests();
-        assert_eq!(requests[0].config().inputs()[0].key(), "environment");
-        assert_eq!(requests[0].config().inputs()[0].value(), "staging");
+        assert_eq!(requests[0].inputs()[0].0.as_str(), "environment");
+        assert_eq!(requests[0].inputs()[0].1.as_str(), "staging");
     }
 
     #[test]
@@ -293,8 +287,8 @@ mod tests {
             .unwrap();
 
         let requests = run_port.requests();
-        assert_eq!(requests[0].config().inputs()[0].key(), "environment");
-        assert_eq!(requests[0].config().inputs()[0].value(), "production");
+        assert_eq!(requests[0].inputs()[0].0.as_str(), "environment");
+        assert_eq!(requests[0].inputs()[0].1.as_str(), "production");
     }
 
     #[test]
@@ -351,13 +345,7 @@ mod tests {
 
         assert!(terminal.written_text().contains("CI"));
         assert!(!terminal.written_text().contains("Merge"));
-        assert_eq!(
-            run_port.requests()[0]
-                .config()
-                .workflow()
-                .map(|workflow| workflow.as_str()),
-            Some("CI")
-        );
+        assert_eq!(run_port.requests()[0].workflow(), Some("CI"));
     }
 
     fn declared_preflight_inputs() -> Vec<RunInputDeclarationResponse> {
@@ -407,10 +395,10 @@ mod tests {
 
     fn assert_preflight_inputs(run_port: &RecordingRunWorkflowPort) {
         let requests = run_port.requests();
-        assert_eq!(requests[0].config().inputs()[0].key(), "cache-key-prefix");
-        assert_eq!(requests[0].config().inputs()[0].value(), "ephact");
-        assert_eq!(requests[0].config().inputs()[1].key(), "rustc-version");
-        assert_eq!(requests[0].config().inputs()[1].value(), "stable");
+        assert_eq!(requests[0].inputs()[0].0.as_str(), "cache-key-prefix");
+        assert_eq!(requests[0].inputs()[0].1.as_str(), "ephact");
+        assert_eq!(requests[0].inputs()[1].0.as_str(), "rustc-version");
+        assert_eq!(requests[0].inputs()[1].1.as_str(), "stable");
     }
 
     fn assert_preflight_prompts(terminal: &ScriptedTerminal) {

@@ -23,10 +23,7 @@ impl Default for ResolveNamedWorkflowFileService {
 }
 
 impl ResolveNamedWorkflowFilePort for ResolveNamedWorkflowFileService {
-    fn execute(
-        &self,
-        request: ResolveNamedWorkflowFileRequest<'_>,
-    ) -> Result<PathBuf, Box<dyn Error>> {
+    fn execute(&self, request: ResolveNamedWorkflowFileRequest) -> Result<PathBuf, Box<dyn Error>> {
         let direct = request.repo_path().join(request.workflow_name());
         if direct.exists() {
             return Ok(direct);

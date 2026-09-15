@@ -1,4 +1,4 @@
-use std::{error::Error, sync::OnceLock};
+use std::sync::OnceLock;
 
 use crate::{
     application::{
@@ -6,7 +6,12 @@ use crate::{
             ExecuteActionResponse, ExecutedStepResponse, JobExecutionResponse,
             WorkflowExecutionResponse,
         },
-        ports::outbound::{command_bus_port::CommandBusPort, container_port::ContainerPort},
+        errors::{ExecuteJobError, ExecuteWorkflowError},
+        ports::outbound::{
+            action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
+            job_command_bus_port::JobCommandBusPort, step_command_bus_port::StepCommandBusPort,
+            workflow_command_bus_port::WorkflowCommandBusPort,
+        },
     },
     domain::{
         errors::StepError,
@@ -54,49 +59,48 @@ impl DeferredCommandBus {
         StepError::new("command bus used before it was bound".to_string())
     }
 }
-
-impl CommandBusPort<ExecuteWorkflowCommand> for DeferredCommandBus {
-    type Response = WorkflowExecutionResponse;
-    type Error = Box<dyn Error>;
-
-    fn dispatch(&self, command: ExecuteWorkflowCommand) -> Result<Self::Response, Self::Error> {
-        self.bound()
-            .ok_or_else(|| -> Box<dyn Error> { Self::unbound().message().to_string().into() })?
-            .dispatch(command)
-    }
-}
-
-impl CommandBusPort<ExecuteJobCommand> for DeferredCommandBus {
-    type Response = JobExecutionResponse;
-    type Error = Box<dyn Error>;
-
-    fn dispatch(&self, command: ExecuteJobCommand) -> Result<Self::Response, Self::Error> {
-        self.bound()
-            .ok_or_else(|| -> Box<dyn Error> { Self::unbound().message().to_string().into() })?
-            .dispatch(command)
-    }
-}
-
-impl<'a> CommandBusPort<ExecuteStepCommand<'a, dyn ContainerPort>> for DeferredCommandBus {
-    type Response = ExecutedStepResponse;
-    type Error = StepError;
-
+impl WorkflowCommandBusPort for DeferredCommandBus {
     fn dispatch(
+        &self,
+        command: ExecuteWorkflowCommand,
+    ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
+        let bus = self
+            .bound()
+            .ok_or_else(|| ExecuteWorkflowError::Workflow(Self::unbound().message().to_string()))?;
+        WorkflowCommandBusPort::dispatch(bus, command)
+            .map_err(|error| ExecuteWorkflowError::Workflow(error.to_string()))
+    }
+}
+
+impl JobCommandBusPort for DeferredCommandBus {
+    fn dispatch(
+        &self,
+        command: ExecuteJobCommand,
+    ) -> Result<JobExecutionResponse, ExecuteJobError> {
+        let bus = self
+            .bound()
+            .ok_or_else(|| ExecuteJobError::Preparation(Self::unbound().message().to_string()))?;
+        JobCommandBusPort::dispatch(bus, command)
+            .map_err(|error| ExecuteJobError::Preparation(error.to_string()))
+    }
+}
+
+impl StepCommandBusPort for DeferredCommandBus {
+    fn dispatch<'a>(
         &self,
         command: ExecuteStepCommand<'a, dyn ContainerPort>,
-    ) -> Result<Self::Response, Self::Error> {
-        self.bound().ok_or_else(Self::unbound)?.dispatch(command)
+    ) -> Result<ExecutedStepResponse, StepError> {
+        let bus = self.bound().ok_or_else(Self::unbound)?;
+        StepCommandBusPort::dispatch(bus, command)
     }
 }
 
-impl<'a> CommandBusPort<ExecuteActionCommand<'a, dyn ContainerPort>> for DeferredCommandBus {
-    type Response = ExecuteActionResponse;
-    type Error = StepError;
-
-    fn dispatch(
+impl ActionCommandBusPort for DeferredCommandBus {
+    fn dispatch<'a>(
         &self,
         command: ExecuteActionCommand<'a, dyn ContainerPort>,
-    ) -> Result<Self::Response, Self::Error> {
-        self.bound().ok_or_else(Self::unbound)?.dispatch(command)
+    ) -> Result<ExecuteActionResponse, StepError> {
+        let bus = self.bound().ok_or_else(Self::unbound)?;
+        ActionCommandBusPort::dispatch(bus, command)
     }
 }

@@ -20,7 +20,7 @@ impl Default for PrefixStepPathService {
 }
 
 impl PrefixStepPathPort for PrefixStepPathService {
-    fn execute(&self, request: PrefixStepPathRequest<'_>) -> HashMap<String, String> {
+    fn execute(&self, request: PrefixStepPathRequest) -> HashMap<String, String> {
         let base = request.env().get("PATH").cloned().unwrap_or_default();
         let path = if request.path_additions().is_empty() {
             base

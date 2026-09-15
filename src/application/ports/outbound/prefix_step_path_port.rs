@@ -6,5 +6,5 @@ use crate::application::dtos::requests::PrefixStepPathRequest;
 /// exported.
 pub trait PrefixStepPathPort: Send + Sync {
     /// Returns the environment with its `PATH` prefixed by the additions.
-    fn execute(&self, request: PrefixStepPathRequest<'_>) -> HashMap<String, String>;
+    fn execute(&self, request: PrefixStepPathRequest) -> HashMap<String, String>;
 }

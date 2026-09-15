@@ -5,6 +5,8 @@ use ephact::application::dtos::requests::{
     ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
 };
 use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::services::evaluation_context_mapper::EvaluationContextMapper;
+use ephact::domain::services::step_factory::StepFactory;
 use ephact::domain::value_objects::EvaluationContext;
 use ephact::infrastructure::workflows::yaml::StepYaml;
 
@@ -13,20 +15,19 @@ use ephact::infrastructure::workflows::yaml::StepYaml;
 pub struct ActionRequestFixture;
 
 impl ActionRequestFixture {
-    pub fn for_action<'a>(
-        action_ref: &str,
-        container: &'a dyn ContainerPort,
-    ) -> ExecuteActionRequest<'a> {
+    pub fn for_action(action_ref: &str, _container: &dyn ContainerPort) -> ExecuteActionRequest {
         ExecuteActionRequest::new(ExecuteActionRequestInput::new(
             action_ref,
-            serde_yaml::from_str::<StepYaml>(&format!("uses: {action_ref}\n"))
-                .unwrap()
-                .into_domain(),
+            StepFactory::to_text(
+                &serde_yaml::from_str::<StepYaml>(&format!("uses: {action_ref}\n"))
+                    .unwrap()
+                    .into_domain(),
+            )
+            .unwrap(),
             ExecuteActionExecutionInput::new(
                 PathBuf::from("/workspace"),
                 HashMap::new(),
-                EvaluationContext::new(),
-                container,
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
             ),
         ))
     }

@@ -2,15 +2,14 @@
 mod tests {
     use std::{collections::HashMap, path::Path};
 
-    use ephact::application::dtos::requests::{
-        ExecuteJobExecutionInput, ExecuteJobRequest, ExecuteJobRequestInput,
-    };
+    use ephact::application::dtos::requests::ExecuteJobRequest;
     use ephact::application::ports::inbound::execute_job_port::ExecuteJobPort;
     use ephact::application::services::execute_job_service::{
         ExecuteJobDependencies, ExecuteJobService,
     };
     use ephact::domain::aggregates::Workflow;
     use ephact::domain::services::ExecutionPlanner;
+    use ephact::domain::services::evaluation_context_mapper::EvaluationContextMapper;
     use ephact::domain::value_objects::EvaluationContext;
     use ephact::infrastructure::jobs::RunnerEnvironmentAdapter;
     use ephact::infrastructure::steps::build_step_context_service::BuildStepContextService;
@@ -74,16 +73,16 @@ mod tests {
             FakeCommandBus::new(),
             FakeReadStepExportsPort::new(),
         )
-        .execute(ExecuteJobRequest::new(ExecuteJobRequestInput::new(
-            run,
-            &wf,
-            ExecuteJobExecutionInput::new(
+        .execute(
+            ExecuteJobRequest::new(
                 Path::new("/repo"),
-                &EvaluationContext::new(),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 "test-run",
                 false,
             ),
-        )))
+            run,
+            &wf,
+        )
         .unwrap();
 
         assert_eq!(execution.job_summary().steps().len(), 1);
@@ -103,16 +102,16 @@ mod tests {
             command_bus.clone(),
             FakeReadStepExportsPort::new(),
         )
-        .execute(ExecuteJobRequest::new(ExecuteJobRequestInput::new(
-            run,
-            &wf,
-            ExecuteJobExecutionInput::new(
+        .execute(
+            ExecuteJobRequest::new(
                 Path::new("/repo"),
-                &EvaluationContext::new(),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 "test-run",
                 false,
             ),
-        )))
+            run,
+            &wf,
+        )
         .unwrap();
 
         let dispatched = command_bus.dispatched_steps.lock();
@@ -132,16 +131,16 @@ mod tests {
             command_bus.clone(),
             FakeReadStepExportsPort::new(),
         )
-        .execute(ExecuteJobRequest::new(ExecuteJobRequestInput::new(
-            run,
-            &wf,
-            ExecuteJobExecutionInput::new(
+        .execute(
+            ExecuteJobRequest::new(
                 Path::new("/repo"),
-                &EvaluationContext::new(),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 "test-run",
                 false,
             ),
-        )))
+            run,
+            &wf,
+        )
         .unwrap();
 
         assert!(!execution.job_summary().success());
@@ -163,16 +162,16 @@ mod tests {
             command_bus.clone(),
             FakeReadStepExportsPort::new(),
         )
-        .execute(ExecuteJobRequest::new(ExecuteJobRequestInput::new(
-            run,
-            &wf,
-            ExecuteJobExecutionInput::new(
+        .execute(
+            ExecuteJobRequest::new(
                 Path::new("/repo"),
-                &EvaluationContext::new(),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 "test-run",
                 false,
             ),
-        )))
+            run,
+            &wf,
+        )
         .unwrap();
 
         let environments = command_bus.dispatched_step_environments();
@@ -197,16 +196,16 @@ mod tests {
             FakeCommandBus::new(),
             exports.clone(),
         )
-        .execute(ExecuteJobRequest::new(ExecuteJobRequestInput::new(
-            run,
-            &wf,
-            ExecuteJobExecutionInput::new(
+        .execute(
+            ExecuteJobRequest::new(
                 Path::new("/repo"),
-                &EvaluationContext::new(),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 "test-run",
                 false,
             ),
-        )))
+            run,
+            &wf,
+        )
         .unwrap();
 
         assert_eq!(exports.calls(), 2);
@@ -228,16 +227,16 @@ mod tests {
             command_bus.clone(),
             exports,
         )
-        .execute(ExecuteJobRequest::new(ExecuteJobRequestInput::new(
-            run,
-            &wf,
-            ExecuteJobExecutionInput::new(
+        .execute(
+            ExecuteJobRequest::new(
                 Path::new("/repo"),
-                &EvaluationContext::new(),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 "test-run",
                 false,
             ),
-        )))
+            run,
+            &wf,
+        )
         .unwrap();
 
         let environments = command_bus.dispatched_step_environments();
@@ -261,16 +260,16 @@ mod tests {
             FakeCommandBus::new(),
             FakeReadStepExportsPort::new(),
         )
-        .execute(ExecuteJobRequest::new(ExecuteJobRequestInput::new(
-            run,
-            &wf,
-            ExecuteJobExecutionInput::new(
+        .execute(
+            ExecuteJobRequest::new(
                 Path::new("/repo"),
-                &EvaluationContext::new(),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 "test-run",
                 false,
             ),
-        ))) else {
+            run,
+            &wf,
+        ) else {
             panic!("a failing container preparation should fail the job");
         };
 
@@ -290,16 +289,16 @@ mod tests {
             FakeReadStepExportsPort::new(),
             event_bus.clone(),
         )
-        .execute(ExecuteJobRequest::new(ExecuteJobRequestInput::new(
-            run,
-            &wf,
-            ExecuteJobExecutionInput::new(
+        .execute(
+            ExecuteJobRequest::new(
                 Path::new("/repo"),
-                &EvaluationContext::new(),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 "test-run",
                 false,
             ),
-        )))
+            run,
+            &wf,
+        )
         .unwrap();
 
         let events = event_bus.events();
@@ -332,16 +331,16 @@ mod tests {
             FakeReadStepExportsPort::new(),
             event_bus.clone(),
         )
-        .execute(ExecuteJobRequest::new(ExecuteJobRequestInput::new(
-            run,
-            &wf,
-            ExecuteJobExecutionInput::new(
+        .execute(
+            ExecuteJobRequest::new(
                 Path::new("/repo"),
-                &EvaluationContext::new(),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 "test-run",
                 false,
             ),
-        )))
+            run,
+            &wf,
+        )
         .unwrap();
 
         let events = event_bus.events();

@@ -5,6 +5,7 @@ use super::super::containers::workspace::CONTAINER_WORKSPACE;
 use crate::application::dtos::requests::ExecuteWorkflowRequest;
 use crate::application::dtos::responses::WorkflowExecutionResponse;
 use crate::domain::messages::commands::ExecuteWorkflowCommand;
+use crate::domain::services::evaluation_context_mapper::EvaluationContextMapper;
 use crate::domain::value_objects::ContextValue;
 use crate::domain::value_objects::EvaluationContext;
 use std::collections::BTreeMap;
@@ -64,13 +65,13 @@ impl WorkflowCommandHandler {
     ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
         let context = Self::build_context(&cmd);
         let req = ExecuteWorkflowRequest::new(
-            cmd.workflow_content(),
-            cmd.repository().path().as_path(),
-            &context,
-            cmd.run_id(),
+            cmd.workflow_content().to_string(),
+            cmd.repository().path().as_path().to_path_buf(),
+            EvaluationContextMapper::to_parts(&context),
+            cmd.run_id().to_string(),
             cmd.allow_repo_writes(),
         );
-        self.executor.execute(req)
+        Ok(self.executor.execute(req)?)
     }
 }
 

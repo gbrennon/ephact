@@ -28,7 +28,7 @@ impl PullJobImageService {
 }
 
 impl PullJobImagePort for PullJobImageService {
-    fn execute(&self, request: PullJobImageRequest<'_>) -> Result<String, Box<dyn Error>> {
+    fn execute(&self, request: PullJobImageRequest) -> Result<String, Box<dyn Error>> {
         let runs_on = request.runs_on().unwrap_or(DEFAULT_RUNNER_LABEL);
         let mut image = self.image_mapper.map(runs_on);
 

@@ -16,7 +16,7 @@ mod tests {
         let service = ListWorkflowDirectoryService::new();
 
         let response = service
-            .execute(ListWorkflowDirectoryRequest::new(tmp.path()))
+            .execute(ListWorkflowDirectoryRequest::new(tmp.path().to_path_buf()))
             .unwrap();
 
         assert_eq!(
@@ -34,7 +34,7 @@ mod tests {
         let service = ListWorkflowDirectoryService::new();
 
         let response = service
-            .execute(ListWorkflowDirectoryRequest::new(tmp.path()))
+            .execute(ListWorkflowDirectoryRequest::new(tmp.path().to_path_buf()))
             .unwrap();
 
         assert_eq!(response.workflow_files(), vec![tmp.path().join("ci.yml")]);
@@ -45,9 +45,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let service = ListWorkflowDirectoryService::new();
 
-        let result = service.execute(ListWorkflowDirectoryRequest::new(
-            &tmp.path().join("absent"),
-        ));
+        let result = service.execute(ListWorkflowDirectoryRequest::new(tmp.path().join("absent")));
 
         assert!(result.is_err());
     }
@@ -58,7 +56,7 @@ mod tests {
         let service = ListWorkflowDirectoryService::new();
 
         let response = service
-            .execute(ListWorkflowDirectoryRequest::new(tmp.path()))
+            .execute(ListWorkflowDirectoryRequest::new(tmp.path().to_path_buf()))
             .unwrap();
 
         assert!(response.workflow_files().is_empty());
