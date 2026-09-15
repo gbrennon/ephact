@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::application::ports::outbound::{
-    ActionCommandBusPort, ContainerPort, DomainEventBusPort, LoadActionDefinitionPort,
-    ResolveActionDirectoryPort, ResolveActionInputsPort, RunCompositeActionPort, RunNodeActionPort,
+    ActionCommandBusPort, DomainEventBusPort, LoadActionDefinitionPort, ResolveActionDirectoryPort,
+    ResolveActionInputsPort, RunCompositeActionPort, RunNodeActionPort,
 };
 use crate::application::services::execute_action_service::ExecuteActionService;
 use crate::infrastructure::actions::{
@@ -42,7 +42,7 @@ impl ActionExecutionWiring {
             Box::new(ResolveNodeBinaryService::new()),
         ));
 
-        Box::new(move |container: &dyn ContainerPort| {
+        Box::new(move |container| {
             Box::new(ExecuteActionService::new(
                 container,
                 directory_resolver.clone(),
