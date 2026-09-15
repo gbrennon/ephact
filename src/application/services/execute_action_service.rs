@@ -32,8 +32,8 @@ use crate::domain::value_objects::ActionRuntime;
 /// steps in the job's container, JavaScript actions are copied in and run with
 /// node, and container actions are reported as unsupported instead of being
 /// silently skipped.
-pub struct ExecuteActionService<'container> {
-    container: &'container dyn ContainerPort,
+pub struct ExecuteActionService {
+    container: Arc<dyn ContainerPort>,
     directory_resolver: Arc<dyn ResolveActionDirectoryPort>,
     definition_loader: Arc<dyn LoadActionDefinitionPort>,
     input_resolver: Arc<dyn ResolveActionInputsPort>,
@@ -46,9 +46,9 @@ enum ActionDirectoryResolution {
     Directory(PathBuf),
 }
 
-impl<'container> ExecuteActionService<'container> {
+impl ExecuteActionService {
     pub fn new(
-        container: &'container dyn ContainerPort,
+        container: Arc<dyn ContainerPort>,
         directory_resolver: Arc<dyn ResolveActionDirectoryPort>,
         definition_loader: Arc<dyn LoadActionDefinitionPort>,
         input_resolver: Arc<dyn ResolveActionInputsPort>,
@@ -121,7 +121,7 @@ impl<'container> ExecuteActionService<'container> {
     ) -> Result<HashMap<String, String>, StepError> {
         let step = StepFactory::from_text(request.step())?;
         self.input_resolver
-            .execute(ResolveActionInputsRequest::new(definition, &step))
+            .execute(ResolveActionInputsRequest::new(definition.clone(), step))
     }
 
     fn execute_loaded_action(
@@ -134,7 +134,7 @@ impl<'container> ExecuteActionService<'container> {
         match definition.runs() {
             ActionRuntime::Composite { steps } => self.composite_runner.execute(
                 RunCompositeActionRequest::new(steps.as_slice(), inputs, action_dir, request),
-                self.container,
+                self.container.clone(),
             ),
             ActionRuntime::Node12 { main }
             | ActionRuntime::Node16 { main }
@@ -147,7 +147,7 @@ impl<'container> ExecuteActionService<'container> {
                         inputs.clone(),
                         request.env().clone(),
                     ),
-                    self.container,
+                    self.container.clone(),
                 )
                 .map(|result| {
                     ExecuteActionResponse::new(result.exit_code(), result.stdout(), result.stderr())
@@ -163,7 +163,7 @@ impl<'container> ExecuteActionService<'container> {
     }
 }
 
-impl ExecuteActionPort for ExecuteActionService<'_> {
+impl ExecuteActionPort for ExecuteActionService {
     fn execute(
         &self,
         request: ExecuteActionRequest,
