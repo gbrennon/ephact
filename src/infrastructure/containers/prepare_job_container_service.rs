@@ -36,9 +36,9 @@ impl PrepareJobContainerPort for PrepareJobContainerService {
         &self,
         request: PrepareJobContainerRequest,
     ) -> Result<PreparedJobContainerResponse, Box<dyn Error>> {
-        let image = self
-            .image_puller
-            .execute(PullJobImageRequest::new(request.runs_on()))?;
+        let image = self.image_puller.execute(PullJobImageRequest::new(
+            request.runs_on().map(str::to_string),
+        ))?;
 
         let timestamp = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
