@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt, path::PathBuf};
+use std::{collections::HashMap, fmt, path::PathBuf, sync::Arc};
 
 use crate::domain::{
     entities::Step, messages::commands::command::Command, value_objects::EvaluationContext,
@@ -8,20 +8,20 @@ use crate::domain::{
 ///
 /// Published by the job coordination service for every step of the job, and
 /// handled by the step command handler.
-pub struct ExecuteStepCommand<'a, C: ?Sized + Sync + 'a> {
+pub struct ExecuteStepCommand<C: ?Sized + Send + Sync> {
     step: Step,
     env: HashMap<String, String>,
     context: EvaluationContext,
-    container: &'a C,
+    container: Arc<C>,
     repo_path: PathBuf,
 }
 
-impl<'a, C: ?Sized + Sync + 'a> ExecuteStepCommand<'a, C> {
+impl<C: ?Sized + Send + Sync> ExecuteStepCommand<C> {
     pub fn new(
         step: Step,
         env: HashMap<String, String>,
         context: EvaluationContext,
-        container: &'a C,
+        container: Arc<C>,
         repo_path: PathBuf,
     ) -> Self {
         Self {
@@ -45,8 +45,8 @@ impl<'a, C: ?Sized + Sync + 'a> ExecuteStepCommand<'a, C> {
         &self.context
     }
 
-    pub fn container(&self) -> &'a C {
-        self.container
+    pub fn container(&self) -> &C {
+        self.container.as_ref()
     }
 
     pub fn repo_path(&self) -> &PathBuf {
@@ -59,7 +59,7 @@ impl<'a, C: ?Sized + Sync + 'a> ExecuteStepCommand<'a, C> {
         Step,
         HashMap<String, String>,
         EvaluationContext,
-        &'a C,
+        Arc<C>,
         PathBuf,
     ) {
         (
@@ -72,19 +72,19 @@ impl<'a, C: ?Sized + Sync + 'a> ExecuteStepCommand<'a, C> {
     }
 }
 
-impl<'a, C: ?Sized + Sync + 'a> Clone for ExecuteStepCommand<'a, C> {
+impl<C: ?Sized + Send + Sync> Clone for ExecuteStepCommand<C> {
     fn clone(&self) -> Self {
         Self {
             step: self.step.clone(),
             env: self.env.clone(),
             context: self.context.clone(),
-            container: self.container,
+            container: self.container.clone(),
             repo_path: self.repo_path.clone(),
         }
     }
 }
 
-impl<'a, C: ?Sized + Sync + 'a> fmt::Debug for ExecuteStepCommand<'a, C> {
+impl<C: ?Sized + Send + Sync> fmt::Debug for ExecuteStepCommand<C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ExecuteStepCommand")
             .field("uses", &self.step.uses())
@@ -93,4 +93,4 @@ impl<'a, C: ?Sized + Sync + 'a> fmt::Debug for ExecuteStepCommand<'a, C> {
     }
 }
 
-impl<'a, C: ?Sized + Sync + 'a> Command for ExecuteStepCommand<'a, C> {}
+impl<C: ?Sized + Send + Sync> Command for ExecuteStepCommand<C> {}
