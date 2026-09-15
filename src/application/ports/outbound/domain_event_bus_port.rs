@@ -1,9 +1,9 @@
 use crate::domain::messages::events::DomainEvent;
 
-/// Outbound port publishing domain events to interested subscribers.
+/// Outbound port for publishing a domain event.
 ///
-/// Publishes a [`DomainEvent`] to every subscriber interested in it.
+/// Implementations deliver a [`DomainEvent`] to every interested subscriber.
 pub trait DomainEventBusPort: Send + Sync {
-    /// Publishes a domain event.
+    /// Publishes a domain event to interested subscribers.
     fn publish(&self, event: DomainEvent);
 }

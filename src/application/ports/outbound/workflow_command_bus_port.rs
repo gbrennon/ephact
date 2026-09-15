@@ -5,12 +5,17 @@ use crate::{
     domain::messages::commands::ExecuteWorkflowCommand,
 };
 
-/// Outbound port dispatching workflow execution commands.
+/// Outbound port for dispatching a workflow execution command.
 ///
-/// Dispatches an [`ExecuteWorkflowCommand`] to its command handler and returns
-/// the handler's [`WorkflowExecutionResponse`].
+/// Implementations route an [`ExecuteWorkflowCommand`] to whatever produces its
+/// outcome and return the resulting [`WorkflowExecutionResponse`].
 pub trait WorkflowCommandBusPort: Send + Sync {
-    /// Dispatches a workflow command and returns the handler's outcome.
+    /// Dispatches a workflow command and returns its outcome.
+    ///
+    /// # Errors
+    ///
+    /// Returns a boxed [`Error`] when the command cannot be dispatched or its
+    /// execution fails.
     fn dispatch(
         &self,
         command: ExecuteWorkflowCommand,

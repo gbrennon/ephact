@@ -5,12 +5,17 @@ use crate::{
     domain::{errors::StepError, messages::commands::ExecuteActionCommand},
 };
 
-/// Outbound port dispatching action execution commands.
+/// Outbound port for dispatching an action execution command.
 ///
-/// Dispatches an [`ExecuteActionCommand`] to its command handler and returns
-/// the handler's [`ExecuteActionResponse`].
+/// Implementations route an [`ExecuteActionCommand`] to whatever produces its
+/// outcome and return the resulting [`ExecuteActionResponse`].
 pub trait ActionCommandBusPort: Send + Sync {
-    /// Dispatches an action command and returns the handler's outcome.
+    /// Dispatches an action command and returns its outcome.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StepError`] when the command cannot be dispatched or the
+    /// action fails to run.
     fn dispatch<'a>(
         &self,
         command: ExecuteActionCommand<'a, dyn ContainerPort>,

@@ -5,11 +5,16 @@ use crate::{
     domain::messages::commands::ExecuteJobCommand,
 };
 
-/// Outbound port dispatching job execution commands.
+/// Outbound port for dispatching a job execution command.
 ///
-/// Dispatches an [`ExecuteJobCommand`] to its command handler and returns the
-/// handler's [`JobExecutionResponse`].
+/// Implementations route an [`ExecuteJobCommand`] to whatever produces its
+/// outcome and return the resulting [`JobExecutionResponse`].
 pub trait JobCommandBusPort: Send + Sync {
-    /// Dispatches a job command and returns the handler's outcome.
+    /// Dispatches a job command and returns its outcome.
+    ///
+    /// # Errors
+    ///
+    /// Returns a boxed [`Error`] when the command cannot be dispatched or its
+    /// execution fails.
     fn dispatch(&self, command: ExecuteJobCommand) -> Result<JobExecutionResponse, Box<dyn Error>>;
 }
