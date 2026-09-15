@@ -150,9 +150,9 @@ impl ExecuteJobService {
         let prepared = self
             .container_preparer
             .execute(PrepareJobContainerRequest::new(
-                request.run().job_id(),
-                request.run().job().runs_on(),
-                request.repo_path(),
+                request.run().job_id().to_string(),
+                request.run().job().runs_on().map(str::to_string),
+                request.repo_path().to_path_buf(),
                 request.allow_repo_writes(),
             ))?;
         Ok(JobExecutionState::new(step_env, prepared))
@@ -177,8 +177,8 @@ impl ExecuteJobService {
         state: &mut JobExecutionState,
     ) {
         state.step_env = self.step_path_prefixer.execute(PrefixStepPathRequest::new(
-            &state.step_env,
-            &state.extra_path,
+            state.step_env.clone(),
+            state.extra_path.clone(),
         ));
         let started_at = Instant::now();
         let step_context = self

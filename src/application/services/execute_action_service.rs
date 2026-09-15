@@ -80,8 +80,8 @@ impl ExecuteActionService {
         match self
             .directory_resolver
             .execute(ResolveActionDirectoryRequest::new(
-                request.action_ref(),
-                request.repo_path(),
+                request.action_ref().to_string(),
+                request.repo_path().to_path_buf(),
             ))? {
             ResolvedActionDirectoryResponse::Skipped(response) => {
                 Ok(ActionDirectoryResolution::Skipped(response))
@@ -98,7 +98,7 @@ impl ExecuteActionService {
         action_dir: &std::path::Path,
     ) -> Result<ActionDefinition, StepError> {
         self.definition_loader
-            .execute(LoadActionDefinitionRequest::new(action_dir))
+            .execute(LoadActionDefinitionRequest::new(action_dir.to_path_buf()))
             .map_err(|error| {
                 StepError::new(format!(
                     "failed to load action '{}': {}",

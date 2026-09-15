@@ -1,23 +1,23 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Request DTO for the
 /// [`CreateJobContainerPort`](crate::application::ports::inbound::create_job_container_port::CreateJobContainerPort)
 /// inbound port.
-pub struct CreateJobContainerRequest<'a> {
-    image: &'a str,
-    container_name: &'a str,
-    legacy_container_name: &'a str,
-    repo_path: &'a Path,
+pub struct CreateJobContainerRequest {
+    image: String,
+    container_name: String,
+    legacy_container_name: String,
+    repo_path: PathBuf,
     allow_repo_writes: bool,
 }
 
-impl<'a> CreateJobContainerRequest<'a> {
+impl CreateJobContainerRequest {
     /// Creates a new request.
     pub fn new(
-        image: &'a str,
-        container_name: &'a str,
-        legacy_container_name: &'a str,
-        repo_path: &'a Path,
+        image: String,
+        container_name: String,
+        legacy_container_name: String,
+        repo_path: PathBuf,
         allow_repo_writes: bool,
     ) -> Self {
         Self {
@@ -30,23 +30,23 @@ impl<'a> CreateJobContainerRequest<'a> {
     }
 
     /// Image the container is created from.
-    pub fn image(&self) -> &'a str {
-        self.image
+    pub fn image(&self) -> &str {
+        &self.image
     }
 
     /// Name the new container is given.
-    pub fn container_name(&self) -> &'a str {
-        self.container_name
+    pub fn container_name(&self) -> &str {
+        &self.container_name
     }
 
     /// Name older releases gave the same job's container.
-    pub fn legacy_container_name(&self) -> &'a str {
-        self.legacy_container_name
+    pub fn legacy_container_name(&self) -> &str {
+        &self.legacy_container_name
     }
 
     /// Repository directory mounted into the container as the workspace.
-    pub fn repo_path(&self) -> &'a Path {
-        self.repo_path
+    pub fn repo_path(&self) -> &Path {
+        &self.repo_path
     }
 
     pub fn allow_repo_writes(&self) -> bool {

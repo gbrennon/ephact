@@ -1,21 +1,21 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Request DTO for the
 /// [`LoadActionDefinitionPort`](crate::application::ports::inbound::load_action_definition_port::LoadActionDefinitionPort)
 /// inbound port.
-pub struct LoadActionDefinitionRequest<'a> {
+pub struct LoadActionDefinitionRequest {
     /// Directory holding the action's `action.yml`.
-    action_dir: &'a Path,
+    action_dir: PathBuf,
 }
 
-impl<'a> LoadActionDefinitionRequest<'a> {
+impl LoadActionDefinitionRequest {
     /// Creates a new request.
-    pub fn new(action_dir: &'a Path) -> Self {
+    pub fn new(action_dir: PathBuf) -> Self {
         Self { action_dir }
     }
 
     /// Directory holding the action's `action.yml`.
-    pub fn action_dir(&self) -> &'a Path {
-        self.action_dir
+    pub fn action_dir(&self) -> &Path {
+        &self.action_dir
     }
 }

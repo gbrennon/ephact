@@ -3,17 +3,17 @@ use std::collections::HashMap;
 /// Request DTO for the
 /// `BuildActionInputEnvironmentPort`
 /// inbound port.
-pub struct BuildActionInputEnvironmentRequest<'a> {
-    env: &'a HashMap<String, String>,
-    inputs: &'a HashMap<String, String>,
-    action_path: &'a str,
+pub struct BuildActionInputEnvironmentRequest {
+    env: HashMap<String, String>,
+    inputs: HashMap<String, String>,
+    action_path: String,
 }
 
-impl<'a> BuildActionInputEnvironmentRequest<'a> {
+impl BuildActionInputEnvironmentRequest {
     pub fn new(
-        env: &'a HashMap<String, String>,
-        inputs: &'a HashMap<String, String>,
-        action_path: &'a str,
+        env: HashMap<String, String>,
+        inputs: HashMap<String, String>,
+        action_path: String,
     ) -> Self {
         Self {
             env,
@@ -22,15 +22,15 @@ impl<'a> BuildActionInputEnvironmentRequest<'a> {
         }
     }
 
-    pub fn env(&self) -> &'a HashMap<String, String> {
-        self.env
+    pub fn env(&self) -> &HashMap<String, String> {
+        &self.env
     }
 
-    pub fn inputs(&self) -> &'a HashMap<String, String> {
-        self.inputs
+    pub fn inputs(&self) -> &HashMap<String, String> {
+        &self.inputs
     }
 
-    pub fn action_path(&self) -> &'a str {
-        self.action_path
+    pub fn action_path(&self) -> &str {
+        &self.action_path
     }
 }

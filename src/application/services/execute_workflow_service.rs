@@ -73,9 +73,9 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
         &self,
         request: ExecuteWorkflowRequest<'_>,
     ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
-        let workflow = self
-            .workflow_loader
-            .execute(LoadWorkflowRequest::new(request.workflow_content()))?;
+        let workflow = self.workflow_loader.execute(LoadWorkflowRequest::new(
+            request.workflow_content().to_string(),
+        ))?;
         let workflow_name = workflow.name().unwrap_or("unnamed");
         let plan = ExecutionPlanner
             .plan(&workflow)

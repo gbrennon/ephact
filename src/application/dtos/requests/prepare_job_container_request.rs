@@ -1,21 +1,21 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Request DTO for the
 /// [`PrepareJobContainerPort`](crate::application::ports::inbound::prepare_job_container_port::PrepareJobContainerPort)
 /// inbound port.
-pub struct PrepareJobContainerRequest<'a> {
-    job_id: &'a str,
-    runs_on: Option<&'a str>,
-    repo_path: &'a Path,
+pub struct PrepareJobContainerRequest {
+    job_id: String,
+    runs_on: Option<String>,
+    repo_path: PathBuf,
     allow_repo_writes: bool,
 }
 
-impl<'a> PrepareJobContainerRequest<'a> {
+impl PrepareJobContainerRequest {
     /// Creates a new request.
     pub fn new(
-        job_id: &'a str,
-        runs_on: Option<&'a str>,
-        repo_path: &'a Path,
+        job_id: String,
+        runs_on: Option<String>,
+        repo_path: PathBuf,
         allow_repo_writes: bool,
     ) -> Self {
         Self {
@@ -27,19 +27,20 @@ impl<'a> PrepareJobContainerRequest<'a> {
     }
 
     /// Identifier of the job the container is prepared for.
-    pub fn job_id(&self) -> &'a str {
-        self.job_id
+    pub fn job_id(&self) -> &str {
+        &self.job_id
     }
 
     /// Runner label the job declared, when it declared one.
-    pub fn runs_on(&self) -> Option<&'a str> {
-        self.runs_on
+    pub fn runs_on(&self) -> Option<&str> {
+        self.runs_on.as_deref()
     }
 
     /// Repository directory mounted into the container as the workspace.
-    pub fn repo_path(&self) -> &'a Path {
-        self.repo_path
+    pub fn repo_path(&self) -> &Path {
+        &self.repo_path
     }
+
     pub fn allow_repo_writes(&self) -> bool {
         self.allow_repo_writes
     }

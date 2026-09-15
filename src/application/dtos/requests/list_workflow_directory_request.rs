@@ -1,21 +1,21 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Request DTO for the
 /// [`ListWorkflowDirectoryPort`](crate::application::ports::inbound::list_workflow_directory_port::ListWorkflowDirectoryPort)
 /// inbound port.
-pub struct ListWorkflowDirectoryRequest<'a> {
+pub struct ListWorkflowDirectoryRequest {
     /// Directory whose workflow files are listed.
-    directory: &'a Path,
+    directory: PathBuf,
 }
 
-impl<'a> ListWorkflowDirectoryRequest<'a> {
+impl ListWorkflowDirectoryRequest {
     /// Creates a new request.
-    pub fn new(directory: &'a Path) -> Self {
+    pub fn new(directory: PathBuf) -> Self {
         Self { directory }
     }
 
     /// Directory whose workflow files are listed.
-    pub fn directory(&self) -> &'a Path {
-        self.directory
+    pub fn directory(&self) -> &Path {
+        &self.directory
     }
 }
