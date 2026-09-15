@@ -13,7 +13,11 @@ use ephact::{
             ExecuteActionResponse, ExecutedStepResponse, JobExecutionResponse, JobSummaryResponse,
             WorkflowExecutionResponse,
         },
-        ports::outbound::{command_bus_port::CommandBusPort, container_port::ContainerPort},
+        ports::outbound::{
+            action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
+            job_command_bus_port::JobCommandBusPort, step_command_bus_port::StepCommandBusPort,
+            workflow_command_bus_port::WorkflowCommandBusPort,
+        },
     },
     domain::{
         entities::Step,
@@ -194,11 +198,11 @@ impl FakeCommandBus {
     }
 }
 
-impl CommandBusPort<ExecuteWorkflowCommand> for FakeCommandBus {
-    type Response = WorkflowExecutionResponse;
-    type Error = Box<dyn Error>;
-
-    fn dispatch(&self, cmd: ExecuteWorkflowCommand) -> Result<Self::Response, Self::Error> {
+impl WorkflowCommandBusPort for FakeCommandBus {
+    fn dispatch(
+        &self,
+        cmd: ExecuteWorkflowCommand,
+    ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
         self.dispatched_workflows.lock().push(cmd);
         Ok(self
             .workflow_result
@@ -212,11 +216,8 @@ impl CommandBusPort<ExecuteWorkflowCommand> for FakeCommandBus {
     }
 }
 
-impl CommandBusPort<ExecuteJobCommand> for FakeCommandBus {
-    type Response = JobExecutionResponse;
-    type Error = Box<dyn Error>;
-
-    fn dispatch(&self, cmd: ExecuteJobCommand) -> Result<Self::Response, Self::Error> {
+impl JobCommandBusPort for FakeCommandBus {
+    fn dispatch(&self, cmd: ExecuteJobCommand) -> Result<JobExecutionResponse, Box<dyn Error>> {
         let job_id = cmd.job_id().to_owned();
         let name = cmd.job().name().map(|s| s.to_owned());
         self.dispatched_jobs.lock().push(cmd);
@@ -235,14 +236,11 @@ impl CommandBusPort<ExecuteJobCommand> for FakeCommandBus {
     }
 }
 
-impl<'a> CommandBusPort<ExecuteStepCommand<'a, dyn ContainerPort>> for FakeCommandBus {
-    type Response = ExecutedStepResponse;
-    type Error = StepError;
-
-    fn dispatch(
+impl StepCommandBusPort for FakeCommandBus {
+    fn dispatch<'a>(
         &self,
         cmd: ExecuteStepCommand<'a, dyn ContainerPort>,
-    ) -> Result<Self::Response, Self::Error> {
+    ) -> Result<ExecutedStepResponse, StepError> {
         let (step, env, context, _container, repo_path) = cmd.into_parts();
         self.dispatched_steps
             .lock()
@@ -266,14 +264,11 @@ impl<'a> CommandBusPort<ExecuteStepCommand<'a, dyn ContainerPort>> for FakeComma
     }
 }
 
-impl<'a> CommandBusPort<ExecuteActionCommand<'a, dyn ContainerPort>> for FakeCommandBus {
-    type Response = ExecuteActionResponse;
-    type Error = StepError;
-
-    fn dispatch(
+impl ActionCommandBusPort for FakeCommandBus {
+    fn dispatch<'a>(
         &self,
         cmd: ExecuteActionCommand<'a, dyn ContainerPort>,
-    ) -> Result<Self::Response, Self::Error> {
+    ) -> Result<ExecuteActionResponse, StepError> {
         let (action_ref, step, repo_path, env, context, _container) = cmd.into_parts();
         self.dispatched_actions
             .lock()

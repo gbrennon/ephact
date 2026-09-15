@@ -12,7 +12,11 @@ mod tests {
     use ephact::application::ports::inbound::execute_job_port::ExecuteJobPort;
     use ephact::application::ports::inbound::execute_step_port::ExecuteStepPort;
     use ephact::application::ports::inbound::execute_workflow_port::ExecuteWorkflowPort;
-    use ephact::application::ports::outbound::{CommandBusPort, container_port::ContainerPort};
+    use ephact::application::ports::outbound::{
+        action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
+        job_command_bus_port::JobCommandBusPort, step_command_bus_port::StepCommandBusPort,
+        workflow_command_bus_port::WorkflowCommandBusPort,
+    };
     use ephact::domain::ActRunConfig;
     use ephact::domain::RepoPath;
     use ephact::domain::Repository;
@@ -118,7 +122,7 @@ mod tests {
             false,
         );
 
-        let result = bus.dispatch(cmd).unwrap();
+        let result = WorkflowCommandBusPort::dispatch(&bus, cmd).unwrap();
         assert_eq!(result.workflow_name(), "dispatched-wf");
     }
 
@@ -144,7 +148,7 @@ mod tests {
         )
         .with_context(EvaluationContext::new());
 
-        let result = bus.dispatch(cmd).unwrap();
+        let result = ActionCommandBusPort::dispatch(&bus, cmd).unwrap();
         assert_eq!(result.stdout(), "action out");
         assert_eq!(result.exit_code(), 0);
     }
@@ -214,7 +218,7 @@ mod tests {
         .with_run_id("test-run".to_string())
         .with_allow_repo_writes(false);
 
-        let result = bus.dispatch(command).unwrap();
+        let result = JobCommandBusPort::dispatch(&bus, command).unwrap();
 
         assert_eq!(result.job_summary().job_id(), "build-job");
         assert_eq!(result.job_summary().name(), Some("Build"));
@@ -241,7 +245,7 @@ mod tests {
             PathBuf::from("/repo/step"),
         );
 
-        let result = bus.dispatch(command).unwrap();
+        let result = StepCommandBusPort::dispatch(&bus, command).unwrap();
 
         assert_eq!(result.step().run(), Some("echo hello"));
         assert_eq!(result.response().stdout(), "step-marker");

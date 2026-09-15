@@ -11,7 +11,9 @@ use ephact::{
         },
         ports::{
             inbound::ExecuteActionPort,
-            outbound::{command_bus_port::CommandBusPort, container_port::ContainerPort},
+            outbound::{
+                action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
+            },
         },
     },
     domain::{errors::StepError, messages::commands::ExecuteActionCommand},
@@ -40,16 +42,11 @@ impl FakeActionRoutingCommandBus {
     }
 }
 
-impl<'a> CommandBusPort<ExecuteActionCommand<'a, dyn ContainerPort>>
-    for FakeActionRoutingCommandBus
-{
-    type Response = ExecuteActionResponse;
-    type Error = StepError;
-
-    fn dispatch(
+impl ActionCommandBusPort for FakeActionRoutingCommandBus {
+    fn dispatch<'a>(
         &self,
         cmd: ExecuteActionCommand<'a, dyn ContainerPort>,
-    ) -> Result<Self::Response, Self::Error> {
+    ) -> Result<ExecuteActionResponse, StepError> {
         let executor = self
             .executor
             .get()
