@@ -27,8 +27,8 @@ mod tests {
     fn execute_returns_the_declared_defaults() {
         let inputs = ResolveActionInputsService::new()
             .execute(ResolveActionInputsRequest::new(
-                &definition(),
-                &step("uses: ./actions/deploy\n"),
+                definition(),
+                step("uses: ./actions/deploy\n"),
             ))
             .unwrap();
 
@@ -39,8 +39,8 @@ mod tests {
     fn execute_lets_with_override_a_default() {
         let inputs = ResolveActionInputsService::new()
             .execute(ResolveActionInputsRequest::new(
-                &definition(),
-                &step("uses: ./actions/deploy\nwith:\n  mode: staging\n"),
+                definition(),
+                step("uses: ./actions/deploy\nwith:\n  mode: staging\n"),
             ))
             .unwrap();
 
@@ -51,8 +51,8 @@ mod tests {
     fn execute_omits_an_input_with_neither_default_nor_with() {
         let inputs = ResolveActionInputsService::new()
             .execute(ResolveActionInputsRequest::new(
-                &definition(),
-                &step("uses: ./actions/deploy\n"),
+                definition(),
+                step("uses: ./actions/deploy\n"),
             ))
             .unwrap();
 
@@ -63,8 +63,8 @@ mod tests {
     fn execute_passes_undeclared_with_keys_through() {
         let inputs = ResolveActionInputsService::new()
             .execute(ResolveActionInputsRequest::new(
-                &definition(),
-                &step("uses: ./actions/deploy\nwith:\n  extra: value\n"),
+                definition(),
+                step("uses: ./actions/deploy\nwith:\n  extra: value\n"),
             ))
             .unwrap();
 
@@ -81,8 +81,8 @@ mod tests {
 
         let error = ResolveActionInputsService::new()
             .execute(ResolveActionInputsRequest::new(
-                &required_definition,
-                &step("uses: ./actions/deploy\n"),
+                required_definition,
+                step("uses: ./actions/deploy\n"),
             ))
             .unwrap_err();
 
