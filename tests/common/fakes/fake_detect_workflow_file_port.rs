@@ -32,7 +32,7 @@ impl FakeDetectWorkflowFilePort {
 impl DetectWorkflowFilePort for FakeDetectWorkflowFilePort {
     fn execute(
         &self,
-        _request: DetectWorkflowFileRequest<'_>,
+        _request: DetectWorkflowFileRequest,
     ) -> Result<PathBuf, Box<dyn std::error::Error>> {
         self.was_called.store(true, Ordering::SeqCst);
         self.result.clone().map_err(Into::into)

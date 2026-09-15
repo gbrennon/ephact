@@ -18,7 +18,8 @@ mod tests {
     fn execute_leaves_the_path_untouched_without_additions() {
         let env = env_with_path("/usr/bin");
 
-        let result = PrefixStepPathService::new().execute(PrefixStepPathRequest::new(&env, &[]));
+        let result = PrefixStepPathService::new()
+            .execute(PrefixStepPathRequest::new(env.clone(), Vec::new()));
 
         assert_eq!(result.get("PATH").map(String::as_str), Some("/usr/bin"));
     }
@@ -28,8 +29,8 @@ mod tests {
         let env = env_with_path("/usr/bin");
 
         let result = PrefixStepPathService::new().execute(PrefixStepPathRequest::new(
-            &env,
-            &["/opt/bin".to_string(), "/opt/tools".to_string()],
+            env.clone(),
+            vec!["/opt/bin".to_string(), "/opt/tools".to_string()],
         ));
 
         assert_eq!(
@@ -41,8 +42,8 @@ mod tests {
     #[test]
     fn execute_appends_an_empty_segment_when_the_environment_has_no_path() {
         let result = PrefixStepPathService::new().execute(PrefixStepPathRequest::new(
-            &HashMap::new(),
-            &["/opt/bin".to_string()],
+            HashMap::new(),
+            vec!["/opt/bin".to_string()],
         ));
 
         assert_eq!(result.get("PATH").map(String::as_str), Some("/opt/bin:"));
@@ -53,8 +54,10 @@ mod tests {
         let mut env = env_with_path("/usr/bin");
         env.insert("MODE".to_string(), "staging".to_string());
 
-        let result = PrefixStepPathService::new()
-            .execute(PrefixStepPathRequest::new(&env, &["/opt/bin".to_string()]));
+        let result = PrefixStepPathService::new().execute(PrefixStepPathRequest::new(
+            env.clone(),
+            vec!["/opt/bin".to_string()],
+        ));
 
         assert_eq!(result.get("MODE").map(String::as_str), Some("staging"));
     }

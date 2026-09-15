@@ -22,8 +22,8 @@ mod tests {
 
         let path = service
             .execute(ResolveNamedWorkflowFileRequest::new(
-                ".forgejo/workflows/ci.yml",
-                tmp.path(),
+                ".forgejo/workflows/ci.yml".to_string(),
+                tmp.path().to_path_buf(),
             ))
             .unwrap();
 
@@ -37,7 +37,10 @@ mod tests {
         let service = ResolveNamedWorkflowFileService::new();
 
         let path = service
-            .execute(ResolveNamedWorkflowFileRequest::new("ci.yml", tmp.path()))
+            .execute(ResolveNamedWorkflowFileRequest::new(
+                "ci.yml".to_string(),
+                tmp.path().to_path_buf(),
+            ))
             .unwrap();
 
         assert_eq!(path, tmp.path().join(".forgejo/workflows/ci.yml"));
@@ -50,7 +53,10 @@ mod tests {
         let service = ResolveNamedWorkflowFileService::new();
 
         let path = service
-            .execute(ResolveNamedWorkflowFileRequest::new("ci.yml", tmp.path()))
+            .execute(ResolveNamedWorkflowFileRequest::new(
+                "ci.yml".to_string(),
+                tmp.path().to_path_buf(),
+            ))
             .unwrap();
 
         assert_eq!(path, tmp.path().join(".github/workflows/ci.yml"));
@@ -64,7 +70,10 @@ mod tests {
         let service = ResolveNamedWorkflowFileService::new();
 
         let path = service
-            .execute(ResolveNamedWorkflowFileRequest::new("ci.yml", tmp.path()))
+            .execute(ResolveNamedWorkflowFileRequest::new(
+                "ci.yml".to_string(),
+                tmp.path().to_path_buf(),
+            ))
             .unwrap();
 
         assert_eq!(path, tmp.path().join(".forgejo/workflows/ci.yml"));
@@ -77,8 +86,8 @@ mod tests {
 
         let error = service
             .execute(ResolveNamedWorkflowFileRequest::new(
-                "missing.yml",
-                tmp.path(),
+                "missing.yml".to_string(),
+                tmp.path().to_path_buf(),
             ))
             .unwrap_err()
             .to_string();

@@ -18,7 +18,7 @@ mod tests {
         fs::write(tmp.path().join("action.yml"), COMPOSITE).unwrap();
 
         let definition = LoadActionDefinitionService::new()
-            .execute(LoadActionDefinitionRequest::new(tmp.path()))
+            .execute(LoadActionDefinitionRequest::new(tmp.path().to_path_buf()))
             .unwrap();
 
         assert_eq!(definition.name(), "Greet");
@@ -31,7 +31,7 @@ mod tests {
         fs::write(tmp.path().join("action.yaml"), COMPOSITE).unwrap();
 
         let definition = LoadActionDefinitionService::new()
-            .execute(LoadActionDefinitionRequest::new(tmp.path()))
+            .execute(LoadActionDefinitionRequest::new(tmp.path().to_path_buf()))
             .unwrap();
 
         assert_eq!(definition.name(), "Greet");
@@ -42,7 +42,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
 
         let error = LoadActionDefinitionService::new()
-            .execute(LoadActionDefinitionRequest::new(tmp.path()))
+            .execute(LoadActionDefinitionRequest::new(tmp.path().to_path_buf()))
             .unwrap_err();
 
         assert_eq!(
@@ -57,7 +57,7 @@ mod tests {
         fs::write(tmp.path().join("action.yml"), "name: [unterminated\n").unwrap();
 
         let error = LoadActionDefinitionService::new()
-            .execute(LoadActionDefinitionRequest::new(tmp.path()))
+            .execute(LoadActionDefinitionRequest::new(tmp.path().to_path_buf()))
             .unwrap_err();
 
         assert!(

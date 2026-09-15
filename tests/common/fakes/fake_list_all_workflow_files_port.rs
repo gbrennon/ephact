@@ -31,7 +31,7 @@ impl FakeListAllWorkflowFilesPort {
 impl ListAllWorkflowFilesPort for FakeListAllWorkflowFilesPort {
     fn execute(
         &self,
-        request: ListAllWorkflowFilesRequest<'_>,
+        request: ListAllWorkflowFilesRequest,
     ) -> Result<ListAllWorkflowFilesResponse, Box<dyn std::error::Error>> {
         self.calls.lock().push(request.repo_path().to_path_buf());
         match &self.result {

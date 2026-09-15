@@ -41,7 +41,7 @@ impl FakeCollectActionFilesPort {
 impl CollectActionFilesPort for FakeCollectActionFilesPort {
     fn execute(
         &self,
-        request: CollectActionFilesRequest<'_>,
+        request: CollectActionFilesRequest,
     ) -> Result<CollectActionFilesResponse, StepError> {
         self.walked.lock().push(request.action_dir().to_path_buf());
         match &self.failure {

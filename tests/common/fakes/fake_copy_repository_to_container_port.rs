@@ -31,7 +31,7 @@ impl FakeCopyRepositoryToContainerPort {
 impl CopyRepositoryToContainerPort for FakeCopyRepositoryToContainerPort {
     fn execute(
         &self,
-        request: CopyRepositoryToContainerRequest<'_>,
+        request: CopyRepositoryToContainerRequest,
         _container: &dyn ContainerPort,
     ) -> Result<(), Box<dyn Error>> {
         let request_str = format!(

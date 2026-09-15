@@ -17,9 +17,9 @@ mod tests {
     fn execute_sets_the_action_path() {
         let response = GitHubActionInputEnvironmentAdapter::new().execute(
             BuildActionInputEnvironmentRequest::new(
-                &HashMap::new(),
-                &HashMap::new(),
-                "/tmp/actions/greet",
+                HashMap::new(),
+                HashMap::new(),
+                "/tmp/actions/greet".to_string(),
             ),
         );
 
@@ -33,9 +33,9 @@ mod tests {
     fn execute_exposes_inputs_as_upper_snake_case_variables() {
         let response = GitHubActionInputEnvironmentAdapter::new().execute(
             BuildActionInputEnvironmentRequest::new(
-                &HashMap::new(),
-                &map(&[("my input", "value")]),
-                "/tmp/actions/greet",
+                HashMap::new(),
+                map(&[("my input", "value")]),
+                "/tmp/actions/greet".to_string(),
             ),
         );
 
@@ -49,9 +49,9 @@ mod tests {
     fn execute_preserves_existing_environment_entries() {
         let response = GitHubActionInputEnvironmentAdapter::new().execute(
             BuildActionInputEnvironmentRequest::new(
-                &map(&[("MODE", "staging")]),
-                &HashMap::new(),
-                "/tmp/actions/greet",
+                map(&[("MODE", "staging")]),
+                HashMap::new(),
+                "/tmp/actions/greet".to_string(),
             ),
         );
 
@@ -65,9 +65,9 @@ mod tests {
     fn execute_lets_an_input_win_over_a_colliding_environment_entry() {
         let response = GitHubActionInputEnvironmentAdapter::new().execute(
             BuildActionInputEnvironmentRequest::new(
-                &map(&[("INPUT_MODE", "from-env")]),
-                &map(&[("mode", "from-input")]),
-                "/tmp/actions/greet",
+                map(&[("INPUT_MODE", "from-env")]),
+                map(&[("mode", "from-input")]),
+                "/tmp/actions/greet".to_string(),
             ),
         );
 

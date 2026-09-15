@@ -14,12 +14,22 @@ mod tests {
         fake_pull_job_image_port::FakePullJobImagePort,
     };
 
-    fn request<'a>(repo_path: &'a Path) -> PrepareJobContainerRequest<'a> {
-        PrepareJobContainerRequest::new("build", Some("ubuntu-latest"), repo_path, false)
+    fn request<'a>(repo_path: &'a Path) -> PrepareJobContainerRequest {
+        PrepareJobContainerRequest::new(
+            "build".to_string(),
+            Some("ubuntu-latest".to_string()),
+            repo_path.to_path_buf(),
+            false,
+        )
     }
 
-    fn request_with_writes<'a>(repo_path: &'a Path) -> PrepareJobContainerRequest<'a> {
-        PrepareJobContainerRequest::new("build", Some("ubuntu-latest"), repo_path, true)
+    fn request_with_writes<'a>(repo_path: &'a Path) -> PrepareJobContainerRequest {
+        PrepareJobContainerRequest::new(
+            "build".to_string(),
+            Some("ubuntu-latest".to_string()),
+            repo_path.to_path_buf(),
+            true,
+        )
     }
 
     #[test]

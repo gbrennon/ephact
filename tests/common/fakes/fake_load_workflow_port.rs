@@ -37,7 +37,7 @@ impl FakeLoadWorkflowPort {
 impl LoadWorkflowPort for FakeLoadWorkflowPort {
     fn execute(
         &self,
-        request: LoadWorkflowRequest<'_>,
+        request: LoadWorkflowRequest,
     ) -> Result<Workflow, Box<dyn std::error::Error>> {
         self.loaded_contents
             .lock()

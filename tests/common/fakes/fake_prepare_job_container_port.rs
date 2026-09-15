@@ -41,7 +41,7 @@ impl FakePrepareJobContainerPort {
 impl PrepareJobContainerPort for FakePrepareJobContainerPort {
     fn execute(
         &self,
-        request: PrepareJobContainerRequest<'_>,
+        request: PrepareJobContainerRequest,
     ) -> Result<PreparedJobContainerResponse, Box<dyn Error>> {
         self.job_ids.lock().push(request.job_id().to_string());
         if let Some(message) = &self.failure {

@@ -30,7 +30,7 @@ impl FakeResolveNamedWorkflowFilePort {
 impl ResolveNamedWorkflowFilePort for FakeResolveNamedWorkflowFilePort {
     fn execute(
         &self,
-        request: ResolveNamedWorkflowFileRequest<'_>,
+        request: ResolveNamedWorkflowFileRequest,
     ) -> Result<PathBuf, Box<dyn std::error::Error>> {
         self.requested_names
             .lock()
