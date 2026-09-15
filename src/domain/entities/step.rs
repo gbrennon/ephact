@@ -25,7 +25,7 @@ use crate::domain::value_objects::StepType;
 /// assert_eq!(step.run(), Some("echo hello"));
 /// assert!(step.is_run_step());
 /// ```
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub struct Step {
     /// An identifier for the step (used for output references).
     id: Option<String>,
