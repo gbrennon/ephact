@@ -1,21 +1,17 @@
+use std::sync::Arc;
+
 use crate::application::ports::outbound::container_port::ContainerPort;
 
-/// Request DTO for the
-/// [`ResolveNodeBinaryPort`](crate::application::ports::inbound::resolve_node_binary_port::ResolveNodeBinaryPort)
-/// inbound port.
-pub struct ResolveNodeBinaryRequest<'a> {
-    /// Container the JavaScript action will run in.
-    container: &'a dyn ContainerPort,
+pub struct ResolveNodeBinaryRequest {
+    container: Arc<dyn ContainerPort>,
 }
 
-impl<'a> ResolveNodeBinaryRequest<'a> {
-    /// Creates a new request.
-    pub fn new(container: &'a dyn ContainerPort) -> Self {
+impl ResolveNodeBinaryRequest {
+    pub fn new(container: Arc<dyn ContainerPort>) -> Self {
         Self { container }
     }
 
-    /// Container the JavaScript action will run in.
-    pub fn container(&self) -> &'a dyn ContainerPort {
-        self.container
+    pub fn container(&self) -> &dyn ContainerPort {
+        self.container.as_ref()
     }
 }
