@@ -4,14 +4,11 @@ use std::path::Path;
 /// [`CreateJobContainerPort`](crate::application::ports::inbound::create_job_container_port::CreateJobContainerPort)
 /// inbound port.
 pub struct CreateJobContainerRequest<'a> {
-    /// Image the container is created from.
     image: &'a str,
-    /// Name the new container is given.
     container_name: &'a str,
-    /// Name older releases gave the same job's container.
     legacy_container_name: &'a str,
-    /// Repository directory mounted into the container as the workspace.
     repo_path: &'a Path,
+    allow_repo_writes: bool,
 }
 
 impl<'a> CreateJobContainerRequest<'a> {
@@ -21,12 +18,14 @@ impl<'a> CreateJobContainerRequest<'a> {
         container_name: &'a str,
         legacy_container_name: &'a str,
         repo_path: &'a Path,
+        allow_repo_writes: bool,
     ) -> Self {
         Self {
             image,
             container_name,
             legacy_container_name,
             repo_path,
+            allow_repo_writes,
         }
     }
 
@@ -48,5 +47,9 @@ impl<'a> CreateJobContainerRequest<'a> {
     /// Repository directory mounted into the container as the workspace.
     pub fn repo_path(&self) -> &'a Path {
         self.repo_path
+    }
+
+    pub fn allow_repo_writes(&self) -> bool {
+        self.allow_repo_writes
     }
 }

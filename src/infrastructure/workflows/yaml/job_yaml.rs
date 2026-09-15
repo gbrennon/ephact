@@ -72,23 +72,18 @@ impl JobYaml {
             .into_iter()
             .map(|(name, service)| (name, service.into_domain()))
             .collect();
-        Job::new(
-            self.name,
-            self.runs_on,
-            steps,
-            self.needs,
-            self.r#if,
-            self.strategy.map(JobStrategyYaml::into_domain),
-            self.env,
-            self.container.map(ContainerSpecificationYaml::into_domain),
-            services,
-            self.outputs,
-            self.with.map(context_value_from_yaml),
-            self.secrets.map(context_value_from_yaml),
-            self.timeout_minutes,
-            self.continue_on_error,
-            self.permissions.map(TokenPermissionsYaml::into_domain),
-            self.concurrency.map(ConcurrencyGroupYaml::into_domain),
-        )
+        Job::new(self.name, self.runs_on, steps, self.needs)
+            .with_if_condition(self.r#if)
+            .with_strategy(self.strategy.map(JobStrategyYaml::into_domain))
+            .with_env(self.env)
+            .with_container(self.container.map(ContainerSpecificationYaml::into_domain))
+            .with_services(services)
+            .with_outputs(self.outputs)
+            .with_inputs(self.with.map(context_value_from_yaml))
+            .with_secrets(self.secrets.map(context_value_from_yaml))
+            .with_timeout_minutes(self.timeout_minutes)
+            .with_continue_on_error(self.continue_on_error)
+            .with_permissions(self.permissions.map(TokenPermissionsYaml::into_domain))
+            .with_concurrency(self.concurrency.map(ConcurrencyGroupYaml::into_domain))
     }
 }

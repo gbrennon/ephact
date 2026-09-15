@@ -33,23 +33,11 @@ impl ExecutionPlanner {
     ///
     /// fn job(needs: Vec<String>) -> Job {
     ///     Job::new(
-    ///             None,
-    ///             None,
-    ///             Vec::new(),
-    ///             needs,
-    ///             None,
-    ///             None,
-    ///             HashMap::new(),
-    ///             None,
-    ///             HashMap::new(),
-    ///             HashMap::new(),
-    ///             None,
-    ///             None,
-    ///             None,
-    ///             None,
-    ///             None,
-    ///             None,
-    ///         )
+    ///         None,
+    ///         None,
+    ///         Vec::new(),
+    ///         needs,
+    ///     )
     /// }
     ///
     /// let jobs = HashMap::from([
@@ -58,13 +46,9 @@ impl ExecutionPlanner {
     /// ]);
     /// let workflow = Workflow::new(
     ///     None,
-    ///     None,
     ///     WorkflowTrigger::default(),
     ///     HashMap::new(),
     ///     jobs,
-    ///     None,
-    ///     None,
-    ///     None,
     /// );
     ///
     /// let plan = ExecutionPlanner.plan(&workflow).unwrap();
@@ -80,7 +64,7 @@ impl ExecutionPlanner {
             dependencies.insert(id.as_str(), deps);
         }
 
-        self.detect_cycles(&dependencies)?;
+        Self::detect_cycles(&dependencies)?;
 
         let stages = self.topological_sort(&dependencies, workflow)?;
 
@@ -88,20 +72,19 @@ impl ExecutionPlanner {
     }
 
     /// Detects cycles in the dependency graph.
-    fn detect_cycles(&self, deps: &HashMap<&str, Vec<&str>>) -> Result<(), PlanError> {
+    fn detect_cycles(deps: &HashMap<&str, Vec<&str>>) -> Result<(), PlanError> {
         let mut visited = HashSet::new();
         let mut in_stack = HashSet::new();
 
         for &node in deps.keys() {
             if !visited.contains(node) {
-                self.detect_cycle_depth_first(node, deps, &mut visited, &mut in_stack)?;
+                Self::detect_cycle_depth_first(node, deps, &mut visited, &mut in_stack)?;
             }
         }
         Ok(())
     }
 
     fn detect_cycle_depth_first<'a>(
-        &self,
         node: &'a str,
         deps: &HashMap<&'a str, Vec<&'a str>>,
         visited: &mut HashSet<&'a str>,
@@ -112,7 +95,7 @@ impl ExecutionPlanner {
 
         if let Some(neighbors) = deps.get(node) {
             for &neighbor in neighbors {
-                self.validate_neighbor_dependency(node, neighbor, deps, visited, in_stack)?;
+                Self::validate_neighbor_dependency(node, neighbor, deps, visited, in_stack)?;
             }
         }
 
@@ -121,7 +104,6 @@ impl ExecutionPlanner {
     }
 
     fn validate_neighbor_dependency<'a>(
-        &self,
         node: &'a str,
         neighbor: &'a str,
         deps: &HashMap<&'a str, Vec<&'a str>>,
@@ -129,7 +111,7 @@ impl ExecutionPlanner {
         in_stack: &mut HashSet<&'a str>,
     ) -> Result<(), PlanError> {
         if !visited.contains(neighbor) {
-            self.detect_cycle_depth_first(neighbor, deps, visited, in_stack)?;
+            Self::detect_cycle_depth_first(neighbor, deps, visited, in_stack)?;
         } else if in_stack.contains(neighbor) {
             return Err(PlanError::CycleDetected {
                 job: node.to_owned(),
@@ -265,24 +247,7 @@ mod tests {
 
     fn make_job(needs: &[&str]) -> Job {
         let needs = needs.iter().map(|need| (*need).to_owned()).collect();
-        Job::new(
-            None,
-            None,
-            Vec::new(),
-            needs,
-            None,
-            None,
-            HashMap::new(),
-            None,
-            HashMap::new(),
-            HashMap::new(),
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-        )
+        Job::new(None, None, Vec::new(), needs)
     }
 
     fn make_workflow(jobs: &[(&str, &[&str])]) -> Workflow {
@@ -290,16 +255,7 @@ mod tests {
             .iter()
             .map(|(id, needs)| ((*id).to_owned(), make_job(needs)))
             .collect();
-        Workflow::new(
-            None,
-            None,
-            WorkflowTrigger::default(),
-            HashMap::new(),
-            jobs,
-            None,
-            None,
-            None,
-        )
+        Workflow::new(None, WorkflowTrigger::default(), HashMap::new(), jobs)
     }
 
     #[test]

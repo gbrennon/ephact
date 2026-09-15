@@ -114,6 +114,8 @@ mod tests {
             "name: CI\non: [push]\n".to_string(),
             ActRunConfig::new(),
             repository,
+            "test-run".to_string(),
+            false,
         );
 
         let result = bus.dispatch(cmd).unwrap();
@@ -138,9 +140,9 @@ mod tests {
             step,
             PathBuf::from("/repo"),
             HashMap::new(),
-            EvaluationContext::new(),
             container,
-        );
+        )
+        .with_context(EvaluationContext::new());
 
         let result = bus.dispatch(cmd).unwrap();
         assert_eq!(result.stdout(), "action out");
@@ -187,13 +189,9 @@ mod tests {
     fn workflow_named(name: &str) -> Workflow {
         Workflow::new(
             Some(name.to_string()),
-            None,
             WorkflowTrigger::Single("pull_request".to_string()),
             HashMap::new(),
             HashMap::new(),
-            None,
-            None,
-            None,
         )
     }
 
@@ -212,7 +210,9 @@ mod tests {
             workflow_named("Build"),
             repo_path.clone(),
             EvaluationContext::new(),
-        );
+        )
+        .with_run_id("test-run".to_string())
+        .with_allow_repo_writes(false);
 
         let result = bus.dispatch(command).unwrap();
 

@@ -51,6 +51,7 @@ impl PullRequestPayload {
         &self.sender
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::super::BranchRef;
@@ -78,9 +79,11 @@ mod tests {
             "title".into(),
             None,
             super::super::pull_request_info::PullRequestBranches::new(branch.clone(), branch),
-            UserInfo::new("name".into(), "email".into(), "login".into()),
-            "url".into(),
-            super::super::pull_request_info::PullRequestState::new(false, false, None),
+            super::super::pull_request_info::PullRequestMetadata::new(
+                UserInfo::new("name".into(), "email".into(), "login".into()),
+                "url".into(),
+                super::super::pull_request_info::PullRequestState::new(false, false, None),
+            ),
         )
     }
 

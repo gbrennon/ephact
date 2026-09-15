@@ -79,6 +79,19 @@ pub struct DeliveryPipelineRun {
     pub fetcher: MirroredActionFetcher,
 }
 
+fn log_repository_state(repository: &WorkflowRepository) {
+    eprintln!("DEBUG: repository path = {}", repository.path().display());
+    eprintln!("DEBUG: path_argument = {}", repository.path_argument());
+    let workflow_path = repository.path().join(".forgejo/workflows/pipeline.yml");
+    eprintln!("DEBUG: workflow file exists = {}", workflow_path.exists());
+    if workflow_path.exists() {
+        eprintln!(
+            "DEBUG: workflow content = {}",
+            std::fs::read_to_string(&workflow_path).unwrap()
+        );
+    }
+}
+
 impl DeliveryPipelineRun {
     pub const ENVIRONMENT_SCRIPT: &'static str = r#"echo "pipeline=delivery stage=build""#;
     pub const CONTEXT_SCRIPT: &'static str =
@@ -93,17 +106,7 @@ impl DeliveryPipelineRun {
             .with_workflow("pipeline.yml", PIPELINE_WORKFLOW)
             .with_action(".forgejo/actions/package", PACKAGE_ACTION)
             .with_action(".forgejo/actions/checksum", CHECKSUM_ACTION);
-
-        eprintln!("DEBUG: repository path = {}", repository.path().display());
-        eprintln!("DEBUG: path_argument = {}", repository.path_argument());
-        let workflow_path = repository.path().join(".forgejo/workflows/pipeline.yml");
-        eprintln!("DEBUG: workflow file exists = {}", workflow_path.exists());
-        if workflow_path.exists() {
-            eprintln!(
-                "DEBUG: workflow content = {}",
-                std::fs::read_to_string(&workflow_path).unwrap()
-            );
-        }
+        log_repository_state(&repository);
 
         let activity = ContainerActivity::new();
         let fetcher = MirroredActionFetcher::mirroring(repository.path());

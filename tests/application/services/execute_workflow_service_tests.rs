@@ -30,6 +30,8 @@ mod tests {
             REQUESTED_CONTENT,
             Path::new("/repo"),
             &EvaluationContext::new(),
+            "test-run",
+            false,
         ))
     }
 

@@ -10,22 +10,34 @@ pub struct ReleaseInfo {
     prerelease: bool,
     html_url: String,
 }
+/// Groups the optional fields and state flags of a release.
+pub struct ReleaseMetadata {
+    name: Option<String>,
+    body: Option<String>,
+    draft: bool,
+    prerelease: bool,
+}
 
-impl ReleaseInfo {
-    pub fn new(
-        tag_name: String,
-        name: Option<String>,
-        body: Option<String>,
-        draft: bool,
-        prerelease: bool,
-        html_url: String,
-    ) -> Self {
+impl ReleaseMetadata {
+    /// Creates the metadata associated with a release.
+    pub fn new(name: Option<String>, body: Option<String>, draft: bool, prerelease: bool) -> Self {
         Self {
-            tag_name,
             name,
             body,
             draft,
             prerelease,
+        }
+    }
+}
+
+impl ReleaseInfo {
+    pub fn new(tag_name: String, metadata: ReleaseMetadata, html_url: String) -> Self {
+        Self {
+            tag_name,
+            name: metadata.name,
+            body: metadata.body,
+            draft: metadata.draft,
+            prerelease: metadata.prerelease,
             html_url,
         }
     }
@@ -54,6 +66,7 @@ impl ReleaseInfo {
         &self.html_url
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -62,10 +75,7 @@ mod tests {
     fn new_preserves_fields() {
         let release = ReleaseInfo::new(
             "v1".into(),
-            Some("Release".into()),
-            Some("Notes".into()),
-            true,
-            false,
+            ReleaseMetadata::new(Some("Release".into()), Some("Notes".into()), true, false),
             "url".into(),
         );
 

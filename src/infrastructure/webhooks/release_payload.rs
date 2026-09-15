@@ -42,6 +42,7 @@ impl ReleasePayload {
         &self.sender
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -63,7 +64,11 @@ mod tests {
 
     #[test]
     fn new_preserves_fields() {
-        let release = ReleaseInfo::new("v1".into(), None, None, false, false, "url".into());
+        let release = ReleaseInfo::new(
+            "v1".into(),
+            super::super::release_info::ReleaseMetadata::new(None, None, false, false),
+            "url".into(),
+        );
         let payload = ReleasePayload::new(
             "published".into(),
             release,

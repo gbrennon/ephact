@@ -1,28 +1,19 @@
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
-    use ephact::application::dtos::responses::ContainerConfigResponse;
-    use ephact::application::ports::outbound::ContainerRuntimePort;
-    use ephact::infrastructure::containers::container_runtime_adapter::ContainerRuntimeAdapter;
 
     use crate::common::fakes::{
         spy_container_runtime::SpyContainerRuntime,
         stub_docker_erroring_runtime::StubDockerErroringRuntime,
     };
-
+    use ephact::application::dtos::responses::{ContainerConfigOptions, ContainerConfigResponse};
+    use ephact::application::ports::outbound::ContainerRuntimePort;
+    use ephact::infrastructure::containers::container_runtime_adapter::ContainerRuntimeAdapter;
     fn make_config(name: &str) -> ContainerConfigResponse {
         ContainerConfigResponse::new(
             "alpine:latest",
-            None,
-            HashMap::new(),
-            vec![],
-            None,
-            Some(vec!["sleep".into(), "infinity".into()]),
-            None,
-            None,
-            Some(name.into()),
-            Default::default(),
+            ContainerConfigOptions::default()
+                .with_cmd(Some(vec!["sleep".into(), "infinity".into()]))
+                .with_name(Some(name.into())),
         )
     }
 

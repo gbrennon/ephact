@@ -11,15 +11,22 @@ pub struct RunnerContextResponse {
     env: HashMap<String, String>,
 }
 
-impl RunnerContextResponse {
-    #[allow(clippy::too_many_arguments)]
+#[derive(Debug, Clone)]
+pub struct RunnerContextPaths {
+    workspace: String,
+    home: String,
+    action_path: String,
+    temp: String,
+    tool_cache: String,
+}
+
+impl RunnerContextPaths {
     pub fn new(
         workspace: impl Into<String>,
         home: impl Into<String>,
         action_path: impl Into<String>,
         temp: impl Into<String>,
         tool_cache: impl Into<String>,
-        env: HashMap<String, String>,
     ) -> Self {
         Self {
             workspace: workspace.into(),
@@ -27,6 +34,25 @@ impl RunnerContextResponse {
             action_path: action_path.into(),
             temp: temp.into(),
             tool_cache: tool_cache.into(),
+        }
+    }
+}
+
+impl RunnerContextResponse {
+    pub fn new(paths: RunnerContextPaths, env: HashMap<String, String>) -> Self {
+        let RunnerContextPaths {
+            workspace,
+            home,
+            action_path,
+            temp,
+            tool_cache,
+        } = paths;
+        Self {
+            workspace,
+            home,
+            action_path,
+            temp,
+            tool_cache,
             env,
         }
     }

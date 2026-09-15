@@ -5,6 +5,35 @@ use crate::application::dtos::responses::FileEntryResponse;
 use crate::application::dtos::responses::RunnerContextResponse;
 use crate::domain::errors::ContainerError;
 use crate::domain::messages::events::OutputStream;
+/// Groups command execution options for streaming container commands.
+pub struct ExecOptions<'a> {
+    cmd: &'a [String],
+    workdir: Option<&'a str>,
+    env: &'a HashMap<String, String>,
+}
+
+impl<'a> ExecOptions<'a> {
+    /// Creates command execution options.
+    pub fn new(
+        cmd: &'a [String],
+        workdir: Option<&'a str>,
+        env: &'a HashMap<String, String>,
+    ) -> Self {
+        Self { cmd, workdir, env }
+    }
+
+    pub fn cmd(&self) -> &[String] {
+        self.cmd
+    }
+
+    pub fn workdir(&self) -> Option<&str> {
+        self.workdir
+    }
+
+    pub fn env(&self) -> &HashMap<String, String> {
+        self.env
+    }
+}
 
 /// Outbound port for working inside one running container.
 ///
@@ -28,12 +57,10 @@ pub trait ContainerPort: Send + Sync {
     /// whole output once, right before returning.
     fn exec_streaming(
         &self,
-        cmd: &[String],
-        workdir: Option<&str>,
-        env: &HashMap<String, String>,
+        options: ExecOptions<'_>,
         on_output: &mut dyn FnMut(OutputStream, &str),
     ) -> Result<ExecResultResponse, ContainerError> {
-        let result = self.exec(cmd, workdir, env)?;
+        let result = self.exec(options.cmd(), options.workdir(), options.env())?;
         if !result.stdout().is_empty() {
             on_output(OutputStream::StandardOutput, result.stdout());
         }

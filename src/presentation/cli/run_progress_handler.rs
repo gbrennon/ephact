@@ -124,8 +124,8 @@ impl DomainEventHandler for RunProgressHandler {
 mod tests {
     use super::*;
     use crate::domain::messages::events::{
-        JobFinishedPayload, JobStartedPayload, OutputStream, StepFinishedPayload,
-        StepOutputPayload, StepStartedPayload, WorkflowStartedPayload,
+        JobFinishedPayload, JobStartedPayload, OutputStream, StepFinishedDetails,
+        StepFinishedPayload, StepOutputPayload, StepStartedPayload, WorkflowStartedPayload,
     };
 
     fn step_started() -> DomainEvent {
@@ -146,13 +146,16 @@ mod tests {
 
     fn step_finished(exit_code: Option<i64>) -> DomainEvent {
         DomainEvent::StepFinished(StepFinishedPayload::new(
-            "Build".into(),
-            "build".into(),
-            "compile".into(),
-            exit_code == Some(0),
-            exit_code,
-            String::new(),
-            String::new(),
+            "run-1".into(),
+            StepFinishedDetails::new(
+                "Build".into(),
+                "build".into(),
+                "compile".into(),
+                exit_code == Some(0),
+                exit_code,
+            )
+            .with_stdout(String::new())
+            .with_stderr(String::new()),
         ))
     }
 
@@ -210,13 +213,16 @@ mod tests {
     fn quiet_mode_hides_failed_step_output() {
         let handler = RunProgressHandler::new(false);
         let event = DomainEvent::StepFinished(StepFinishedPayload::new(
-            "Build".into(),
-            "build".into(),
-            "clippy".into(),
-            false,
-            Some(101),
-            "stdout text".into(),
-            "clippy failed".into(),
+            "run-1".into(),
+            StepFinishedDetails::new(
+                "Build".into(),
+                "build".into(),
+                "clippy".into(),
+                false,
+                Some(101),
+            )
+            .with_stdout("stdout text".into())
+            .with_stderr("clippy failed".into()),
         ));
 
         let rendered = handler.render(&event);
@@ -233,13 +239,16 @@ mod tests {
     fn verbose_mode_reports_failed_step_output() {
         let handler = RunProgressHandler::new(true);
         let event = DomainEvent::StepFinished(StepFinishedPayload::new(
-            "Build".into(),
-            "build".into(),
-            "clippy".into(),
-            false,
-            Some(101),
-            "stdout text".into(),
-            "clippy failed".into(),
+            "run-1".into(),
+            StepFinishedDetails::new(
+                "Build".into(),
+                "build".into(),
+                "clippy".into(),
+                false,
+                Some(101),
+            )
+            .with_stdout("stdout text".into())
+            .with_stderr("clippy failed".into()),
         ));
 
         let rendered = handler.render(&event).unwrap();

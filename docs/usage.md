@@ -4,7 +4,8 @@
 pull-request workflows in Docker or Podman containers:
 
 - `run`: Execute pull-request workflows with the selected Git repository mounted
-  read-write at `/workspace`.
+  read-only at `/workspace` by default. Use `--allow-repo-writes` to enable
+  workflow writes.
 - `list-workflows`: Discover and list named workflows in a repository.
 - `list-actions`: Discover and list unique action references across workflows.
 
@@ -24,7 +25,7 @@ or a worktree file.
 
 | Flag                     | Argument        | Description                                                                                                                                   | Default                        |
 | ------------------------ | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| `[PATH]`                 | Path            | Existing Git repository to inspect and mount read-write into job containers                                                                   | `.`                            |
+| `[PATH]`                 | Path            | Existing Git repository to inspect and mount read-only into job containers by default | `.`                            |
 | `--workflow`             | `<NAME>`        | Exact value of the workflow's top-level `name:` field                                                                                         | All pull-request workflows     |
 | `--job`                  | `<JOB>`         | Accepted by the parser but currently ignored; all jobs in each selected workflow execute                                                      | No effect                      |
 | `--event`                | `<EVENT>`       | Accepted by the parser but currently ignored; execution supports and simulates only `pull_request`                                            | `pull_request` (forced)        |
@@ -33,6 +34,7 @@ or a worktree file.
 | `--secret`               | `<KEY[=VALUE]>` | Inject a secret as `${{ secrets.KEY }}`. If `=VALUE` is omitted, reads the value from the host environment (repeatable)                       | None                           |
 | `--all-workflows`        | None            | Run every discovered workflow declaring `pull_request`; the default without `--workflow`; wins and ignores the name if both options are given | Active if `--workflow` omitted |
 | `--preserve`             | None            | Accepted by the parser but currently has no effect                                                                                            | No effect                      |
+| `--allow-repo-writes`    | None            | Permit workflow steps to modify the host repository through the workspace mount | Disabled                       |
 | `--verbose`              | None            | Show workflow and job lifecycle details, live step output, and failure diagnostics in addition to step start/finish status                     | Step start/finish status       |
 | `--allow-real-container` | None            | Accepted but currently has no effect; a real Docker or Podman runtime is always auto-detected and used                                        | No effect                      |
 | `--allow-real-fetcher`   | None            | Accepted but currently has no effect; uncached remote actions are fetched from their forge by default                                         | No effect                      |
@@ -138,15 +140,15 @@ ephact list-actions /path/to/repo
 ## Runtime and Safety
 
 `ephact` requires and auto-detects a reachable Docker or Podman runtime. The
-selected repository is bind-mounted read-write at `/workspace`, so workflow
-steps can modify the host working tree. Pulling job images and cloning uncached
-remote actions into a persistent host cache can use the network. Containers use
-the runtime's default network behavior.
+selected repository is bind-mounted read-only at `/workspace` by default.
+Pass `--allow-repo-writes` when workflow steps must modify the host working
+tree. Runner-managed files are container-local. Pulling job images and cloning
+uncached remote actions into a persistent host cache can use the network.
+Containers use the runtime's default network behavior.
 
 After a normally completed run, `ephact` makes a best-effort attempt to remove
-recorded job containers. Early errors can occur before cleanup is triggered.
-`--preserve` currently has no effect. Pulled images, cached actions, and changes
-made to the selected repository can remain.
+recorded job containers. Failed runs produce external diagnostics under the
+system temporary directory. `--preserve` currently has no effect.
 
 Treat secrets as visible to the workflow. Workflow steps can print them or write
 them into the mounted repository, and `--verbose` relays step output without

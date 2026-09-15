@@ -1,0 +1,68 @@
+#[derive(Debug, Clone)]
+pub struct StepFinishedDetails {
+    workflow_name: String,
+    job_id: String,
+    step_name: String,
+    success: bool,
+    exit_code: Option<i64>,
+    stdout: String,
+    stderr: String,
+}
+
+impl StepFinishedDetails {
+    pub fn new(
+        workflow_name: String,
+        job_id: String,
+        step_name: String,
+        success: bool,
+        exit_code: Option<i64>,
+    ) -> Self {
+        Self {
+            workflow_name,
+            job_id,
+            step_name,
+            success,
+            exit_code,
+            stdout: String::new(),
+            stderr: String::new(),
+        }
+    }
+
+    pub fn with_stdout(mut self, stdout: String) -> Self {
+        self.stdout = stdout;
+        self
+    }
+
+    pub fn with_stderr(mut self, stderr: String) -> Self {
+        self.stderr = stderr;
+        self
+    }
+
+    pub fn workflow_name(&self) -> &str {
+        &self.workflow_name
+    }
+
+    pub fn job_id(&self) -> &str {
+        &self.job_id
+    }
+
+    pub fn step_name(&self) -> &str {
+        &self.step_name
+    }
+
+    pub fn success(&self) -> bool {
+        self.success
+    }
+
+    pub fn exit_code(&self) -> Option<i64> {
+        self.exit_code
+    }
+
+    pub fn stdout(&self) -> &str {
+        &self.stdout
+    }
+
+    pub fn stderr(&self) -> &str {
+        &self.stderr
+    }
+}

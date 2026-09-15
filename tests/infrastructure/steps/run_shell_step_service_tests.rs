@@ -7,9 +7,8 @@ mod tests {
     use std::collections::HashMap;
 
     use ephact::application::dtos::requests::RunShellStepRequest;
-    use ephact::application::dtos::responses::ContainerConfigResponse;
     use ephact::application::dtos::responses::ExecResultResponse;
-    use ephact::application::dtos::responses::RunnerContextResponse;
+    use ephact::application::dtos::responses::{ContainerConfigOptions, ContainerConfigResponse};
     use ephact::application::ports::outbound::ContainerRuntimePort;
     use ephact::application::ports::outbound::container_port::ContainerPort;
     use ephact::domain::entities::Step;
@@ -24,15 +23,7 @@ mod tests {
         runtime
             .create_container(&ContainerConfigResponse::new(
                 "image",
-                None,
-                HashMap::new(),
-                vec![],
-                None,
-                None,
-                None,
-                None,
-                None,
-                RunnerContextResponse::default(),
+                ContainerConfigOptions::default(),
             ))
             .unwrap()
     }

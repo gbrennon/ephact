@@ -1,7 +1,7 @@
 use super::read_step_path_exports_port::ReadStepPathExportsPort;
 use std::collections::HashMap;
 
-use super::super::containers::workspace::GITHUB_PATH_FILE;
+use super::super::containers::workspace::RUNNER_PATH_FILE;
 use crate::application::dtos::requests::ReadStepPathExportsRequest;
 
 /// Service that reads the directories a step exported through `GITHUB_PATH`.
@@ -26,7 +26,7 @@ impl ReadStepPathExportsPort for ReadStepPathExportsService {
     fn execute(&self, request: ReadStepPathExportsRequest<'_>) -> Vec<String> {
         let mut additions = Vec::new();
         if let Ok(output) = request.container().exec(
-            &["cat".into(), GITHUB_PATH_FILE.into()],
+            &["cat".into(), RUNNER_PATH_FILE.into()],
             None,
             &HashMap::new(),
         ) {

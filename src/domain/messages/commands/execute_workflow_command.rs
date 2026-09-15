@@ -12,14 +12,24 @@ pub struct ExecuteWorkflowCommand {
     workflow_content: String,
     config: ActRunConfig,
     repository: Repository,
+    run_id: String,
+    allow_repo_writes: bool,
 }
 
 impl ExecuteWorkflowCommand {
-    pub fn new(workflow_content: String, config: ActRunConfig, repository: Repository) -> Self {
+    pub fn new(
+        workflow_content: String,
+        config: ActRunConfig,
+        repository: Repository,
+        run_id: String,
+        allow_repo_writes: bool,
+    ) -> Self {
         Self {
             workflow_content,
             config,
             repository,
+            run_id,
+            allow_repo_writes,
         }
     }
 
@@ -35,8 +45,22 @@ impl ExecuteWorkflowCommand {
         &self.repository
     }
 
-    pub fn into_parts(self) -> (String, ActRunConfig, Repository) {
-        (self.workflow_content, self.config, self.repository)
+    pub fn run_id(&self) -> &str {
+        &self.run_id
+    }
+
+    pub fn allow_repo_writes(&self) -> bool {
+        self.allow_repo_writes
+    }
+
+    pub fn into_parts(self) -> (String, ActRunConfig, Repository, String, bool) {
+        (
+            self.workflow_content,
+            self.config,
+            self.repository,
+            self.run_id,
+            self.allow_repo_writes,
+        )
     }
 }
 

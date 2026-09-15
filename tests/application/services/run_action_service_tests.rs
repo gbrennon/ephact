@@ -2,7 +2,9 @@
 mod tests {
     use std::{collections::HashMap, path::PathBuf};
 
-    use ephact::application::dtos::requests::RunActionRequest;
+    use ephact::application::dtos::requests::{
+        RunActionExecutionInput, RunActionRequest, RunActionRequestInput,
+    };
     use ephact::application::dtos::responses::ExecuteActionResponse;
     use ephact::application::ports::inbound::RunActionPort;
     use ephact::application::services::run_action_service::RunActionService;
@@ -25,14 +27,16 @@ mod tests {
             .into_domain();
         let container = StubContainer;
 
-        let request = RunActionRequest::new(
-            "actions/checkout@v4".into(),
+        let request = RunActionRequest::new(RunActionRequestInput::new(
+            "actions/checkout@v4",
             step,
-            PathBuf::from("/repo"),
-            HashMap::new(),
-            EvaluationContext::new(),
-            &container,
-        );
+            RunActionExecutionInput::new(
+                PathBuf::from("/repo"),
+                HashMap::new(),
+                EvaluationContext::new(),
+                &container,
+            ),
+        ));
 
         let response = service.execute(request).unwrap();
 

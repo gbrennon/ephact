@@ -19,19 +19,66 @@ pub struct ExecuteActionRequest<'a> {
     container: &'a dyn ContainerPort,
 }
 
-impl<'a> ExecuteActionRequest<'a> {
+pub struct ExecuteActionRequestInput<'a> {
+    action_ref: String,
+    step: Step,
+    execution: ExecuteActionExecutionInput<'a>,
+}
+
+impl<'a> ExecuteActionRequestInput<'a> {
     pub fn new(
         action_ref: impl Into<String>,
         step: Step,
+        execution: ExecuteActionExecutionInput<'a>,
+    ) -> Self {
+        Self {
+            action_ref: action_ref.into(),
+            step,
+            execution,
+        }
+    }
+}
+
+pub struct ExecuteActionExecutionInput<'a> {
+    repo_path: PathBuf,
+    env: HashMap<String, String>,
+    context: EvaluationContext,
+    container: &'a dyn ContainerPort,
+}
+
+impl<'a> ExecuteActionExecutionInput<'a> {
+    pub fn new(
         repo_path: impl Into<PathBuf>,
         env: HashMap<String, String>,
         context: EvaluationContext,
         container: &'a dyn ContainerPort,
     ) -> Self {
         Self {
-            action_ref: action_ref.into(),
-            step,
             repo_path: repo_path.into(),
+            env,
+            context,
+            container,
+        }
+    }
+}
+
+impl<'a> ExecuteActionRequest<'a> {
+    pub fn new(input: ExecuteActionRequestInput<'a>) -> Self {
+        let ExecuteActionRequestInput {
+            action_ref,
+            step,
+            execution:
+                ExecuteActionExecutionInput {
+                    repo_path,
+                    env,
+                    context,
+                    container,
+                },
+        } = input;
+        Self {
+            action_ref,
+            step,
+            repo_path,
             env,
             context,
             container,

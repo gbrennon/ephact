@@ -2,23 +2,17 @@
 mod tests {
     use std::collections::HashMap;
 
-    use ephact::application::dtos::responses::ContainerConfigResponse;
     use ephact::application::dtos::responses::FileEntryResponse;
+    use ephact::application::dtos::responses::{ContainerConfigOptions, ContainerConfigResponse};
     use ephact::application::ports::outbound::ContainerRuntimePort;
     use ephact::infrastructure::containers::PodmanRuntime;
 
     fn make_config(name: &str) -> ContainerConfigResponse {
         ContainerConfigResponse::new(
             "alpine:latest",
-            None,
-            HashMap::new(),
-            vec![],
-            None,
-            Some(vec!["sleep".into(), "infinity".into()]),
-            None,
-            None,
-            Some(name.into()),
-            Default::default(),
+            ContainerConfigOptions::default()
+                .with_cmd(Some(vec!["sleep".into(), "infinity".into()]))
+                .with_name(Some(name.into())),
         )
     }
 

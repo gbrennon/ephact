@@ -3,6 +3,7 @@ pub mod build_step_context_port;
 pub mod command_bus_port;
 pub mod container_port;
 pub mod container_runtime_port;
+pub mod copy_repository_to_container_port;
 pub mod detect_workflow_trigger_port;
 pub mod discover_run_inputs_port;
 pub mod event_bus_port;
@@ -28,6 +29,7 @@ pub use command_bus_port::{
 };
 pub use container_port::ContainerPort;
 pub use container_runtime_port::ContainerRuntimePort;
+pub use copy_repository_to_container_port::CopyRepositoryToContainerPort;
 pub use detect_workflow_trigger_port::DetectWorkflowTriggerPort;
 pub use discover_run_inputs_port::DiscoverRunInputsPort;
 pub use event_bus_port::{DomainEventBusPort, EventBusPort};

@@ -7,7 +7,7 @@ use super::{
     issue_comment_payload::IssueCommentPayload,
     issues_payload::IssuesPayload,
     pull_request_payload::PullRequestPayload,
-    push_payload::{PushMetadata, PushPayload},
+    push_payload::{PushChanges, PushMetadata, PushPayload, PushState},
     release_payload::ReleasePayload,
     repository_dispatch_payload::RepositoryDispatchPayload,
     webhook_event_payload::WebhookEventPayload,
@@ -112,13 +112,9 @@ impl WebhookEvent {
                 repo.clone(),
                 act_user.clone(),
                 act_user,
-                false,
-                false,
-                false,
+                PushState::new(false, false, false),
             ),
-            vec![],
-            None,
-            String::new(),
+            PushChanges::new(vec![], None, String::new()),
         )))
     }
 
@@ -149,9 +145,11 @@ impl WebhookEvent {
             "Local PR".to_owned(),
             None,
             super::pull_request_info::PullRequestBranches::new(head, base),
-            user.clone(),
-            String::new(),
-            super::pull_request_info::PullRequestState::new(false, false, None),
+            super::pull_request_info::PullRequestMetadata::new(
+                user.clone(),
+                String::new(),
+                super::pull_request_info::PullRequestState::new(false, false, None),
+            ),
         );
         WebhookEvent::PullRequest(Box::new(PullRequestPayload::new(
             "opened".to_owned(),
@@ -284,12 +282,13 @@ mod tests {
             assert_eq!(event.to_payload(), serde_json::json!({}));
         }
     }
-    #[test]
-    fn payload_variants_have_names_and_payloads() {
-        let repo = test_repo();
-        let user = UserInfo::new("name".into(), "email".into(), "login".into());
-        let release = ReleaseInfo::new("v1".into(), None, None, false, false, "url".into());
-        let events = [
+    fn payload_variants(repo: &RepositoryInfo, user: &UserInfo) -> [WebhookEvent; 3] {
+        let release = ReleaseInfo::new(
+            "v1".into(),
+            super::super::release_info::ReleaseMetadata::new(None, None, false, false),
+            "url".into(),
+        );
+        [
             WebhookEvent::Release(Box::new(ReleasePayload::new(
                 "published".into(),
                 release,
@@ -306,33 +305,12 @@ mod tests {
                 HashMap::new(),
                 HashMap::new(),
             ))),
-        ];
+        ]
+    }
 
-        assert_eq!(events[0].event_name(), "release");
-        assert_eq!(events[1].event_name(), "repository_dispatch");
-        assert_eq!(events[2].event_name(), "workflow_call");
-        assert!(events.iter().all(|event| event.to_payload().is_object()));
-        let issue = IssueInfo::new(
-            1,
-            "title".into(),
-            None,
-            "open".into(),
-            user.clone(),
-            Vec::new(),
-            "url".into(),
-        );
-        let comment = CommentInfo::new(2, "body".into(), user.clone(), "url".into());
-        let branch = BranchRef::new("ref".into(), "sha".into(), repo.clone(), "main".into());
-        let pull_request = PullRequestInfo::new(
-            1,
-            "title".into(),
-            None,
-            PullRequestBranches::new(branch.clone(), branch),
-            user.clone(),
-            "url".into(),
-            PullRequestState::new(false, false, None),
-        );
-        let extra_events = [
+    fn extra_payload_variants(repo: &RepositoryInfo, user: &UserInfo) -> [WebhookEvent; 6] {
+        let (issue, comment, pull_request) = extra_payload_data(repo, user);
+        [
             WebhookEvent::Issues(Box::new(IssuesPayload::new(
                 "opened".into(),
                 issue.clone(),
@@ -368,10 +346,49 @@ mod tests {
                 "opened".into(),
                 1,
                 pull_request,
-                repo,
-                user,
+                repo.clone(),
+                user.clone(),
             ))),
-        ];
+        ]
+    }
+    fn extra_payload_data(
+        repo: &RepositoryInfo,
+        user: &UserInfo,
+    ) -> (IssueInfo, CommentInfo, PullRequestInfo) {
+        let issue = IssueInfo::new(
+            1,
+            "title".into(),
+            None,
+            "open".into(),
+            super::super::issue_info::IssueMetadata::new(user.clone(), Vec::new(), "url".into()),
+        );
+        let comment = CommentInfo::new(2, "body".into(), user.clone(), "url".into());
+        let branch = BranchRef::new("ref".into(), "sha".into(), repo.clone(), "main".into());
+        let pull_request = PullRequestInfo::new(
+            1,
+            "title".into(),
+            None,
+            PullRequestBranches::new(branch.clone(), branch),
+            super::super::pull_request_info::PullRequestMetadata::new(
+                user.clone(),
+                "url".into(),
+                PullRequestState::new(false, false, None),
+            ),
+        );
+        (issue, comment, pull_request)
+    }
+
+    #[test]
+    fn payload_variants_have_names_and_payloads() {
+        let repo = test_repo();
+        let user = UserInfo::new("name".into(), "email".into(), "login".into());
+        let events = payload_variants(&repo, &user);
+        assert_eq!(events[0].event_name(), "release");
+        assert_eq!(events[1].event_name(), "repository_dispatch");
+        assert_eq!(events[2].event_name(), "workflow_call");
+        assert!(events.iter().all(|event| event.to_payload().is_object()));
+
+        let extra_events = extra_payload_variants(&repo, &user);
         assert_eq!(extra_events[0].event_name(), "issues");
         assert_eq!(extra_events[1].event_name(), "issue_comment");
         assert_eq!(extra_events[2].event_name(), "create");

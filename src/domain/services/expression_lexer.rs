@@ -80,17 +80,24 @@ impl<'a> ExpressionLexer<'a> {
         if let Some(op) = self.lex_operator(ch) {
             return op;
         }
+        self.dispatch_non_operator(ch)
+    }
+
+    fn dispatch_non_operator(&mut self, ch: char) -> Result<ExpressionToken, LexerError> {
         if self.is_number_start(ch) {
             return self.lex_number();
         }
-        if Self::is_ident_start(ch) {
+        if ch == '\x5f' {
+            return self.lex_ident_or_keyword();
+        }
+        if ch.is_ascii_alphabetic() {
             return self.lex_ident_or_keyword();
         }
         Err(LexerError::UnexpectedChar(ch, self.pos))
     }
 
-    fn is_ident_start(ch: char) -> bool {
-        ch.is_ascii_alphabetic() || ch == '_'
+    fn continues_identifier(ch: char) -> bool {
+        ch.is_ascii_alphanumeric() || ch == '\x5f' || ch == '-'
     }
 
     fn is_number_start(&self, ch: char) -> bool {
@@ -291,10 +298,7 @@ impl<'a> ExpressionLexer<'a> {
         ident.push(self.current_char().unwrap());
         self.bump();
 
-        while self
-            .current_char()
-            .is_some_and(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
-        {
+        while self.current_char().is_some_and(Self::continues_identifier) {
             ident.push(self.current_char().unwrap());
             self.bump();
         }

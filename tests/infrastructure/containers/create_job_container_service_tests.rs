@@ -12,12 +12,13 @@ mod tests {
         fake_runtime::FakeRuntime, stub_failing_container_runtime::StubFailingContainerRuntime,
     };
 
-    fn request<'a>(repo_path: &'a Path) -> CreateJobContainerRequest<'a> {
+    fn request<'a>(repo_path: &'a Path, allow_repo_writes: bool) -> CreateJobContainerRequest<'a> {
         CreateJobContainerRequest::new(
             "ubuntu:latest",
             "ephemeral-act-build-42",
             "ephemeral-act-build",
             repo_path,
+            allow_repo_writes,
         )
     }
 
@@ -26,7 +27,7 @@ mod tests {
         let runtime = Arc::new(FakeRuntime::new());
         let service = CreateJobContainerService::new(runtime.clone());
 
-        service.execute(request(Path::new("/repo"))).unwrap();
+        service.execute(request(Path::new("/repo"), false)).unwrap();
 
         assert_eq!(
             runtime.removed_containers.lock().clone(),
@@ -36,16 +37,39 @@ mod tests {
     }
 
     #[test]
-    fn execute_mounts_the_repository_as_the_container_workspace() {
+    fn execute_creates_default_container_with_no_host_bind() {
         let runtime = Arc::new(FakeRuntime::new());
         let service = CreateJobContainerService::new(runtime.clone());
 
-        service.execute(request(Path::new("/repo"))).unwrap();
+        service.execute(request(Path::new("/repo"), false)).unwrap();
+
+        let created = runtime.created_containers.lock();
+        let config = created.first().unwrap();
+        assert_eq!(config.binds(), Vec::<String>::new());
+    }
+
+    #[test]
+    fn execute_allows_repository_writes_when_opted_in() {
+        let runtime = Arc::new(FakeRuntime::new());
+        let service = CreateJobContainerService::new(runtime.clone());
+
+        service.execute(request(Path::new("/repo"), true)).unwrap();
+
+        let created = runtime.created_containers.lock();
+        let config = created.first().unwrap();
+        assert_eq!(config.binds(), vec!["/repo:/workspace:Z".to_string()]);
+    }
+
+    #[test]
+    fn execute_preserves_container_workspace_configuration() {
+        let runtime = Arc::new(FakeRuntime::new());
+        let service = CreateJobContainerService::new(runtime.clone());
+
+        service.execute(request(Path::new("/repo"), false)).unwrap();
 
         let created = runtime.created_containers.lock();
         let config = created.first().unwrap();
         assert_eq!(config.image(), "ubuntu:latest");
-        assert_eq!(config.binds(), vec!["/repo:/workspace:Z".to_string()]);
         assert_eq!(config.workdir(), Some("/workspace"));
         assert_eq!(
             config.cmd().unwrap(),
@@ -58,7 +82,7 @@ mod tests {
     fn execute_errors_when_the_runtime_cannot_create_the_container() {
         let service = CreateJobContainerService::new(Arc::new(StubFailingContainerRuntime));
 
-        let result = service.execute(request(Path::new("/repo")));
+        let result = service.execute(request(Path::new("/repo"), false));
 
         assert!(result.is_err());
     }

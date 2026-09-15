@@ -20,9 +20,9 @@ mod tests {
             "data.forgejo.org".into(),
             "actions".into(),
             "cache".into(),
-            directory.map(str::to_string),
             "v4".into(),
         )
+        .with_directory(directory.map(str::to_string))
     }
 
     #[test]

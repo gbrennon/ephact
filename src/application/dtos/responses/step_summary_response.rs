@@ -10,11 +10,36 @@ pub struct StepSummaryResponse {
     stderr: String,
 }
 
-impl StepSummaryResponse {
-    #[allow(clippy::too_many_arguments)]
+pub struct StepSummaryResponseInput {
+    name: String,
+    step_type: crate::domain::value_objects::StepType,
+    details: StepSummaryDetails,
+}
+
+impl StepSummaryResponseInput {
     pub fn new(
         name: impl Into<String>,
         step_type: crate::domain::value_objects::StepType,
+        details: StepSummaryDetails,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            step_type,
+            details,
+        }
+    }
+}
+
+pub struct StepSummaryDetails {
+    exit_code: Option<i64>,
+    continue_on_error: bool,
+    duration: std::time::Duration,
+    stdout: String,
+    stderr: String,
+}
+
+impl StepSummaryDetails {
+    pub fn new(
         exit_code: Option<i64>,
         continue_on_error: bool,
         duration: std::time::Duration,
@@ -22,13 +47,37 @@ impl StepSummaryResponse {
         stderr: impl Into<String>,
     ) -> Self {
         Self {
-            name: name.into(),
-            step_type,
             exit_code,
             continue_on_error,
             duration,
             stdout: stdout.into(),
             stderr: stderr.into(),
+        }
+    }
+}
+
+impl StepSummaryResponse {
+    pub fn new(input: StepSummaryResponseInput) -> Self {
+        let StepSummaryResponseInput {
+            name,
+            step_type,
+            details:
+                StepSummaryDetails {
+                    exit_code,
+                    continue_on_error,
+                    duration,
+                    stdout,
+                    stderr,
+                },
+        } = input;
+        Self {
+            name,
+            step_type,
+            exit_code,
+            continue_on_error,
+            duration,
+            stdout,
+            stderr,
         }
     }
 

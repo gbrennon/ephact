@@ -32,27 +32,24 @@ impl RemoteActionReference {
     ///     "data.forgejo.org".into(),
     ///     "actions".into(),
     ///     "cache".into(),
-    ///     None,
     ///     "v4".into(),
     /// );
     /// assert_eq!(reference.clone_url(), "https://data.forgejo.org/actions/cache");
     /// ```
-    pub fn new(
-        scheme: String,
-        host: String,
-        owner: String,
-        repo: String,
-        directory: Option<String>,
-        git_ref: String,
-    ) -> Self {
+    pub fn new(scheme: String, host: String, owner: String, repo: String, git_ref: String) -> Self {
         Self {
             scheme,
             host,
             owner,
             repo,
-            directory,
+            directory: None,
             git_ref,
         }
+    }
+
+    pub fn with_directory(mut self, directory: Option<String>) -> Self {
+        self.directory = directory;
+        self
     }
 
     /// Returns the URL a git client can clone the action repository from.
@@ -121,7 +118,6 @@ mod tests {
             "data.forgejo.org".into(),
             "actions".into(),
             "cache".into(),
-            None,
             "v4".into(),
         )
     }
@@ -141,7 +137,6 @@ mod tests {
             "/srv/mirror".into(),
             "actions".into(),
             "cache".into(),
-            None,
             "main".into(),
         );
 

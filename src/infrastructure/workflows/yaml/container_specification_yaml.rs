@@ -32,13 +32,11 @@ impl ContainerSpecificationYaml {
     /// Builds the domain container specification this YAML describes.
     #[must_use]
     pub fn into_domain(self) -> ContainerSpecification {
-        ContainerSpecification::new(
-            self.image,
-            self.credentials.map(ContainerCredentialsYaml::into_domain),
-            self.env,
-            self.ports,
-            self.volumes,
-            self.options,
-        )
+        ContainerSpecification::new(self.image)
+            .with_credentials(self.credentials.map(ContainerCredentialsYaml::into_domain))
+            .with_env(self.env)
+            .with_ports(self.ports)
+            .with_volumes(self.volumes)
+            .with_options(self.options)
     }
 }

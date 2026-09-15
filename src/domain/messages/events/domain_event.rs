@@ -8,19 +8,15 @@ use super::event::Event;
 /// container cleanup and terminal progress reporting).
 #[derive(Debug, Clone)]
 pub enum DomainEvent {
-    /// Published when a workflow run completes (success or failure).
+    RunStarted(super::run_started_payload::RunStartedPayload),
+    RunFailed(super::run_failed_payload::RunFailedPayload),
     ActRunCompleted(super::act_run_completed_payload::ActRunCompletedPayload),
-    /// Published when a workflow's plan is known and its jobs start running.
+    ContainerStarted(super::container_started_payload::ContainerStartedPayload),
     WorkflowStarted(super::workflow_started_payload::WorkflowStartedPayload),
-    /// Published when one job of a workflow starts running.
     JobStarted(super::job_started_payload::JobStartedPayload),
-    /// Published when one step of a job starts running.
     StepStarted(super::step_started_payload::StepStartedPayload),
-    /// Published as a running step produces output.
     StepOutput(super::step_output_payload::StepOutputPayload),
-    /// Published when one step of a job finishes.
     StepFinished(super::step_finished_payload::StepFinishedPayload),
-    /// Published when one job of a workflow finishes.
     JobFinished(super::job_finished_payload::JobFinishedPayload),
 }
 

@@ -14,24 +14,40 @@ pub struct IssueInfo {
     html_url: String,
 }
 
+/// Groups the user, labels, and URL associated with an issue.
+pub struct IssueMetadata {
+    user: UserInfo,
+    labels: Vec<LabelInfo>,
+    html_url: String,
+}
+
+impl IssueMetadata {
+    /// Creates the metadata associated with an issue.
+    pub fn new(user: UserInfo, labels: Vec<LabelInfo>, html_url: String) -> Self {
+        Self {
+            user,
+            labels,
+            html_url,
+        }
+    }
+}
+
 impl IssueInfo {
     pub fn new(
         number: u64,
         title: String,
         body: Option<String>,
         state: String,
-        user: UserInfo,
-        labels: Vec<LabelInfo>,
-        html_url: String,
+        metadata: IssueMetadata,
     ) -> Self {
         Self {
             number,
             title,
             body,
             state,
-            user,
-            labels,
-            html_url,
+            user: metadata.user,
+            labels: metadata.labels,
+            html_url: metadata.html_url,
         }
     }
 
@@ -63,6 +79,7 @@ impl IssueInfo {
         &self.html_url
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -74,11 +91,12 @@ mod tests {
             "title".into(),
             Some("body".into()),
             "open".into(),
-            UserInfo::new("name".into(), "email".into(), "login".into()),
-            vec![LabelInfo::new("bug".into(), "red".into())],
-            "url".into(),
+            IssueMetadata::new(
+                UserInfo::new("name".into(), "email".into(), "login".into()),
+                vec![LabelInfo::new("bug".into(), "red".into())],
+                "url".into(),
+            ),
         );
-
         assert_eq!(issue.number(), 1);
         assert_eq!(issue.title(), "title");
         assert_eq!(issue.body(), Some("body"));

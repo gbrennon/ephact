@@ -8,20 +8,22 @@ use crate::{
             event_bus_port::DomainEventBusPort,
         },
         services::{
-            execute_job_service::ExecuteJobService, execute_step_service::ExecuteStepService,
+            execute_job_service::{ExecuteJobDependencies, ExecuteJobService},
+            execute_step_service::ExecuteStepService,
             execute_workflow_service::ExecuteWorkflowService,
         },
     },
     infrastructure::{
         actions::{ActionCommandHandler, ActionFetcherPort},
         containers::{
+            copy_repository_to_container_service::CopyRepositoryToContainerService,
             create_job_container_service::CreateJobContainerService,
             prepare_job_container_service::PrepareJobContainerService,
             pull_job_image_service::PullJobImageService,
         },
         di::action_execution_wiring::ActionExecutionWiring,
         images::ImageMapperPort,
-        jobs::{GitHubJobEnvironmentAdapter, JobCommandHandler},
+        jobs::{JobCommandHandler, RunnerEnvironmentAdapter},
         messaging::{DeferredCommandBus, InMemoryCommandBus, SharedCommandBus, SharedEventBus},
         steps::{
             StepCommandHandler, build_step_context_service::BuildStepContextService,
@@ -100,21 +102,26 @@ impl CommandBusWiring {
         command_bus: Box<StepCommandBusPort>,
         event_bus: Box<DomainEventBusPort>,
     ) -> ExecuteJobService {
-        ExecuteJobService::new(
-            Box::new(GitHubJobEnvironmentAdapter::new()),
+        ExecuteJobService::new(ExecuteJobDependencies::new(
+            Box::new(RunnerEnvironmentAdapter::new()),
             Box::new(PrepareJobContainerService::new(
-                Box::new(PullJobImageService::new(runtime.clone(), image_mapper)),
-                Box::new(CreateJobContainerService::new(runtime)),
+                Box::new(PullJobImageService::new(
+                    runtime.clone(),
+                    image_mapper.clone(),
+                )),
+                Box::new(CreateJobContainerService::new(runtime.clone())),
+                Box::new(CopyRepositoryToContainerService::new()),
             )),
-            Box::new(PrefixStepPathService::new()),
-            Box::new(BuildStepContextService::new()),
-            Box::new(SummarizeStepService::new()),
-            Box::new(ReadStepExportsService::new(
-                Box::new(ReadStepPathExportsService::new()),
-                Box::new(ReadStepEnvExportsService::new()),
-            )),
-            command_bus,
-            event_bus,
-        )
+            (
+                Box::new(PrefixStepPathService::new()),
+                Box::new(BuildStepContextService::new()),
+                Box::new(SummarizeStepService::new()),
+                Box::new(ReadStepExportsService::new(
+                    Box::new(ReadStepPathExportsService::new()),
+                    Box::new(ReadStepEnvExportsService::new()),
+                )),
+            ),
+            (command_bus, event_bus),
+        ))
     }
 }

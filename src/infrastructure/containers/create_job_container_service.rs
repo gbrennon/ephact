@@ -2,8 +2,9 @@ use super::{create_job_container_port::CreateJobContainerPort, workspace::CONTAI
 use std::{collections::HashMap, error::Error, sync::Arc};
 
 use crate::application::dtos::requests::CreateJobContainerRequest;
-use crate::application::dtos::responses::ContainerConfigResponse;
-use crate::application::dtos::responses::RunnerContextResponse;
+use crate::application::dtos::responses::{
+    ContainerConfigOptions, ContainerConfigResponse, RunnerContextResponse,
+};
 use crate::application::ports::outbound::ContainerRuntimePort;
 use crate::application::ports::outbound::container_port::ContainerPort;
 
@@ -29,21 +30,24 @@ impl CreateJobContainerPort for CreateJobContainerService {
             .remove_container(request.legacy_container_name());
         let _ = self.runtime.remove_container(request.container_name());
 
-        let container_config = ContainerConfigResponse::new(
-            request.image().to_string(),
-            None,
-            HashMap::new(),
+        let binds = if request.allow_repo_writes() {
             vec![format!(
                 "{}:{}:Z",
                 request.repo_path().display(),
                 CONTAINER_WORKSPACE
-            )],
-            Some(CONTAINER_WORKSPACE.into()),
-            Some(vec!["sleep".into(), "infinity".into()]),
-            None,
-            None,
-            Some(request.container_name().to_string()),
-            RunnerContextResponse::default(),
+            )]
+        } else {
+            vec![]
+        };
+        let container_config = ContainerConfigResponse::new(
+            request.image().to_string(),
+            ContainerConfigOptions::default()
+                .with_env(HashMap::new())
+                .with_binds(binds)
+                .with_workdir(Some(CONTAINER_WORKSPACE.into()))
+                .with_cmd(Some(vec!["sleep".into(), "infinity".into()]))
+                .with_name(Some(request.container_name().to_string()))
+                .with_runner_context(RunnerContextResponse::default()),
         );
 
         self.runtime
