@@ -22,7 +22,10 @@ mod tests {
 
         let result = args.to_domain();
 
-        let expected = ListWorkflowsRequest::new(current_dir_repository());
+        let expected = ListWorkflowsRequest::new(
+            current_dir_repository().path().as_path().to_path_buf(),
+            current_dir_repository().name().as_str().to_string(),
+        );
         assert_eq!(result.unwrap(), expected);
     }
 }

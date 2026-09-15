@@ -18,7 +18,12 @@ mod tests {
     struct FakeShowProjectBrandingInfoPort;
 
     impl ShowProjectBrandingInfoPort for FakeShowProjectBrandingInfoPort {
-        fn execute(&self) -> Result<ShowProjectBrandingInfoResponse, Box<dyn std::error::Error>> {
+        fn execute(
+            &self,
+        ) -> Result<
+            ShowProjectBrandingInfoResponse,
+            ephact::application::errors::ShowProjectBrandingInfoError,
+        > {
             Ok(ShowProjectBrandingInfoResponse::new(
                 "ephact".to_string(),
                 "Ephemeral action runner".to_string(),
@@ -33,8 +38,8 @@ mod tests {
     impl RunActionPort for FakeRunActionPort {
         fn execute(
             &self,
-            _request: RunActionRequest<'_>,
-        ) -> Result<ExecuteActionResponse, ephact::domain::errors::StepError> {
+            _request: RunActionRequest,
+        ) -> Result<ExecuteActionResponse, ephact::application::errors::RunActionError> {
             Ok(ExecuteActionResponse::note("action completed"))
         }
     }
@@ -45,7 +50,7 @@ mod tests {
             Box::new(FakeShowProjectBrandingInfoPort),
             Box::new(FakeRunAllWorkflowsPort::new(true)),
             Box::new(FakeRunWorkflowPort::new(true)),
-            Box::new(FakeRunActionPort),
+            Box::new(|_| Box::new(FakeRunActionPort)),
             Box::new(FakeListWorkflowsPort::new()),
             Box::new(FakeListActionsPort::new()),
         ));
