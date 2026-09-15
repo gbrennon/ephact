@@ -1,65 +1,56 @@
-use crate::{
-    application::{
-        ports::outbound::{
-            action_command_bus_port::ActionCommandBusPort,
-            domain_event_bus_port::DomainEventBusPort,
-        },
-        services::execute_action_service::ExecuteActionService,
-    },
-    infrastructure::{
-        actions::{
-            ActionFetcherPort, GitHubActionInputEnvironmentAdapter,
-            collect_action_files_service::CollectActionFilesService,
-            copy_action_to_container_service::CopyActionToContainerService,
-            fetch_remote_action_service::FetchRemoteActionService,
-            load_action_definition_service::LoadActionDefinitionService,
-            resolve_action_directory_service::ResolveActionDirectoryService,
-            resolve_action_inputs_service::ResolveActionInputsService,
-            resolve_node_binary_service::ResolveNodeBinaryService,
-            run_composite_action_service::RunCompositeActionService,
-            run_node_action_service::RunNodeActionService,
-        },
-        steps::{
-            run_composite_step_service::RunCompositeStepService,
-            run_shell_step_service::RunShellStepService,
-        },
-    },
-};
+use std::sync::Arc;
 
-/// Assembles the action coordination service and the technical operations it
-/// resolves and runs actions with.
-///
-/// The command bus is only needed for actions nested inside a composite
-/// action: those are published as action commands instead of being called
-/// directly.
+use crate::application::ports::outbound::{
+    ActionCommandBusPort, ContainerPort, DomainEventBusPort, LoadActionDefinitionPort,
+    ResolveActionDirectoryPort, ResolveActionInputsPort, RunCompositeActionPort, RunNodeActionPort,
+};
+use crate::application::services::execute_action_service::ExecuteActionService;
+use crate::infrastructure::actions::{
+    ActionFetcherPort, CollectActionFilesService, CopyActionToContainerService,
+    ExecuteActionFactory, FetchRemoteActionService, GitHubActionInputEnvironmentAdapter,
+    LoadActionDefinitionService, ResolveActionDirectoryService, ResolveActionInputsService,
+    ResolveNodeBinaryService, RunCompositeActionService, RunNodeActionService,
+};
+use crate::infrastructure::steps::{RunCompositeStepService, RunShellStepService};
+
 pub struct ActionExecutionWiring;
 
 impl ActionExecutionWiring {
-    #[must_use]
     pub fn build(
         fetcher: Box<dyn ActionFetcherPort>,
         command_bus: Box<dyn ActionCommandBusPort>,
         event_bus: Box<dyn DomainEventBusPort>,
-    ) -> ExecuteActionService {
-        ExecuteActionService::new(
-            Box::new(ResolveActionDirectoryService::new(Box::new(
-                FetchRemoteActionService::new(fetcher),
+    ) -> ExecuteActionFactory {
+        let directory_resolver: Arc<dyn ResolveActionDirectoryPort> = Arc::new(
+            ResolveActionDirectoryService::new(Box::new(FetchRemoteActionService::new(fetcher))),
+        );
+        let definition_loader: Arc<dyn LoadActionDefinitionPort> =
+            Arc::new(LoadActionDefinitionService::new());
+        let input_resolver: Arc<dyn ResolveActionInputsPort> =
+            Arc::new(ResolveActionInputsService::new());
+        let composite_runner: Arc<dyn RunCompositeActionPort> = Arc::new(
+            RunCompositeActionService::new(Box::new(RunCompositeStepService::new(
+                Box::new(RunShellStepService::new(event_bus)),
+                command_bus,
             ))),
-            Box::new(LoadActionDefinitionService::new()),
-            Box::new(ResolveActionInputsService::new()),
-            Box::new(RunCompositeActionService::new(Box::new(
-                RunCompositeStepService::new(
-                    Box::new(RunShellStepService::new(event_bus)),
-                    command_bus,
-                ),
+        );
+        let node_runner: Arc<dyn RunNodeActionPort> = Arc::new(RunNodeActionService::new(
+            Box::new(CopyActionToContainerService::new(Box::new(
+                CollectActionFilesService::new(),
             ))),
-            Box::new(RunNodeActionService::new(
-                Box::new(CopyActionToContainerService::new(Box::new(
-                    CollectActionFilesService::new(),
-                ))),
-                Box::new(GitHubActionInputEnvironmentAdapter::new()),
-                Box::new(ResolveNodeBinaryService::new()),
-            )),
-        )
+            Box::new(GitHubActionInputEnvironmentAdapter::new()),
+            Box::new(ResolveNodeBinaryService::new()),
+        ));
+
+        Box::new(move |container: &dyn ContainerPort| {
+            Box::new(ExecuteActionService::new(
+                container,
+                directory_resolver.clone(),
+                definition_loader.clone(),
+                input_resolver.clone(),
+                composite_runner.clone(),
+                node_runner.clone(),
+            ))
+        })
     }
 }

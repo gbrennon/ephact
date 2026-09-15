@@ -36,13 +36,14 @@ impl RunNodeActionService {
 impl RunNodeActionPort for RunNodeActionService {
     fn execute(
         &self,
-        request: RunNodeActionRequest<'_>,
+        request: RunNodeActionRequest,
+        container: &dyn crate::application::ports::outbound::container_port::ContainerPort,
     ) -> Result<RunNodeActionResponse, StepError> {
         let container_dir = self
             .action_copier
             .execute(CopyActionToContainerRequest::new(
                 request.action_dir(),
-                request.container(),
+                container,
             ))?;
 
         let action_request = BuildActionInputEnvironmentRequest::new(
@@ -53,7 +54,7 @@ impl RunNodeActionPort for RunNodeActionService {
         let action_response = self.environment_builder.execute(action_request);
         let binary = self
             .node_binary_resolver
-            .execute(ResolveNodeBinaryRequest::new(request.container()));
+            .execute(ResolveNodeBinaryRequest::new(container));
 
         let entry_point = request.entry_point();
         let command = ShellCommand::new(
@@ -62,8 +63,7 @@ impl RunNodeActionPort for RunNodeActionService {
             action_response.into_env(),
         );
 
-        request
-            .container()
+        container
             .exec(command.argv(), command.working_directory(), command.env())
             .map(|result| {
                 RunNodeActionResponse::new(

@@ -1,4 +1,4 @@
-use std::{error::Error, sync::Arc};
+use std::sync::Arc;
 
 use crate::{
     application::{
@@ -6,6 +6,7 @@ use crate::{
             ExecuteActionResponse, ExecutedStepResponse, JobExecutionResponse,
             WorkflowExecutionResponse,
         },
+        errors::{ExecuteJobError, ExecuteWorkflowError},
         ports::outbound::{
             action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
             job_command_bus_port::JobCommandBusPort, step_command_bus_port::StepCommandBusPort,
@@ -36,13 +37,16 @@ impl WorkflowCommandBusPort for SharedCommandBus {
     fn dispatch(
         &self,
         command: ExecuteWorkflowCommand,
-    ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
+    ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
         WorkflowCommandBusPort::dispatch(&*self.inner, command)
     }
 }
 
 impl JobCommandBusPort for SharedCommandBus {
-    fn dispatch(&self, command: ExecuteJobCommand) -> Result<JobExecutionResponse, Box<dyn Error>> {
+    fn dispatch(
+        &self,
+        command: ExecuteJobCommand,
+    ) -> Result<JobExecutionResponse, ExecuteJobError> {
         JobCommandBusPort::dispatch(&*self.inner, command)
     }
 }

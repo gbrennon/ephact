@@ -1,4 +1,4 @@
-use std::{error::Error, sync::OnceLock};
+use std::sync::OnceLock;
 
 use crate::{
     application::{
@@ -6,6 +6,7 @@ use crate::{
             ExecuteActionResponse, ExecutedStepResponse, JobExecutionResponse,
             WorkflowExecutionResponse,
         },
+        errors::{ExecuteJobError, ExecuteWorkflowError},
         ports::outbound::{
             action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
             job_command_bus_port::JobCommandBusPort, step_command_bus_port::StepCommandBusPort,
@@ -58,25 +59,29 @@ impl DeferredCommandBus {
         StepError::new("command bus used before it was bound".to_string())
     }
 }
-
 impl WorkflowCommandBusPort for DeferredCommandBus {
     fn dispatch(
         &self,
         command: ExecuteWorkflowCommand,
-    ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
+    ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
         let bus = self
             .bound()
-            .ok_or_else(|| -> Box<dyn Error> { Self::unbound().message().to_string().into() })?;
+            .ok_or_else(|| ExecuteWorkflowError::Workflow(Self::unbound().message().to_string()))?;
         WorkflowCommandBusPort::dispatch(bus, command)
+            .map_err(|error| ExecuteWorkflowError::Workflow(error.to_string()))
     }
 }
 
 impl JobCommandBusPort for DeferredCommandBus {
-    fn dispatch(&self, command: ExecuteJobCommand) -> Result<JobExecutionResponse, Box<dyn Error>> {
+    fn dispatch(
+        &self,
+        command: ExecuteJobCommand,
+    ) -> Result<JobExecutionResponse, ExecuteJobError> {
         let bus = self
             .bound()
-            .ok_or_else(|| -> Box<dyn Error> { Self::unbound().message().to_string().into() })?;
+            .ok_or_else(|| ExecuteJobError::Preparation(Self::unbound().message().to_string()))?;
         JobCommandBusPort::dispatch(bus, command)
+            .map_err(|error| ExecuteJobError::Preparation(error.to_string()))
     }
 }
 

@@ -29,12 +29,16 @@ impl ReadStepExportsService {
 }
 
 impl ReadStepExportsPort for ReadStepExportsService {
-    fn execute(&self, request: ReadStepExportsRequest<'_>) -> StepExportsResponse {
+    fn execute(
+        &self,
+        _request: ReadStepExportsRequest,
+        container: &dyn crate::application::ports::outbound::container_port::ContainerPort,
+    ) -> StepExportsResponse {
         StepExportsResponse::new(
             self.path_reader
-                .execute(ReadStepPathExportsRequest::new(request.container())),
+                .execute(ReadStepPathExportsRequest::new(), container),
             self.env_reader
-                .execute(ReadStepEnvExportsRequest::new(request.container())),
+                .execute(ReadStepEnvExportsRequest::new(), container),
         )
     }
 }

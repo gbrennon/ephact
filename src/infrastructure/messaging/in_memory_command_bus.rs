@@ -1,11 +1,10 @@
-use std::error::Error;
-
 use crate::{
     application::{
         dtos::responses::{
             ExecuteActionResponse, ExecutedStepResponse, JobExecutionResponse,
             WorkflowExecutionResponse,
         },
+        errors::{ExecuteJobError, ExecuteWorkflowError},
         ports::outbound::{
             action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
             job_command_bus_port::JobCommandBusPort, step_command_bus_port::StepCommandBusPort,
@@ -54,14 +53,21 @@ impl WorkflowCommandBusPort for InMemoryCommandBus {
     fn dispatch(
         &self,
         command: ExecuteWorkflowCommand,
-    ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
-        self.workflow_handler.handle(command)
+    ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
+        self.workflow_handler
+            .handle(command)
+            .map_err(|error| ExecuteWorkflowError::Workflow(error.to_string()))
     }
 }
 
 impl JobCommandBusPort for InMemoryCommandBus {
-    fn dispatch(&self, command: ExecuteJobCommand) -> Result<JobExecutionResponse, Box<dyn Error>> {
-        self.job_handler.handle(command)
+    fn dispatch(
+        &self,
+        command: ExecuteJobCommand,
+    ) -> Result<JobExecutionResponse, ExecuteJobError> {
+        self.job_handler
+            .handle(command)
+            .map_err(|error| ExecuteJobError::Preparation(error.to_string()))
     }
 }
 

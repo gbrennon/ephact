@@ -31,9 +31,9 @@ impl RunCompositeStepPort for RunCompositeStepService {
     fn execute(
         &self,
         request: RunCompositeStepRequest<'_>,
+        container: &dyn crate::application::ports::outbound::container_port::ContainerPort,
     ) -> Result<ExecResultResponse, StepError> {
         let action_request = request.action_request();
-
         match request.step().uses() {
             Some(nested) => self
                 .command_bus
@@ -43,7 +43,7 @@ impl RunCompositeStepPort for RunCompositeStepService {
                         request.step().clone(),
                         action_request.repo_path().to_path_buf(),
                         action_request.env().clone(),
-                        action_request.container(),
+                        container,
                     )
                     .with_context(request.context().clone()),
                 )
@@ -62,7 +62,7 @@ impl RunCompositeStepPort for RunCompositeStepService {
                 );
                 self.shell_runner.execute(RunShellStepRequest::new(
                     request.step(),
-                    action_request.container(),
+                    container,
                     &action_env,
                 ))
             }
