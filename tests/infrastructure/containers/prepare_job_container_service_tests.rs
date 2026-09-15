@@ -14,7 +14,7 @@ mod tests {
         fake_pull_job_image_port::FakePullJobImagePort,
     };
 
-    fn request<'a>(repo_path: &'a Path) -> PrepareJobContainerRequest {
+    fn request(repo_path: &Path) -> PrepareJobContainerRequest {
         PrepareJobContainerRequest::new(
             "build".to_string(),
             Some("ubuntu-latest".to_string()),
@@ -23,7 +23,7 @@ mod tests {
         )
     }
 
-    fn request_with_writes<'a>(repo_path: &'a Path) -> PrepareJobContainerRequest {
+    fn request_with_writes(repo_path: &Path) -> PrepareJobContainerRequest {
         PrepareJobContainerRequest::new(
             "build".to_string(),
             Some("ubuntu-latest".to_string()),

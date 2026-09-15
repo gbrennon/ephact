@@ -29,9 +29,9 @@ mod tests {
             .into_domain()
     }
 
-    fn action_request<'a>(
-        container: &'a dyn ephact::application::ports::outbound::container_port::ContainerPort,
-    ) -> ExecuteActionRequest<'a> {
+    fn action_request(
+        _container: &dyn ephact::application::ports::outbound::container_port::ContainerPort,
+    ) -> ExecuteActionRequest {
         ExecuteActionRequest::new(ExecuteActionRequestInput::new(
             "./actions/outer",
             step_from("uses: ./actions/outer\n"),
@@ -39,7 +39,6 @@ mod tests {
                 PathBuf::from("/repo"),
                 HashMap::new(),
                 EvaluationContext::new(),
-                container,
             ),
         ))
     }
@@ -63,12 +62,15 @@ mod tests {
         let service = service(FakeCommandBus::new());
 
         service
-            .execute(RunCompositeStepRequest::new(
-                &step,
-                Path::new("/repo/actions/outer"),
-                &request,
-                &EvaluationContext::new(),
-            ))
+            .execute(
+                RunCompositeStepRequest::new(
+                    &step,
+                    Path::new("/repo/actions/outer"),
+                    &request,
+                    &EvaluationContext::new(),
+                ),
+                &container,
+            )
             .unwrap();
 
         assert_eq!(
@@ -88,12 +90,15 @@ mod tests {
         let service = service(command_bus.clone());
 
         let result = service
-            .execute(RunCompositeStepRequest::new(
-                &step,
-                Path::new("/repo/actions/outer"),
-                &request,
-                &EvaluationContext::new(),
-            ))
+            .execute(
+                RunCompositeStepRequest::new(
+                    &step,
+                    Path::new("/repo/actions/outer"),
+                    &request,
+                    &EvaluationContext::new(),
+                ),
+                &container,
+            )
             .unwrap();
 
         assert_eq!(result.stdout(), "nested\n");
@@ -112,12 +117,15 @@ mod tests {
         let service = service(FakeCommandBus::new());
 
         let error = service
-            .execute(RunCompositeStepRequest::new(
-                &step,
-                Path::new("/repo/actions/outer"),
-                &request,
-                &EvaluationContext::new(),
-            ))
+            .execute(
+                RunCompositeStepRequest::new(
+                    &step,
+                    Path::new("/repo/actions/outer"),
+                    &request,
+                    &EvaluationContext::new(),
+                ),
+                &container,
+            )
             .unwrap_err();
 
         assert!(

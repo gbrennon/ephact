@@ -36,13 +36,15 @@ mod tests {
         service(FakeCopyActionToContainerPort::returning(
             "/tmp/actions/cache",
         ))
-        .execute(RunNodeActionRequest::new(
-            Path::new("/repo/actions/cache"),
-            "dist/index.js",
-            &HashMap::new(),
-            &HashMap::new(),
+        .execute(
+            RunNodeActionRequest::new(
+                Path::new("/repo/actions/cache"),
+                "dist/index.js",
+                HashMap::new(),
+                HashMap::new(),
+            ),
             &container,
-        ))
+        )
         .unwrap();
 
         assert_eq!(
@@ -61,13 +63,15 @@ mod tests {
         service(FakeCopyActionToContainerPort::returning(
             "/tmp/actions/cache",
         ))
-        .execute(RunNodeActionRequest::new(
-            Path::new("/repo/actions/cache"),
-            "dist/index.js",
-            &HashMap::new(),
-            &HashMap::new(),
+        .execute(
+            RunNodeActionRequest::new(
+                Path::new("/repo/actions/cache"),
+                "dist/index.js",
+                HashMap::new(),
+                HashMap::new(),
+            ),
             &container,
-        ))
+        )
         .unwrap();
 
         assert_eq!(
@@ -80,16 +84,19 @@ mod tests {
 
     #[test]
     fn execute_propagates_a_copy_failure() {
+        let container = StubRecordingContainer::new();
         let error = service(FakeCopyActionToContainerPort::failing(
             "failed to copy action files",
         ))
-        .execute(RunNodeActionRequest::new(
-            Path::new("/repo/actions/cache"),
-            "dist/index.js",
-            &HashMap::new(),
-            &HashMap::new(),
-            &StubRecordingContainer::new(),
-        ))
+        .execute(
+            RunNodeActionRequest::new(
+                Path::new("/repo/actions/cache"),
+                "dist/index.js",
+                HashMap::new(),
+                HashMap::new(),
+            ),
+            &container,
+        )
         .unwrap_err();
 
         assert_eq!(error.message(), "failed to copy action files");
@@ -100,13 +107,15 @@ mod tests {
         let error = service(FakeCopyActionToContainerPort::returning(
             "/tmp/actions/cache",
         ))
-        .execute(RunNodeActionRequest::new(
-            Path::new("/repo/actions/cache"),
-            "dist/index.js",
-            &HashMap::new(),
-            &HashMap::new(),
+        .execute(
+            RunNodeActionRequest::new(
+                Path::new("/repo/actions/cache"),
+                "dist/index.js",
+                HashMap::new(),
+                HashMap::new(),
+            ),
             &StubFailingContainer,
-        ))
+        )
         .unwrap_err();
 
         assert!(

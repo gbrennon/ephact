@@ -23,10 +23,10 @@ mod tests {
     use ephact::domain::RepositoryName;
     use ephact::domain::aggregates::Workflow;
     use ephact::domain::entities::Job;
-    use ephact::domain::errors::StepError;
     use ephact::domain::messages::commands::{
         ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
     };
+    use ephact::domain::services::step_factory::StepFactory;
     use ephact::domain::value_objects::EvaluationContext;
     use ephact::domain::value_objects::WorkflowTrigger;
     use ephact::infrastructure::actions::ActionCommandHandler;
@@ -42,8 +42,9 @@ mod tests {
     impl ExecuteWorkflowPort for StubWorkflowPort {
         fn execute(
             &self,
-            _request: ephact::application::dtos::requests::ExecuteWorkflowRequest<'_>,
-        ) -> Result<WorkflowExecutionResponse, Box<dyn std::error::Error>> {
+            _request: ephact::application::dtos::requests::ExecuteWorkflowRequest,
+        ) -> Result<WorkflowExecutionResponse, ephact::application::errors::ExecuteWorkflowError>
+        {
             Ok(WorkflowExecutionResponse::new(
                 "dispatched-wf".to_string(),
                 Vec::new(),
@@ -57,8 +58,10 @@ mod tests {
     impl ExecuteJobPort for StubJobPort {
         fn execute(
             &self,
-            _request: ephact::application::dtos::requests::ExecuteJobRequest<'_>,
-        ) -> Result<JobExecutionResponse, Box<dyn std::error::Error>> {
+            _request: ephact::application::dtos::requests::ExecuteJobRequest,
+            _run: &ephact::domain::entities::JobRun,
+            _workflow: &ephact::domain::aggregates::Workflow,
+        ) -> Result<JobExecutionResponse, ephact::application::errors::ExecuteJobError> {
             Ok(JobExecutionResponse::new(
                 JobSummaryResponse::new(
                     "j1".to_string(),
@@ -75,10 +78,10 @@ mod tests {
     impl ExecuteStepPort for StubStepPort {
         fn execute(
             &self,
-            request: ephact::application::dtos::requests::ExecuteStepRequest<'_>,
-        ) -> Result<ExecutedStepResponse, StepError> {
+            request: ephact::application::dtos::requests::ExecuteStepRequest,
+        ) -> Result<ExecutedStepResponse, ephact::application::errors::ExecuteStepError> {
             Ok(ExecutedStepResponse::new(
-                request.step().clone(),
+                StepFactory::from_text(request.step()).unwrap(),
                 ExecuteActionResponse::new(0, "step out".to_string(), String::new()),
             ))
         }
@@ -88,8 +91,9 @@ mod tests {
     impl ExecuteActionPort for StubActionPort {
         fn execute(
             &self,
-            _request: ExecuteActionRequest<'_>,
-        ) -> Result<ExecuteActionResponse, StepError> {
+            _request: ExecuteActionRequest,
+        ) -> Result<ExecuteActionResponse, ephact::application::errors::ExecuteActionError>
+        {
             Ok(ExecuteActionResponse::new(
                 0,
                 "action out".to_string(),
@@ -103,8 +107,12 @@ mod tests {
         let bus = InMemoryCommandBus::new(
             Box::new(WorkflowCommandHandler::new(Box::new(StubWorkflowPort))),
             Box::new(JobCommandHandler::new(Box::new(StubJobPort))),
-            Box::new(StepCommandHandler::new(Box::new(StubStepPort))),
-            Box::new(ActionCommandHandler::new(Box::new(StubActionPort))),
+            Box::new(StepCommandHandler::new(Box::new(|_| {
+                Box::new(StubStepPort)
+            }))),
+            Box::new(ActionCommandHandler::new(Box::new(|_| {
+                Box::new(StubActionPort)
+            }))),
         );
 
         let tmp = tempfile::tempdir().unwrap();
@@ -131,8 +139,12 @@ mod tests {
         let bus = InMemoryCommandBus::new(
             Box::new(WorkflowCommandHandler::new(Box::new(StubWorkflowPort))),
             Box::new(JobCommandHandler::new(Box::new(StubJobPort))),
-            Box::new(StepCommandHandler::new(Box::new(StubStepPort))),
-            Box::new(ActionCommandHandler::new(Box::new(StubActionPort))),
+            Box::new(StepCommandHandler::new(Box::new(|_| {
+                Box::new(StubStepPort)
+            }))),
+            Box::new(ActionCommandHandler::new(Box::new(|_| {
+                Box::new(StubActionPort)
+            }))),
         );
 
         let step = serde_yaml::from_str::<StepYaml>("uses: actions/checkout@v4")
@@ -158,12 +170,14 @@ mod tests {
     impl ExecuteJobPort for EchoJobPort {
         fn execute(
             &self,
-            request: ephact::application::dtos::requests::ExecuteJobRequest<'_>,
-        ) -> Result<JobExecutionResponse, Box<dyn std::error::Error>> {
+            request: ephact::application::dtos::requests::ExecuteJobRequest,
+            run: &ephact::domain::entities::JobRun,
+            _workflow: &ephact::domain::aggregates::Workflow,
+        ) -> Result<JobExecutionResponse, ephact::application::errors::ExecuteJobError> {
             Ok(JobExecutionResponse::new(
                 JobSummaryResponse::new(
-                    request.run().job_id().to_string(),
-                    request.run().workflow_name().map(str::to_string),
+                    run.job_id().to_string(),
+                    run.workflow_name().map(str::to_string),
                     Vec::new(),
                     true,
                 ),
@@ -177,10 +191,10 @@ mod tests {
     impl ExecuteStepPort for EchoStepPort {
         fn execute(
             &self,
-            request: ephact::application::dtos::requests::ExecuteStepRequest<'_>,
-        ) -> Result<ExecutedStepResponse, StepError> {
+            request: ephact::application::dtos::requests::ExecuteStepRequest,
+        ) -> Result<ExecutedStepResponse, ephact::application::errors::ExecuteStepError> {
             Ok(ExecutedStepResponse::new(
-                request.step().clone(),
+                StepFactory::from_text(request.step()).unwrap(),
                 ExecuteActionResponse::new(
                     0,
                     request.env().get("MARKER").cloned().unwrap_or_default(),
@@ -204,8 +218,12 @@ mod tests {
         let bus = InMemoryCommandBus::new(
             Box::new(WorkflowCommandHandler::new(Box::new(StubWorkflowPort))),
             Box::new(JobCommandHandler::new(Box::new(EchoJobPort))),
-            Box::new(StepCommandHandler::new(Box::new(StubStepPort))),
-            Box::new(ActionCommandHandler::new(Box::new(StubActionPort))),
+            Box::new(StepCommandHandler::new(Box::new(|_| {
+                Box::new(StubStepPort)
+            }))),
+            Box::new(ActionCommandHandler::new(Box::new(|_| {
+                Box::new(StubActionPort)
+            }))),
         );
         let repo_path = PathBuf::from("/repo/job");
         let command = ExecuteJobCommand::new(
@@ -230,8 +248,12 @@ mod tests {
         let bus = InMemoryCommandBus::new(
             Box::new(WorkflowCommandHandler::new(Box::new(StubWorkflowPort))),
             Box::new(JobCommandHandler::new(Box::new(StubJobPort))),
-            Box::new(StepCommandHandler::new(Box::new(EchoStepPort))),
-            Box::new(ActionCommandHandler::new(Box::new(StubActionPort))),
+            Box::new(StepCommandHandler::new(Box::new(|_| {
+                Box::new(EchoStepPort)
+            }))),
+            Box::new(ActionCommandHandler::new(Box::new(|_| {
+                Box::new(StubActionPort)
+            }))),
         );
         let step = serde_yaml::from_str::<StepYaml>("run: echo hello")
             .unwrap()
