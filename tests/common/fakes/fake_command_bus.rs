@@ -237,9 +237,9 @@ impl JobCommandBusPort for FakeCommandBus {
 }
 
 impl StepCommandBusPort for FakeCommandBus {
-    fn dispatch<'a>(
+    fn dispatch(
         &self,
-        cmd: ExecuteStepCommand<'a, dyn ContainerPort>,
+        cmd: ExecuteStepCommand<dyn ContainerPort>,
     ) -> Result<ExecutedStepResponse, StepError> {
         let (step, env, context, _container, repo_path) = cmd.into_parts();
         self.dispatched_steps
@@ -265,9 +265,9 @@ impl StepCommandBusPort for FakeCommandBus {
 }
 
 impl ActionCommandBusPort for FakeCommandBus {
-    fn dispatch<'a>(
+    fn dispatch(
         &self,
-        cmd: ExecuteActionCommand<'a, dyn ContainerPort>,
+        cmd: ExecuteActionCommand<dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {
         let (action_ref, step, repo_path, env, context, _container) = cmd.into_parts();
         self.dispatched_actions
