@@ -17,7 +17,7 @@ impl FakeResolveNodeBinaryPort {
 }
 
 impl ResolveNodeBinaryPort for FakeResolveNodeBinaryPort {
-    fn execute(&self, _request: ResolveNodeBinaryRequest<'_>) -> String {
+    fn execute(&self, _request: ResolveNodeBinaryRequest) -> String {
         self.binary.clone()
     }
 }
