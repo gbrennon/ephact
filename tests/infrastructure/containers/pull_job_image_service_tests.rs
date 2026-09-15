@@ -19,7 +19,7 @@ mod tests {
         let service = PullJobImageService::new(runtime.clone(), Arc::new(FakeImageMapper));
 
         let image = service
-            .execute(PullJobImageRequest::new(Some("ubuntu-22.04")))
+            .execute(PullJobImageRequest::new(Some("ubuntu-22.04".to_string())))
             .unwrap();
 
         assert_eq!(image, "ubuntu-22.04");
