@@ -4,7 +4,7 @@ mod tests {
         application::ports::outbound::run_node_action_port::RunNodeActionPort,
         infrastructure::actions::run_node_action_service::RunNodeActionService,
     };
-    use std::{collections::HashMap, path::Path};
+    use std::{collections::HashMap, path::Path, sync::Arc};
 
     use crate::common::fakes::{
         fake_build_action_input_environment_port::FakeBuildActionInputEnvironmentPort,
@@ -43,7 +43,7 @@ mod tests {
                 HashMap::new(),
                 HashMap::new(),
             ),
-            &container,
+            Arc::new(container.clone()),
         )
         .unwrap();
 
@@ -70,7 +70,7 @@ mod tests {
                 HashMap::new(),
                 HashMap::new(),
             ),
-            &container,
+            Arc::new(container.clone()),
         )
         .unwrap();
 
@@ -95,7 +95,7 @@ mod tests {
                 HashMap::new(),
                 HashMap::new(),
             ),
-            &container,
+            Arc::new(container),
         )
         .unwrap_err();
 
@@ -114,7 +114,7 @@ mod tests {
                 HashMap::new(),
                 HashMap::new(),
             ),
-            &StubFailingContainer,
+            Arc::new(StubFailingContainer),
         )
         .unwrap_err();
 
