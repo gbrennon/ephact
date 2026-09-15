@@ -1,7 +1,7 @@
 use crate::application::dtos::requests::RunShellStepRequest;
 use crate::application::dtos::responses::ExecResultResponse;
 use crate::application::ports::outbound::container_port::ExecOptions;
-use crate::application::ports::outbound::event_bus_port::DomainEventBusPort;
+use crate::application::ports::outbound::domain_event_bus_port::DomainEventBusPort;
 use crate::application::ports::outbound::run_shell_step_port::RunShellStepPort;
 use crate::domain::errors::StepError;
 use crate::domain::messages::events::DomainEvent;
@@ -13,11 +13,11 @@ use crate::domain::value_objects::ShellCommand;
 /// relaying the step's output as [`DomainEvent::StepOutput`] events while it
 /// runs.
 pub struct RunShellStepService {
-    event_bus: Box<DomainEventBusPort>,
+    event_bus: Box<dyn DomainEventBusPort>,
 }
 
 impl RunShellStepService {
-    pub fn new(event_bus: Box<DomainEventBusPort>) -> Self {
+    pub fn new(event_bus: Box<dyn DomainEventBusPort>) -> Self {
         Self { event_bus }
     }
 

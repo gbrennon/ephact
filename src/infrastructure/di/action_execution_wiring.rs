@@ -1,7 +1,8 @@
 use crate::{
     application::{
         ports::outbound::{
-            command_bus_port::ActionCommandBusPort, event_bus_port::DomainEventBusPort,
+            action_command_bus_port::ActionCommandBusPort,
+            domain_event_bus_port::DomainEventBusPort,
         },
         services::execute_action_service::ExecuteActionService,
     },
@@ -37,8 +38,8 @@ impl ActionExecutionWiring {
     #[must_use]
     pub fn build(
         fetcher: Box<dyn ActionFetcherPort>,
-        command_bus: Box<ActionCommandBusPort>,
-        event_bus: Box<DomainEventBusPort>,
+        command_bus: Box<dyn ActionCommandBusPort>,
+        event_bus: Box<dyn DomainEventBusPort>,
     ) -> ExecuteActionService {
         ExecuteActionService::new(
             Box::new(ResolveActionDirectoryService::new(Box::new(
