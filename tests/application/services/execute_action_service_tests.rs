@@ -31,13 +31,15 @@ mod tests {
         )
     }
 
-    fn container(runtime: &FakeRuntime) -> Box<dyn ContainerPort> {
-        runtime
-            .create_container(&ContainerConfigResponse::new(
-                "image",
-                ContainerConfigOptions::default(),
-            ))
-            .unwrap()
+    fn container(runtime: &FakeRuntime) -> Arc<dyn ContainerPort> {
+        Arc::from(
+            runtime
+                .create_container(&ContainerConfigResponse::new(
+                    "image",
+                    ContainerConfigOptions::default(),
+                ))
+                .unwrap(),
+        )
     }
 
     fn step_from(yaml: &str) -> Step {
@@ -83,7 +85,7 @@ mod tests {
         let container = container(&runtime);
 
         let service =
-            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.as_ref());
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
 
         let response = service
             .execute(request(
@@ -110,7 +112,7 @@ mod tests {
         let container = container(&runtime);
 
         let service =
-            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.as_ref());
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
 
         service
             .execute(request(
@@ -138,7 +140,7 @@ mod tests {
         let container = container(&runtime);
 
         let service =
-            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.as_ref());
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
 
         service
             .execute(request(
@@ -167,7 +169,7 @@ mod tests {
         let context = EvaluationContext::new().with_secrets(secrets);
         let container = container(&runtime);
         let service =
-            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.as_ref());
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
 
         service
             .execute(request(
@@ -196,7 +198,7 @@ mod tests {
         let container = container(&runtime);
 
         let service =
-            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.as_ref());
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
 
         let response = service
             .execute(request(
@@ -223,7 +225,7 @@ mod tests {
         let fetcher = FakeActionFetcher::returning(mirror.path().into());
         let container = container(&runtime);
 
-        let service = wiring(Box::new(fetcher))(container.as_ref());
+        let service = wiring(Box::new(fetcher))(container.clone());
 
         let response = service
             .execute(request(
@@ -254,9 +256,8 @@ mod tests {
         let runtime = FakeRuntime::new();
         let container = container(&runtime);
 
-        let service = wiring(Box::new(FakeActionFetcher::returning(mirror.path().into())))(
-            container.as_ref(),
-        );
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(mirror.path().into())))(container.clone());
 
         let response = service
             .execute(request(
@@ -307,9 +308,8 @@ mod tests {
         push_result(&runtime, 0, "cached\n");
         let container = container(&runtime);
 
-        let service = wiring(Box::new(FakeActionFetcher::returning(mirror.path().into())))(
-            container.as_ref(),
-        );
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(mirror.path().into())))(container.clone());
 
         let response = service
             .execute(request(
@@ -340,7 +340,7 @@ mod tests {
         let container = container(&runtime);
 
         let service =
-            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.as_ref());
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
 
         let response = service
             .execute(request(
@@ -366,7 +366,7 @@ mod tests {
         let runtime = FakeRuntime::new();
         let container = container(&runtime);
 
-        let service = wiring(Box::new(StubFailingActionFetcher))(container.as_ref());
+        let service = wiring(Box::new(StubFailingActionFetcher))(container.clone());
 
         let error = service
             .execute(request(
@@ -391,7 +391,7 @@ mod tests {
         let container = container(&runtime);
 
         let service =
-            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.as_ref());
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
 
         let error = service
             .execute(request(
@@ -416,7 +416,7 @@ mod tests {
         let container = container(&runtime);
 
         let service =
-            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.as_ref());
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
 
         let error = service
             .execute(request(
@@ -454,7 +454,7 @@ mod tests {
         ));
         command_bus.bind(service.clone());
         let container = container(&runtime);
-        let executor = service(container.as_ref());
+        let executor = service(container.clone());
 
         let response = executor
             .execute(request(
