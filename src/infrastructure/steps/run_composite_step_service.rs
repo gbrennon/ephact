@@ -1,7 +1,10 @@
+use std::sync::Arc;
+
 use crate::application::dtos::requests::RunCompositeStepRequest;
 use crate::application::dtos::requests::RunShellStepRequest;
 use crate::application::dtos::responses::ExecResultResponse;
 use crate::application::ports::outbound::action_command_bus_port::ActionCommandBusPort;
+use crate::application::ports::outbound::container_port::ContainerPort;
 use crate::application::ports::outbound::run_shell_step_port::RunShellStepPort;
 use crate::domain::errors::StepError;
 use crate::domain::messages::commands::ExecuteActionCommand;
@@ -31,7 +34,7 @@ impl RunCompositeStepPort for RunCompositeStepService {
     fn execute(
         &self,
         request: RunCompositeStepRequest<'_>,
-        container: &dyn crate::application::ports::outbound::container_port::ContainerPort,
+        container: Arc<dyn ContainerPort>,
     ) -> Result<ExecResultResponse, StepError> {
         let action_request = request.action_request();
         match request.step().uses() {
@@ -43,7 +46,7 @@ impl RunCompositeStepPort for RunCompositeStepService {
                         request.step().clone(),
                         action_request.repo_path().to_path_buf(),
                         action_request.env().clone(),
-                        container,
+                        container.clone(),
                     )
                     .with_context(request.context().clone()),
                 )
@@ -62,7 +65,7 @@ impl RunCompositeStepPort for RunCompositeStepService {
                 );
                 self.shell_runner.execute(RunShellStepRequest::new(
                     request.step(),
-                    container,
+                    container.as_ref(),
                     &action_env,
                 ))
             }
