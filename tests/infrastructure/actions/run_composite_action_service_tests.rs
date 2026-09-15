@@ -7,6 +7,7 @@ mod tests {
     use std::{
         collections::HashMap,
         path::{Path, PathBuf},
+        sync::Arc,
     };
 
     use ephact::application::dtos::requests::RunCompositeActionRequest;
@@ -67,7 +68,7 @@ mod tests {
                     Path::new("/repo/actions/outer"),
                     &request_owner,
                 ),
-                &container,
+                Arc::new(container),
             )
             .unwrap();
 
@@ -91,7 +92,7 @@ mod tests {
                     Path::new("/repo/actions/outer"),
                     &request_owner,
                 ),
-                &container,
+                Arc::new(container),
             )
             .unwrap();
 
@@ -119,7 +120,7 @@ mod tests {
                     Path::new("/repo/actions/outer"),
                     &request_owner,
                 ),
-                &container,
+                Arc::new(container),
             )
             .unwrap_err();
 
@@ -145,7 +146,7 @@ mod tests {
                     Path::new("/repo/actions/outer"),
                     &request_owner,
                 ),
-                &container,
+                Arc::new(container),
             )
             .unwrap();
 
