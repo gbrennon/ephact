@@ -19,9 +19,9 @@ impl ActionCommandHandler {
         Self { executor_factory }
     }
 
-    pub fn handle<'a>(
+    pub fn handle(
         &self,
-        cmd: ExecuteActionCommand<'a, dyn ContainerPort>,
+        cmd: ExecuteActionCommand<dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {
         let (action_ref, step, repo_path, env, context, container) = cmd.into_parts();
         let req = ExecuteActionRequest::new(ExecuteActionRequestInput::new(
