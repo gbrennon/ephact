@@ -15,15 +15,15 @@ use crate::domain::services::StepInterpolator;
 use crate::domain::services::evaluation_context_mapper::EvaluationContextMapper;
 use crate::domain::services::step_factory::StepFactory;
 
-pub struct ExecuteStepService<'container> {
-    container: &'container dyn ContainerPort,
+pub struct ExecuteStepService {
+    container: Arc<dyn ContainerPort>,
     shell_runner: Arc<dyn RunShellStepPort>,
     command_bus: Arc<dyn ActionCommandBusPort>,
 }
 
-impl<'container> ExecuteStepService<'container> {
+impl ExecuteStepService {
     pub fn new(
-        container: &'container dyn ContainerPort,
+        container: Arc<dyn ContainerPort>,
         shell_runner: Arc<dyn RunShellStepPort>,
         command_bus: Arc<dyn ActionCommandBusPort>,
     ) -> Self {
@@ -47,7 +47,7 @@ impl<'container> ExecuteStepService<'container> {
                     step.clone(),
                     request.repo_path().to_path_buf(),
                     request.env().clone(),
-                    self.container,
+                    self.container.clone(),
                 )
                 .with_context(context.clone()),
             );
@@ -55,7 +55,7 @@ impl<'container> ExecuteStepService<'container> {
 
         let result = self.shell_runner.execute(RunShellStepRequest::new(
             step,
-            self.container,
+            self.container.as_ref(),
             request.env(),
         ))?;
         Ok(ExecuteActionResponse::new(
@@ -66,7 +66,7 @@ impl<'container> ExecuteStepService<'container> {
     }
 }
 
-impl ExecuteStepPort for ExecuteStepService<'_> {
+impl ExecuteStepPort for ExecuteStepService {
     fn execute(
         &self,
         request: ExecuteStepRequest,
