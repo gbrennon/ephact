@@ -1,7 +1,7 @@
 use crate::application::dtos::requests::RunActionRequest;
 use crate::application::dtos::responses::ExecuteActionResponse;
 use crate::application::ports::inbound::RunActionPort;
-use crate::application::ports::outbound::command_bus_port::ActionCommandBusPort;
+use crate::application::ports::outbound::action_command_bus_port::ActionCommandBusPort;
 use crate::domain::errors::StepError;
 use crate::domain::messages::commands::ExecuteActionCommand;
 
@@ -9,11 +9,11 @@ use crate::domain::messages::commands::ExecuteActionCommand;
 ///
 /// Depends only on outbound ports (`ActionCommandBusPort`).
 pub struct RunActionService {
-    command_bus: Box<ActionCommandBusPort>,
+    command_bus: Box<dyn ActionCommandBusPort>,
 }
 
 impl RunActionService {
-    pub fn new(command_bus: Box<ActionCommandBusPort>) -> Self {
+    pub fn new(command_bus: Box<dyn ActionCommandBusPort>) -> Self {
         Self { command_bus }
     }
 }

@@ -4,8 +4,8 @@ use crate::application::dtos::requests::ExecuteWorkflowRequest;
 use crate::application::dtos::requests::LoadWorkflowRequest;
 use crate::application::dtos::responses::WorkflowExecutionResponse;
 use crate::application::ports::inbound::execute_workflow_port::ExecuteWorkflowPort;
-use crate::application::ports::outbound::command_bus_port::JobCommandBusPort;
-use crate::application::ports::outbound::event_bus_port::DomainEventBusPort;
+use crate::application::ports::outbound::domain_event_bus_port::DomainEventBusPort;
+use crate::application::ports::outbound::job_command_bus_port::JobCommandBusPort;
 use crate::application::ports::outbound::load_workflow_port::LoadWorkflowPort;
 use crate::domain::entities::JobRun;
 use crate::domain::messages::commands::ExecuteJobCommand;
@@ -24,8 +24,8 @@ use crate::domain::services::ExecutionPlanner;
 /// announced as domain events on the outbound [`DomainEventBusPort`].
 pub struct ExecuteWorkflowService {
     workflow_loader: Box<dyn LoadWorkflowPort>,
-    command_bus: Box<JobCommandBusPort>,
-    event_bus: Box<DomainEventBusPort>,
+    command_bus: Box<dyn JobCommandBusPort>,
+    event_bus: Box<dyn DomainEventBusPort>,
 }
 
 struct JobExecutionInput<'a> {
@@ -57,8 +57,8 @@ impl<'a> JobExecutionInput<'a> {
 impl ExecuteWorkflowService {
     pub fn new(
         workflow_loader: Box<dyn LoadWorkflowPort>,
-        command_bus: Box<JobCommandBusPort>,
-        event_bus: Box<DomainEventBusPort>,
+        command_bus: Box<dyn JobCommandBusPort>,
+        event_bus: Box<dyn DomainEventBusPort>,
     ) -> Self {
         Self {
             workflow_loader,

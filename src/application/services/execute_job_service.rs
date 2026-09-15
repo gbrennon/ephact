@@ -13,11 +13,11 @@ use crate::application::dtos::responses::{PreparedJobContainerResponse, StepSumm
 use crate::application::ports::inbound::execute_job_port::ExecuteJobPort;
 use crate::application::ports::outbound::build_job_environment_port::BuildJobEnvironmentPort;
 use crate::application::ports::outbound::build_step_context_port::BuildStepContextPort;
-use crate::application::ports::outbound::command_bus_port::StepCommandBusPort;
-use crate::application::ports::outbound::event_bus_port::DomainEventBusPort;
+use crate::application::ports::outbound::domain_event_bus_port::DomainEventBusPort;
 use crate::application::ports::outbound::prefix_step_path_port::PrefixStepPathPort;
 use crate::application::ports::outbound::prepare_job_container_port::PrepareJobContainerPort;
 use crate::application::ports::outbound::read_step_exports_port::ReadStepExportsPort;
+use crate::application::ports::outbound::step_command_bus_port::StepCommandBusPort;
 use crate::application::ports::outbound::summarize_step_port::SummarizeStepPort;
 use crate::domain::messages::commands::ExecuteStepCommand;
 use crate::domain::messages::events::StepStartedPayload;
@@ -39,8 +39,8 @@ pub struct ExecuteJobService {
     step_context_builder: Box<dyn BuildStepContextPort>,
     step_summarizer: Box<dyn SummarizeStepPort>,
     step_exports_reader: Box<dyn ReadStepExportsPort>,
-    command_bus: Box<StepCommandBusPort>,
-    event_bus: Box<DomainEventBusPort>,
+    command_bus: Box<dyn StepCommandBusPort>,
+    event_bus: Box<dyn DomainEventBusPort>,
 }
 
 pub type ExecuteJobStepDependencies = (
@@ -49,7 +49,8 @@ pub type ExecuteJobStepDependencies = (
     Box<dyn SummarizeStepPort>,
     Box<dyn ReadStepExportsPort>,
 );
-pub type ExecuteJobMessagingDependencies = (Box<StepCommandBusPort>, Box<DomainEventBusPort>);
+pub type ExecuteJobMessagingDependencies =
+    (Box<dyn StepCommandBusPort>, Box<dyn DomainEventBusPort>);
 
 pub struct ExecuteJobDependencies {
     job_environment_builder: Box<dyn BuildJobEnvironmentPort>,
@@ -58,8 +59,8 @@ pub struct ExecuteJobDependencies {
     step_context_builder: Box<dyn BuildStepContextPort>,
     step_summarizer: Box<dyn SummarizeStepPort>,
     step_exports_reader: Box<dyn ReadStepExportsPort>,
-    command_bus: Box<StepCommandBusPort>,
-    event_bus: Box<DomainEventBusPort>,
+    command_bus: Box<dyn StepCommandBusPort>,
+    event_bus: Box<dyn DomainEventBusPort>,
 }
 
 impl ExecuteJobDependencies {

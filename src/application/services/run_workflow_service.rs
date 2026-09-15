@@ -7,8 +7,8 @@ use crate::application::dtos::responses::{RunSummaryResponse, WorkflowExecutionR
 use crate::application::ports::inbound::RunWorkflowPort;
 use crate::application::ports::outbound::DetectWorkflowTriggerPort;
 use crate::application::ports::outbound::WorkflowSourcePort;
-use crate::application::ports::outbound::command_bus_port::WorkflowCommandBusPort;
-use crate::application::ports::outbound::event_bus_port::DomainEventBusPort;
+use crate::application::ports::outbound::domain_event_bus_port::DomainEventBusPort;
+use crate::application::ports::outbound::workflow_command_bus_port::WorkflowCommandBusPort;
 use crate::application::services::pull_request_workflow::PULL_REQUEST_EVENT_NAME;
 use crate::application::services::pull_request_workflow::config_for_pull_request_event;
 use crate::domain::messages::events::ActRunCompletedPayload;
@@ -24,8 +24,8 @@ use crate::domain::{Repository, value_objects::act_run_config::ActRunConfig};
 /// outbound [`DomainEventBusPort`].
 pub struct RunWorkflowService {
     workflow_source: Box<dyn WorkflowSourcePort>,
-    command_bus: Box<WorkflowCommandBusPort>,
-    event_bus: Box<DomainEventBusPort>,
+    command_bus: Box<dyn WorkflowCommandBusPort>,
+    event_bus: Box<dyn DomainEventBusPort>,
     trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
 }
 
@@ -61,8 +61,8 @@ impl RunExecutionContext {
 impl RunWorkflowService {
     pub fn new(
         workflow_source: Box<dyn WorkflowSourcePort>,
-        command_bus: Box<WorkflowCommandBusPort>,
-        event_bus: Box<DomainEventBusPort>,
+        command_bus: Box<dyn WorkflowCommandBusPort>,
+        event_bus: Box<dyn DomainEventBusPort>,
         trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
     ) -> Self {
         Self {

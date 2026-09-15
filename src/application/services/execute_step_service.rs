@@ -3,7 +3,7 @@ use crate::application::dtos::requests::RunShellStepRequest;
 use crate::application::dtos::responses::ExecuteActionResponse;
 use crate::application::dtos::responses::ExecutedStepResponse;
 use crate::application::ports::inbound::execute_step_port::ExecuteStepPort;
-use crate::application::ports::outbound::command_bus_port::ActionCommandBusPort;
+use crate::application::ports::outbound::action_command_bus_port::ActionCommandBusPort;
 use crate::application::ports::outbound::run_shell_step_port::RunShellStepPort;
 use crate::domain::errors::StepError;
 use crate::domain::messages::commands::ExecuteActionCommand;
@@ -16,13 +16,13 @@ use crate::domain::services::StepInterpolator;
 /// step references an action: the action command handler owns that execution.
 pub struct ExecuteStepService {
     shell_runner: Box<dyn RunShellStepPort>,
-    command_bus: Box<ActionCommandBusPort>,
+    command_bus: Box<dyn ActionCommandBusPort>,
 }
 
 impl ExecuteStepService {
     pub fn new(
         shell_runner: Box<dyn RunShellStepPort>,
-        command_bus: Box<ActionCommandBusPort>,
+        command_bus: Box<dyn ActionCommandBusPort>,
     ) -> Self {
         Self {
             shell_runner,
