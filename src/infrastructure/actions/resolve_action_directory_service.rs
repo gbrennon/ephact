@@ -58,7 +58,7 @@ impl ResolveActionDirectoryPort for ResolveActionDirectoryService {
             ),
             ActionReference::Remote(remote) => Ok(ResolvedActionDirectoryResponse::Directory(
                 self.remote_fetcher
-                    .execute(FetchRemoteActionRequest::new(remote))
+                    .execute(FetchRemoteActionRequest::new(remote.clone()))
                     .map_err(|error| StepError::new(error.to_string()))?,
             )),
         }
