@@ -2,7 +2,6 @@
 use parking_lot::Mutex;
 use std::{
     collections::HashMap,
-    error::Error,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -13,6 +12,7 @@ use ephact::{
             ExecuteActionResponse, ExecutedStepResponse, JobExecutionResponse, JobSummaryResponse,
             WorkflowExecutionResponse,
         },
+        errors::{ExecuteJobError, ExecuteWorkflowError},
         ports::outbound::{
             action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
             job_command_bus_port::JobCommandBusPort, step_command_bus_port::StepCommandBusPort,
@@ -202,7 +202,7 @@ impl WorkflowCommandBusPort for FakeCommandBus {
     fn dispatch(
         &self,
         cmd: ExecuteWorkflowCommand,
-    ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
+    ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
         self.dispatched_workflows.lock().push(cmd);
         Ok(self
             .workflow_result
@@ -217,12 +217,12 @@ impl WorkflowCommandBusPort for FakeCommandBus {
 }
 
 impl JobCommandBusPort for FakeCommandBus {
-    fn dispatch(&self, cmd: ExecuteJobCommand) -> Result<JobExecutionResponse, Box<dyn Error>> {
+    fn dispatch(&self, cmd: ExecuteJobCommand) -> Result<JobExecutionResponse, ExecuteJobError> {
         let job_id = cmd.job_id().to_owned();
         let name = cmd.job().name().map(|s| s.to_owned());
         self.dispatched_jobs.lock().push(cmd);
         if let Some(message) = &self.job_error {
-            return Err(message.clone().into());
+            return Err(ExecuteJobError::Preparation(message.clone()));
         }
         Ok(JobExecutionResponse::new(
             JobSummaryResponse::new(

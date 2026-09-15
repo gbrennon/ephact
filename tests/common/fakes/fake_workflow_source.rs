@@ -1,7 +1,8 @@
 #![allow(dead_code)]
-use std::{error::Error, sync::Arc};
+use std::sync::Arc;
 
 use ephact::application::dtos::responses::WorkflowListItemResponse;
+use ephact::application::errors::WorkflowSourceError;
 use ephact::application::ports::outbound::WorkflowSourcePort;
 use ephact::domain::Repository;
 use parking_lot::Mutex;
@@ -97,36 +98,39 @@ impl WorkflowSourcePort for FakeWorkflowSource {
         &self,
         repository: &Repository,
         workflow_name: Option<&str>,
-    ) -> Result<String, Box<dyn Error>> {
+    ) -> Result<String, WorkflowSourceError> {
         let mut state = self.state.lock();
         state
             .read_workflow_calls
             .push((repository.clone(), workflow_name.map(str::to_string)));
 
         if let Some(message) = state.read_workflow_error.clone() {
-            return Err(message.into());
+            return Err(WorkflowSourceError::NotFound(message));
         }
 
         Ok(state.workflow_content.clone())
     }
 
-    fn read_all_workflows(&self, repository: &Repository) -> Result<Vec<String>, Box<dyn Error>> {
+    fn read_all_workflows(
+        &self,
+        repository: &Repository,
+    ) -> Result<Vec<String>, WorkflowSourceError> {
         let mut state = self.state.lock();
         state.read_all_workflows_calls.push(repository.clone());
 
         if let Some(message) = state.read_all_workflows_error.clone() {
-            return Err(message.into());
+            return Err(WorkflowSourceError::NotFound(message));
         }
 
         Ok(state.all_workflow_contents.clone())
     }
 
-    fn list_actions(&self, repository: &Repository) -> Result<Vec<String>, Box<dyn Error>> {
+    fn list_actions(&self, repository: &Repository) -> Result<Vec<String>, WorkflowSourceError> {
         let mut state = self.state.lock();
         state.list_actions_calls.push(repository.clone());
 
         if let Some(message) = state.list_actions_error.clone() {
-            return Err(message.into());
+            return Err(WorkflowSourceError::NotFound(message));
         }
 
         Ok(state.actions.clone())
@@ -135,12 +139,12 @@ impl WorkflowSourcePort for FakeWorkflowSource {
     fn list_workflows(
         &self,
         repository: &Repository,
-    ) -> Result<Vec<WorkflowListItemResponse>, Box<dyn Error>> {
+    ) -> Result<Vec<WorkflowListItemResponse>, WorkflowSourceError> {
         let mut state = self.state.lock();
         state.list_workflows_calls.push(repository.clone());
 
         if let Some(message) = state.list_workflows_error.clone() {
-            return Err(message.into());
+            return Err(WorkflowSourceError::NotFound(message));
         }
 
         Ok(state.workflows.clone())

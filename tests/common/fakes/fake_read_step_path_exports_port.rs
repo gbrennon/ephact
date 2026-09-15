@@ -28,7 +28,11 @@ impl FakeReadStepPathExportsPort {
 }
 
 impl ReadStepPathExportsPort for FakeReadStepPathExportsPort {
-    fn execute(&self, _request: ReadStepPathExportsRequest<'_>) -> Vec<String> {
+    fn execute(
+        &self,
+        _request: ReadStepPathExportsRequest,
+        _container: &dyn ephact::application::ports::outbound::ContainerPort,
+    ) -> Vec<String> {
         self.called.store(true, Ordering::SeqCst);
         self.additions.clone()
     }

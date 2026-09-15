@@ -16,7 +16,7 @@ impl ListActionsPort for FakeListActionsPort {
     fn execute(
         &self,
         _request: ListActionsRequest,
-    ) -> Result<ListActionsResponse, Box<dyn std::error::Error>> {
+    ) -> Result<ListActionsResponse, ephact::application::errors::ListActionsError> {
         Ok(ListActionsResponse::new(vec![]))
     }
 }

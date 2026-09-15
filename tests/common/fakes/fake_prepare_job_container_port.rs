@@ -1,12 +1,12 @@
 #![allow(dead_code)]
+use ephact::application::errors::PrepareJobContainerError;
 use ephact::application::ports::outbound::prepare_job_container_port::PrepareJobContainerPort;
 use parking_lot::Mutex;
-use std::{error::Error, sync::Arc};
-
-use ephact::application::dtos::requests::PrepareJobContainerRequest;
-use ephact::application::dtos::responses::PreparedJobContainerResponse;
+use std::sync::Arc;
 
 use super::stub_container::StubContainer;
+use ephact::application::dtos::requests::PrepareJobContainerRequest;
+use ephact::application::dtos::responses::PreparedJobContainerResponse;
 
 /// Prepares a stub container under a prepared name, or fails as configured.
 #[derive(Clone)]
@@ -42,10 +42,10 @@ impl PrepareJobContainerPort for FakePrepareJobContainerPort {
     fn execute(
         &self,
         request: PrepareJobContainerRequest,
-    ) -> Result<PreparedJobContainerResponse, Box<dyn Error>> {
+    ) -> Result<PreparedJobContainerResponse, PrepareJobContainerError> {
         self.job_ids.lock().push(request.job_id().to_string());
         if let Some(message) = &self.failure {
-            return Err(message.clone().into());
+            return Err(PrepareJobContainerError::Container(message.clone()));
         }
         Ok(PreparedJobContainerResponse::new(
             Box::new(StubContainer),

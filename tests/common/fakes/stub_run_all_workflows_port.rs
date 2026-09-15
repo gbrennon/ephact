@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-use std::error::Error;
 
 use ephact::application::dtos::requests::RunAllWorkflowsRequest;
 use ephact::application::dtos::responses::RunSummaryResponse;
@@ -13,7 +12,9 @@ impl RunAllWorkflowsPort for StubRunAllWorkflowsPort {
     fn execute(
         &self,
         _request: RunAllWorkflowsRequest,
-    ) -> Result<RunSummaryResponse, Box<dyn Error>> {
-        self.result.clone().map_err(Box::<dyn Error>::from)
+    ) -> Result<RunSummaryResponse, ephact::application::errors::RunAllWorkflowsError> {
+        self.result
+            .clone()
+            .map_err(ephact::application::errors::RunAllWorkflowsError::Workflow)
     }
 }

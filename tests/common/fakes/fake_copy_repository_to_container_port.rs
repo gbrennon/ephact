@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 use ephact::application::dtos::requests::CopyRepositoryToContainerRequest;
+use ephact::application::errors::CopyRepositoryToContainerError;
 use ephact::application::ports::outbound::container_port::ContainerPort;
 use ephact::infrastructure::containers::copy_repository_to_container_port::CopyRepositoryToContainerPort;
 use parking_lot::Mutex;
-use std::error::Error;
 
 #[derive(Clone, Default)]
 pub struct FakeCopyRepositoryToContainerPort {
@@ -33,7 +33,7 @@ impl CopyRepositoryToContainerPort for FakeCopyRepositoryToContainerPort {
         &self,
         request: CopyRepositoryToContainerRequest,
         _container: &dyn ContainerPort,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<(), CopyRepositoryToContainerError> {
         let request_str = format!(
             "copy {} to {}",
             request.repo_path().display(),
@@ -42,7 +42,7 @@ impl CopyRepositoryToContainerPort for FakeCopyRepositoryToContainerPort {
         self.requests.lock().push(request_str);
 
         if let Some(failure) = &self.failure {
-            return Err(failure.clone().into());
+            return Err(CopyRepositoryToContainerError::Container(failure.clone()));
         }
 
         Ok(())
