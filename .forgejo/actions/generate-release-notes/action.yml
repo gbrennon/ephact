@@ -1,0 +1,16 @@
+name: Generate release notes
+description: Generate and validate release notes
+runs:
+  using: composite
+  steps:
+    - name: Generate release notes
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        git cliff --config cliff.toml --latest --no-exec \
+          --output release-notes.md
+        if [[ ! -s release-notes.md ]]; then
+          printf 'Generated release notes are empty\n' >&2
+          exit 1
+        fi
