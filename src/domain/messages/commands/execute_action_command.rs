@@ -7,7 +7,7 @@ use crate::domain::{
 /// Command representing the intention to execute one action.
 ///
 /// Published by the step coordination service and handled by the action command handler.
-pub struct ExecuteActionCommand<C: ?Sized + Sync> {
+pub struct ExecuteActionCommand<C: ?Sized + Send + Sync> {
     action_ref: String,
     step: Step,
     repo_path: PathBuf,
