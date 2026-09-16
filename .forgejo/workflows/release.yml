@@ -35,6 +35,8 @@ jobs:
           cache-key-prefix: ephact-release
           rustc-version: stable
           include-sysroot: "false"
+      - name: Install release tooling
+        uses: ./.forgejo/actions/install-release-tooling
       - name: Install git-cliff
         uses: ./.forgejo/actions/install-git-cliff
       - name: Validate release
