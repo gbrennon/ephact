@@ -1,0 +1,62 @@
+name: Create GitHub release
+description: Publish a release through the GitHub API
+inputs:
+  api-url:
+    description: GitHub API base URL
+    required: true
+  repository:
+    description: GitHub repository identifier
+    required: true
+  token:
+    description: GitHub release token
+    required: true
+  merge-commit-sha:
+    description: Merged pull request commit SHA
+    required: true
+  version:
+    description: Release version
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Create GitHub release
+      shell: bash
+      env:
+        GITHUB_API_URL: ${{ inputs.api-url }}
+        GITHUB_REPOSITORY: ${{ inputs.repository }}
+        GITHUB_RELEASE_TOKEN: ${{ inputs.token }}
+        MERGE_COMMIT_SHA: ${{ inputs.merge-commit-sha }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+
+        if [[ -z "$GITHUB_RELEASE_TOKEN" ]]; then
+          printf \
+            'GITHUB_RELEASE_TOKEN secret is not configured in the Codeberg repository\n' \
+            >&2
+          exit 1
+        fi
+
+        payload="$(
+          jq -n \
+            --arg tag_name "$VERSION" \
+            --arg target_commitish "$MERGE_COMMIT_SHA" \
+            --arg name "$VERSION" \
+            --rawfile body release-notes.md \
+            '{
+              tag_name: $tag_name,
+              target_commitish: $target_commitish,
+              name: $name,
+              body: $body,
+              draft: false,
+              prerelease: false
+            }'
+        )"
+        curl --fail-with-body --silent --show-error \
+          --request POST \
+          --url "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/releases" \
+          --header "Authorization: Bearer ${GITHUB_RELEASE_TOKEN}" \
+          --header 'Accept: application/vnd.github+json' \
+          --header 'X-GitHub-Api-Version: 2026-03-10' \
+          --header 'Content-Type: application/json' \
+          --data "$payload"
