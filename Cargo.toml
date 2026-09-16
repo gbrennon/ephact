@@ -6,7 +6,6 @@ description = "Runs actions and workflows locally in ephemeral repositories, iso
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-chrono = "0.4.45"
 thiserror = "2.0.18"
 uuid = { version = "1.23.4", features = ["v4"] }
 clap = { version = "4", features = ["derive"] }

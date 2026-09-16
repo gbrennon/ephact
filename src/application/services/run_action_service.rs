@@ -38,7 +38,7 @@ impl RunActionPort for RunActionService {
             step,
             request.repo_path().to_path_buf(),
             request.env().clone(),
-            self.container.as_ref(),
+            self.container.clone(),
         )
         .with_context(context);
         self.command_bus.dispatch(cmd).map_err(RunActionError::Step)

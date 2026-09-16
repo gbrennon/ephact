@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, path::PathBuf};
+    use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
     use ephact::application::dtos::requests::ExecuteActionRequest;
     use ephact::application::dtos::responses::ExecuteActionResponse;
@@ -150,13 +150,13 @@ mod tests {
         let step = serde_yaml::from_str::<StepYaml>("uses: actions/checkout@v4")
             .unwrap()
             .into_domain();
-        let container: &dyn ContainerPort = &StubContainer;
+        let container: Arc<dyn ContainerPort> = Arc::new(StubContainer);
         let cmd = ExecuteActionCommand::new(
             "actions/checkout@v4".into(),
             step,
             PathBuf::from("/repo"),
             HashMap::new(),
-            container,
+            container.clone(),
         )
         .with_context(EvaluationContext::new());
 
@@ -258,7 +258,7 @@ mod tests {
         let step = serde_yaml::from_str::<StepYaml>("run: echo hello")
             .unwrap()
             .into_domain();
-        let container: &dyn ContainerPort = &StubContainer;
+        let container: Arc<dyn ContainerPort> = Arc::new(StubContainer);
         let command = ExecuteStepCommand::new(
             step,
             HashMap::from([("MARKER".to_string(), "step-marker".to_string())]),

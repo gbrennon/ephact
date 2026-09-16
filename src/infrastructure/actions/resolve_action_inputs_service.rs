@@ -23,7 +23,7 @@ impl Default for ResolveActionInputsService {
 impl ResolveActionInputsPort for ResolveActionInputsService {
     fn execute(
         &self,
-        request: ResolveActionInputsRequest<'_>,
+        request: ResolveActionInputsRequest,
     ) -> Result<HashMap<String, String>, StepError> {
         let mut inputs: HashMap<String, String> = request
             .definition()

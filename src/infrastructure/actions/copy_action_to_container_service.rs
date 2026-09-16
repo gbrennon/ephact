@@ -40,7 +40,7 @@ impl CopyActionToContainerService {
 }
 
 impl CopyActionToContainerPort for CopyActionToContainerService {
-    fn execute(&self, request: CopyActionToContainerRequest<'_>) -> Result<String, StepError> {
+    fn execute(&self, request: CopyActionToContainerRequest) -> Result<String, StepError> {
         let container_dir = Self::container_action_dir(request.action_dir());
         let files_response = self.file_collector.execute(CollectActionFilesRequest::new(
             request.action_dir().to_path_buf(),

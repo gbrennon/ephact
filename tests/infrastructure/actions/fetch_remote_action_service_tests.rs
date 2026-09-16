@@ -32,7 +32,7 @@ mod tests {
             FetchRemoteActionService::new(Box::new(FakeActionFetcher::returning(fetched.clone())));
 
         let directory = service
-            .execute(FetchRemoteActionRequest::new(&reference(None)))
+            .execute(FetchRemoteActionRequest::new(reference(None)))
             .unwrap();
 
         assert_eq!(directory, fetched);
@@ -45,7 +45,7 @@ mod tests {
             FetchRemoteActionService::new(Box::new(FakeActionFetcher::returning(fetched.clone())));
 
         let directory = service
-            .execute(FetchRemoteActionRequest::new(&reference(Some("save"))))
+            .execute(FetchRemoteActionRequest::new(reference(Some("save"))))
             .unwrap();
 
         assert_eq!(directory, fetched.join("save"));
@@ -56,7 +56,7 @@ mod tests {
         let service = FetchRemoteActionService::new(Box::new(StubFailingActionFetcher));
 
         let error = service
-            .execute(FetchRemoteActionRequest::new(&reference(None)))
+            .execute(FetchRemoteActionRequest::new(reference(None)))
             .unwrap_err()
             .to_string();
 

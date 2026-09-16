@@ -4,7 +4,7 @@ mod tests {
         copy_action_to_container_port::CopyActionToContainerPort,
         copy_action_to_container_service::CopyActionToContainerService,
     };
-    use std::path::Path;
+    use std::{path::PathBuf, sync::Arc};
 
     use ephact::application::dtos::requests::CopyActionToContainerRequest;
     use ephact::application::dtos::responses::FileEntryResponse;
@@ -28,8 +28,8 @@ mod tests {
 
         let directory = service
             .execute(CopyActionToContainerRequest::new(
-                Path::new("/repo/actions/greet"),
-                &container,
+                PathBuf::from("/repo/actions/greet"),
+                Arc::new(container.clone()),
             ))
             .unwrap();
 
@@ -45,8 +45,8 @@ mod tests {
 
         service
             .execute(CopyActionToContainerRequest::new(
-                Path::new("/repo/actions/greet"),
-                &container,
+                PathBuf::from("/repo/actions/greet"),
+                Arc::new(container.clone()),
             ))
             .unwrap();
 
@@ -73,8 +73,8 @@ mod tests {
 
         let error = service
             .execute(CopyActionToContainerRequest::new(
-                Path::new("/repo/actions/greet"),
-                &StubFailingContainer,
+                PathBuf::from("/repo/actions/greet"),
+                Arc::new(StubFailingContainer),
             ))
             .unwrap_err();
 
@@ -95,8 +95,8 @@ mod tests {
 
         let error = service
             .execute(CopyActionToContainerRequest::new(
-                Path::new("/repo/actions/greet"),
-                &StubRecordingContainer::new(),
+                PathBuf::from("/repo/actions/greet"),
+                Arc::new(StubRecordingContainer::new()),
             ))
             .unwrap_err();
 

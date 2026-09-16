@@ -28,7 +28,7 @@ impl Default for ResolveNodeBinaryService {
 }
 
 impl ResolveNodeBinaryPort for ResolveNodeBinaryService {
-    fn execute(&self, request: ResolveNodeBinaryRequest<'_>) -> String {
+    fn execute(&self, request: ResolveNodeBinaryRequest) -> String {
         request
             .container()
             .exec(

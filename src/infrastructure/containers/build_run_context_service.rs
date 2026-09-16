@@ -22,7 +22,7 @@ impl Default for BuildRunContextService {
 }
 
 impl BuildRunContextPort for BuildRunContextService {
-    fn execute(&self, request: BuildRunContextRequest<'_>) -> BuildRunContextResponse {
+    fn execute(&self, request: BuildRunContextRequest) -> BuildRunContextResponse {
         let secrets = ContextValue::mapping(request.config().secrets().iter().map(|secret| {
             (
                 secret.name().to_string(),

@@ -17,9 +17,9 @@ impl StepCommandHandler {
         Self { executor_factory }
     }
 
-    pub fn handle<'a>(
+    pub fn handle(
         &self,
-        cmd: ExecuteStepCommand<'a, dyn ContainerPort>,
+        cmd: ExecuteStepCommand<dyn ContainerPort>,
     ) -> Result<ExecutedStepResponse, StepError> {
         let (step, env, context, container, repo_path) = cmd.into_parts();
         let req = ExecuteStepRequest::new(
