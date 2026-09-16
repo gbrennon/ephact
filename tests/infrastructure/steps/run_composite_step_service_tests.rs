@@ -4,6 +4,7 @@ mod tests {
     use std::{
         collections::HashMap,
         path::{Path, PathBuf},
+        sync::Arc,
     };
 
     use ephact::application::dtos::requests::{
@@ -69,7 +70,7 @@ mod tests {
                     &request,
                     &EvaluationContext::new(),
                 ),
-                &container,
+                Arc::new(container.clone()),
             )
             .unwrap();
 
@@ -97,7 +98,7 @@ mod tests {
                     &request,
                     &EvaluationContext::new(),
                 ),
-                &container,
+                Arc::new(container.clone()),
             )
             .unwrap();
 
@@ -124,7 +125,7 @@ mod tests {
                     &request,
                     &EvaluationContext::new(),
                 ),
-                &container,
+                Arc::new(container),
             )
             .unwrap_err();
 

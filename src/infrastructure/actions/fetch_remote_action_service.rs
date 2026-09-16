@@ -18,7 +18,7 @@ impl FetchRemoteActionService {
 }
 
 impl FetchRemoteActionPort for FetchRemoteActionService {
-    fn execute(&self, request: FetchRemoteActionRequest<'_>) -> Result<PathBuf, ActionError> {
+    fn execute(&self, request: FetchRemoteActionRequest) -> Result<PathBuf, ActionError> {
         let fetched = self.fetcher.fetch(request.reference())?;
         Ok(match request.reference().directory() {
             Some(directory) => fetched.join(directory),

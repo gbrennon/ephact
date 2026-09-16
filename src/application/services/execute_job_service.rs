@@ -149,7 +149,10 @@ impl ExecuteJobService {
     ) -> Result<JobExecutionState, Box<dyn Error>> {
         let step_env = self
             .job_environment_builder
-            .execute(BuildJobEnvironmentRequest::new(workflow, run.job().env()))
+            .execute(BuildJobEnvironmentRequest::new(
+                workflow.clone(),
+                run.job().env().clone(),
+            ))
             .into_env();
         let prepared = self
             .container_preparer
@@ -194,7 +197,7 @@ impl ExecuteJobService {
             step.clone(),
             state.step_env.clone(),
             step_context,
-            state.prepared.container(),
+            state.prepared.container_handle(),
             request.repo_path().to_path_buf(),
         ));
         let summarized = self.step_summarizer.execute(SummarizeStepRequest::new(

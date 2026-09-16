@@ -52,18 +52,18 @@ impl JobCommandBusPort for SharedCommandBus {
 }
 
 impl StepCommandBusPort for SharedCommandBus {
-    fn dispatch<'a>(
+    fn dispatch(
         &self,
-        command: ExecuteStepCommand<'a, dyn ContainerPort>,
+        command: ExecuteStepCommand<dyn ContainerPort>,
     ) -> Result<ExecutedStepResponse, StepError> {
         StepCommandBusPort::dispatch(&*self.inner, command)
     }
 }
 
 impl ActionCommandBusPort for SharedCommandBus {
-    fn dispatch<'a>(
+    fn dispatch(
         &self,
-        command: ExecuteActionCommand<'a, dyn ContainerPort>,
+        command: ExecuteActionCommand<dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {
         ActionCommandBusPort::dispatch(&*self.inner, command)
     }

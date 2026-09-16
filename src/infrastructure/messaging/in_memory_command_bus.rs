@@ -72,18 +72,18 @@ impl JobCommandBusPort for InMemoryCommandBus {
 }
 
 impl StepCommandBusPort for InMemoryCommandBus {
-    fn dispatch<'a>(
+    fn dispatch(
         &self,
-        command: ExecuteStepCommand<'a, dyn ContainerPort>,
+        command: ExecuteStepCommand<dyn ContainerPort>,
     ) -> Result<ExecutedStepResponse, StepError> {
         self.step_handler.handle(command)
     }
 }
 
 impl ActionCommandBusPort for InMemoryCommandBus {
-    fn dispatch<'a>(
+    fn dispatch(
         &self,
-        command: ExecuteActionCommand<'a, dyn ContainerPort>,
+        command: ExecuteActionCommand<dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {
         self.action_handler.handle(command)
     }

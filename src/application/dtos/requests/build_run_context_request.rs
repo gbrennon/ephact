@@ -3,26 +3,21 @@ use crate::domain::{ActRunConfig, Repository};
 /// Request DTO for the
 /// [`BuildRunContextPort`](crate::application::ports::inbound::build_run_context_port::BuildRunContextPort)
 /// outbound port.
-pub struct BuildRunContextRequest<'a> {
-    /// Configuration the run was started with.
-    config: &'a ActRunConfig,
-    /// Repository the run executes against.
-    repository: &'a Repository,
+pub struct BuildRunContextRequest {
+    config: ActRunConfig,
+    repository: Repository,
 }
 
-impl<'a> BuildRunContextRequest<'a> {
-    /// Creates a new request.
-    pub fn new(config: &'a ActRunConfig, repository: &'a Repository) -> Self {
+impl BuildRunContextRequest {
+    pub fn new(config: ActRunConfig, repository: Repository) -> Self {
         Self { config, repository }
     }
 
-    /// Configuration the run was started with.
-    pub fn config(&self) -> &'a ActRunConfig {
-        self.config
+    pub fn config(&self) -> &ActRunConfig {
+        &self.config
     }
 
-    /// Repository the run executes against.
-    pub fn repository(&self) -> &'a Repository {
-        self.repository
+    pub fn repository(&self) -> &Repository {
+        &self.repository
     }
 }

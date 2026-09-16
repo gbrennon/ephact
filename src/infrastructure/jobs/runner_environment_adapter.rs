@@ -26,7 +26,7 @@ impl Default for RunnerEnvironmentAdapter {
 }
 
 impl BuildJobEnvironmentPort for RunnerEnvironmentAdapter {
-    fn execute(&self, request: BuildJobEnvironmentRequest<'_>) -> BuildJobEnvironmentResponse {
+    fn execute(&self, request: BuildJobEnvironmentRequest) -> BuildJobEnvironmentResponse {
         let mut env = request.workflow().env().clone();
         for (key, value) in request.job_env() {
             env.insert(key.clone(), value.clone());

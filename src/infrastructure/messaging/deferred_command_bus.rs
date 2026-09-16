@@ -86,9 +86,9 @@ impl JobCommandBusPort for DeferredCommandBus {
 }
 
 impl StepCommandBusPort for DeferredCommandBus {
-    fn dispatch<'a>(
+    fn dispatch(
         &self,
-        command: ExecuteStepCommand<'a, dyn ContainerPort>,
+        command: ExecuteStepCommand<dyn ContainerPort>,
     ) -> Result<ExecutedStepResponse, StepError> {
         let bus = self.bound().ok_or_else(Self::unbound)?;
         StepCommandBusPort::dispatch(bus, command)
@@ -96,9 +96,9 @@ impl StepCommandBusPort for DeferredCommandBus {
 }
 
 impl ActionCommandBusPort for DeferredCommandBus {
-    fn dispatch<'a>(
+    fn dispatch(
         &self,
-        command: ExecuteActionCommand<'a, dyn ContainerPort>,
+        command: ExecuteActionCommand<dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {
         let bus = self.bound().ok_or_else(Self::unbound)?;
         ActionCommandBusPort::dispatch(bus, command)

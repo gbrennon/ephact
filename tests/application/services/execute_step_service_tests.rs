@@ -34,11 +34,8 @@ mod tests {
         ExecuteActionResponse::new(0, "action\n".to_string(), String::new())
     }
 
-    fn service(
-        shell: FakeRunShellStepPort,
-        command_bus: FakeCommandBus,
-    ) -> ExecuteStepService<'static> {
-        let container = Box::leak(Box::new(StubContainer));
+    fn service(shell: FakeRunShellStepPort, command_bus: FakeCommandBus) -> ExecuteStepService {
+        let container = Arc::new(StubContainer);
         ExecuteStepService::new(container, Arc::new(shell), Arc::new(command_bus))
     }
 
