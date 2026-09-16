@@ -1,0 +1,47 @@
+name: Create Codeberg release
+description: Publish a release through the Codeberg API
+inputs:
+  api-url:
+    description: Codeberg API base URL
+    required: true
+  repository:
+    description: Codeberg repository identifier
+    required: true
+  token:
+    description: Codeberg API token
+    required: true
+  version:
+    description: Release version
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Create Codeberg release
+      shell: bash
+      env:
+        FORGEJO_API_URL: ${{ inputs.api-url }}
+        FORGEJO_REPOSITORY: ${{ inputs.repository }}
+        FORGEJO_TOKEN: ${{ inputs.token }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+
+        payload="$(
+          jq -n \
+            --arg tag_name "$VERSION" \
+            --arg name "$VERSION" \
+            --rawfile body release-notes.md \
+            '{
+              tag_name: $tag_name,
+              name: $name,
+              body: $body,
+              draft: false,
+              prerelease: false
+            }'
+        )"
+        curl --fail-with-body --silent --show-error \
+          --request POST \
+          --url "${FORGEJO_API_URL}/repos/${FORGEJO_REPOSITORY}/releases" \
+          --header "Authorization: token ${FORGEJO_TOKEN}" \
+          --header 'Content-Type: application/json' \
+          --data "$payload"
