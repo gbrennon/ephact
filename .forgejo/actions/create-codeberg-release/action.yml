@@ -39,9 +39,21 @@ runs:
               prerelease: false
             }'
         )"
-        curl --fail-with-body --silent --show-error \
-          --request POST \
-          --url "${FORGEJO_API_URL}/repos/${FORGEJO_REPOSITORY}/releases" \
-          --header "Authorization: token ${FORGEJO_TOKEN}" \
-          --header 'Content-Type: application/json' \
-          --data "$payload"
+        response_file="$(mktemp)"
+        trap 'rm -f "$response_file"' EXIT
+        http_status="$(
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --url "${FORGEJO_API_URL}/repos/${FORGEJO_REPOSITORY}/releases" \
+            --header "Authorization: token ${FORGEJO_TOKEN}" \
+            --header 'Content-Type: application/json' \
+            --output "$response_file" \
+            --write-out '%{http_code}' \
+            --data "$payload"
+        )"
+        if (( http_status < 200 || http_status >= 300 )); then
+          printf 'Release API returned HTTP status: %s\n' "$http_status" >&2
+          cat "$response_file" >&2
+          exit 1
+        fi
+        cat "$response_file"
