@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: >-
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release/v')
+    runs-on: codeberg-medium
+    env:
+      HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - name: Check out merged pull request
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Install dependencies
+        uses: ./.forgejo/actions/install-dependencies
+      - name: Cache Rust dependencies
+        uses: ./.forgejo/actions/cache-rust-deps
+        with:
+          cache-key-prefix: ephact-release
+          rustc-version: stable
+          include-sysroot: "false"
+      - name: Install git-cliff
+        uses: ./.forgejo/actions/install-git-cliff
+      - name: Validate release
+        id: release
+        uses: ./.forgejo/actions/validate-release
+        with:
+          head-ref: ${{ env.HEAD_REF }}
+      - name: Update changelog
+        uses: ./.forgejo/actions/update-changelog
+        with:
+          version: ${{ steps.release.outputs.version }}
+          default-branch: ${{ env.DEFAULT_BRANCH }}
+      - name: Push release tag
+        uses: ./.forgejo/actions/push-release-tag
+        with:
+          version: ${{ steps.release.outputs.version }}
+      - name: Generate release notes
+        uses: ./.forgejo/actions/generate-release-notes
+      - name: Create Codeberg release
+        uses: ./.forgejo/actions/create-codeberg-release
+        with:
+          api-url: ${{ forgejo.api_url }}
+          repository: ${{ forgejo.repository }}
+          token: ${{ forgejo.token }}
+          version: ${{ steps.release.outputs.version }}
+      - name: Create GitHub release
+        uses: ./.forgejo/actions/create-github-release
+        with:
+          api-url: https://api.github.com
+          repository: gbrennon/ephact
+          token: ${{ secrets.GITHUB_RELEASE_TOKEN }}
+          merge-commit-sha: ${{ forgejo.event.pull_request.merge_commit_sha }}
+          version: ${{ steps.release.outputs.version }}
