@@ -13,12 +13,12 @@ env:
 jobs:
   build:
     name: Build
-    runs-on: codeberg-medium
+    runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.forgejo/actions/install-dependencies
-      - uses: ./.forgejo/actions/cache-rust-deps
+      - uses: ./.github/actions/install-dependencies
+      - uses: ./.github/actions/cache-rust-deps
         with:
           cache-key-prefix: ephact-release
           rustc-version: stable
@@ -27,7 +27,7 @@ jobs:
         run: cargo build --release --locked
         timeout-minutes: 15
       - name: Run tests
-        uses: ./.forgejo/actions/run-tests
+        uses: ./.github/actions/run-tests
       - name: Create artifact
         run: |
           mkdir -p artifacts

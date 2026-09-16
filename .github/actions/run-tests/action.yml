@@ -5,6 +5,6 @@ runs:
   using: composite
 
   steps:
-    - uses: ./.forgejo/actions/install-cargo-llvm-cov
+    - uses: ./.github/actions/install-cargo-llvm-cov
     - shell: bash
       run: just test
