@@ -136,21 +136,41 @@ impl Cli {
         T: Into<OsString> + Clone,
     {
         let args: Vec<OsString> = args.into_iter().map(Into::into).collect();
-        if args.get(1).is_some_and(|arg| arg == "tui") {
-            crate::presentation::tui::run()?;
+        if Self::is_tui_command(&args) {
+            crate::presentation::tui::Tui::run()?;
             return Ok(String::new());
         }
+        self.execute_cli(args, terminal)
+    }
 
+    fn execute_cli(
+        &self,
+        args: Vec<OsString>,
+        terminal: &dyn Terminal,
+    ) -> Result<String, Box<dyn std::error::Error>> {
         let branding = self.show_project_branding_info_port.execute()?;
         let parsed = CliParser::try_parse_from(args);
         let cli = match parsed {
             Ok(cli) => cli,
-            Err(e) => return render_parse_error(e),
+            Err(e) => return Self::render_parse_error(e),
         };
         let mut output = BoxComponent::new(Banner::new(&branding), terminal).render();
         let command = cli.command();
         self.execute_command(command, terminal, &mut output)?;
         Ok(output)
+    }
+    fn is_tui_command(args: &[OsString]) -> bool {
+        args.get(1).is_some_and(|arg| arg == "tui")
+    }
+
+    fn render_parse_error(e: clap::error::Error) -> Result<String, Box<dyn std::error::Error>> {
+        if e.kind() == clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+            || !e.use_stderr()
+        {
+            Ok(e.to_string())
+        } else {
+            Err(e.to_string().into())
+        }
     }
     fn execute_command(
         &self,
@@ -162,7 +182,7 @@ impl Cli {
             Command::Run(args) => self.execute_run(*args, terminal, output),
             Command::ListWorkflows(args) => self.execute_list_workflows(*args, terminal, output),
             Command::ListActions(args) => self.execute_list_actions(*args, terminal, output),
-            Command::Tui => crate::presentation::tui::run(),
+            Command::Tui => crate::presentation::tui::Tui::run(),
         }
     }
 
@@ -227,15 +247,5 @@ impl Cli {
             .render(),
         );
         Ok(())
-    }
-}
-
-fn render_parse_error(e: clap::error::Error) -> Result<String, Box<dyn std::error::Error>> {
-    if e.kind() == clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
-        || !e.use_stderr()
-    {
-        Ok(e.to_string())
-    } else {
-        Err(e.to_string().into())
     }
 }
