@@ -1,7 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ephact::presentation::tui::{
     app::{App, Screen},
-    screen::{home, splash},
+    screen::{home::HomeScreen, splash::SplashScreen},
 };
 use ratatui::{Terminal, backend::TestBackend, buffer::Buffer};
 
@@ -37,13 +37,13 @@ fn q_exits_from_home() {
 
 #[test]
 fn splash_renders_project_emblem() {
-    let text = buffer_text(&rendered_buffer(splash::render));
+    let text = buffer_text(&rendered_buffer(SplashScreen::render));
     assert!(text.contains("@---o"));
 }
 
 #[test]
 fn home_renders_initial_menu() {
-    let text = buffer_text(&rendered_buffer(home::render));
+    let text = buffer_text(&rendered_buffer(HomeScreen::render));
     assert!(text.contains("Run workflow"));
     assert!(text.contains("List workflows"));
     assert!(text.contains("List actions"));
