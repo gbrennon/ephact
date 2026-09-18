@@ -4,14 +4,14 @@
 
 **Goal:** Add an `ephact tui` command with a ratatui splash screen showing the project emblem and a keyboard-driven home screen.
 
-**Architecture:** Keep TUI code independent under `src/tui`. `app.rs` owns terminal lifecycle, screen state, rendering dispatch, and transitions; `event.rs` abstracts polling and key reads; `screen/splash.rs` and `screen/home.rs` only render their respective views. Add a lightweight Clap command that delegates to the TUI entry point while existing CLI commands remain unchanged.
+**Architecture:** Keep TUI code independent under `src/presentation/tui`. `app.rs` owns terminal lifecycle, screen state, rendering dispatch, and transitions; `event.rs` abstracts polling and key reads; `screen/splash.rs` and `screen/home.rs` only render their respective views. Add a lightweight Clap command that delegates to the TUI entry point while existing CLI commands remain unchanged.
 
 **Tech Stack:** Rust 2024, Clap 4, ratatui 0.29, crossterm 0.29, ratatui `TestBackend` for render tests.
 
 ## Global Constraints
 
 - The TUI is launched as `ephact tui`.
-- The TUI lives in a top-level Rust module named `tui`.
+- The TUI lives in a presentation module named `tui`.
 - The TUI uses ratatui.
 - The splash displays `assets/project_emblem.txt` and advances on any key.
 - `q` exits from both splash and home screens.
@@ -75,17 +75,17 @@ pub enum Command {
 }
 ```
 
-Expose `crate::tui` from `src/lib.rs` and add `pub mod tui;` to `src/presentation` only if the implementation chooses presentation-owned delegation; prefer the top-level `crate::tui` module and call it directly from `Application`.
+Expose `crate::presentation::tui` from `src/lib.rs` and add `pub mod tui;` to `src/presentation` only if the implementation chooses presentation-owned delegation; prefer the top-level `crate::presentation::tui` module and call it directly from `Application`.
 
 Extend `Application` with:
 
 ```rust
 pub fn run_tui(&self) -> Result<(), Box<dyn std::error::Error>> {
-    crate::tui::run()
+    crate::presentation::tui::run()
 }
 ```
 
-In `Cli::execute_command`, match `Command::Tui` and call `crate::tui::run()`. Keep all existing command branches unchanged. The TUI branch must not construct or use workflow ports.
+In `Cli::execute_command`, match `Command::Tui` and call `crate::presentation::tui::run()`. Keep all existing command branches unchanged. The TUI branch must not construct or use workflow ports.
 
 - [ ] **Step 4: Run the focused test to verify it passes**
 
@@ -109,10 +109,10 @@ git commit -m "feat: add tui cli command"
 ### Task 2: Add screen rendering modules and render tests
 
 **Files:**
-- Create: `src/tui/mod.rs`
-- Create: `src/tui/screen/mod.rs`
-- Create: `src/tui/screen/splash.rs`
-- Create: `src/tui/screen/home.rs`
+- Create: `src/presentation/tui/mod.rs`
+- Create: `src/presentation/tui/screen/mod.rs`
+- Create: `src/presentation/tui/screen/splash.rs`
+- Create: `src/presentation/tui/screen/home.rs`
 - Test: `tests/presentation/tui.rs`
 - Modify: `tests/presentation/mod.rs`
 
@@ -126,7 +126,7 @@ git commit -m "feat: add tui cli command"
 Create a test helper using ratatui's `TestBackend`, render each screen, and assert the buffer contains required text:
 
 ```rust
-use ephact::tui::screen::{home, splash};
+use ephact::presentation::tui::screen::{home, splash};
 use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 
 fn rendered_buffer(render: impl FnOnce(&mut ratatui::Frame<'_>)) -> Buffer {
@@ -163,13 +163,13 @@ Run:
 cargo test --test presentation tui::splash_renders_project_emblem tui::home_renders_initial_menu
 ```
 
-Expected: compilation failure because `ephact::tui` and screen renderers do not exist.
+Expected: compilation failure because `ephact::presentation::tui` and screen renderers do not exist.
 
 - [ ] **Step 3: Implement minimal renderers**
 
 Use `include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/project_emblem.txt"))` for the emblem. Use ratatui `Paragraph`, `Block`, `Borders`, `Layout`, and centered vertical/horizontal constraints. The splash must visibly contain the emblem and `EPHACT`; the home screen must visibly contain `EPHACT`, a short description, and the exact three menu labels.
 
-Define `src/tui/mod.rs` with `pub mod screen;` and a temporary `pub fn run() -> Result<(), Box<dyn Error>>` declaration that will be completed in Task 3.
+Define `src/presentation/tui/mod.rs` with `pub mod screen;` and a temporary `pub fn run() -> Result<(), Box<dyn Error>>` declaration that will be completed in Task 3.
 
 - [ ] **Step 4: Run render tests to verify they pass**
 
@@ -184,7 +184,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/tui tests/presentation/mod.rs tests/presentation/tui.rs
+git add src/presentation/tui tests/presentation/mod.rs tests/presentation/tui.rs
  git commit -m "feat: add tui splash and home screens"
 ```
 
@@ -193,9 +193,9 @@ git add src/tui tests/presentation/mod.rs tests/presentation/tui.rs
 ### Task 3: Add event handling, state transitions, and terminal lifecycle
 
 **Files:**
-- Create: `src/tui/event.rs`
-- Create: `src/tui/app.rs`
-- Modify: `src/tui/mod.rs`
+- Create: `src/presentation/tui/event.rs`
+- Create: `src/presentation/tui/app.rs`
+- Modify: `src/presentation/tui/mod.rs`
 - Test: `tests/presentation/tui.rs`
 
 **Interfaces:**
@@ -256,7 +256,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/tui tests/presentation/tui.rs
+git add src/presentation/tui tests/presentation/tui.rs
 git commit -m "feat: add tui event loop"
 ```
 

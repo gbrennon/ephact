@@ -1,5 +1,5 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use ephact::tui::{
+use ephact::presentation::tui::{
     app::{App, Screen},
     screen::{home, splash},
 };

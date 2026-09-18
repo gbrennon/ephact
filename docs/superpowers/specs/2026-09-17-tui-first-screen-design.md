@@ -20,7 +20,7 @@ Add the first TUI slice to `ephact`, launched with `ephact tui`. The TUI uses `r
 ## Module structure
 
 ```text
-src/tui/
+src/presentation/tui/
 ├── mod.rs
 ├── app.rs
 ├── event.rs
