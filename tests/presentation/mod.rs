@@ -4,3 +4,4 @@ mod common;
 mod cli;
 mod composition_root;
 mod fakes;
+mod tui;

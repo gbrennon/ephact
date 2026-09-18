@@ -135,15 +135,21 @@ impl Cli {
         I: IntoIterator<Item = T>,
         T: Into<OsString> + Clone,
     {
-        let branding = self.show_project_branding_info_port.execute()?;
-        let mut output = BoxComponent::new(Banner::new(&branding), terminal).render();
+        let args: Vec<OsString> = args.into_iter().map(Into::into).collect();
+        if args.get(1).is_some_and(|arg| arg == "tui") {
+            crate::tui::run()?;
+            return Ok(String::new());
+        }
 
+        let branding = self.show_project_branding_info_port.execute()?;
         let parsed = CliParser::try_parse_from(args);
         let cli = match parsed {
             Ok(cli) => cli,
             Err(e) => return render_parse_error(e),
         };
-        self.execute_command(cli.command(), terminal, &mut output)?;
+        let mut output = BoxComponent::new(Banner::new(&branding), terminal).render();
+        let command = cli.command();
+        self.execute_command(command, terminal, &mut output)?;
         Ok(output)
     }
     fn execute_command(
@@ -156,6 +162,7 @@ impl Cli {
             Command::Run(args) => self.execute_run(*args, terminal, output),
             Command::ListWorkflows(args) => self.execute_list_workflows(*args, terminal, output),
             Command::ListActions(args) => self.execute_list_actions(*args, terminal, output),
+            Command::Tui => crate::tui::run(),
         }
     }
 
