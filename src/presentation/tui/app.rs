@@ -1,7 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::Frame;
 
-use super::screen::{home, splash};
+use super::screen::{home::HomeScreen, splash::SplashScreen};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Screen {
@@ -35,8 +35,8 @@ impl App {
 
     pub fn render(&self, frame: &mut Frame<'_>) {
         match self.screen {
-            Screen::Splash => splash::render(frame),
-            Screen::Home | Screen::Exit => home::render(frame),
+            Screen::Splash => SplashScreen::render(frame),
+            Screen::Home | Screen::Exit => HomeScreen::render(frame),
         }
     }
 }
