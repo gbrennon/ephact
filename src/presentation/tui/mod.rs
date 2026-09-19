@@ -7,5 +7,6 @@ pub mod tui_runner;
 
 pub use handlers::list_actions_handler::ListActionsHandler;
 pub use handlers::list_workflows_handler::ListWorkflowsHandler;
+pub use handlers::run_handler::RunHandler;
 pub use tui_app::{TuiApp, TuiScreen};
 pub use tui_runner::TuiRunner;

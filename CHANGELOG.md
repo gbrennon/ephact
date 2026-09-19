@@ -1,0 +1,1003 @@
+## [0.2.0] - 2026-09-16
+
+### Breaking Changes
+
+- **core**: [BREAKING] Drop ActExtraArg for action value objects
+- **core**: [BREAKING] Resolve secret expressions by name
+- **cli**: [BREAKING] Drop --extra-arg and parse secrets by name
+- [BREAKING] Rename crate and command to ephact
+
+### Features
+
+- **core**: Add CoreError enum
+- **core**: Add RepositoryId value object
+- **core**: Add RepositoryName value object
+- **core**: Add RepoPath value object
+- **core**: Add value_objects module
+- **core**: Add Repository aggregate
+- **core**: Add core module re-exports
+- Add library crate root
+- **core**: Add CleanupPolicy value object
+- **core**: Add ContainerEngine value object and UnknownContainerEngine error
+- **core**: Add EphemeralRepository aggregate with TempDirTemplate
+- **core**: Add ActRunConfig aggregate with redacted Secret
+- **core**: Add ActEvent value object with rustdoc
+- **core**: Add ActExtraArg value object with rustdoc
+- **core**: Add ActInput value object with rustdoc
+- **core**: Add ActJob value object with rustdoc
+- **core**: Add ActWorkflow value object with rustdoc
+- **core**: Add Secret value object with redacted Debug and rustdoc
+- **core**: Add ContainerDaemonSocket value object and integrate into ActRunConfig
+- **core**: Declare shared_types module
+- **core**: Add ExecutionResult value object
+- **infrastructure**: Declare infrastructure module
+- **infrastructure**: Add act_wrapper module declaration
+- **infrastructure**: Implement act CLI subprocess wrapper
+- **core**: Create entities sub-module
+- **core**: Add hexagonal ports layer (inbound + outbound)
+- **core**: Add RunActService application service
+- **cli**: Add presentation layer with clap CLI
+- **infra**: Add multi-CI-host adapter dispatch with CiPlatform enum
+- **core**: Add ContainerRuntime and Container outbound port traits
+- **core**: Register container_runtime outbound port module
+- **core**: Register event, expression, planner, and workflow submodules
+- **core**: Add event core module
+- **core**: Add expression core module
+- **core**: Add expression AST node types
+- **core**: Add expression evaluation context
+- **core**: Add expression evaluator
+- **core**: Add expression built-in functions
+- **core**: Add expression lexer
+- **core**: Add expression parser
+- **core**: Add planner core module
+- **core**: Add workflow core module
+- **core**: Add workflow event types
+- **core**: Add workflow job types
+- **core**: Add workflow step types
+- **core**: Add workflow strategy types
+- **infra**: Register runners module
+- **infra**: Add ContainerRuntimeAdapter with auto-detection and platform mapping
+- **infra**: Add Docker container runtime adapter via bollard
+- **infra**: Add Podman container runtime adapter via bollard
+- **core**: Add EventPublisher outbound port
+- **core**: Add ContainerCleanupUseCase inbound port
+- **core**: Add stop_container to ContainerRuntime trait
+- **core**: Register ContainerCleanupUseCase in inbound ports
+- **core**: Add ContainerCleanupService using stop_container
+- **core**: Publish ActRunCompleted event with container names
+- **core**: Register ContainerCleanupService in services module
+- **infra**: Add InMemoryEventBus implementing EventPublisher
+- **infra**: Add stop_container delegation to ContainerRuntimeAdapter
+- **infra**: Wire InMemoryEventBus and shared ContainerRuntime in DI container
+- **infra**: Register new infrastructure modules
+- **infra**: Add bollard_wrapper module centralizing bollard types
+- **forgejo**: Build artifact on merged pull requests
+- **core**: Add port request/response DTOs
+- **core**: Collect per-step run summaries in services
+- **presentation**: Relay step output from run summary
+- **run-act**: Preserve partial step output on error
+- **dtos**: Add ListActionsRequest for list-actions inbound flow
+- **dtos**: Add ListActionsResponse collecting action refs
+- **dtos**: Add ListWorkflowsRequest targeting a repository path
+- **dtos**: Add ListWorkflowsResponse with workflow list items
+- **dtos**: Export list actions and workflows DTOs
+- **outbound**: Add WorkflowFileParserPort for workflow YAML extraction
+- **outbound**: Wire workflow file parser port
+- **inbound**: Add ListActionsPort inbound contract
+- **inbound**: Add ListWorkflowsPort inbound contract
+- **inbound**: Wire list ports into module tree
+- **ports**: Surface all inbound ports at module root
+- **services**: Extract action refs through parser port
+- **services**: Summarize workflows through parser port
+- **services**: Wire list services into module tree
+- **infrastructure**: Parse uses refs and summaries from workflow yaml
+- **infrastructure**: Compose AppContainer with all three application ports
+- **infrastructure**: Export workflow parser and AppContainer
+- **cli**: Add list-workflows and list-actions subcommands
+- **cli**: Add ListActionsArgs clap struct with path default
+- **cli**: Render actions through ListActionsPort
+- **cli**: Add ListWorkflowsArgs clap struct with path default
+- **cli**: Render workflows through ListWorkflowsPort
+- **cli**: Add parse helpers for list subcommand args
+- **cli**: Dispatch list subcommands through injected ports
+- **composition_root**: Assemble cli from three boxed ports
+- **cli**: Export list args handlers and parse helpers
+- **main**: Feed AppContainer ports into CompositionRoot
+- **justfile**: Add run-all-workflows recipe
+- **core**: Add action execution ports, DTOs and events
+- **core**: [BREAKING] Execute composite and remote actions natively
+- **core**: Add workflow job needs and on visitors
+- **cli**: Accept the allow flags on the run subcommand
+- **domain**: Add node12 variant to action runs
+- **containers**: Kill lingering containers during cleanup
+- **cli**: Run every workflow by default
+- **events**: Publish run progress domain events
+- **presentation**: Show run details with quiet and verbose modes
+- **domain**: Define project branding error enum
+- **domain**: Register project branding error in errors module
+- **domain**: Add project name value object
+- **domain**: Add project description value object
+- **domain**: Add project version value object
+- **domain**: Add project emblem value object
+- **domain**: Register branding value objects in value_objects module
+- **domain**: Implement project branding domain entity
+- **domain**: Register project branding in entities module
+- **domain**: Export project branding types from domain root
+- **application**: Add branding response type
+- **application**: Export branding response type
+- **application**: Add branding info inbound port
+- **application**: Export branding info inbound port
+- **application**: Add branding store outbound port
+- **application**: Export branding store outbound port
+- **application**: Expose branding info application port
+- **application**: Add branding info service
+- **application**: Export branding info service
+- **cli**: Add terminal-sized branded components
+- **cli**: Show workflow failure diagnostics
+- **cli**: Report step progress in non-verbose mode
+- **cli**: Derive supported platforms and workflows from workflow directories
+- **workflows**: Add interactive pull-request execution
+- **run**: Add workflow input preflight
+- **requests**: Add repository write policy to container requests
+- **requests**: Add run metadata to job requests
+- **requests**: Add run metadata to workflow requests
+- **requests**: Propagate repository write policy
+- **execution**: Propagate job run policy
+- **execution**: Propagate workflow run policy
+- **workflows**: Propagate run identity across workflows
+- **workflows**: Publish single-workflow lifecycle events
+- **commands**: Add job execution metadata
+- **commands**: Add workflow execution metadata
+- **events**: Add run metadata to completion payloads
+- **events**: Register run lifecycle events
+- **events**: Export run lifecycle payloads
+- **events**: Add run failure payload
+- **events**: Add run start payload
+- **events**: Add run metadata to step results
+- **config**: Add run identity and write policy
+- **containers**: Enforce read-only repository mounts
+- **containers**: Propagate repository write policy
+- **di**: Expose diagnostic stores
+- **di**: Wire diagnostic event stores
+- **di**: Register failure diagnostics handler
+- **runner**: Propagate execution metadata
+- **logging**: Export failure diagnostic infrastructure
+- **logging**: Persist external workflow diagnostics
+- **workflows**: Propagate execution metadata
+- **cli**: Report external failure diagnostics
+- **cli**: Add repository write flag
+- **cli**: Render failure diagnostic paths
+- **cli**: Consume run metadata in progress output
+- **composition**: Thread diagnostic stores
+- **ports**: Add CopyRepositoryToContainerPort outbound port
+- **dtos**: Add CopyRepositoryToContainerRequest for repository transfer
+- **containers**: Implement CopyRepositoryToContainerService infrastructure
+- **containers**: Remove default host bind, use container-local workspace
+- **containers**: Add repository copy to job preparation
+- **di**: Wire CopyRepositoryToContainerService into composition root
+- **events**: Add ContainerStarted payload
+- **events**: Add ContainerStarted domain event variant
+- **events**: Export ContainerStarted payload
+- **cleanup**: Tear down a run's containers on completion or failure
+- **jobs**: Announce the prepared container as started
+
+### Bug Fixes
+
+- **core**: Restore missing #[test] attribute after type split
+- **core**: Add Default impl for ActRunConfig
+- **infra**: Restore act_wrappers module accidentally deleted during refactor
+- **ci**: Replace remote actions with local run steps
+- **actions**: Replace actions/cache with no-op run steps
+- **cleanup**: Remove containers after stopping them
+- **runner**: Drop exec input stream before reading output
+- **runner**: Drop exec input stream before reading output
+- **runner**: Inspect container before stop and remove
+- **runner**: Inspect container before stop and remove
+- **main**: Use explicit process::exit to skip async Drop
+- **cli**: Print workflow stdout to stderr
+- **ci**: Use rustup installer instead of assuming pre-installed Rust
+- **main**: Filter crun/Podman stderr noise at process level
+- **test**: Remove unused ContainerRuntimeAdapter import
+- **test**: Suppress dead_code warnings for shared fakes
+- **test**: Replace #[path] attr with symlinks for cargo-llvm-cov compat
+- **test**: Use RunnerContext::default(), add FakeRunActUseCase, fix composition_root test
+- **test**: Avoid accessing pub(crate) Cli field from integration test
+- Remove unused Command re-export from cli/mod.rs
+- **platform**: Map docker runs-on label to catthehacker image
+- **run-act-service**: Restore container-ready log message
+- **run-act-service**: Honour continue-on-error in run success
+- **run-act-service**: Label local actions as composite step type
+- **core**: Repair ActRunConfig doc example and cover all-workflows
+- **ci**: Pin the rustfmt style edition
+- **hooks**: Format only staged Rust files in pre-commit
+- **ci**: Address clippy lints and runtime detection in test suites
+- **logging**: Keep the real stderr descriptor open after filtering
+- **cli**: Return complete command output
+- **cli**: Render concise run summaries
+- **cli**: Hide progress details unless verbose
+- **cli**: Summarize workflow and step statuses
+- **cli**: Prevent parse errors and help text from bypassing output capture
+- **run**: Align step progress labels
+- **lint**: Remove unnecessary as_deref and clone on Copy types
+- **cli**: Align workflow selector help
+- **semgrep**: Scope domain architecture rules to domain path
+- Name CLI dependency tuple type
+- Remove unused workflow summary import
+- **containers**: Log cleanup errors instead of silencing them
+- **containers**: Restore container cleanup after workflow completion
+- **tests**: Update container naming assertions to accept timestamp
+- **tests**: Update container naming assertions to accept timestamp
+
+### Refactor
+
+- **core**: Make RepositoryName field private, add from_repo_path and as_str
+- **core**: Add GitDirKind to RepoPath, check is_dir before .git
+- **core**: Remove RepositoryId from Repository, make fields private
+- **core**: Remove dead RepositoryId value object
+- **core**: Remove extraneous created_at field from Repository
+- **core**: Extract default_socket from ContainerEngine into services
+- **core**: Register new value object modules and re-exports
+- **core**: Extract value objects from ActRunConfig into separate files
+- **core**: Update re-exports after value object extraction
+- Add reference act-ephemeral shell script
+- **core**: Extract ExecutionResult to standalone file
+- **core**: Implement FromStr for ContainerEngine
+- **core**: Reorganize core module re-exports for new ports and services
+- **infra**: Implement ActExecutor port in ActWrapper struct
+- **presentation**: Bind free functions to Cli and RunArgs structs
+- **act-wrappers**: Simplify platform detection to use repo path accessor
+- **cli-run**: Use ArgAction::Set for bool flags and return error instead of exit
+- **cli**: Make --help the single guidance entrypoint
+- **ci**: Extract CiPlatform to own file, return Result from detect
+- **core**: Add ContainerEngine::as_str()
+- **domain**: Remove ContainerDaemonSocket, --rm, and --bind
+- **infra**: Switch GitHubActWrapper to act-ephemeral.sh
+- **infra**: Switch ForgejoActWrapper to act-ephemeral.sh with platform mapping
+- **core**: Update act_run_config docstring from act-ephemeral.sh to act
+- **infra**: Switch GitHubActWrapper from act-ephemeral.sh to act binary
+- **infra**: Switch ForgejoActWrapper from act-ephemeral.sh to act binary
+- **cli**: Update help text from act-ephemeral.sh to act
+- **cli**: Update run_args docstring from act-ephemeral.sh to act
+- **core**: Remove container_engine from ActRunConfig
+- **cli**: Remove --container-engine flag from run command
+- **core**: Extract UserInfo to separate file
+- **core**: Extract LabelInfo to separate file
+- **core**: Extract ReleaseInfo to separate file
+- **core**: Extract EventPayload trait to separate file
+- **core**: Extract RepositoryInfo to separate file
+- **core**: Extract CommitInfo to separate file
+- **core**: Extract BranchRef to separate file
+- **core**: Extract PullRequestInfo to separate file
+- **core**: Extract IssueInfo to separate file
+- **core**: Extract CommentInfo to separate file
+- **core**: Extract PushPayload to separate file
+- **core**: Extract PullRequestPayload to separate file
+- **core**: Extract WorkflowDispatchPayload to separate file
+- **core**: Extract ReleasePayload to separate file
+- **core**: Extract IssuesPayload to separate file
+- **core**: Extract IssueCommentPayload to separate file
+- **core**: Extract CreatePayload to separate file
+- **core**: Extract DeletePayload to separate file
+- **core**: Extract ForkPayload to separate file
+- **core**: Extract RepositoryDispatchPayload to separate file
+- **core**: Extract WorkflowCallPayload to separate file
+- **core**: Extract Event enum to separate file
+- **core**: Update event module for split types
+- **core**: Extract DomainEvent enum to separate file
+- **core**: Extract ActRunCompletedPayload to separate file
+- **core**: Update events module for split types
+- **core**: Extract ContainerConfig to separate file
+- **core**: Extract ContainerError to separate file
+- **core**: Extract ExecResult to separate file
+- **core**: Extract FileEntry to separate file
+- **core**: Extract HostInfo to separate file
+- **core**: Extract RunnerContext to separate file
+- **core**: Extract ImageMapper port to separate file
+- **core**: Update outbound ports module for split types
+- **core**: Remove unused ActExecutor outbound port
+- **core**: Extract Run to separate file
+- **core**: Extract Stage to separate file
+- **core**: Extract Plan to separate file
+- **core**: Extract PlanError to separate file
+- **core**: Extract Planner to separate file
+- **core**: Update planner module for split types
+- **core**: Extract Expr enum to separate file
+- **core**: Extract Literal enum to separate file
+- **core**: Extract CompareOp enum to separate file
+- **core**: Extract LogicalOp enum to separate file
+- **core**: Extract Token enum to separate file
+- **core**: Extract LexerError enum to separate file
+- **core**: Extract EvalError enum to separate file
+- **core**: Extract ParseError to separate file
+- **core**: Keep Lexer after extracting Token and LexerError
+- **core**: Keep Functions after extracting EvalError
+- **core**: Keep Parser after extracting ParseError
+- **core**: Update imports after expression type split
+- **core**: Remove ast.rs after extracting types
+- **core**: Update expression module for split types
+- **core**: Extract Workflow to separate file
+- **core**: Extract Defaults to separate file
+- **core**: Extract RunDefaults to separate file
+- **core**: Extract Permissions to separate file
+- **core**: Extract Concurrency to separate file
+- **core**: Extract ActionDefinition to separate file
+- **core**: Extract ActionInput to separate file
+- **core**: Extract ActionRuns enum to separate file
+- **core**: Extract EventConfig to separate file
+- **core**: Extract WorkflowDispatchInput to separate file
+- **core**: Extract workflow ContainerConfig to separate file
+- **core**: Extract ContainerCredentials to separate file
+- **core**: Extract Matrix to separate file
+- **core**: Keep On enum after extracting EventConfig and WorkflowDispatchInput
+- **core**: Keep Job after extracting ContainerConfig and ContainerCredentials
+- **core**: Keep Strategy after extracting Matrix
+- **core**: Update Step imports after workflow type split
+- **core**: Update workflow module for split types
+- **core**: Extract GitDirKind enum to separate file
+- **core**: Keep RepoPath after extracting GitDirKind
+- **core**: Update value_objects module for split types
+- **core**: Extract TempDirTemplate to separate file
+- **core**: Update entities module for split types
+- **core**: Extract StepRunner to separate file
+- **core**: Update core module for new submodules
+- **infra**: Extract PlatformImageMapper to separate file
+- **infra**: Extract DockerRuntime to separate file
+- **infra**: Extract DockerContainer to separate file
+- **infra**: Extract PodmanRuntime to separate file
+- **infra**: Extract PodmanContainer to separate file
+- **infra**: Remove docker.rs after extracting types
+- **infra**: Remove podman.rs after extracting types
+- **infra**: Update runners module for split types
+- **infra**: Update CIAplatform after port changes
+- **infra**: Update ForgejoActWrapper after port changes
+- **infra**: Update GitHubActWrapper after port changes
+- **infra**: Update act_wrappers module after port changes
+- **infra**: Update ActionsExecutor after port changes
+- **cli**: Extract Cli to separate file
+- **cli**: Extract CliParser to separate file
+- **cli**: Extract Command enum to separate file
+- **cli**: Update cli module for split types
+- **cli**: Update RunArgs imports after cli type split
+- **cli**: Extract Application to separate file
+- **cli**: Extract CompositionRoot to separate file
+- **cli**: Add composition_root module
+- **cli**: Remove composition_root.rs after extracting types
+- **tests**: Extract FakeContainer to separate file
+- **tests**: Extract FakeEventPublisher to separate file
+- **tests**: Extract FakeRuntime to separate file
+- **tests**: Extract StubImageMapper to separate file
+- **tests**: Use extracted fake types in integration tests
+- **tests**: Update act_wrappers tests after port changes
+- **podman**: Rename docker field to client in PodmanRuntime
+- **podman**: Rename docker field to client in PodmanContainer
+- **runner**: Use bollard_wrapper imports in DockerRuntime
+- **runner**: Use bollard_wrapper imports in DockerContainer
+- **runner**: Use bollard_wrapper imports in PodmanRuntime
+- **runner**: Use bollard_wrapper imports in PodmanContainer
+- **tests**: Centralize fakes in tests/common/, mirror src paths, remove real-world
+- Replace hardcoded /github/* paths with platform-agnostic RunnerContext
+- **tests**: Move inline tests from src to tests/ directory
+- **ports**: Rename inbound/outbound ports to *Port
+- **infrastructure**: Adapt to renamed ports and DTOs
+- **run-act-service**: Deduplicate step summary construction
+- **dtos**: Drop unused job summary fields
+- **dtos**: Drop serde from run summary core types
+- **workflow**: Centralize step classification on Step
+- **presentation**: Render run summary in cli handler
+- **cleanup**: Drop core logging in cleanup service
+- **style**: Remove non-doc comments
+- **core**: Move errors.rs to errors module and centralize error types
+- **expression**: Remove duplicate error definitions and use core errors
+- **expression**: Fix imports in parser after error centralization
+- **expression**: Fix imports in lexer after error centralization
+- **expression**: Fix imports in functions after error centralization
+- **planner**: Remove duplicate plan error and use core errors
+- **planner**: Fix imports in planner after error centralization
+- **outbound**: Remove duplicate container error and use core errors
+- **services**: Map errors to string for Debug formatting in run_act_service
+- **services**: Format ContainerError with Debug in step_runner_service
+- **value_objects**: Format with Debug in container_engine
+- **value_objects**: Format CoreError with Debug in repo_path
+- **value_objects**: Format CoreError with Debug in repository_name
+- **runners**: Format ContainerError with Debug in adapter
+- **cli**: Map CoreError to string in run_args
+- **tests**: Import fakes from common module in run_act_service_tests
+- **tests**: Import stub from common fakes in cli_parser_tests
+- **tests**: Inject three fakes via make_cli helper in cli_tests
+- **tests**: Import stub from common fakes in run_handler_tests
+- **tests**: Inject three fakes into compose test
+- **core**: Collapse duplicated all-workflows execution path
+- **core**: Drop Planner ceremony constructors
+- **infra**: Group adapters into feature subpackages
+- **arch**: Split core layer into domain and application layers
+- **app**: Extract shared constants and workflow execution dto
+- **app**: Add request and response dtos for service decomposition
+- **app**: Define outbound ports for decomposed service boundaries
+- **app**: Decompose run act and execute action into single-responsibility services
+- **infra**: Wire decomposed services and remove generic runtime adapter forwarding
+- **app**: Add response dtos for environment builders and execution
+- **app**: Relocate decomposed service traits to inbound ports
+- **infra**: Adapt environment builders and update di wiring
+- **app**: Update application services to use inbound ports and dtos
+- **domain**: Keep the domain free of outer-layer references
+- **app**: Restrict the application layer to coordination behind ports
+- **infra**: Organize infrastructure by technical concern
+- **cli**: Dispatch through the application inbound ports
+- **containers**: Drive container runtime through an outbound port
+- **containers**: Extract exec streaming and tar transfer helpers
+- Encapsulate struct fields and reduce cyclomatic complexity
+- **application**: Update build action input environment request
+- **application**: Update build action input environment response
+- **application**: Update build job environment request
+- **application**: Update build job environment response
+- **application**: Update build run context request
+- **application**: Update build run context response
+- **application**: Update build step context request
+- **application**: Update collect action files request
+- **application**: Update collect action files response
+- **application**: Update container cleanup request
+- **application**: Update container config
+- **application**: Update copy action to container request
+- **application**: Update create job container request
+- **application**: Update detect workflow file request
+- **application**: Update exec result
+- **application**: Update execute action request
+- **application**: Update execute action response
+- **application**: Update execute job request
+- **application**: Update execute step request
+- **application**: Update execute workflow request
+- **application**: Update executed step
+- **application**: Update fetch remote action request
+- **application**: Update file entry
+- **application**: Update host info
+- **application**: Update job execution
+- **application**: Update list actions request
+- **application**: Update list actions response
+- **application**: Update list all workflow files request
+- **application**: Update list all workflow files response
+- **application**: Update list workflow directory request
+- **application**: Update list workflow directory response
+- **application**: Update list workflows request
+- **application**: Update list workflows response
+- **application**: Update load action definition request
+- **application**: Update load workflow request
+- **application**: Update merge run executions request
+- **application**: Update prefix step path request
+- **application**: Update prepare job container request
+- **application**: Update prepared job container
+- **application**: Update pull job image request
+- **application**: Update read step env exports request
+- **application**: Update read step exports request
+- **application**: Update read step path exports request
+- **application**: Update resolve action directory request
+- **application**: Update resolve action inputs request
+- **application**: Update resolve named workflow file request
+- **application**: Update resolve node binary request
+- **application**: Update resolve workflow files request
+- **application**: Update resolve workflow files response
+- **application**: Update run action request
+- **application**: Update run all workflows request
+- **application**: Update run composite action request
+- **application**: Update run composite step request
+- **application**: Update run node action request
+- **application**: Update run node action response
+- **application**: Update run shell step request
+- **application**: Update job summary
+- **application**: Update run summary data
+- **application**: Update step summary
+- **application**: Update run workflow request
+- **application**: Update runner context
+- **application**: Update step exports
+- **application**: Update summarize step request
+- **application**: Update summarized step
+- **application**: Update workflow execution
+- **application**: Update workflow list item
+- **application**: Update container port
+- **application**: Update execute action service
+- **application**: Update execute job service
+- **application**: Update execute step service
+- **application**: Update execute workflow service
+- **application**: Update list actions service
+- **application**: Update list workflows service
+- **application**: Update run all workflows service
+- **application**: Update show project branding info service
+- **domain**: Update step error
+- **domain**: Update branch ref
+- **domain**: Update comment info
+- **domain**: Update commit info
+- **domain**: Update create payload
+- **domain**: Update delete payload
+- **domain**: Update event
+- **domain**: Update fork payload
+- **domain**: Update issue comment payload
+- **domain**: Update issue info
+- **domain**: Update issues payload
+- **domain**: Update label info
+- **domain**: Update pull request info
+- **domain**: Update pull request payload
+- **domain**: Update push payload
+- **domain**: Update release info
+- **domain**: Update release payload
+- **domain**: Update repository dispatch payload
+- **domain**: Update repository info
+- **domain**: Update user info
+- **domain**: Update workflow call payload
+- **domain**: Update workflow dispatch payload
+- **domain**: Update act run completed payload
+- **domain**: Update job finished payload
+- **domain**: Update job started payload
+- **domain**: Update step finished payload
+- **domain**: Update step output payload
+- **domain**: Update step started payload
+- **domain**: Update workflow started payload
+- **domain**: Update context
+- **domain**: Update evaluator
+- **domain**: Update functions
+- **domain**: Update parser
+- **domain**: Update resolver
+- **domain**: Update step interpolator
+- **domain**: Update plan
+- **domain**: Update run
+- **domain**: Update stage
+- **domain**: Update action
+- **domain**: Update action input
+- **domain**: Update concurrency
+- **domain**: Update container config
+- **domain**: Update container credentials
+- **domain**: Update defaults
+- **domain**: Update event config
+- **domain**: Update job
+- **domain**: Update matrix
+- **domain**: Update permissions
+- **domain**: Update run defaults
+- **domain**: Update step
+- **domain**: Update workflow
+- **domain**: Update workflow dispatch input
+- **infrastructure**: Update collect action files service
+- **infrastructure**: Update copy action to container service
+- **infrastructure**: Update fetch remote action service
+- **infrastructure**: Update github action input environment adapter
+- **infrastructure**: Update run composite action service
+- **infrastructure**: Update run node action service
+- **infrastructure**: Update container runtime adapter
+- **infrastructure**: Update create job container service
+- **infrastructure**: Update docker container
+- **infrastructure**: Update docker runtime
+- **infrastructure**: Update exec streaming support
+- **infrastructure**: Update podman container
+- **infrastructure**: Update podman runtime
+- **infrastructure**: Update prepare job container service
+- **infrastructure**: Update pull job image service
+- **infrastructure**: Update tar transfer
+- **infrastructure**: Update read step env exports service
+- **infrastructure**: Update read step exports service
+- **infrastructure**: Update read step path exports service
+- **infrastructure**: Update run composite step service
+- **infrastructure**: Update run shell step service
+- **infrastructure**: Update summarize step service
+- **infrastructure**: Update detect workflow file service
+- **infrastructure**: Update list all workflow files service
+- **infrastructure**: Update resolve named workflow file service
+- **infrastructure**: Update resolve workflow files service
+- **infrastructure**: Update workflow command handler
+- **infrastructure**: Update workflow source adapter
+- **presentation**: Update cli
+- **presentation**: Update list workflows handler
+- **presentation**: Update run args
+- **presentation**: Update run handler
+- **presentation**: Update run progress handler
+- **presentation**: Update banner
+- **presentation**: Update box component
+- **encapsulation**: Privatize cross-layer data fields
+- **hygiene**: Remove non-doc Rust comments
+- **domain**: Group event constructor parameters
+- **infrastructure**: Relocate webhook payload model
+- **domain**: Organize canonical domain model
+- **application**: Align commands and ports
+- **infrastructure**: Isolate workflow deserialization
+- **tests**: Align callers with domain boundaries
+- **application**: Organize DTOs into request and response namespaces
+- **messaging**: Isolate message ownership
+- **containers**: Use generic runner file paths
+- **runner**: Remove GitHub-specific adapter module
+- **runner**: Export generic environment adapter
+- **runner**: Add generic environment adapter
+- **steps**: Read generic runner environment exports
+- **steps**: Read generic runner path exports
+- **events**: Extract step completion details
+- **events**: Export step completion details
+- **events**: Group step completion payload data
+- **execution**: Use grouped step completion data
+- **logging**: Use grouped event details
+- **logging**: Export grouped failure stores
+- **di**: Group application container dependencies
+- **di**: Pass grouped failure stores
+- **cli**: Group failure log stores
+- **cli**: Group diagnostic handler stores
+- **cli**: Import grouped step details
+- **composition**: Preserve grouped failure stores
+- Satisfy quality thresholds
+- **domain**: Simplify execution_planner doc test
+- **cleanup**: Remove unused ContainerCleanupPort
+- **cleanup**: Remove unused ContainerCleanupService
+- **requests**: Remove unused ContainerCleanupRequest
+- **requests**: Drop ContainerCleanupRequest export
+- **containers**: Drop cleanup port and service exports
+- **messaging**: Remove unused with_cleanup_handler constructor
+- **tests**: Remove unused SpyCleanupHandler fake
+- **tests**: Drop spy_cleanup_handler module
+- **tests**: Remove dead cleanup service tests
+- **tests**: Remove orphaned cleanup stub test
+- **application**: Replace generic bus ports with concrete traits
+- **application**: Use concrete bus port trait objects in services
+- **infrastructure**: Implement concrete bus port traits
+- **application**: Own primitive request DTO data
+- **infrastructure**: Accept owned application requests
+- **application**: Own pull image request data
+- **infrastructure**: Accept owned image requests
+- **domain**: Condense configuration and helpers
+- **application**: Migrate typed ports and services
+- **infrastructure**: Wire typed adapters and factories
+- **presentation**: Update CLI composition
+- **requests**: Own workflow environment inputs
+- **requests**: Own run context inputs
+- **requests**: Own action container inputs
+- **requests**: Own remote action reference
+- **requests**: Own action input resolution data
+- **requests**: Own node binary container handle
+- **responses**: Share prepared container handles
+- **commands**: Remove action command lifetime
+- **ports**: Own environment request data
+- **ports**: Own action input request data
+- **ports**: Share composite action containers
+- **ports**: Share node action containers
+- **commands**: Remove step command lifetime
+- **services**: Own action execution container handles
+- **services**: Own job request data
+- **services**: Own step execution container handles
+- **services**: Clone action execution inputs
+- **commands**: Own action execution container
+- **commands**: Own step execution container
+- **actions**: Update action command handler ownership
+- **actions**: Share copy container handles
+- **actions**: Own copy request inputs
+- **actions**: Share execute action containers
+- **actions**: Own remote action references
+- **actions**: Clone remote action requests
+- **actions**: Clone action directory references
+- **actions**: Own input resolution requests
+- **actions**: Share node resolution containers
+- **actions**: Own node resolution requests
+- **actions**: Share composite action containers
+- **actions**: Share node action containers
+- **containers**: Own run context requests
+- **containers**: Clone run context inputs
+- **di**: Share action execution containers
+- **jobs**: Own environment request inputs
+- **messaging**: Remove deferred command lifetimes
+- **messaging**: Remove in-memory command lifetimes
+- **messaging**: Remove shared command lifetimes
+- **steps**: Share execute step containers
+- **steps**: Share composite step containers
+- **steps**: Share composite step containers
+- **steps**: Update step command handler ownership
+- **domain**: Add Send to generic
+
+### Documentation
+
+- **core**: Add rustdoc to CleanupPolicy should_cleanup method
+- **core**: Add rustdoc to RepoPath with validation semantics
+- **core**: Add rustdoc to RepositoryName with Display impl docs
+- **core**: Add rustdoc to EphemeralRepository and TempDirTemplate
+- **act_run_config**: Remove useless comments
+- Expressive docstring added
+- Add shell script vs Rust core model analysis
+- Add shell script verification summary
+- Add recommended ContainerDaemonSocket additions
+- Add file link
+- **cli**: Restore run argument help text
+- Describe ephemeral run guarantees and opt-in flags
+- **usage**: Invoke ephact in command examples
+- Add project README
+- Add usage guide
+- Add architecture guide
+- Add development guide
+- Architecture.md diagram sync
+- Add CONTRIBUTING.md file
+- **cli**: Synchronize usage guide with actual subcommands and flags
+- **arch**: Document command bus orchestration and test suites
+- **dev**: Synchronize development tasks and ci pipeline stages
+- **readme**: Update quick start, subcommands, and documentation links
+- **cli**: Document interactive workflow runs
+- Clarify installation and usage guidance
+- Correct usage and architecture guidance
+- **domain**: Make workflow aggregate docstrings forge-agnostic
+- **domain**: Make job entity docstrings forge-agnostic
+- **domain**: Make step entity docstring forge-agnostic
+- **domain**: Make expression evaluator docstring forge-agnostic
+- **domain**: Make expression functions docstring forge-agnostic
+- **domain**: Make expression lexer docstring forge-agnostic
+- **domain**: Make expression resolver docstring forge-agnostic
+- **domain**: Make action definition docstring forge-agnostic
+- **domain**: Make action reference docstring forge-agnostic
+- **domain**: Make context value docstrings forge-agnostic
+- **domain**: Make evaluation context docstring forge-agnostic
+- **domain**: Make expression AST docstring forge-agnostic
+- **domain**: Make expression token docstring forge-agnostic
+- **domain**: Make literal value docstring forge-agnostic
+- **domain**: Make token permissions docstring forge-agnostic
+- **domain**: Make workflow trigger docstring forge-agnostic
+- **application**: Drop external refs from container runtime port
+- **application**: Make workflow files response docstring agnostic
+- **readme**: Document isolated workflow execution
+- **usage**: Document repository write policy
+- Design coverage action modularization
+- Add coverage action plan
+- Remove staled docs
+- **application**: Align bus port docstrings with contract style
+- **ports**: Document action bus type erasure
+- **ports**: Document step bus type erasure
+
+### Testing
+
+- **infrastructure**: Add act_wrapper integration tests
+- **services**: Add RunActService integration tests
+- Update integration tests for multi-CI-host adapters
+- **cli**: Add run_from entry point and integration tests
+- **act-wrappers**: Add ActionsExecutor dispatch and execute_act integration tests
+- Update wrapper tests for act-ephemeral.sh
+- Update service tests, fix clippy warnings
+- **infra**: Update act wrapper tests for act binary interface
+- **infra**: Add DockerRuntime integration tests
+- **infra**: Add ContainerRuntimeAdapter integration tests
+- **infra**: Add PodmanRuntime integration tests
+- Add integration tests for infrastructure and presentation layers
+- **core**: Add unit tests for parse_error, literal, logical_op, secret
+- **core**: Add unit tests for container_engine, act_run_config, repo_path, planner, container_cleanup
+- **presentation**: Add stdout/stderr output path tests for RunHandler
+- **runners**: Add integration tests for DockerRuntime and PodmanRuntime
+- **runners**: Add more integration tests for runtimes, containers, and adapter
+- Raise adapter (59→96%), container (41→74%), cli coverage
+- Finalize coverage — adapter 98.6%, runtimes 91%, overall PASS
+- **cli**: Add invalid flag error path test (79.2% → 79.2%, compiler regions)
+- Extract shared fakes to tests/fakes/
+- Add macro test skip
+- Adapt fakes and tests to port renames and DTOs
+- **run-act**: Assert published event and fix fake fidelity
+- **run-act**: Isolate forgejo workflow discovery from live repo
+- **runners**: Format ContainerError with Debug in adapter_tests
+- **core**: Cover unit variant event names and payloads
+- **expression**: Cover variable evaluation and access type errors
+- **expression**: Cover display for index deref and not nodes
+- **expression**: Cover function dispatch format and argument errors
+- **expression**: Cover parser error paths
+- **planner**: Report unresolved dependencies on cyclic needs
+- **services**: Replace unimplemented stubs with working fake runtime
+- **services**: Cover local composite action execution paths
+- **workflow**: Assert composite runs via matches guard
+- **workflow**: Cover on-event matching defaults and deserialization
+- **common**: Declare shared common module root
+- **common**: Declare fake module tree
+- **fakes**: Add empty-response fake for ListActionsPort
+- **fakes**: Add empty-response fake for ListWorkflowsPort
+- **fakes**: Add WorkflowFileParserPort fake for list services
+- **core**: Declare core integration module tree
+- **core**: Declare services test module tree
+- **services**: Cover list actions service with parser fake
+- **services**: Cover list workflows service with parser fake
+- **infrastructure**: Declare infrastructure test module tree
+- **runners**: Declare runner test module tree
+- **runners**: Exercise DockerContainer port contract on live daemon
+- **runners**: Exercise PodmanContainer port contract on live daemon
+- **infrastructure**: Cover uses extraction and summary parsing
+- **infrastructure**: Assert Container builds full AppContainer
+- **presentation**: Declare presentation test module tree
+- **cli**: Declare cli test module tree
+- **cli**: Convert ListActionsArgs to domain request
+- **cli**: Convert ListWorkflowsArgs to domain request
+- **cli**: Handle list actions with fake port
+- **cli**: Handle list workflows with fake port
+- **cli**: Route list subcommands through public CLI seam
+- **composition_root**: Declare composition root test modules
+- **composition_root**: Drive Application cli field with injected fakes
+- **core**: Pin all-workflows execution behavior
+- **cli**: Pin all-workflows argument mapping
+- Add e2e pipeline suite with shared fakes
+- Update fakes, add unit tests for decomposed services, and adapt e2e suites
+- Update fakes, service tests, and relocate adapter tests to infra
+- Exercise the layers through their own ports and fakes
+- **application**: Cover branding info service
+- **application**: Register branding service tests
+- **e2e**: Add CLI command scenarios
+- **e2e**: Register CLI command scenarios
+- **cli**: Verify supported platforms and workflows in help output
+- **application**: Update execute action service tests
+- **application**: Update execute job service tests
+- **application**: Update execute step service tests
+- **application**: Update execute workflow service tests
+- **application**: Update list actions service tests
+- **application**: Update list workflows service tests
+- **application**: Update run action service tests
+- **application**: Update run all workflows service tests
+- **application**: Update run workflow service tests
+- **application**: Update show project branding info service tests
+- **common**: Update fake action routing command bus
+- **common**: Update fake collect action files port
+- **common**: Update fake command bus
+- **common**: Update fake copy action to container port
+- **common**: Update fake create job container port
+- **common**: Update fake fetch remote action port
+- **common**: Update fake list all workflow files port
+- **common**: Update fake load workflow port
+- **common**: Update fake prepare job container port
+- **common**: Update fake pull job image port
+- **common**: Update fake resolve named workflow file port
+- **common**: Update fake run all workflows port
+- **common**: Update fake run composite step port
+- **common**: Update fake run shell step port
+- **common**: Update fake run workflow port
+- **common**: Update fake runtime
+- **common**: Update spy cleanup handler
+- **common**: Update spy container runtime
+- **common**: Update stub pull failing runtime
+- **common**: Update stub scripted container
+- **common**: Update action request fixture
+- **container_integration**: Update docker container tests
+- **container_integration**: Update docker runtime tests
+- **container_integration**: Update podman container tests
+- **container_integration**: Update podman runtime tests
+- **e2e**: Update cli commands tests
+- **e2e**: Update failing runtime
+- **e2e**: Update succeeding runtime
+- **infrastructure**: Update collect action files service tests
+- **infrastructure**: Update copy action to container service tests
+- **common**: Update fake build action input environment port
+- **common**: Update fake container handle
+- **common**: Update fake read step exports port
+- **common**: Update stub container
+- **common**: Update stub exporting container
+- **common**: Update stub recording container
+- **e2e**: Update failing container
+- **e2e**: Update succeeding container
+- **e2e**: Update continue on error pipeline run
+- **e2e**: Update delivery pipeline run
+- **e2e**: Update every workflow run
+- **e2e**: Update failing pipeline run
+- **e2e**: Update remote action pipeline run
+- **infrastructure**: Update github action input environment adapter tests
+- **infrastructure**: Update load action definition service tests
+- **infrastructure**: Update resolve action directory service tests
+- **infrastructure**: Update run composite action service tests
+- **infrastructure**: Update run node action service tests
+- **infrastructure**: Update build run context service tests
+- **infrastructure**: Update container runtime adapter tests
+- **infrastructure**: Update create job container service tests
+- **infrastructure**: Update prepare job container service tests
+- **infrastructure**: Update container tests
+- **infrastructure**: Update github job environment adapter tests
+- **infrastructure**: Update in memory command bus tests
+- **infrastructure**: Update in memory event bus tests
+- **infrastructure**: Update build step context service tests
+- **infrastructure**: Update read step exports service tests
+- **infrastructure**: Update run composite step service tests
+- **infrastructure**: Update run shell step service tests
+- **infrastructure**: Update summarize step service tests
+- **infrastructure**: Update filesystem workflow source tests
+- **infrastructure**: Update list all workflow files service tests
+- **infrastructure**: Update list workflow directory service tests
+- **infrastructure**: Update load workflow service tests
+- **infrastructure**: Update merge run executions service tests
+- **infrastructure**: Update resolve workflow files service tests
+- **presentation**: Update cli parser tests
+- **presentation**: Update cli tests
+- **presentation**: Update command tests
+- **presentation**: Update run handler tests
+- **presentation**: Update application tests
+- **presentation**: Update composition root tests
+- **workflows**: Cover declared workflow events
+- **run**: Cover input preflight wiring
+- **infrastructure**: Add command bus job and step dispatch behavior tests
+- **fakes**: Consolidate and relocate test fakes
+- **infrastructure**: Relocate container integration tests to match source paths
+- **infrastructure**: Isolate container integration tests under feature flag
+- **application**: Migrate messaging contracts
+- **fakes**: Adapt borrowed messaging contracts
+- **infrastructure**: Migrate messaging integration tests
+- **presentation**: Migrate composition tests
+- **execution**: Cover job policy propagation
+- **execution**: Cover workflow policy propagation
+- **workflows**: Cover all-workflow lifecycle events
+- **workflows**: Cover single-workflow lifecycle events
+- **containers**: Cover repository bind policies
+- **containers**: Cover write policy propagation
+- **runner**: Cover generic environment paths
+- **messaging**: Cover metadata-bearing commands
+- **messaging**: Cover lifecycle event dispatch
+- **steps**: Cover generic environment export paths
+- **steps**: Cover generic path export paths
+- **cli**: Cover repository write flag parsing
+- **containers**: Add fake CopyRepositoryToContainerPort for testing
+- **containers**: Update container service tests for isolated workspace
+- **cleanup**: Cover container teardown when a run fails
+- **jobs**: Assert the started container is announced
+- **containers**: Register handler test, drop dead service tests
+- Adapt bus fakes and adapter tests to concrete port traits
+- Update fixtures for owned request DTOs
+- Update pull image request fixtures
+- **application**: Migrate service coverage
+- **infrastructure**: Migrate adapter coverage
+- **presentation**: Verify composed application behavior
+- **e2e**: Migrate shared fixtures and fakes
+- **application**: Update action service ownership cases
+- **application**: Update step service ownership cases
+- **fakes**: Update action routing command bus
+- **fakes**: Update command bus ownership
+- **fakes**: Share copy action containers
+- **fakes**: Own remote action references
+- **fakes**: Share node resolution containers
+- **fakes**: Share composite step containers
+- **actions**: Update copy service ownership cases
+- **actions**: Update remote action ownership cases
+- **actions**: Update input resolution ownership cases
+- **actions**: Update node resolution ownership cases
+- **actions**: Update composite action ownership cases
+- **actions**: Update node action ownership cases
+- **containers**: Update run context ownership cases
+- **jobs**: Update environment ownership cases
+- **messaging**: Update command bus ownership cases
+- **steps**: Update composite step ownership cases
+
+### Continuous Integration
+
+- **actions**: Add install-dependencies composite action
+- **actions**: Add run-tests composite action
+- **workflows**: Add main CI pipeline with test, lint, and validate jobs
+- **config**: Add actionlint configuration
+- Use local actions in workflow
+- Rename release artifacts and cache keys to ephact
+- Run tests in the build workflow
+- Add lizard quality recipe
+- Enforce pre-push quality checks
+- Run locked clippy before push
+- Isolate coverage tool installation
+- Install coverage tool for tests
+
+### Miscellaneous Tasks
+
+- **EphemeralAct**: Initial commit
+- Add cov.json to .gitignore
+- Remove old files
+- **infrastructure**: Remove duplicated struct
+- **deps**: Add tempfile dev-dependency to Cargo.toml
+- **cli**: Split Cli into CliParser + handlers with owned use_case
+- **infrastructure**: Add Container DI module
+- **presentation**: Add CompositionRoot and Application types
+- **main**: Delegate startup to Container and CompositionRoot
+- **test**: Format assertion messages in act_wrappers tests
+- Define rustfmt.toml
+- Remove dead act_wrappers module and rename StubImageMapper to FakeImageMapper
+- Add workflow artifacts to gitignore
+- Add Cargo.lock
+- **forgejo**: Codeberg runners
+- **forgejo**: Test already does the test coverage
+- **scripts**: Add container_runtime_available
+- **forgejo**: Update to checkout@v6
+- **forgejo**: Rename artifact to kebab case
+- **forgejo**: Drop build job from CI workflow
+- Move fakes to common dir
+- **build**: Consolidate integration tests into three module-tree targets
+- **build**: Add list-workflows and list-actions run recipes
+- Remove issue report
+- **Cargo**: Bump to 0.2.0
+- **semgrep**: Introduce semgrep settings
+- **justfile**: Add semgrep recipe
+- **deps**: Update Cargo
+- **deps**: Update Cargo
+- **deps**: Update rust-toolchain
+- **tooling**: Update check coverage
+- **scripts**: Remap path prefix in test coverage report
+- **lint**: Resolve remaining clippy warnings
+- Fix staged Rust formatting hook
+- Check_coverage script fix for local env
+- **deps**: Remove unused chrono dependency
+- **deps**: Refresh lockfile after dependency removal
