@@ -1,4 +1,5 @@
 mod branding_tests;
+mod cli_dependencies;
 mod cli_parser_tests;
 mod cli_tests;
 mod command_tests;
