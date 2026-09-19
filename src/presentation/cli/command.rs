@@ -8,4 +8,6 @@ pub enum Command {
     ListWorkflows(Box<super::list_workflows_args::ListWorkflowsArgs>),
     /// List actions referenced in workflows.
     ListActions(Box<super::list_actions_args::ListActionsArgs>),
+    /// Open the terminal user interface.
+    Tui,
 }

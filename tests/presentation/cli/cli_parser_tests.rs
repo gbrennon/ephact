@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use ephact::presentation::{
-        cli::{CliParser, parse_run_test_args, run_handler::RunHandler},
+        cli::{CliParser, command::Command, parse_run_test_args, run_handler::RunHandler},
         components::terminal::SystemTerminal,
     };
 
@@ -45,6 +45,12 @@ mod tests {
         let terminal = SystemTerminal;
         let list_port = FakeListWorkflowsPort::new();
         RunHandler::handle(args, &wf_port, &all_wf_port, &list_port, &terminal).unwrap();
+    }
+
+    #[test]
+    fn parses_tui_command() {
+        let cli = CliParser::try_parse_from(["ephact", "tui"]).expect("tui should parse");
+        assert!(matches!(cli.command(), Command::Tui));
     }
 
     #[test]
