@@ -39,10 +39,6 @@ impl TuiApp {
         }
     }
 
-    pub fn screen(&self) -> TuiScreen {
-        self.screen
-    }
-
     pub fn home_selection(&self) -> usize {
         self.home_selection
     }
@@ -72,6 +68,19 @@ impl TuiApp {
                 TuiScreen::Exit => {}
             },
         }
+    }
+
+    pub fn render(&self, frame: &mut Frame<'_>) {
+        match self.screen {
+            TuiScreen::Splash => SplashScreen::render(frame),
+            TuiScreen::Home | TuiScreen::Exit => HomeScreen::render(frame, self.home_selection),
+            TuiScreen::ListWorkflows => self.list_workflows_screen.render(frame),
+            TuiScreen::ListActions => self.list_actions_screen.render(frame),
+        }
+    }
+
+    pub fn screen(&self) -> TuiScreen {
+        self.screen
     }
 
     fn handle_home_key(&mut self, key: KeyEvent) {
@@ -105,6 +114,7 @@ impl TuiApp {
             _ => {}
         }
     }
+
     fn handle_list_actions_key(&mut self, key: KeyEvent) {
         match key.code {
             KeyCode::Up | KeyCode::Char(Self::PREVIOUS_KEY) => {
@@ -113,15 +123,6 @@ impl TuiApp {
             KeyCode::Down | KeyCode::Char(Self::NEXT_KEY) => self.list_actions_screen.select_next(),
             KeyCode::Esc | KeyCode::Backspace => self.screen = TuiScreen::Home,
             _ => {}
-        }
-    }
-
-    pub fn render(&self, frame: &mut Frame<'_>) {
-        match self.screen {
-            TuiScreen::Splash => SplashScreen::render(frame),
-            TuiScreen::Home | TuiScreen::Exit => HomeScreen::render(frame, self.home_selection),
-            TuiScreen::ListWorkflows => self.list_workflows_screen.render(frame),
-            TuiScreen::ListActions => self.list_actions_screen.render(frame),
         }
     }
 }
