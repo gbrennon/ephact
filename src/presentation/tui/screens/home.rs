@@ -6,10 +6,11 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
 };
 
-pub struct HomeScreen;
+pub struct HomeScreen {}
 
 impl HomeScreen {
     pub const LIST_WORKFLOWS_INDEX: usize = 1;
+    pub const LIST_ACTIONS_INDEX: usize = 2;
     pub const LAST_MENU_INDEX: usize = 2;
 
     const TITLE: &'static str = "EPHACT";
