@@ -20,11 +20,11 @@ use crate::presentation::handlers::{
 use crate::presentation::tui::TuiRunner;
 
 pub struct Cli {
-    run_workflow_port: Box<dyn RunWorkflowPort>,
+    run_workflow_port: Arc<dyn RunWorkflowPort>,
     run_all_workflows_port: Box<dyn RunAllWorkflowsPort>,
     discover_run_inputs_port: Box<dyn DiscoverRunInputsPort>,
     list_workflows_port: Arc<dyn ListWorkflowsPort>,
-    list_actions_port: Box<dyn ListActionsPort>,
+    list_actions_port: Arc<dyn ListActionsPort>,
     show_project_branding_info_port: Box<dyn ShowProjectBrandingInfoPort>,
     failure_log_error_store: crate::infrastructure::logging::FailureLogErrorStore,
     failure_log_path_store: crate::infrastructure::logging::FailureLogPathStore,
@@ -54,8 +54,14 @@ impl Cli {
             list_actions_port,
             show_project_branding_info_port,
         ) = dependencies.into_parts();
+        let run_workflow_port: Arc<dyn RunWorkflowPort> = Arc::from(run_workflow_port);
         let list_workflows_port: Arc<dyn ListWorkflowsPort> = Arc::from(list_workflows_port);
-        let tui_runner = TuiRunner::new(list_workflows_port.clone());
+        let list_actions_port: Arc<dyn ListActionsPort> = Arc::from(list_actions_port);
+        let tui_runner = TuiRunner::new(
+            list_workflows_port.clone(),
+            list_actions_port.clone(),
+            run_workflow_port.clone(),
+        );
         Self {
             run_workflow_port,
             run_all_workflows_port,
@@ -82,7 +88,9 @@ impl Cli {
             list_actions_port,
             show_project_branding_info_port,
         ) = dependencies.into_parts();
+        let run_workflow_port: Arc<dyn RunWorkflowPort> = Arc::from(run_workflow_port);
         let list_workflows_port: Arc<dyn ListWorkflowsPort> = Arc::from(list_workflows_port);
+        let list_actions_port: Arc<dyn ListActionsPort> = Arc::from(list_actions_port);
         Self {
             run_workflow_port,
             run_all_workflows_port,
