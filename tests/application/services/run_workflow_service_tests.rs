@@ -30,33 +30,11 @@ mod tests {
     }
 
     fn primitive_request(config: ActRunConfig, repository: Repository) -> RunWorkflowRequest {
-        RunWorkflowRequest::new(
-            repository.path().as_path().to_path_buf(),
-            repository.name().as_str().to_string(),
-            config.workflow().map(|value| value.as_str().to_string()),
-            config.job().map(|value| value.as_str().to_string()),
-            config.event().map(|value| value.as_str().to_string()),
-            config
-                .inputs()
-                .iter()
-                .map(|input| (input.key().to_string(), input.value().to_string()))
-                .collect(),
-            config
-                .secrets()
-                .iter()
-                .map(|secret| (secret.name().to_string(), secret.value().to_string()))
-                .collect(),
-            config.all_workflows(),
-            config.allow_repo_writes(),
-            config.allow_real_container(),
-            config.allow_real_fetcher(),
-            config.allow_network(),
-            config.run_id().to_string(),
-        )
+        RunWorkflowRequest::from_domain(&repository, &config)
     }
 
-    #[test]
-    fn execute_runs_workflow_and_publishes_lifecycle_events() {
+    #[tokio::test]
+    async fn execute_runs_workflow_and_publishes_lifecycle_events() {
         let temp = tempfile::tempdir().unwrap();
         let repo = make_repo(temp.path());
 
@@ -82,7 +60,7 @@ mod tests {
         );
         let request = primitive_request(config, repo);
 
-        let summary: RunSummaryResponse = service.execute(request).unwrap();
+        let summary: RunSummaryResponse = service.execute(request).await.unwrap();
 
         assert_eq!(summary.name(), "CI");
         assert!(summary.success());
@@ -107,8 +85,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn execute_publishes_run_failed_when_workflow_read_fails() {
+    #[tokio::test]
+    async fn execute_publishes_run_failed_when_workflow_read_fails() {
         let temp = tempfile::tempdir().unwrap();
         let repo = make_repo(temp.path());
         let source = FakeWorkflowSource::new().failing_read_workflow("cannot read workflow");
@@ -125,6 +103,7 @@ mod tests {
 
         let error = service
             .execute(primitive_request(config, repo))
+            .await
             .unwrap_err();
 
         assert_eq!(error.to_string(), "cannot read workflow");
@@ -137,8 +116,8 @@ mod tests {
         assert_eq!(payload.error(), "cannot read workflow");
     }
 
-    #[test]
-    fn execute_publishes_run_failed_when_trigger_is_missing() {
+    #[tokio::test]
+    async fn execute_publishes_run_failed_when_trigger_is_missing() {
         let temp = tempfile::tempdir().unwrap();
         let repo = make_repo(temp.path());
         let workflow_source =
@@ -155,6 +134,7 @@ mod tests {
 
         let error = service
             .execute(primitive_request(config, repo))
+            .await
             .unwrap_err();
 
         assert!(error.to_string().contains("pull_request"));
@@ -170,8 +150,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn execute_rejects_workflows_without_pull_request_event() {
+    #[tokio::test]
+    async fn execute_rejects_workflows_without_pull_request_event() {
         let temp = tempfile::tempdir().unwrap();
         let repo = make_repo(temp.path());
         let workflow_source =
@@ -186,7 +166,7 @@ mod tests {
         );
         let request = primitive_request(ActRunConfig::new(), repo);
 
-        let error = service.execute(request).unwrap_err();
+        let error = service.execute(request).await.unwrap_err();
 
         assert!(error.to_string().contains("pull_request"));
         assert!(command_bus.dispatched_workflows.lock().is_empty());
