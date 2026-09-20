@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use ephact::application::dtos::responses::RunSummaryResponse;
+use ephact::application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse};
 use ephact::presentation::tui::tui_app::{TuiApp, TuiScreen};
 #[test]
 fn selecting_list_workflows_enters_workflow_screen() {
@@ -64,7 +64,27 @@ fn details_key_opens_failed_run_details() {
 }
 
 #[test]
-fn details_key_does_not_open_successful_run_details() {
+fn tui_configuration_submits_selected_event() {
+    let mut app = TuiApp::new(vec![WorkflowListItemResponse::new(
+        Some("CI".to_string()),
+        None,
+        vec!["push".to_string(), "schedule".to_string()],
+    )]);
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.begin_run_configuration(vec!["push".to_string(), "schedule".to_string()], vec![]);
+    app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+    app.handle_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE));
+
+    let configuration = app
+        .take_configured_run_request()
+        .expect("configured run request");
+
+    assert_eq!(configuration.event(), "schedule");
+}
+
+#[test]
+fn details_key_opens_successful_run_details() {
     let mut app = TuiApp::new(vec![]);
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
@@ -77,7 +97,7 @@ fn details_key_does_not_open_successful_run_details() {
 
     app.handle_key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE));
 
-    assert!(!app.run_workflow_screen().showing_details());
+    assert!(app.run_workflow_screen().showing_details());
 }
 
 #[test]
