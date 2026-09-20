@@ -7,19 +7,16 @@ use super::super::components::{
     content::ContentComponent,
     terminal::{SystemTerminal, Terminal},
 };
-use super::{
-    cli_parser::CliParser,
-    command::Command,
-    list_actions_handler::ListActionsHandler,
-    list_workflows_handler::ListWorkflowsHandler,
-    run_handler::{DiagnosticStores, PreflightPorts, RunHandler},
-};
+use super::{cli_parser::CliParser, command::Command};
 use crate::application::ports::inbound::{
     list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
     run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
     show_project_branding_info_port::ShowProjectBrandingInfoPort,
 };
 use crate::application::ports::outbound::DiscoverRunInputsPort;
+use crate::presentation::handlers::{
+    DiagnosticStores, ListActionsHandler, ListWorkflowsHandler, PreflightPorts, RunHandler,
+};
 use crate::presentation::tui::TuiRunner;
 
 pub struct Cli {
@@ -207,7 +204,9 @@ impl Cli {
         terminal: &dyn Terminal,
         output: &mut String,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let content = ListWorkflowsHandler::handle(args, &*self.list_workflows_port)?;
+        let response =
+            ListWorkflowsHandler::handle(&*self.list_workflows_port, args.path().to_path_buf())?;
+        let content = ListWorkflowsHandler::render(&response);
         output.push_str(
             &BoxComponent::new(
                 ContentComponent::new("Workflows".to_string(), content),
@@ -224,7 +223,9 @@ impl Cli {
         terminal: &dyn Terminal,
         output: &mut String,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let content = ListActionsHandler::handle(args, &*self.list_actions_port)?;
+        let response =
+            ListActionsHandler::handle(&*self.list_actions_port, args.path().to_path_buf())?;
+        let content = ListActionsHandler::render(&response);
         output.push_str(
             &BoxComponent::new(
                 ContentComponent::new("Actions".to_string(), content),
