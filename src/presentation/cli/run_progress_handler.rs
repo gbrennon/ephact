@@ -1,4 +1,8 @@
 use std::io::Write;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::{
     domain::messages::events::{
@@ -19,11 +23,55 @@ use crate::{
 /// standard output stays clean.
 pub struct RunProgressHandler {
     verbose: bool,
+    tui_sender: Option<UnboundedSender<String>>,
+    output_suppressed: Arc<AtomicBool>,
+}
+
+pub struct TuiProgressStream {
+    receiver: Arc<Mutex<UnboundedReceiver<String>>>,
+    output_suppressed: Arc<AtomicBool>,
+}
+
+impl TuiProgressStream {
+    pub fn try_recv(&self) -> Option<String> {
+        self.receiver
+            .lock()
+            .expect("progress receiver lock")
+            .try_recv()
+            .ok()
+    }
+
+    pub fn activate_tui(&self) {
+        self.output_suppressed.store(true, Ordering::Relaxed);
+    }
+
+    pub fn deactivate_tui(&self) {
+        self.output_suppressed.store(false, Ordering::Relaxed);
+    }
 }
 
 impl RunProgressHandler {
     pub fn new(verbose: bool) -> Self {
-        Self { verbose }
+        Self {
+            verbose,
+            tui_sender: None,
+            output_suppressed: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    pub fn with_tui_stream(verbose: bool) -> (Self, TuiProgressStream) {
+        let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
+        let output_suppressed = Arc::new(AtomicBool::new(false));
+        let stream = TuiProgressStream {
+            receiver: Arc::new(Mutex::new(receiver)),
+            output_suppressed: output_suppressed.clone(),
+        };
+        let handler = Self {
+            verbose,
+            tui_sender: Some(sender),
+            output_suppressed,
+        };
+        (handler, stream)
     }
 
     fn write_line(line: &str) {
@@ -43,10 +91,13 @@ impl RunProgressHandler {
         }
     }
 
+    fn output_line(payload: &StepOutputPayload) -> String {
+        format!("      | {}", payload.text())
+    }
+
     fn relay_output(payload: &StepOutputPayload) {
         let mut stderr = std::io::stderr().lock();
-        let _ = write!(stderr, "      | ");
-        let _ = stderr.write_all(payload.text().as_bytes());
+        let _ = stderr.write_all(Self::output_line(payload).as_bytes());
         let _ = stderr.flush();
     }
 
@@ -107,6 +158,10 @@ impl RunProgressHandler {
 
 impl DomainEventHandler for RunProgressHandler {
     fn handle(&self, event: &DomainEvent) {
+        self.stream_progress(event);
+        if self.output_suppressed.load(Ordering::Relaxed) {
+            return;
+        }
         match event {
             DomainEvent::StepOutput(payload) if self.renders_output() => {
                 Self::relay_output(payload)
@@ -116,6 +171,24 @@ impl DomainEventHandler for RunProgressHandler {
                     Self::write_line(&line);
                 }
             }
+        }
+    }
+}
+
+impl RunProgressHandler {
+    fn stream_progress(&self, event: &DomainEvent) {
+        if !self.output_suppressed.load(Ordering::Relaxed) {
+            return;
+        }
+        let Some(sender) = &self.tui_sender else {
+            return;
+        };
+        if let Some(line) = self.render(event) {
+            let _ = sender.send(line);
+        } else if self.renders_output()
+            && let DomainEvent::StepOutput(payload) = event
+        {
+            let _ = sender.send(Self::output_line(payload));
         }
     }
 }
@@ -166,6 +239,30 @@ mod tests {
             handler.render(&step_started()).as_deref(),
             Some("    Step 'compile': running...")
         );
+    }
+
+    #[test]
+    fn tui_stream_receives_rendered_progress_lines() {
+        let (handler, stream) = RunProgressHandler::with_tui_stream(false);
+        stream.activate_tui();
+
+        handler.handle(&step_started());
+
+        assert_eq!(
+            stream.try_recv().as_deref(),
+            Some("    Step 'compile': running...")
+        );
+    }
+
+    #[test]
+    fn inactive_tui_stream_does_not_buffer_cli_progress() {
+        let (handler, stream) = RunProgressHandler::with_tui_stream(false);
+
+        handler.handle(&DomainEvent::WorkflowStarted(WorkflowStartedPayload::new(
+            "Build".into(),
+        )));
+
+        assert!(stream.try_recv().is_none());
     }
 
     #[test]
