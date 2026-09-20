@@ -21,7 +21,18 @@ impl RunWorkflowPort for FakeRunWorkflowPort {
     fn execute(
         &self,
         _request: RunWorkflowRequest,
-    ) -> Result<RunSummaryResponse, ephact::application::errors::RunWorkflowError> {
-        Ok(self.result.clone())
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<
+                    Output = Result<
+                        RunSummaryResponse,
+                        ephact::application::errors::RunWorkflowError,
+                    >,
+                > + Send
+                + '_,
+        >,
+    > {
+        let result = self.result.clone();
+        Box::pin(async move { Ok(result) })
     }
 }
