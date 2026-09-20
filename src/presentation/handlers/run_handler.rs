@@ -90,7 +90,7 @@ impl RunHandler {
     }
 
     fn single_workflow_config(workflow: Option<String>) -> ActRunConfig {
-        let config = ActRunConfig::new();
+        let config = ActRunConfig::new().with_event(ActEvent::new("pull_request".to_string()));
         match workflow {
             Some(name) => config.with_workflow(ActWorkflow::new(name)),
             None => config,
