@@ -12,9 +12,20 @@ impl RunWorkflowPort for StubRunWorkflowPort {
     fn execute(
         &self,
         _request: RunWorkflowRequest,
-    ) -> Result<RunSummaryResponse, ephact::application::errors::RunWorkflowError> {
-        self.result
-            .clone()
-            .map_err(ephact::application::errors::RunWorkflowError::Workflow)
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<
+                    Output = Result<
+                        RunSummaryResponse,
+                        ephact::application::errors::RunWorkflowError,
+                    >,
+                > + Send
+                + '_,
+        >,
+    > {
+        let result = self.result.clone();
+        Box::pin(
+            async move { result.map_err(ephact::application::errors::RunWorkflowError::Workflow) },
+        )
     }
 }
