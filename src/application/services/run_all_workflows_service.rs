@@ -105,7 +105,6 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
         ))
     }
 }
-
 impl RunAllWorkflowsService {
     fn execute_all_workflows(
         &self,
