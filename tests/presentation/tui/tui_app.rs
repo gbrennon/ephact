@@ -2,7 +2,35 @@ use std::time::Duration;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ephact::application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse};
+use ephact::presentation::tui::screens::ScreenManager;
 use ephact::presentation::tui::tui_app::{TuiApp, TuiScreen};
+#[test]
+fn screen_manager_retains_home_and_workflow_selection() {
+    let workflows = vec![
+        WorkflowListItemResponse::new(Some("CI".to_string()), None, Vec::new()),
+        WorkflowListItemResponse::new(Some("Deploy".to_string()), None, Vec::new()),
+    ];
+    let mut screens = ScreenManager::new(workflows);
+
+    screens.select_home_next();
+    screens.run_workflow_screen_mut().select_next();
+
+    assert_eq!(screens.home_selection(), 1);
+    assert_eq!(screens.run_workflow_screen().selected_index(), 1);
+}
+
+#[test]
+fn tui_app_records_run_outcome_through_screen_manager() {
+    let mut app = TuiApp::new(Vec::new());
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    let summary = RunSummaryResponse::new("CI", vec![], true, Duration::from_secs(1));
+
+    app.record_run_outcome(summary.clone());
+
+    assert_eq!(app.run_workflow_screen().outcome(), Some(&summary));
+}
+
 #[test]
 fn selecting_list_workflows_enters_workflow_screen() {
     let mut app = TuiApp::new(Vec::new());
