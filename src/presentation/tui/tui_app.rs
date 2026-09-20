@@ -97,8 +97,8 @@ impl TuiApp {
         self.run_workflow_screen.selected_workflow_events()
     }
 
-    pub fn set_configuration_error(&mut self, error: String) {
-        self.run_workflow_screen.set_configuration_error(error);
+    pub fn report_configuration_error(&mut self, error: String) {
+        self.run_workflow_screen.report_configuration_error(error);
     }
 
     pub fn take_cancel_request(&mut self) -> bool {
