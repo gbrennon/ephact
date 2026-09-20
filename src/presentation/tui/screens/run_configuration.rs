@@ -136,7 +136,7 @@ impl RunConfiguration {
         self.error.as_deref()
     }
 
-    pub fn set_error(&mut self, error: String) {
+    pub fn report_error(&mut self, error: String) {
         self.error = Some(error);
     }
 
