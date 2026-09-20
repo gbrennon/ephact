@@ -181,26 +181,38 @@ impl TuiApp {
 
     fn handle_run_workflow_key(&mut self, key: KeyEvent) {
         if self.run_workflow_screen.showing_details() {
-            match key.code {
-                KeyCode::Up | KeyCode::Char(Self::PREVIOUS_KEY) => {
-                    self.run_workflow_screen.scroll_details_up();
-                }
-                KeyCode::Down | KeyCode::Char(Self::NEXT_KEY) => {
-                    self.run_workflow_screen.scroll_details_down();
-                }
-                KeyCode::Esc | KeyCode::Backspace => {
-                    self.run_workflow_screen.close_details();
-                }
-                _ => {}
-            }
+            self.handle_details_key(key);
             return;
         }
         if self.run_workflow_screen.is_running() {
-            if matches!(key.code, KeyCode::Esc | KeyCode::Backspace) {
-                self.cancel_requested = true;
-            }
+            self.handle_running_workflow_key(key);
             return;
         }
+        self.handle_workflow_picker_key(key);
+    }
+
+    fn handle_details_key(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Up | KeyCode::Char(Self::PREVIOUS_KEY) => {
+                self.run_workflow_screen.scroll_details_up();
+            }
+            KeyCode::Down | KeyCode::Char(Self::NEXT_KEY) => {
+                self.run_workflow_screen.scroll_details_down();
+            }
+            KeyCode::Esc | KeyCode::Backspace => {
+                self.run_workflow_screen.close_details();
+            }
+            _ => {}
+        }
+    }
+
+    fn handle_running_workflow_key(&mut self, key: KeyEvent) {
+        if matches!(key.code, KeyCode::Esc | KeyCode::Backspace) {
+            self.cancel_requested = true;
+        }
+    }
+
+    fn handle_workflow_picker_key(&mut self, key: KeyEvent) {
         match key.code {
             KeyCode::Up | KeyCode::Char(Self::PREVIOUS_KEY) => {
                 self.run_workflow_screen.select_previous()
