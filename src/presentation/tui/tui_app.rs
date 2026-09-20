@@ -1,5 +1,5 @@
 use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::Frame;
+use ratatui::{Frame, widgets::Block};
 
 use crate::application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse};
 
@@ -7,6 +7,7 @@ use super::screens::{
     ListActionsScreen, ListWorkflowsScreen, RunWorkflowScreen, home::HomeScreen,
     splash::SplashScreen,
 };
+use super::theme::Theme;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TuiScreen {
@@ -34,6 +35,7 @@ impl TuiApp {
     const QUIT_KEY: char = 'q';
     const PREVIOUS_KEY: char = 'k';
     const NEXT_KEY: char = 'j';
+    const DETAILS_KEY: char = 'd';
 
     pub fn new(workflows: Vec<WorkflowListItemResponse>) -> Self {
         Self {
@@ -111,6 +113,7 @@ impl TuiApp {
     }
 
     pub fn render(&self, frame: &mut Frame<'_>) {
+        frame.render_widget(Block::default().style(Theme::window_style()), frame.area());
         match self.screen {
             TuiScreen::Splash => SplashScreen::render(frame),
             TuiScreen::Home | TuiScreen::Exit => HomeScreen::render(frame, self.home_selection),
@@ -177,6 +180,21 @@ impl TuiApp {
     }
 
     fn handle_run_workflow_key(&mut self, key: KeyEvent) {
+        if self.run_workflow_screen.showing_details() {
+            match key.code {
+                KeyCode::Up | KeyCode::Char(Self::PREVIOUS_KEY) => {
+                    self.run_workflow_screen.scroll_details_up();
+                }
+                KeyCode::Down | KeyCode::Char(Self::NEXT_KEY) => {
+                    self.run_workflow_screen.scroll_details_down();
+                }
+                KeyCode::Esc | KeyCode::Backspace => {
+                    self.run_workflow_screen.close_details();
+                }
+                _ => {}
+            }
+            return;
+        }
         if self.run_workflow_screen.is_running() {
             if matches!(key.code, KeyCode::Esc | KeyCode::Backspace) {
                 self.cancel_requested = true;
@@ -189,6 +207,9 @@ impl TuiApp {
             }
             KeyCode::Down | KeyCode::Char(Self::NEXT_KEY) => self.run_workflow_screen.select_next(),
             KeyCode::Enter => self.request_run(),
+            KeyCode::Char(Self::DETAILS_KEY) => {
+                self.run_workflow_screen.open_details();
+            }
             KeyCode::Esc | KeyCode::Backspace => self.screen = TuiScreen::Home,
             _ => {}
         }
