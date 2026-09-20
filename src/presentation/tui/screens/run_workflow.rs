@@ -8,8 +8,9 @@ use ratatui::{
 
 use crate::presentation::tui::theme::Theme;
 
+use super::run_configuration::{ConfigurationAction, RunConfiguration, RunConfigurationValues};
 use crate::application::dtos::responses::{
-    JobSummaryResponse, RunSummaryResponse, WorkflowListItemResponse,
+    JobSummaryResponse, RunInputDeclarationResponse, RunSummaryResponse, WorkflowListItemResponse,
 };
 
 /// Screen that lets the user pick a workflow, run it, and read the summary.
@@ -25,6 +26,7 @@ pub struct RunWorkflowScreen {
     running: bool,
     showing_details: bool,
     details_scroll: u16,
+    configuration: Option<RunConfiguration>,
 }
 
 impl RunWorkflowScreen {
@@ -33,13 +35,12 @@ impl RunWorkflowScreen {
     const EMPTY_MESSAGE: &'static str = "No workflows found in repository";
     const UNNAMED_WORKFLOW: &'static str = "Unnamed workflow";
     const PICKER_FOOTER: &'static str = "Enter: Run | Up/Down: Navigate | Esc: Back | q: Quit";
-    const RESULT_FOOTER: &'static str = "Esc: Back | q: Quit";
     const RUNNING_FOOTER: &'static str = "Esc: Cancel";
     const RESULT_NAME_PREFIX: &'static str = "Workflow: ";
     const RESULT_STATUS_PREFIX: &'static str = "Status: ";
     const JOB_STATUS_SEPARATOR: &'static str = ": ";
-    const DETAILS_TITLE: &'static str = "Failure Details";
-    const DETAILS_EMPTY_MESSAGE: &'static str = "No failed step details available";
+    const DETAILS_TITLE: &'static str = "Run Details";
+    const DETAILS_EMPTY_MESSAGE: &'static str = "No step details available";
     const SUCCESS_LABEL: &'static str = "SUCCESS";
     const FAILURE_LABEL: &'static str = "FAILED";
     const INITIAL_SELECTION: usize = 0;
@@ -56,6 +57,7 @@ impl RunWorkflowScreen {
             running: false,
             showing_details: false,
             details_scroll: 0,
+            configuration: None,
         }
     }
 
@@ -74,6 +76,13 @@ impl RunWorkflowScreen {
             .and_then(|workflow| workflow.name())
     }
 
+    pub fn selected_workflow_events(&self) -> Vec<String> {
+        self.workflows
+            .get(self.selected_index)
+            .map(|workflow| workflow.events().to_vec())
+            .unwrap_or_default()
+    }
+
     pub fn has_workflows(&self) -> bool {
         !self.workflows.is_empty()
     }
@@ -82,19 +91,56 @@ impl RunWorkflowScreen {
         self.outcome.as_ref()
     }
 
+    pub fn begin_configuration(
+        &mut self,
+        events: Vec<String>,
+        declarations: Vec<RunInputDeclarationResponse>,
+    ) {
+        self.configuration = Some(RunConfiguration::new(events, declarations));
+    }
+
+    pub fn handle_configuration_key(
+        &mut self,
+        key: crossterm::event::KeyEvent,
+    ) -> ConfigurationAction {
+        self.configuration
+            .as_mut()
+            .map(|configuration| configuration.handle_key(key))
+            .unwrap_or(ConfigurationAction::Cancel)
+    }
+
+    pub fn take_configuration(&mut self) -> Option<RunConfigurationValues> {
+        self.configuration
+            .take()
+            .map(|configuration| configuration.values())
+    }
+
+    pub fn configuration_footer(&self) -> Option<&'static str> {
+        self.configuration.as_ref().map(RunConfiguration::footer)
+    }
+
+    pub fn configuration_error(&self) -> Option<&str> {
+        self.configuration
+            .as_ref()
+            .and_then(RunConfiguration::error)
+    }
+
+    pub fn set_configuration_error(&mut self, error: String) {
+        if let Some(configuration) = self.configuration.as_mut() {
+            configuration.set_error(error);
+        }
+    }
+
     pub fn record_outcome(&mut self, outcome: RunSummaryResponse) {
         self.outcome = Some(outcome);
+        self.configuration = None;
         self.running = false;
         self.showing_details = false;
         self.details_scroll = 0;
     }
 
     pub fn open_details(&mut self) -> bool {
-        if self
-            .outcome
-            .as_ref()
-            .is_some_and(|summary| !summary.success())
-        {
+        if self.outcome.is_some() {
             self.showing_details = true;
             self.details_scroll = 0;
         }
@@ -124,6 +170,7 @@ impl RunWorkflowScreen {
 
     pub fn start_run(&mut self) {
         self.outcome = None;
+        self.configuration = None;
         self.progress_lines.clear();
         self.running = true;
         self.showing_details = false;
@@ -144,6 +191,7 @@ impl RunWorkflowScreen {
     /// Discards any prior run outcome, returning the screen to the picker.
     pub fn reset(&mut self) {
         self.outcome = None;
+        self.configuration = None;
         self.progress_lines.clear();
         self.running = false;
         self.showing_details = false;
@@ -167,6 +215,8 @@ impl RunWorkflowScreen {
         let area = frame.area().inner(Margin::new(Self::MARGIN, Self::MARGIN));
         let title = if self.showing_details {
             Self::DETAILS_TITLE
+        } else if self.configuration.is_some() {
+            "Run Configuration"
         } else if self.outcome.is_some() && !self.running {
             Self::RESULT_TITLE
         } else {
@@ -193,6 +243,10 @@ impl RunWorkflowScreen {
     fn render_content(&self, frame: &mut Frame<'_>, area: Rect) {
         if self.showing_details {
             self.render_details(frame, area);
+            return;
+        }
+        if let Some(configuration) = self.configuration.as_ref() {
+            configuration.render(frame, area);
             return;
         }
         if self.running {
@@ -298,7 +352,7 @@ impl RunWorkflowScreen {
     }
 
     fn render_summary(frame: &mut Frame<'_>, area: Rect, summary: &RunSummaryResponse) {
-        let list = List::new(Self::summary_items(summary));
+        let list = List::new(Self::summary_items(summary)).style(Theme::body_style());
         frame.render_widget(list, area);
     }
 
@@ -354,7 +408,11 @@ impl RunWorkflowScreen {
     }
 
     fn render_footer(&self, frame: &mut Frame<'_>, area: Rect) {
-        let footer = Paragraph::new(self.footer_text()).style(Theme::muted_style());
+        let footer = Paragraph::new(
+            self.configuration_footer()
+                .unwrap_or_else(|| self.footer_text()),
+        )
+        .style(Theme::muted_style());
         frame.render_widget(footer, area);
     }
 
@@ -363,14 +421,8 @@ impl RunWorkflowScreen {
             Self::RUNNING_FOOTER
         } else if self.showing_details {
             "Up/Down: Scroll | Esc: Back | q: Quit"
-        } else if self
-            .outcome
-            .as_ref()
-            .is_some_and(|summary| !summary.success())
-        {
-            "Esc: Back | d: Details | q: Quit"
         } else if self.outcome.is_some() {
-            Self::RESULT_FOOTER
+            "Esc: Back | d: Details | q: Quit"
         } else {
             Self::PICKER_FOOTER
         }
