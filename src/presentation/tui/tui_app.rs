@@ -260,6 +260,9 @@ impl TuiApp {
     }
 
     fn handle_workflow_picker_key(&mut self, key: KeyEvent) {
+        if self.screens.run_workflow_screen().outcome().is_some() && self.handle_summary_key(key) {
+            return;
+        }
         match key.code {
             KeyCode::Up | KeyCode::Char(Self::PREVIOUS_KEY) => {
                 self.screens.run_workflow_screen_mut().select_previous()
@@ -273,6 +276,20 @@ impl TuiApp {
             }
             KeyCode::Esc | KeyCode::Backspace => self.screen = TuiScreen::Home,
             _ => {}
+        }
+    }
+
+    fn handle_summary_key(&mut self, key: KeyEvent) -> bool {
+        match key.code {
+            KeyCode::Up | KeyCode::Char(Self::PREVIOUS_KEY) => {
+                self.screens.run_workflow_screen_mut().scroll_summary_up();
+                true
+            }
+            KeyCode::Down | KeyCode::Char(Self::NEXT_KEY) => {
+                self.screens.run_workflow_screen_mut().scroll_summary_down();
+                true
+            }
+            _ => false,
         }
     }
 
