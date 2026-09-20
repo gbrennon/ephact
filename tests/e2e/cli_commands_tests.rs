@@ -120,8 +120,19 @@ mod tests {
         fn execute(
             &self,
             _request: RunWorkflowRequest,
-        ) -> Result<RunSummaryResponse, ephact::application::errors::RunWorkflowError> {
-            Ok(self.summary.clone())
+        ) -> std::pin::Pin<
+            Box<
+                dyn std::future::Future<
+                        Output = Result<
+                            RunSummaryResponse,
+                            ephact::application::errors::RunWorkflowError,
+                        >,
+                    > + Send
+                    + '_,
+            >,
+        > {
+            let summary = self.summary.clone();
+            Box::pin(async move { Ok(summary) })
         }
     }
 
