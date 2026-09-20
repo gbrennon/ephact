@@ -4,8 +4,8 @@ use ratatui::{Frame, widgets::Block};
 use crate::application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse};
 
 use super::screens::{
-    ListActionsScreen, ListWorkflowsScreen, RunWorkflowScreen, home::HomeScreen,
-    splash::SplashScreen,
+    ConfigurationAction, ListActionsScreen, ListWorkflowsScreen, RunConfigurationValues,
+    RunWorkflowScreen, home::HomeScreen, splash::SplashScreen,
 };
 use super::theme::Theme;
 
@@ -27,6 +27,7 @@ pub struct TuiApp {
     run_workflow_screen: RunWorkflowScreen,
     run_requested: bool,
     cancel_requested: bool,
+    configuration_requested: bool,
 }
 
 impl TuiApp {
@@ -46,6 +47,7 @@ impl TuiApp {
             run_workflow_screen: RunWorkflowScreen::new(workflows),
             run_requested: false,
             cancel_requested: false,
+            configuration_requested: false,
         }
     }
 
@@ -74,6 +76,31 @@ impl TuiApp {
         self.run_requested = false;
         requested
     }
+    pub fn take_configured_run_request(&mut self) -> Option<RunConfigurationValues> {
+        if !self.configuration_requested {
+            return None;
+        }
+        self.configuration_requested = false;
+        self.run_workflow_screen.take_configuration()
+    }
+
+    pub fn begin_run_configuration(
+        &mut self,
+        events: Vec<String>,
+        declarations: Vec<crate::application::dtos::responses::RunInputDeclarationResponse>,
+    ) {
+        self.run_workflow_screen
+            .begin_configuration(events, declarations);
+    }
+
+    pub fn selected_workflow_events(&self) -> Vec<String> {
+        self.run_workflow_screen.selected_workflow_events()
+    }
+
+    pub fn set_configuration_error(&mut self, error: String) {
+        self.run_workflow_screen.set_configuration_error(error);
+    }
+
     pub fn take_cancel_request(&mut self) -> bool {
         let requested = self.cancel_requested;
         self.cancel_requested = false;
@@ -180,6 +207,12 @@ impl TuiApp {
     }
 
     fn handle_run_workflow_key(&mut self, key: KeyEvent) {
+        if self.run_workflow_screen.configuration_error().is_some()
+            || self.run_workflow_screen.configuration_footer().is_some()
+        {
+            self.handle_configuration_key(key);
+            return;
+        }
         if self.run_workflow_screen.showing_details() {
             self.handle_details_key(key);
             return;
@@ -189,6 +222,16 @@ impl TuiApp {
             return;
         }
         self.handle_workflow_picker_key(key);
+    }
+
+    fn handle_configuration_key(&mut self, key: KeyEvent) {
+        match self.run_workflow_screen.handle_configuration_key(key) {
+            ConfigurationAction::Submit => self.configuration_requested = true,
+            ConfigurationAction::Cancel => {
+                self.run_workflow_screen.take_configuration();
+            }
+            ConfigurationAction::Continue => {}
+        }
     }
 
     fn handle_details_key(&mut self, key: KeyEvent) {
