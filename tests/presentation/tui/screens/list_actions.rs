@@ -1,6 +1,8 @@
 use ephact::presentation::tui::screens::ListActionsScreen;
 use ratatui::{Terminal, backend::TestBackend};
 
+use crate::common::fakes::fake_list_actions_port::FakeListActionsPort;
+
 #[test]
 fn selecting_next_stops_at_last_action() {
     let actions = vec![
@@ -76,4 +78,19 @@ fn render_populated_screen_shows_action_items() {
         .collect::<String>();
     assert!(text.contains("actions/checkout@v4"));
     assert!(text.contains("docker://node:20"));
+}
+
+#[test]
+fn from_handler_populates_actions_from_port() {
+    let actions = vec![
+        "actions/checkout@v4".to_string(),
+        "docker://node:20".to_string(),
+    ];
+    let port = FakeListActionsPort::with_actions(actions.clone());
+
+    let screen =
+        ListActionsScreen::from_handler(&port, std::env::current_dir().expect("current directory"))
+            .expect("repository should be valid");
+
+    assert_eq!(screen.actions(), actions.as_slice());
 }
