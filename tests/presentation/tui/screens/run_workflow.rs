@@ -2,9 +2,11 @@
 mod tests {
     use std::time::Duration;
 
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ephact::application::dtos::responses::{
-        JobSummaryResponse, RunSummaryResponse, StepSummaryDetails, StepSummaryResponse,
-        StepSummaryResponseInput, WorkflowListItemResponse,
+        JobSummaryResponse, RunInputDeclarationResponse, RunInputSourceResponse,
+        RunSummaryResponse, StepSummaryDetails, StepSummaryResponse, StepSummaryResponseInput,
+        WorkflowListItemResponse,
     };
     use ephact::domain::value_objects::StepType;
     use ephact::presentation::tui::screens::RunWorkflowScreen;
@@ -153,7 +155,7 @@ mod tests {
     }
 
     #[test]
-    fn successful_summary_does_not_offer_details() {
+    fn successful_summary_offers_details() {
         let mut screen = RunWorkflowScreen::new(workflows());
         screen.record_outcome(RunSummaryResponse::new(
             "CI",
@@ -164,7 +166,7 @@ mod tests {
 
         let text = rendered_text(&screen);
 
-        assert!(!text.contains("d: Details"));
+        assert!(text.contains("d: Details"));
     }
 
     #[test]
@@ -175,14 +177,14 @@ mod tests {
         assert!(screen.open_details());
         let text = rendered_text(&screen);
 
-        assert!(text.contains("Failure Details"));
+        assert!(text.contains("Run Details"));
         assert!(text.contains("Step: compile [FAILED]"));
         assert!(text.contains("Exit code: 1"));
         assert!(text.contains("stderr: compiler failed"));
     }
 
     #[test]
-    fn successful_summary_cannot_open_details() {
+    fn successful_summary_opens_details() {
         let mut screen = RunWorkflowScreen::new(workflows());
         screen.record_outcome(RunSummaryResponse::new(
             "CI",
@@ -191,8 +193,64 @@ mod tests {
             Duration::from_secs(1),
         ));
 
-        assert!(!screen.open_details());
-        assert!(!screen.showing_details());
+        assert!(screen.open_details());
+        assert!(screen.showing_details());
+    }
+
+    #[test]
+    fn configuration_collects_event_and_required_input() {
+        let mut screen = RunWorkflowScreen::new(workflows());
+        screen.begin_configuration(
+            vec!["push".to_string(), "schedule".to_string()],
+            vec![RunInputDeclarationResponse::new(
+                "environment",
+                RunInputSourceResponse::Workflow,
+                None,
+                true,
+                None,
+            )],
+        );
+
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Char('p'), KeyModifiers::NONE));
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE));
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Char('o'), KeyModifiers::NONE));
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        assert_eq!(
+            screen.handle_configuration_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE)),
+            ephact::presentation::tui::screens::ConfigurationAction::Submit
+        );
+        let configuration = screen.take_configuration().expect("configuration");
+        assert_eq!(configuration.event(), "schedule");
+        assert_eq!(
+            configuration.inputs(),
+            &[("environment".to_string(), "pro".to_string())]
+        );
+    }
+
+    #[test]
+    fn configuration_rejects_missing_required_input() {
+        let mut screen = RunWorkflowScreen::new(workflows());
+        screen.begin_configuration(
+            vec!["push".to_string()],
+            vec![RunInputDeclarationResponse::new(
+                "environment",
+                RunInputSourceResponse::Workflow,
+                None,
+                true,
+                None,
+            )],
+        );
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+
+        assert_eq!(
+            screen.handle_configuration_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE)),
+            ephact::presentation::tui::screens::ConfigurationAction::Continue
+        );
+        assert!(screen.configuration_error().is_some());
     }
 
     #[test]
