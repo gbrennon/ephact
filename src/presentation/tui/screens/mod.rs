@@ -1,3 +1,5 @@
+pub mod color_support;
+pub mod emblem;
 pub mod home;
 pub mod list_actions;
 pub mod list_workflows;
