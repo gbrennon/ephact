@@ -18,4 +18,4 @@ pub use cli_parser::{
 pub use list_actions_args::ListActionsArgs;
 pub use list_workflows_args::ListWorkflowsArgs;
 pub use run_args::RunArgs;
-pub use run_progress_handler::RunProgressHandler;
+pub use run_progress_handler::{RunProgressHandler, TuiProgressStream};
