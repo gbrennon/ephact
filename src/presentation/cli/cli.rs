@@ -7,6 +7,7 @@ use super::super::components::{
     content::ContentComponent,
     terminal::{SystemTerminal, Terminal},
 };
+use super::run_progress_handler::TuiProgressStream;
 use super::{cli_parser::CliParser, command::Command};
 use crate::application::ports::inbound::{
     list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
@@ -75,6 +76,16 @@ impl Cli {
         }
     }
 
+    pub fn new_with_failure_stores_and_progress_stream(
+        dependencies: CliDependencies,
+        failure_log_stores: crate::infrastructure::logging::FailureLogStores,
+        progress_stream: TuiProgressStream,
+    ) -> Self {
+        let mut cli = Self::new_with_failure_stores(dependencies, failure_log_stores);
+        cli.tui_runner = cli.tui_runner.with_progress_stream(progress_stream);
+        cli
+    }
+
     pub fn new_with_failure_stores_and_tui(
         dependencies: CliDependencies,
         failure_log_stores: crate::infrastructure::logging::FailureLogStores,
@@ -111,13 +122,32 @@ impl Cli {
         I: IntoIterator<Item = T>,
         T: Into<OsString> + Clone,
     {
+        tokio::runtime::Runtime::new()?.block_on(self.run_async(args))
+    }
+
+    async fn run_async<I, T>(self, args: I) -> Result<(), Box<dyn std::error::Error>>
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<OsString> + Clone,
+    {
         let terminal = SystemTerminal;
-        let output = self.run_with_terminal(args, &terminal)?;
+        let output = self.run_with_terminal_async(args, &terminal).await?;
         print!("{output}");
         Ok(())
     }
-
     pub fn run_with_terminal<I, T>(
+        self,
+        args: I,
+        terminal: &dyn Terminal,
+    ) -> Result<String, Box<dyn std::error::Error>>
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<OsString> + Clone,
+    {
+        tokio::runtime::Runtime::new()?.block_on(self.run_with_terminal_async(args, terminal))
+    }
+
+    async fn run_with_terminal_async<I, T>(
         self,
         args: I,
         terminal: &dyn Terminal,
@@ -128,13 +158,13 @@ impl Cli {
     {
         let args: Vec<OsString> = args.into_iter().map(Into::into).collect();
         if Self::is_tui_command(&args) {
-            self.tui_runner.run()?;
+            self.tui_runner.run().await?;
             return Ok(String::new());
         }
-        self.execute_cli(args, terminal)
+        self.execute_cli(args, terminal).await
     }
 
-    fn execute_cli(
+    async fn execute_cli(
         &self,
         args: Vec<OsString>,
         terminal: &dyn Terminal,
@@ -147,7 +177,7 @@ impl Cli {
         };
         let mut output = BoxComponent::new(Banner::new(&branding), terminal).render();
         let command = cli.command();
-        self.execute_command(command, terminal, &mut output)?;
+        self.execute_command(command, terminal, &mut output).await?;
         Ok(output)
     }
     fn is_tui_command(args: &[OsString]) -> bool {
@@ -163,21 +193,21 @@ impl Cli {
             Err(e.to_string().into())
         }
     }
-    fn execute_command(
+    async fn execute_command(
         &self,
         command: Command,
         terminal: &dyn Terminal,
         output: &mut String,
     ) -> Result<(), Box<dyn std::error::Error>> {
         match command {
-            Command::Run(args) => self.execute_run(*args, terminal, output),
+            Command::Run(args) => self.execute_run(*args, terminal, output).await,
             Command::ListWorkflows(args) => self.execute_list_workflows(*args, terminal, output),
             Command::ListActions(args) => self.execute_list_actions(*args, terminal, output),
-            Command::Tui => self.tui_runner.run(),
+            Command::Tui => self.tui_runner.run().await,
         }
     }
 
-    fn execute_run(
+    async fn execute_run(
         &self,
         args: super::run_args::RunArgs,
         terminal: &dyn Terminal,
@@ -197,7 +227,8 @@ impl Cli {
                 terminal,
             ),
             DiagnosticStores::new(&self.failure_log_error_store, &self.failure_log_path_store),
-        )?;
+        )
+        .await?;
         output.push_str(&summary);
         if !success {
             print!("{output}");
