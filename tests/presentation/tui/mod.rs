@@ -10,8 +10,10 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ephact::application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse};
 use ephact::presentation::handlers::{ListActionsHandler, ListWorkflowsHandler};
 use ephact::presentation::tui::screens::{
-    ListActionsScreen, ListWorkflowsScreen, home::HomeScreen, splash::SplashScreen,
+    ListActionsScreen, ListWorkflowsScreen, color_support::ColorSupport, home::HomeScreen,
+    splash::SplashScreen,
 };
+use ephact::presentation::tui::theme::Theme;
 use ephact::presentation::tui::tui_app::{TuiApp, TuiScreen};
 use ratatui::{
     Terminal,
@@ -170,12 +172,28 @@ fn list_workflows_selection_bounds() {
 }
 
 #[test]
-fn splash_renders_project_emblem() {
-    let text = TuiRenderAssertions::buffer_text(&TuiRenderAssertions::rendered_buffer(
-        SplashScreen::render,
-    ));
+fn splash_renders_fallback_emblem_without_true_color() {
+    let text = TuiRenderAssertions::buffer_text(&TuiRenderAssertions::rendered_buffer(|frame| {
+        SplashScreen::render_with(frame, ColorSupport::Basic);
+    }));
 
     assert!(text.contains("@---o"));
+    assert!(text.contains("EPHACT"));
+}
+
+#[test]
+fn splash_renders_fancy_emblem_with_true_color() {
+    let buffer = TuiRenderAssertions::rendered_buffer(|frame| {
+        SplashScreen::render_with(frame, ColorSupport::TrueColor);
+    });
+
+    let text = TuiRenderAssertions::buffer_text(&buffer);
+    let uses_rgb = buffer
+        .content()
+        .iter()
+        .any(|cell| matches!(cell.style().fg, Some(Color::Rgb(_, _, _))));
+    assert!(text.contains("ephact"));
+    assert!(uses_rgb);
 }
 
 #[test]
@@ -227,8 +245,16 @@ fn list_workflows_screen_renders_highlight_on_selected_row() {
 
     let selected = TuiRenderAssertions::styles_for_label(&buffer, "second");
     let unselected = TuiRenderAssertions::styles_for_label(&buffer, "first");
-    assert!(selected.iter().all(|style| style.bg == Some(Color::Cyan)));
-    assert!(unselected.iter().all(|style| style.bg != Some(Color::Cyan)));
+    assert!(
+        selected
+            .iter()
+            .all(|style| style.bg == Some(Theme::SIGNAL_ACCENT))
+    );
+    assert!(
+        unselected
+            .iter()
+            .all(|style| style.bg != Some(Theme::SIGNAL_ACCENT))
+    );
 }
 
 #[test]
@@ -237,8 +263,16 @@ fn home_renders_highlight_on_selected_menu_item() {
 
     let selected = TuiRenderAssertions::styles_for_label(&buffer, "List workflows");
     let unselected = TuiRenderAssertions::styles_for_label(&buffer, "Run workflow");
-    assert!(selected.iter().all(|style| style.bg == Some(Color::Cyan)));
-    assert!(unselected.iter().all(|style| style.bg != Some(Color::Cyan)));
+    assert!(
+        selected
+            .iter()
+            .all(|style| style.bg == Some(Theme::SIGNAL_ACCENT))
+    );
+    assert!(
+        unselected
+            .iter()
+            .all(|style| style.bg != Some(Theme::SIGNAL_ACCENT))
+    );
 }
 
 #[test]
@@ -373,8 +407,16 @@ fn list_actions_screen_renders_highlight_on_selected_row() {
 
     let selected = TuiRenderAssertions::styles_for_label(&buffer, "docker://node:20");
     let unselected = TuiRenderAssertions::styles_for_label(&buffer, "actions/checkout@v4");
-    assert!(selected.iter().all(|style| style.bg == Some(Color::Cyan)));
-    assert!(unselected.iter().all(|style| style.bg != Some(Color::Cyan)));
+    assert!(
+        selected
+            .iter()
+            .all(|style| style.bg == Some(Theme::SIGNAL_ACCENT))
+    );
+    assert!(
+        unselected
+            .iter()
+            .all(|style| style.bg != Some(Theme::SIGNAL_ACCENT))
+    );
 }
 
 #[test]
@@ -385,8 +427,16 @@ fn home_renders_highlight_on_selected_list_actions_item() {
 
     let selected = TuiRenderAssertions::styles_for_label(&buffer, "List actions");
     let unselected = TuiRenderAssertions::styles_for_label(&buffer, "Run workflow");
-    assert!(selected.iter().all(|style| style.bg == Some(Color::Cyan)));
-    assert!(unselected.iter().all(|style| style.bg != Some(Color::Cyan)));
+    assert!(
+        selected
+            .iter()
+            .all(|style| style.bg == Some(Theme::SIGNAL_ACCENT))
+    );
+    assert!(
+        unselected
+            .iter()
+            .all(|style| style.bg != Some(Theme::SIGNAL_ACCENT))
+    );
 }
 
 #[test]
