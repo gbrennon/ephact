@@ -50,7 +50,7 @@ async fn handle_executes_port_with_selected_workflow_and_safe_defaults() {
     assert_eq!(request.repository_path(), current_repository_path());
     assert_eq!(request.workflow(), Some("CI"));
     assert!(request.job().is_none());
-    assert!(request.event().is_none());
+    assert_eq!(request.event(), Some("pull_request"));
     assert!(request.inputs().is_empty());
     assert!(request.secrets().is_empty());
     assert!(!request.all_workflows());
@@ -59,6 +59,28 @@ async fn handle_executes_port_with_selected_workflow_and_safe_defaults() {
     assert!(!request.allow_real_fetcher());
     assert!(!request.allow_network());
     assert!(!request.run_id().is_empty());
+}
+
+#[tokio::test]
+async fn handle_with_event_and_inputs_forwards_tui_configuration() {
+    let port = RecordingRunWorkflowPort::new(run_summary(true));
+
+    RunHandler::handle_with_event_and_inputs(
+        &port,
+        env::current_dir().expect("current directory"),
+        Some("CI".to_string()),
+        Some("push".to_string()),
+        vec![("environment".to_string(), "staging".to_string())],
+    )
+    .await
+    .expect("workflow should run");
+
+    let request = port.recorded_request().expect("recorded request");
+    assert_eq!(request.event(), Some("push"));
+    assert_eq!(
+        request.inputs(),
+        &[("environment".to_string(), "staging".to_string())]
+    );
 }
 
 #[tokio::test]

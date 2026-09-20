@@ -1,10 +1,12 @@
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Margin, Rect},
-    style::{Color, Modifier, Style},
-    text::Line,
+    style::Style,
+    text::{Line, Span},
     widgets::{Block, Borders, List, ListItem, ListState, Padding, Paragraph},
 };
+
+use crate::presentation::tui::theme::Theme;
 
 use crate::application::dtos::responses::WorkflowListItemResponse;
 use std::path::PathBuf;
@@ -73,8 +75,9 @@ impl ListWorkflowsScreen {
         let area = frame.area().inner(Margin::new(Self::MARGIN, Self::MARGIN));
         let block = Block::default()
             .borders(Borders::ALL)
+            .border_style(Theme::border_style())
             .padding(Padding::horizontal(1))
-            .title(Self::TITLE);
+            .title(Span::styled(Self::TITLE, Theme::title_style()));
         let content_area = block.inner(area);
         frame.render_widget(block, area);
         let chunks = Layout::default()
@@ -97,7 +100,7 @@ impl ListWorkflowsScreen {
     }
 
     fn render_empty(&self, frame: &mut Frame<'_>, area: Rect) {
-        let content = Paragraph::new(Self::EMPTY_MESSAGE);
+        let content = Paragraph::new(Self::EMPTY_MESSAGE).style(Theme::muted_style());
         frame.render_widget(content, area);
     }
 
@@ -107,7 +110,9 @@ impl ListWorkflowsScreen {
             .iter()
             .map(Self::workflow_item)
             .collect::<Vec<_>>();
-        let list = List::new(items).highlight_style(Self::highlight_style());
+        let list = List::new(items)
+            .style(Theme::body_style())
+            .highlight_style(Self::highlight_style());
         let mut state = ListState::default();
         state.select(Some(self.selected_index));
         frame.render_stateful_widget(list, area, &mut state);
@@ -129,14 +134,11 @@ impl ListWorkflowsScreen {
     }
 
     fn highlight_style() -> Style {
-        Style::default()
-            .bg(Color::Cyan)
-            .fg(Color::Black)
-            .add_modifier(Modifier::BOLD)
+        Theme::selection_style()
     }
 
     fn render_footer(&self, frame: &mut Frame<'_>, area: Rect) {
-        let footer = Paragraph::new(Self::FOOTER).style(Style::default().fg(Color::DarkGray));
+        let footer = Paragraph::new(Self::FOOTER).style(Theme::muted_style());
         frame.render_widget(footer, area);
     }
 }
