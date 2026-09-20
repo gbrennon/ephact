@@ -1,9 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use ephact::presentation::{
-        cli::{CliParser, command::Command, parse_run_test_args, run_handler::RunHandler},
-        components::terminal::SystemTerminal,
-    };
+    use ephact::presentation::cli::{CliParser, command::Command, parse_run_test_args};
+    use ephact::presentation::components::terminal::SystemTerminal;
+    use ephact::presentation::handlers::RunHandler;
 
     use std::time::Duration;
 
@@ -30,7 +29,7 @@ mod tests {
         let args = parse_run_test_args(&[]);
         let terminal = SystemTerminal;
         let list_port = FakeListWorkflowsPort::new();
-        RunHandler::handle(args, &wf_port, &all_wf_port, &list_port, &terminal).unwrap();
+        RunHandler::handle_cli(args, &wf_port, &all_wf_port, &list_port, &terminal).unwrap();
     }
 
     #[test]
@@ -44,7 +43,7 @@ mod tests {
         let args = parse_run_test_args(&["--workflow", "ci.yml"]);
         let terminal = SystemTerminal;
         let list_port = FakeListWorkflowsPort::new();
-        RunHandler::handle(args, &wf_port, &all_wf_port, &list_port, &terminal).unwrap();
+        RunHandler::handle_cli(args, &wf_port, &all_wf_port, &list_port, &terminal).unwrap();
     }
 
     #[test]

@@ -16,9 +16,9 @@ mod tests {
     use ephact::application::ports::inbound::RunWorkflowPort;
     use ephact::application::ports::outbound::DiscoverRunInputsPort;
     use ephact::presentation::cli::parse_run_test_args;
-    use ephact::presentation::cli::run_handler::{PreflightPorts, RunHandler};
     use ephact::presentation::components::terminal::SystemTerminal;
     use ephact::presentation::components::terminal::Terminal;
+    use ephact::presentation::handlers::{PreflightPorts, RunHandler};
     use std::{cell::RefCell, time::Duration};
 
     use crate::common::fakes::{
@@ -170,7 +170,9 @@ mod tests {
         };
         let terminal = SystemTerminal;
         let list_port = FakeListWorkflowsPort::new();
-        assert!(RunHandler::handle(args, &wf_port, &all_wf_port, &list_port, &terminal).is_ok());
+        assert!(
+            RunHandler::handle_cli(args, &wf_port, &all_wf_port, &list_port, &terminal).is_ok()
+        );
     }
 
     #[test]
@@ -184,8 +186,8 @@ mod tests {
         };
         let terminal = SystemTerminal;
         let list_port = FakeListWorkflowsPort::new();
-        let err =
-            RunHandler::handle(args, &wf_port, &all_wf_port, &list_port, &terminal).unwrap_err();
+        let err = RunHandler::handle_cli(args, &wf_port, &all_wf_port, &list_port, &terminal)
+            .unwrap_err();
         assert!(err.to_string().contains("workflow failed"));
     }
 
@@ -200,8 +202,8 @@ mod tests {
         };
         let terminal = SystemTerminal;
         let list_port = FakeListWorkflowsPort::new();
-        let err =
-            RunHandler::handle(args, &wf_port, &all_wf_port, &list_port, &terminal).unwrap_err();
+        let err = RunHandler::handle_cli(args, &wf_port, &all_wf_port, &list_port, &terminal)
+            .unwrap_err();
         assert!(err.to_string().contains("port failure"));
     }
 
