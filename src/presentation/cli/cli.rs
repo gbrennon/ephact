@@ -23,7 +23,7 @@ use crate::presentation::tui::TuiRunner;
 pub struct Cli {
     run_workflow_port: Arc<dyn RunWorkflowPort>,
     run_all_workflows_port: Box<dyn RunAllWorkflowsPort>,
-    discover_run_inputs_port: Box<dyn DiscoverRunInputsPort>,
+    discover_run_inputs_port: Arc<dyn DiscoverRunInputsPort>,
     list_workflows_port: Arc<dyn ListWorkflowsPort>,
     list_actions_port: Arc<dyn ListActionsPort>,
     show_project_branding_info_port: Box<dyn ShowProjectBrandingInfoPort>,
@@ -56,13 +56,16 @@ impl Cli {
             show_project_branding_info_port,
         ) = dependencies.into_parts();
         let run_workflow_port: Arc<dyn RunWorkflowPort> = Arc::from(run_workflow_port);
+        let discover_run_inputs_port: Arc<dyn DiscoverRunInputsPort> =
+            Arc::from(discover_run_inputs_port);
         let list_workflows_port: Arc<dyn ListWorkflowsPort> = Arc::from(list_workflows_port);
         let list_actions_port: Arc<dyn ListActionsPort> = Arc::from(list_actions_port);
         let tui_runner = TuiRunner::new(
             list_workflows_port.clone(),
             list_actions_port.clone(),
             run_workflow_port.clone(),
-        );
+        )
+        .with_input_discovery(discover_run_inputs_port.clone());
         Self {
             run_workflow_port,
             run_all_workflows_port,
@@ -100,6 +103,8 @@ impl Cli {
             show_project_branding_info_port,
         ) = dependencies.into_parts();
         let run_workflow_port: Arc<dyn RunWorkflowPort> = Arc::from(run_workflow_port);
+        let discover_run_inputs_port: Arc<dyn DiscoverRunInputsPort> =
+            Arc::from(discover_run_inputs_port);
         let list_workflows_port: Arc<dyn ListWorkflowsPort> = Arc::from(list_workflows_port);
         let list_actions_port: Arc<dyn ListActionsPort> = Arc::from(list_actions_port);
         Self {
