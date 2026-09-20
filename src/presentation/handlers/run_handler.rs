@@ -75,10 +75,41 @@ impl RunHandler {
         repository_path: PathBuf,
         workflow: Option<String>,
     ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
+        Self::handle_with_event_and_inputs(
+            run_workflow_port,
+            repository_path,
+            workflow,
+            Some("pull_request".to_string()),
+            Vec::new(),
+        )
+        .await
+    }
+
+    pub async fn handle_with_event_and_inputs(
+        run_workflow_port: &dyn RunWorkflowPort,
+        repository_path: PathBuf,
+        workflow: Option<String>,
+        event: Option<String>,
+        inputs: Vec<(String, String)>,
+    ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
         let repository = Self::build_repository(repository_path)?;
-        let config = Self::single_workflow_config(workflow);
+        let config = Self::single_workflow_config(workflow, event, inputs);
         let request = Self::build_run_workflow_request(&config, &repository);
         Ok(run_workflow_port.execute(request).await?)
+    }
+
+    pub fn discover_inputs(
+        discover_run_inputs_port: &dyn DiscoverRunInputsPort,
+        repository_path: PathBuf,
+        workflow: Option<String>,
+        event: Option<String>,
+    ) -> Result<
+        Vec<crate::application::dtos::responses::RunInputDeclarationResponse>,
+        Box<dyn std::error::Error>,
+    > {
+        let repository = Self::build_repository(repository_path)?;
+        let config = Self::single_workflow_config(workflow, event, Vec::new());
+        Ok(discover_run_inputs_port.execute(DiscoverRunInputsRequest::new(config, repository))?)
     }
 
     fn build_repository(
@@ -89,12 +120,21 @@ impl RunHandler {
         Ok(Repository::new(repo_path, repo_name))
     }
 
-    fn single_workflow_config(workflow: Option<String>) -> ActRunConfig {
-        let config = ActRunConfig::new().with_event(ActEvent::new("pull_request".to_string()));
-        match workflow {
+    fn single_workflow_config(
+        workflow: Option<String>,
+        event: Option<String>,
+        inputs: Vec<(String, String)>,
+    ) -> ActRunConfig {
+        let config = event
+            .map(|name| ActRunConfig::new().with_event(ActEvent::new(name)))
+            .unwrap_or_default();
+        let config = match workflow {
             Some(name) => config.with_workflow(ActWorkflow::new(name)),
             None => config,
-        }
+        };
+        inputs.into_iter().fold(config, |config, (key, value)| {
+            config.add_input(ActInput::new(key, value))
+        })
     }
 
     /// Executes the `run` subcommand: converts CLI args to domain objects,
