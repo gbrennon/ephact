@@ -125,9 +125,9 @@ impl RunWorkflowScreen {
             .and_then(RunConfiguration::error)
     }
 
-    pub fn set_configuration_error(&mut self, error: String) {
+    pub fn report_configuration_error(&mut self, error: String) {
         if let Some(configuration) = self.configuration.as_mut() {
-            configuration.set_error(error);
+            configuration.report_error(error);
         }
     }
 
