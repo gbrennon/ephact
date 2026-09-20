@@ -233,34 +233,13 @@ impl TuiRunner {
             .run_workflow_screen()
             .selected_workflow_name()
             .map(ToString::to_string);
-        if !*input_configuration_pending
-            && let Some(discover_port) = self.discover_run_inputs_port.as_ref()
-        {
-            let declarations = RunHandler::discover_inputs(
-                &**discover_port,
-                std::env::current_dir()?,
-                workflow.clone(),
-                Some(configuration.event().to_string()),
-            );
-            match declarations {
-                Ok(declarations) if !declarations.is_empty() => {
-                    app.begin_run_configuration(
-                        vec![configuration.event().to_string()],
-                        declarations,
-                    );
-                    *input_configuration_pending = true;
-                    return Ok(());
-                }
-                Err(error) => {
-                    app.begin_run_configuration(
-                        vec![configuration.event().to_string()],
-                        Vec::new(),
-                    );
-                    app.set_configuration_error(error.to_string());
-                    return Ok(());
-                }
-                Ok(_) => {}
-            }
+        if self.prepare_input_configuration(
+            app,
+            &workflow,
+            configuration.event(),
+            input_configuration_pending,
+        )? {
+            return Ok(());
         }
         *input_configuration_pending = false;
         let port = self.run_workflow_port.clone();
@@ -274,6 +253,39 @@ impl TuiRunner {
             configuration.inputs().to_vec(),
         ));
         Ok(())
+    }
+
+    fn prepare_input_configuration(
+        &self,
+        app: &mut TuiApp,
+        workflow: &Option<String>,
+        event: &str,
+        input_configuration_pending: &mut bool,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
+        if *input_configuration_pending {
+            return Ok(false);
+        }
+        let Some(discover_port) = self.discover_run_inputs_port.as_ref() else {
+            return Ok(false);
+        };
+        let declarations = RunHandler::discover_inputs(
+            &**discover_port,
+            std::env::current_dir()?,
+            workflow.clone(),
+            Some(event.to_string()),
+        );
+        match declarations {
+            Ok(declarations) if !declarations.is_empty() => {
+                app.begin_run_configuration(vec![event.to_string()], declarations);
+                *input_configuration_pending = true;
+            }
+            Err(error) => {
+                app.begin_run_configuration(vec![event.to_string()], Vec::new());
+                app.report_configuration_error(error.to_string());
+            }
+            Ok(_) => return Ok(false),
+        }
+        Ok(true)
     }
 
     fn spawn_workflow_task(
