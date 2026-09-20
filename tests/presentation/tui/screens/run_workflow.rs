@@ -184,6 +184,21 @@ mod tests {
     }
 
     #[test]
+    fn summary_scrolls_with_navigation_keys() {
+        let mut screen = RunWorkflowScreen::new(workflows());
+        screen.record_outcome(RunSummaryResponse::new(
+            "CI",
+            vec![],
+            true,
+            Duration::from_secs(1),
+        ));
+
+        screen.scroll_summary_down();
+
+        assert_eq!(screen.summary_scroll(), 1);
+    }
+
+    #[test]
     fn successful_summary_opens_details() {
         let mut screen = RunWorkflowScreen::new(workflows());
         screen.record_outcome(RunSummaryResponse::new(
