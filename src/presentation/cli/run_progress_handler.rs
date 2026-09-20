@@ -92,7 +92,7 @@ impl RunProgressHandler {
     }
 
     fn output_line(payload: &StepOutputPayload) -> String {
-        format!("      | {}", payload.text())
+        payload.text().to_string()
     }
 
     fn relay_output(payload: &StepOutputPayload) {
@@ -111,7 +111,7 @@ impl RunProgressHandler {
 
     fn step_outcome(&self, payload: &StepFinishedPayload) -> String {
         let outcome = Self::step_status(payload.exit_code());
-        let mut output = format!("    Step '{}': {outcome}", payload.step_name());
+        let mut output = format!("Step '{}': {outcome}", payload.step_name());
         if self.verbose && payload.exit_code() != Some(0) {
             Self::append_failure_output(&mut output, "stdout", payload.stdout());
             Self::append_failure_output(&mut output, "stderr", payload.stderr());
@@ -124,7 +124,7 @@ impl RunProgressHandler {
             return;
         }
         for line in text.lines() {
-            output.push_str(&format!("\n      {label}: {line}"));
+            output.push_str(&format!("\n{label}: {line}"));
         }
     }
 
@@ -136,15 +136,15 @@ impl RunProgressHandler {
                 Some(format!("Workflow '{}'", payload.workflow_name()))
             }
             DomainEvent::JobStarted(payload) if self.verbose => {
-                Some(format!("  Job '{}'", Self::job_label(payload)))
+                Some(format!("Job '{}'", Self::job_label(payload)))
             }
             DomainEvent::JobFinished(payload) if self.verbose => Some(format!(
-                "  Job '{}': {}",
+                "Job '{}': {}",
                 payload.job_id(),
                 Self::status(payload.success())
             )),
             DomainEvent::StepStarted(payload) => {
-                Some(format!("    Step '{}': running...", payload.step_name()))
+                Some(format!("Step '{}': running...", payload.step_name()))
             }
             DomainEvent::StepFinished(payload) => Some(self.step_outcome(payload)),
             _ => None,
@@ -237,7 +237,7 @@ mod tests {
         let handler = RunProgressHandler::new(false);
         assert_eq!(
             handler.render(&step_started()).as_deref(),
-            Some("    Step 'compile': running...")
+            Some("Step 'compile': running...")
         );
     }
 
@@ -250,7 +250,7 @@ mod tests {
 
         assert_eq!(
             stream.try_recv().as_deref(),
-            Some("    Step 'compile': running...")
+            Some("Step 'compile': running...")
         );
     }
 
@@ -270,7 +270,7 @@ mod tests {
         let handler = RunProgressHandler::new(false);
         assert_eq!(
             handler.render(&step_finished(Some(0))).as_deref(),
-            Some("    Step 'compile': ok")
+            Some("Step 'compile': ok")
         );
         assert!(!handler.renders_output());
     }
@@ -325,7 +325,7 @@ mod tests {
         let rendered = handler.render(&event);
         assert_eq!(
             rendered.as_deref(),
-            Some("    Step 'clippy': failed (exit code: 101)")
+            Some("Step 'clippy': failed (exit code: 101)")
         );
         let rendered_text = rendered.unwrap();
         assert!(!rendered_text.contains("stdout"));
@@ -357,7 +357,7 @@ mod tests {
         let handler = RunProgressHandler::new(true);
         assert_eq!(
             handler.render(&step_started()).as_deref(),
-            Some("    Step 'compile': running...")
+            Some("Step 'compile': running...")
         );
         assert!(handler.renders_output());
     }
@@ -376,7 +376,7 @@ mod tests {
         let handler = RunProgressHandler::new(true);
         assert_eq!(
             handler.render(&step_finished(Some(0))).as_deref(),
-            Some("    Step 'compile': ok")
+            Some("Step 'compile': ok")
         );
     }
 }
