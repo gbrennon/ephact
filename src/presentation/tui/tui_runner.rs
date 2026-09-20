@@ -47,14 +47,22 @@ impl TuiRunner {
         let mut app = self.build_app()?;
         let _guard = TerminalGuard::enter()?;
         let mut terminal = Self::init_terminal()?;
+        self.activate_tui_progress();
+        let result = self.run_event_loop(&mut terminal, &mut app).await;
+        self.deactivate_tui_progress();
+        result
+    }
+
+    fn activate_tui_progress(&self) {
         if let Some(stream) = &self.progress_stream {
             stream.activate_tui();
         }
-        let result = self.run_event_loop(&mut terminal, &mut app).await;
+    }
+
+    fn deactivate_tui_progress(&self) {
         if let Some(stream) = &self.progress_stream {
             stream.deactivate_tui();
         }
-        result
     }
 
     fn build_app(&self) -> Result<TuiApp, Box<dyn std::error::Error>> {
@@ -95,6 +103,17 @@ impl TuiRunner {
         Ok(())
     }
 
+    fn render_and_handle_input(
+        terminal: &mut DefaultTerminal,
+        app: &mut TuiApp,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        terminal.draw(|frame| app.render(frame))?;
+        if let Some(key) = EventReader::read_key()? {
+            app.handle_key(key);
+        }
+        Ok(())
+    }
+
     async fn tick(
         &self,
         terminal: &mut DefaultTerminal,
@@ -103,10 +122,7 @@ impl TuiRunner {
         cancelled: &mut bool,
     ) -> Result<(), Box<dyn std::error::Error>> {
         self.process_progress(app);
-        terminal.draw(|frame| app.render(frame))?;
-        if let Some(key) = EventReader::read_key()? {
-            app.handle_key(key);
-        }
+        Self::render_and_handle_input(terminal, app)?;
         self.process_cancel_request(app, run_task, cancelled);
         self.process_finished_run(app, run_task, cancelled).await?;
         self.process_run_request(app, run_task)?;
