@@ -112,6 +112,23 @@ fn tui_configuration_submits_selected_event() {
 }
 
 #[test]
+fn summary_navigation_scrolls_completed_run_summary() {
+    let mut app = TuiApp::new(Vec::new());
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.record_run_outcome(RunSummaryResponse::new(
+        "CI",
+        vec![],
+        true,
+        Duration::from_secs(1),
+    ));
+
+    app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+
+    assert_eq!(app.run_workflow_screen().summary_scroll(), 1);
+}
+
+#[test]
 fn details_key_opens_successful_run_details() {
     let mut app = TuiApp::new(vec![]);
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
