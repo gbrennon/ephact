@@ -70,7 +70,7 @@ impl RunHandler {
     /// Converts `repository_path` into a [`Repository`], builds a run request
     /// with safe defaults for the optional `workflow`, and returns the run
     /// summary produced by the port.
-    pub fn handle(
+    pub async fn handle(
         run_workflow_port: &dyn RunWorkflowPort,
         repository_path: PathBuf,
         workflow: Option<String>,
@@ -78,7 +78,7 @@ impl RunHandler {
         let repository = Self::build_repository(repository_path)?;
         let config = Self::single_workflow_config(workflow);
         let request = Self::build_run_workflow_request(&config, &repository);
-        Ok(run_workflow_port.execute(request)?)
+        Ok(run_workflow_port.execute(request).await?)
     }
 
     fn build_repository(
@@ -99,7 +99,7 @@ impl RunHandler {
 
     /// Executes the `run` subcommand: converts CLI args to domain objects,
     /// runs the workflow(s), prints the summary, and maps failure to an error.
-    pub fn handle_cli(
+    pub async fn handle_cli(
         args: RunArgs,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
@@ -112,12 +112,13 @@ impl RunHandler {
             run_all_workflows_port,
             list_workflows_port,
             terminal,
-        )?;
+        )
+        .await?;
         print!("{rendered}");
         Self::result_for(success)
     }
 
-    pub fn handle_with_output(
+    pub async fn handle_with_output(
         args: RunArgs,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
@@ -136,17 +137,18 @@ impl RunHandler {
         } else {
             config
         };
-        let summary = Self::execute(
+        let summary = Self::execute_async(
             config,
             repository,
             run_workflow_port,
             run_all_workflows_port,
-        )?;
+        )
+        .await?;
         let rendered = BoxComponent::new(RunSummaryComponent::new(&summary), terminal).render();
         Ok((rendered, summary.success()))
     }
 
-    pub fn handle_with_preflight_output(
+    pub async fn handle_with_preflight_output(
         args: RunArgs,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
@@ -158,19 +160,20 @@ impl RunHandler {
             preflight_ports.list_workflows_port,
             preflight_ports.terminal,
         )?;
-        let summary = Self::execute(
+        let summary = Self::execute_async(
             config,
             repository,
             run_workflow_port,
             run_all_workflows_port,
-        )?;
+        )
+        .await?;
         let rendered =
             BoxComponent::new(RunSummaryComponent::new(&summary), preflight_ports.terminal)
                 .render();
         Ok((rendered, summary.success()))
     }
 
-    pub fn handle_with_preflight_output_and_diagnostics(
+    pub async fn handle_with_preflight_output_and_diagnostics(
         args: RunArgs,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
@@ -184,12 +187,14 @@ impl RunHandler {
             preflight_ports.terminal,
         )?;
         let run_id = config.run_id().to_string();
-        let summary = match Self::execute(
+        let summary = match Self::execute_async(
             config,
             repository,
             run_workflow_port,
             run_all_workflows_port,
-        ) {
+        )
+        .await
+        {
             Ok(summary) => summary,
             Err(error) => {
                 return Err(Self::augment_execution_error(
@@ -585,7 +590,7 @@ impl RunHandler {
         Ok(config)
     }
 
-    fn execute(
+    async fn execute_async(
         config: ActRunConfig,
         repository: crate::domain::Repository,
         run_workflow_port: &dyn RunWorkflowPort,
@@ -596,7 +601,7 @@ impl RunHandler {
             Ok(run_all_workflows_port.execute(request)?)
         } else {
             let request = Self::build_run_workflow_request(&config, &repository);
-            Ok(run_workflow_port.execute(request)?)
+            Ok(run_workflow_port.execute(request).await?)
         }
     }
 
@@ -633,29 +638,7 @@ impl RunHandler {
         config: &ActRunConfig,
         repository: &crate::domain::Repository,
     ) -> RunWorkflowRequest {
-        RunWorkflowRequest::new(
-            repository.path().as_path().to_path_buf(),
-            repository.name().as_str().to_string(),
-            config.workflow().map(|value| value.as_str().to_string()),
-            config.job().map(|value| value.as_str().to_string()),
-            config.event().map(|value| value.as_str().to_string()),
-            config
-                .inputs()
-                .iter()
-                .map(|input| (input.key().to_string(), input.value().to_string()))
-                .collect(),
-            config
-                .secrets()
-                .iter()
-                .map(|secret| (secret.name().to_string(), secret.value().to_string()))
-                .collect(),
-            config.all_workflows(),
-            config.allow_repo_writes(),
-            config.allow_real_container(),
-            config.allow_real_fetcher(),
-            config.allow_network(),
-            config.run_id().to_string(),
-        )
+        RunWorkflowRequest::from_domain(repository, config)
     }
 
     pub fn render(summary: &RunSummaryResponse) -> String {
