@@ -9,6 +9,8 @@ use std::{
 };
 
 const EXCLUDED_DIRS: &[&str] = &[
+    ".git",
+    ".worktrees",
     "target",
     "node_modules",
     ".cargo",

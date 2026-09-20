@@ -7,27 +7,25 @@ use super::super::components::{
     content::ContentComponent,
     terminal::{SystemTerminal, Terminal},
 };
-use super::{
-    cli_parser::CliParser,
-    command::Command,
-    list_actions_handler::ListActionsHandler,
-    list_workflows_handler::ListWorkflowsHandler,
-    run_handler::{DiagnosticStores, PreflightPorts, RunHandler},
-};
+use super::run_progress_handler::TuiProgressStream;
+use super::{cli_parser::CliParser, command::Command};
 use crate::application::ports::inbound::{
     list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
     run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
     show_project_branding_info_port::ShowProjectBrandingInfoPort,
 };
 use crate::application::ports::outbound::DiscoverRunInputsPort;
+use crate::presentation::handlers::{
+    DiagnosticStores, ListActionsHandler, ListWorkflowsHandler, PreflightPorts, RunHandler,
+};
 use crate::presentation::tui::TuiRunner;
 
 pub struct Cli {
-    run_workflow_port: Box<dyn RunWorkflowPort>,
+    run_workflow_port: Arc<dyn RunWorkflowPort>,
     run_all_workflows_port: Box<dyn RunAllWorkflowsPort>,
     discover_run_inputs_port: Box<dyn DiscoverRunInputsPort>,
     list_workflows_port: Arc<dyn ListWorkflowsPort>,
-    list_actions_port: Box<dyn ListActionsPort>,
+    list_actions_port: Arc<dyn ListActionsPort>,
     show_project_branding_info_port: Box<dyn ShowProjectBrandingInfoPort>,
     failure_log_error_store: crate::infrastructure::logging::FailureLogErrorStore,
     failure_log_path_store: crate::infrastructure::logging::FailureLogPathStore,
@@ -57,8 +55,14 @@ impl Cli {
             list_actions_port,
             show_project_branding_info_port,
         ) = dependencies.into_parts();
+        let run_workflow_port: Arc<dyn RunWorkflowPort> = Arc::from(run_workflow_port);
         let list_workflows_port: Arc<dyn ListWorkflowsPort> = Arc::from(list_workflows_port);
-        let tui_runner = TuiRunner::new(list_workflows_port.clone());
+        let list_actions_port: Arc<dyn ListActionsPort> = Arc::from(list_actions_port);
+        let tui_runner = TuiRunner::new(
+            list_workflows_port.clone(),
+            list_actions_port.clone(),
+            run_workflow_port.clone(),
+        );
         Self {
             run_workflow_port,
             run_all_workflows_port,
@@ -70,6 +74,16 @@ impl Cli {
             failure_log_path_store: failure_log_stores.path_store(),
             tui_runner,
         }
+    }
+
+    pub fn new_with_failure_stores_and_progress_stream(
+        dependencies: CliDependencies,
+        failure_log_stores: crate::infrastructure::logging::FailureLogStores,
+        progress_stream: TuiProgressStream,
+    ) -> Self {
+        let mut cli = Self::new_with_failure_stores(dependencies, failure_log_stores);
+        cli.tui_runner = cli.tui_runner.with_progress_stream(progress_stream);
+        cli
     }
 
     pub fn new_with_failure_stores_and_tui(
@@ -85,7 +99,9 @@ impl Cli {
             list_actions_port,
             show_project_branding_info_port,
         ) = dependencies.into_parts();
+        let run_workflow_port: Arc<dyn RunWorkflowPort> = Arc::from(run_workflow_port);
         let list_workflows_port: Arc<dyn ListWorkflowsPort> = Arc::from(list_workflows_port);
+        let list_actions_port: Arc<dyn ListActionsPort> = Arc::from(list_actions_port);
         Self {
             run_workflow_port,
             run_all_workflows_port,
@@ -106,13 +122,32 @@ impl Cli {
         I: IntoIterator<Item = T>,
         T: Into<OsString> + Clone,
     {
+        tokio::runtime::Runtime::new()?.block_on(self.run_async(args))
+    }
+
+    async fn run_async<I, T>(self, args: I) -> Result<(), Box<dyn std::error::Error>>
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<OsString> + Clone,
+    {
         let terminal = SystemTerminal;
-        let output = self.run_with_terminal(args, &terminal)?;
+        let output = self.run_with_terminal_async(args, &terminal).await?;
         print!("{output}");
         Ok(())
     }
-
     pub fn run_with_terminal<I, T>(
+        self,
+        args: I,
+        terminal: &dyn Terminal,
+    ) -> Result<String, Box<dyn std::error::Error>>
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<OsString> + Clone,
+    {
+        tokio::runtime::Runtime::new()?.block_on(self.run_with_terminal_async(args, terminal))
+    }
+
+    async fn run_with_terminal_async<I, T>(
         self,
         args: I,
         terminal: &dyn Terminal,
@@ -123,13 +158,13 @@ impl Cli {
     {
         let args: Vec<OsString> = args.into_iter().map(Into::into).collect();
         if Self::is_tui_command(&args) {
-            self.tui_runner.run()?;
+            self.tui_runner.run().await?;
             return Ok(String::new());
         }
-        self.execute_cli(args, terminal)
+        self.execute_cli(args, terminal).await
     }
 
-    fn execute_cli(
+    async fn execute_cli(
         &self,
         args: Vec<OsString>,
         terminal: &dyn Terminal,
@@ -142,7 +177,7 @@ impl Cli {
         };
         let mut output = BoxComponent::new(Banner::new(&branding), terminal).render();
         let command = cli.command();
-        self.execute_command(command, terminal, &mut output)?;
+        self.execute_command(command, terminal, &mut output).await?;
         Ok(output)
     }
     fn is_tui_command(args: &[OsString]) -> bool {
@@ -158,21 +193,21 @@ impl Cli {
             Err(e.to_string().into())
         }
     }
-    fn execute_command(
+    async fn execute_command(
         &self,
         command: Command,
         terminal: &dyn Terminal,
         output: &mut String,
     ) -> Result<(), Box<dyn std::error::Error>> {
         match command {
-            Command::Run(args) => self.execute_run(*args, terminal, output),
+            Command::Run(args) => self.execute_run(*args, terminal, output).await,
             Command::ListWorkflows(args) => self.execute_list_workflows(*args, terminal, output),
             Command::ListActions(args) => self.execute_list_actions(*args, terminal, output),
-            Command::Tui => self.tui_runner.run(),
+            Command::Tui => self.tui_runner.run().await,
         }
     }
 
-    fn execute_run(
+    async fn execute_run(
         &self,
         args: super::run_args::RunArgs,
         terminal: &dyn Terminal,
@@ -192,7 +227,8 @@ impl Cli {
                 terminal,
             ),
             DiagnosticStores::new(&self.failure_log_error_store, &self.failure_log_path_store),
-        )?;
+        )
+        .await?;
         output.push_str(&summary);
         if !success {
             print!("{output}");
@@ -207,7 +243,9 @@ impl Cli {
         terminal: &dyn Terminal,
         output: &mut String,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let content = ListWorkflowsHandler::handle(args, &*self.list_workflows_port)?;
+        let response =
+            ListWorkflowsHandler::handle(&*self.list_workflows_port, args.path().to_path_buf())?;
+        let content = ListWorkflowsHandler::render(&response);
         output.push_str(
             &BoxComponent::new(
                 ContentComponent::new("Workflows".to_string(), content),
@@ -224,7 +262,9 @@ impl Cli {
         terminal: &dyn Terminal,
         output: &mut String,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let content = ListActionsHandler::handle(args, &*self.list_actions_port)?;
+        let response =
+            ListActionsHandler::handle(&*self.list_actions_port, args.path().to_path_buf())?;
+        let content = ListActionsHandler::render(&response);
         output.push_str(
             &BoxComponent::new(
                 ContentComponent::new("Actions".to_string(), content),

@@ -17,6 +17,10 @@ pub struct ListWorkflowsArgs {
 }
 
 impl ListWorkflowsArgs {
+    pub fn path(&self) -> &std::path::Path {
+        &self.path
+    }
+
     /// Converts CLI arguments into the domain model: a [`ListWorkflowsRequest`].
     ///
     /// This translation keeps the application layer agnostic to filesystem

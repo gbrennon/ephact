@@ -2,7 +2,6 @@ use super::super::components::{
     box_component::BoxComponent, component::Component, run_summary::RunSummaryComponent,
     terminal::Terminal,
 };
-use super::run_args::RunArgs;
 use crate::application::dtos::requests::DiscoverRunInputsRequest;
 use crate::application::dtos::requests::ListWorkflowsRequest;
 use crate::application::dtos::requests::RunAllWorkflowsRequest;
@@ -16,6 +15,9 @@ use crate::domain::value_objects::ActEvent;
 use crate::domain::value_objects::ActInput;
 use crate::domain::value_objects::ActRunConfig;
 use crate::domain::value_objects::ActWorkflow;
+use crate::domain::{RepoPath, Repository, RepositoryName};
+use crate::presentation::cli::run_args::RunArgs;
+use std::path::PathBuf;
 
 /// Handles the `run` subcommand by dispatching parsed CLI arguments to the
 /// application port.
@@ -63,8 +65,41 @@ impl<'a> DiagnosticStores<'a> {
 }
 
 impl RunHandler {
+    /// Executes a single workflow programmatically (used by the TUI).
+    ///
+    /// Converts `repository_path` into a [`Repository`], builds a run request
+    /// with safe defaults for the optional `workflow`, and returns the run
+    /// summary produced by the port.
+    pub async fn handle(
+        run_workflow_port: &dyn RunWorkflowPort,
+        repository_path: PathBuf,
+        workflow: Option<String>,
+    ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
+        let repository = Self::build_repository(repository_path)?;
+        let config = Self::single_workflow_config(workflow);
+        let request = Self::build_run_workflow_request(&config, &repository);
+        Ok(run_workflow_port.execute(request).await?)
+    }
+
+    fn build_repository(
+        repository_path: PathBuf,
+    ) -> Result<Repository, Box<dyn std::error::Error>> {
+        let repo_path = RepoPath::new(repository_path).map_err(|e| format!("{e:?}"))?;
+        let repo_name = RepositoryName::from_repo_path(&repo_path).map_err(|e| format!("{e:?}"))?;
+        Ok(Repository::new(repo_path, repo_name))
+    }
+
+    fn single_workflow_config(workflow: Option<String>) -> ActRunConfig {
+        let config = ActRunConfig::new();
+        match workflow {
+            Some(name) => config.with_workflow(ActWorkflow::new(name)),
+            None => config,
+        }
+    }
+
     /// Executes the `run` subcommand: converts CLI args to domain objects,
-    pub fn handle(
+    /// runs the workflow(s), prints the summary, and maps failure to an error.
+    pub async fn handle_cli(
         args: RunArgs,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
@@ -77,12 +112,13 @@ impl RunHandler {
             run_all_workflows_port,
             list_workflows_port,
             terminal,
-        )?;
+        )
+        .await?;
         print!("{rendered}");
         Self::result_for(success)
     }
 
-    pub fn handle_with_output(
+    pub async fn handle_with_output(
         args: RunArgs,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
@@ -101,17 +137,18 @@ impl RunHandler {
         } else {
             config
         };
-        let summary = Self::execute(
+        let summary = Self::execute_async(
             config,
             repository,
             run_workflow_port,
             run_all_workflows_port,
-        )?;
+        )
+        .await?;
         let rendered = BoxComponent::new(RunSummaryComponent::new(&summary), terminal).render();
         Ok((rendered, summary.success()))
     }
 
-    pub fn handle_with_preflight_output(
+    pub async fn handle_with_preflight_output(
         args: RunArgs,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
@@ -123,19 +160,20 @@ impl RunHandler {
             preflight_ports.list_workflows_port,
             preflight_ports.terminal,
         )?;
-        let summary = Self::execute(
+        let summary = Self::execute_async(
             config,
             repository,
             run_workflow_port,
             run_all_workflows_port,
-        )?;
+        )
+        .await?;
         let rendered =
             BoxComponent::new(RunSummaryComponent::new(&summary), preflight_ports.terminal)
                 .render();
         Ok((rendered, summary.success()))
     }
 
-    pub fn handle_with_preflight_output_and_diagnostics(
+    pub async fn handle_with_preflight_output_and_diagnostics(
         args: RunArgs,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
@@ -149,12 +187,14 @@ impl RunHandler {
             preflight_ports.terminal,
         )?;
         let run_id = config.run_id().to_string();
-        let summary = match Self::execute(
+        let summary = match Self::execute_async(
             config,
             repository,
             run_workflow_port,
             run_all_workflows_port,
-        ) {
+        )
+        .await
+        {
             Ok(summary) => summary,
             Err(error) => {
                 return Err(Self::augment_execution_error(
@@ -550,67 +590,55 @@ impl RunHandler {
         Ok(config)
     }
 
-    fn execute(
+    async fn execute_async(
         config: ActRunConfig,
         repository: crate::domain::Repository,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
     ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
-        let repository_path = repository.path().as_path().to_path_buf();
-        let repository_name = repository.name().as_str().to_string();
-        let workflow = config.workflow().map(|value| value.as_str().to_string());
-        let job = config.job().map(|value| value.as_str().to_string());
-        let event = config.event().map(|value| value.as_str().to_string());
-        let inputs = config
-            .inputs()
-            .iter()
-            .map(|input| (input.key().to_string(), input.value().to_string()))
-            .collect();
-        let secrets = config
-            .secrets()
-            .iter()
-            .map(|secret| (secret.name().to_string(), secret.value().to_string()))
-            .collect();
-        let all_workflows = config.all_workflows();
-        let allow_repo_writes = config.allow_repo_writes();
-        let allow_real_container = config.allow_real_container();
-        let allow_real_fetcher = config.allow_real_fetcher();
-        let allow_network = config.allow_network();
-        let run_id = config.run_id().to_string();
-
-        if all_workflows {
-            Ok(run_all_workflows_port.execute(RunAllWorkflowsRequest::new(
-                repository_path,
-                repository_name,
-                workflow,
-                job,
-                event,
-                inputs,
-                secrets,
-                all_workflows,
-                allow_repo_writes,
-                allow_real_container,
-                allow_real_fetcher,
-                allow_network,
-                run_id,
-            ))?)
+        if config.all_workflows() {
+            let request = Self::build_run_all_request(&config, &repository);
+            Ok(run_all_workflows_port.execute(request)?)
         } else {
-            Ok(run_workflow_port.execute(RunWorkflowRequest::new(
-                repository_path,
-                repository_name,
-                workflow,
-                job,
-                event,
-                inputs,
-                secrets,
-                all_workflows,
-                allow_repo_writes,
-                allow_real_container,
-                allow_real_fetcher,
-                allow_network,
-                run_id,
-            ))?)
+            let request = Self::build_run_workflow_request(&config, &repository);
+            Ok(run_workflow_port.execute(request).await?)
         }
+    }
+
+    fn build_run_all_request(
+        config: &ActRunConfig,
+        repository: &crate::domain::Repository,
+    ) -> RunAllWorkflowsRequest {
+        RunAllWorkflowsRequest::new(
+            repository.path().as_path().to_path_buf(),
+            repository.name().as_str().to_string(),
+            config.workflow().map(|value| value.as_str().to_string()),
+            config.job().map(|value| value.as_str().to_string()),
+            config.event().map(|value| value.as_str().to_string()),
+            config
+                .inputs()
+                .iter()
+                .map(|input| (input.key().to_string(), input.value().to_string()))
+                .collect(),
+            config
+                .secrets()
+                .iter()
+                .map(|secret| (secret.name().to_string(), secret.value().to_string()))
+                .collect(),
+            config.all_workflows(),
+            config.allow_repo_writes(),
+            config.allow_real_container(),
+            config.allow_real_fetcher(),
+            config.allow_network(),
+            config.run_id().to_string(),
+        )
+    }
+
+    fn build_run_workflow_request(
+        config: &ActRunConfig,
+        repository: &crate::domain::Repository,
+    ) -> RunWorkflowRequest {
+        RunWorkflowRequest::from_domain(repository, config)
     }
 
     pub fn render(summary: &RunSummaryResponse) -> String {

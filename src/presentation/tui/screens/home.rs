@@ -9,6 +9,7 @@ use ratatui::{
 pub struct HomeScreen {}
 
 impl HomeScreen {
+    pub const RUN_WORKFLOW_INDEX: usize = 0;
     pub const LIST_WORKFLOWS_INDEX: usize = 1;
     pub const LIST_ACTIONS_INDEX: usize = 2;
     pub const LAST_MENU_INDEX: usize = 2;

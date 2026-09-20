@@ -52,12 +52,10 @@ impl ContainerPort for PodmanContainer {
         on_output: &mut dyn FnMut(OutputStream, &str),
     ) -> Result<ExecResultResponse, ContainerError> {
         let exec_options = exec_options(options.cmd(), options.workdir(), options.env());
-        self.runtime.block_on(run_streaming_exec(
-            &self.client,
-            &self.container_id,
-            exec_options,
-            on_output,
-        ))
+        super::docker_runtime::block_on_runtime(
+            &self.runtime,
+            run_streaming_exec(&self.client, &self.container_id, exec_options, on_output),
+        )
     }
 
     fn copy_to(
@@ -66,16 +64,14 @@ impl ContainerPort for PodmanContainer {
         entries: &[FileEntryResponse],
     ) -> Result<(), ContainerError> {
         let archive = pack_entries(entries, &self.container_id)?;
-        self.runtime.block_on(upload_archive(
-            &self.client,
-            &self.container_id,
-            container_path,
-            archive,
-        ))
+        super::docker_runtime::block_on_runtime(
+            &self.runtime,
+            upload_archive(&self.client, &self.container_id, container_path, archive),
+        )
     }
 
     fn copy_from(&self, container_path: &str) -> Result<Vec<FileEntryResponse>, ContainerError> {
-        self.runtime.block_on(async {
+        super::docker_runtime::block_on_runtime(&self.runtime, async {
             let archive =
                 download_archive(&self.client, &self.container_id, container_path).await?;
             unpack_entries(&archive, &self.container_id)
@@ -83,7 +79,7 @@ impl ContainerPort for PodmanContainer {
     }
 
     fn remove(&self) -> Result<(), ContainerError> {
-        self.runtime.block_on(async {
+        super::docker_runtime::block_on_runtime(&self.runtime, async {
             self.client
                 .remove_container(
                     &self.container_id,
@@ -100,7 +96,7 @@ impl ContainerPort for PodmanContainer {
     }
 
     fn get_runner_context(&self) -> Result<RunnerContextResponse, ContainerError> {
-        self.runtime.block_on(async {
+        super::docker_runtime::block_on_runtime(&self.runtime, async {
             let info = self
                 .client
                 .inspect_container(&self.container_id, None)

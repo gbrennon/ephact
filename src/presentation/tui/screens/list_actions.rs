@@ -1,10 +1,15 @@
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Margin, Rect},
     style::{Color, Modifier, Style},
     text::Line,
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
+    widgets::{Block, Borders, List, ListItem, ListState, Padding, Paragraph},
 };
+
+use std::path::PathBuf;
+
+use crate::application::ports::inbound::list_actions_port::ListActionsPort;
+use crate::presentation::handlers::ListActionsHandler;
 
 pub struct ListActionsScreen {
     actions: Vec<String>,
@@ -26,6 +31,15 @@ impl ListActionsScreen {
             actions,
             selected_index: Self::INITIAL_SELECTION,
         }
+    }
+
+    /// Builds the screen by listing the actions under `repository_path`.
+    pub fn from_handler(
+        port: &dyn ListActionsPort,
+        repository_path: PathBuf,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        let response = ListActionsHandler::handle(port, repository_path)?;
+        Ok(Self::new(response.into_actions()))
     }
 
     pub fn actions(&self) -> &[String] {
@@ -51,14 +65,20 @@ impl ListActionsScreen {
     }
 
     pub fn render(&self, frame: &mut Frame<'_>) {
+        let area = frame.area().inner(Margin::new(Self::MARGIN, Self::MARGIN));
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .padding(Padding::horizontal(1))
+            .title(Self::TITLE);
+        let content_area = block.inner(area);
+        frame.render_widget(block, area);
         let chunks = Layout::default()
             .direction(Direction::Vertical)
-            .margin(Self::MARGIN)
             .constraints([
                 Constraint::Min(Self::CONTENT_MIN_HEIGHT),
                 Constraint::Length(Self::FOOTER_HEIGHT),
             ])
-            .split(frame.area());
+            .split(content_area);
         self.render_content(frame, chunks[0]);
         self.render_footer(frame, chunks[1]);
     }
@@ -72,8 +92,7 @@ impl ListActionsScreen {
     }
 
     fn render_empty(&self, frame: &mut Frame<'_>, area: Rect) {
-        let content = Paragraph::new(Self::EMPTY_MESSAGE)
-            .block(Block::default().borders(Borders::ALL).title(Self::TITLE));
+        let content = Paragraph::new(Self::EMPTY_MESSAGE);
         frame.render_widget(content, area);
     }
 
@@ -83,9 +102,7 @@ impl ListActionsScreen {
             .iter()
             .map(|action| Self::action_item(action))
             .collect::<Vec<_>>();
-        let list = List::new(items)
-            .block(Block::default().borders(Borders::ALL).title(Self::TITLE))
-            .highlight_style(Self::highlight_style());
+        let list = List::new(items).highlight_style(Self::highlight_style());
         let mut state = ListState::default();
         state.select(Some(self.selected_index));
         frame.render_stateful_widget(list, area, &mut state);

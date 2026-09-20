@@ -1,12 +1,16 @@
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Margin, Rect},
     style::{Color, Modifier, Style},
     text::Line,
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
+    widgets::{Block, Borders, List, ListItem, ListState, Padding, Paragraph},
 };
 
 use crate::application::dtos::responses::WorkflowListItemResponse;
+use std::path::PathBuf;
+
+use crate::application::ports::inbound::list_workflows_port::ListWorkflowsPort;
+use crate::presentation::handlers::ListWorkflowsHandler;
 
 pub struct ListWorkflowsScreen {
     workflows: Vec<WorkflowListItemResponse>,
@@ -34,6 +38,15 @@ impl ListWorkflowsScreen {
         }
     }
 
+    /// Builds the screen by listing the workflows under `repository_path`.
+    pub fn from_handler(
+        port: &dyn ListWorkflowsPort,
+        repository_path: PathBuf,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        let response = ListWorkflowsHandler::handle(port, repository_path)?;
+        Ok(Self::new(response.into_workflows()))
+    }
+
     pub fn workflows(&self) -> &[WorkflowListItemResponse] {
         &self.workflows
     }
@@ -57,14 +70,20 @@ impl ListWorkflowsScreen {
     }
 
     pub fn render(&self, frame: &mut Frame<'_>) {
+        let area = frame.area().inner(Margin::new(Self::MARGIN, Self::MARGIN));
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .padding(Padding::horizontal(1))
+            .title(Self::TITLE);
+        let content_area = block.inner(area);
+        frame.render_widget(block, area);
         let chunks = Layout::default()
             .direction(Direction::Vertical)
-            .margin(Self::MARGIN)
             .constraints([
                 Constraint::Min(Self::CONTENT_MIN_HEIGHT),
                 Constraint::Length(Self::FOOTER_HEIGHT),
             ])
-            .split(frame.area());
+            .split(content_area);
         self.render_content(frame, chunks[0]);
         self.render_footer(frame, chunks[1]);
     }
@@ -78,8 +97,7 @@ impl ListWorkflowsScreen {
     }
 
     fn render_empty(&self, frame: &mut Frame<'_>, area: Rect) {
-        let content = Paragraph::new(Self::EMPTY_MESSAGE)
-            .block(Block::default().borders(Borders::ALL).title(Self::TITLE));
+        let content = Paragraph::new(Self::EMPTY_MESSAGE);
         frame.render_widget(content, area);
     }
 
@@ -89,9 +107,7 @@ impl ListWorkflowsScreen {
             .iter()
             .map(Self::workflow_item)
             .collect::<Vec<_>>();
-        let list = List::new(items)
-            .block(Block::default().borders(Borders::ALL).title(Self::TITLE))
-            .highlight_style(Self::highlight_style());
+        let list = List::new(items).highlight_style(Self::highlight_style());
         let mut state = ListState::default();
         state.select(Some(self.selected_index));
         frame.render_stateful_widget(list, area, &mut state);

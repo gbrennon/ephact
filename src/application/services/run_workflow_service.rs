@@ -1,6 +1,6 @@
 use crate::domain::messages::commands::ExecuteWorkflowCommand;
 
-use std::{error::Error, time::Instant};
+use std::{error::Error, future::Future, pin::Pin, time::Instant};
 
 use crate::application::dtos::requests::RunWorkflowRequest;
 use crate::application::dtos::responses::{RunSummaryResponse, WorkflowExecutionResponse};
@@ -96,22 +96,27 @@ impl RunWorkflowService {
 }
 
 impl RunWorkflowPort for RunWorkflowService {
-    fn execute(&self, request: RunWorkflowRequest) -> Result<RunSummaryResponse, RunWorkflowError> {
-        let context = RunExecutionContext::new(request)
-            .map_err(|error| RunWorkflowError::Workflow(error.to_string()))?;
-        self.announce_run_started(&context);
-        let workflow_content = self
-            .read_workflow(&context)
-            .map_err(|error| RunWorkflowError::Workflow(error.to_string()))?;
-        self.ensure_pull_request_trigger(&context, &workflow_content)
-            .map_err(|error| RunWorkflowError::Workflow(error.to_string()))?;
-        let execution = self
-            .dispatch_workflow(&context, workflow_content)
-            .map_err(|error| RunWorkflowError::Workflow(error.to_string()))?;
-        Ok(self.complete_run(&context, execution))
+    fn execute(
+        &self,
+        request: RunWorkflowRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<RunSummaryResponse, RunWorkflowError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let context = RunExecutionContext::new(request)
+                .map_err(|error| RunWorkflowError::Workflow(error.to_string()))?;
+            self.announce_run_started(&context);
+            let workflow_content = self
+                .read_workflow(&context)
+                .map_err(|error| RunWorkflowError::Workflow(error.to_string()))?;
+            self.ensure_pull_request_trigger(&context, &workflow_content)
+                .map_err(|error| RunWorkflowError::Workflow(error.to_string()))?;
+            let execution = self
+                .dispatch_workflow(&context, workflow_content)
+                .map_err(|error| RunWorkflowError::Workflow(error.to_string()))?;
+            Ok(self.complete_run(&context, execution))
+        })
     }
 }
-
 impl RunWorkflowService {
     fn announce_run_started(&self, context: &RunExecutionContext) {
         self.event_bus
