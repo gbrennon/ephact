@@ -18,8 +18,8 @@ fn current_repository_path() -> std::path::PathBuf {
         .expect("canonical repository path")
 }
 
-#[test]
-fn handle_returns_summary_from_port() {
+#[tokio::test]
+async fn handle_returns_summary_from_port() {
     let summary = run_summary(true);
     let port = RecordingRunWorkflowPort::new(summary.clone());
 
@@ -28,13 +28,14 @@ fn handle_returns_summary_from_port() {
         env::current_dir().expect("current directory"),
         Some("CI".to_string()),
     )
+    .await
     .expect("repository should be valid");
 
     assert_eq!(response, summary);
 }
 
-#[test]
-fn handle_executes_port_with_selected_workflow_and_safe_defaults() {
+#[tokio::test]
+async fn handle_executes_port_with_selected_workflow_and_safe_defaults() {
     let port = RecordingRunWorkflowPort::new(run_summary(true));
 
     RunHandler::handle(
@@ -42,6 +43,7 @@ fn handle_executes_port_with_selected_workflow_and_safe_defaults() {
         env::current_dir().expect("current directory"),
         Some("CI".to_string()),
     )
+    .await
     .expect("repository should be valid");
 
     let request = port.recorded_request().expect("recorded request");
@@ -59,11 +61,12 @@ fn handle_executes_port_with_selected_workflow_and_safe_defaults() {
     assert!(!request.run_id().is_empty());
 }
 
-#[test]
-fn handle_executes_port_without_workflow_when_selection_is_unnamed() {
+#[tokio::test]
+async fn handle_executes_port_without_workflow_when_selection_is_unnamed() {
     let port = RecordingRunWorkflowPort::new(run_summary(true));
 
     RunHandler::handle(&port, env::current_dir().expect("current directory"), None)
+        .await
         .expect("repository should be valid");
 
     let request = port.recorded_request().expect("recorded request");
@@ -71,17 +74,17 @@ fn handle_executes_port_without_workflow_when_selection_is_unnamed() {
     assert!(!request.all_workflows());
 }
 
-#[test]
-fn handle_returns_error_on_invalid_repo_path() {
+#[tokio::test]
+async fn handle_returns_error_on_invalid_repo_path() {
     let port = RecordingRunWorkflowPort::new(run_summary(true));
 
-    let result = RunHandler::handle(&port, "/definitely/not/a/repository".into(), None);
+    let result = RunHandler::handle(&port, "/definitely/not/a/repository".into(), None).await;
 
     assert!(result.is_err());
 }
 
-#[test]
-fn handle_returns_error_when_port_fails() {
+#[tokio::test]
+async fn handle_returns_error_when_port_fails() {
     let port = StubRunWorkflowPort {
         result: Err("workflow failed".to_string()),
     };
@@ -90,7 +93,8 @@ fn handle_returns_error_when_port_fails() {
         &port,
         env::current_dir().expect("current directory"),
         Some("CI".to_string()),
-    );
+    )
+    .await;
 
     assert!(result.is_err());
 }
