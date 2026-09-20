@@ -26,6 +26,7 @@ pub struct RunWorkflowScreen {
     running: bool,
     showing_details: bool,
     details_scroll: u16,
+    summary_scroll: u16,
     configuration: Option<RunConfiguration>,
 }
 
@@ -57,6 +58,7 @@ impl RunWorkflowScreen {
             running: false,
             showing_details: false,
             details_scroll: 0,
+            summary_scroll: 0,
             configuration: None,
         }
     }
@@ -137,6 +139,7 @@ impl RunWorkflowScreen {
         self.running = false;
         self.showing_details = false;
         self.details_scroll = 0;
+        self.summary_scroll = 0;
     }
 
     pub fn open_details(&mut self) -> bool {
@@ -164,6 +167,18 @@ impl RunWorkflowScreen {
         self.details_scroll
     }
 
+    pub fn scroll_summary_up(&mut self) {
+        self.summary_scroll = self.summary_scroll.saturating_sub(1);
+    }
+
+    pub fn scroll_summary_down(&mut self) {
+        self.summary_scroll = self.summary_scroll.saturating_add(1);
+    }
+
+    pub fn summary_scroll(&self) -> u16 {
+        self.summary_scroll
+    }
+
     pub fn showing_details(&self) -> bool {
         self.showing_details
     }
@@ -174,6 +189,7 @@ impl RunWorkflowScreen {
         self.progress_lines.clear();
         self.running = true;
         self.showing_details = false;
+        self.summary_scroll = 0;
     }
 
     pub fn record_progress(&mut self, line: String) {
@@ -195,6 +211,7 @@ impl RunWorkflowScreen {
         self.progress_lines.clear();
         self.running = false;
         self.showing_details = false;
+        self.summary_scroll = 0;
     }
 
     pub fn select_next(&mut self) {
@@ -254,7 +271,7 @@ impl RunWorkflowScreen {
             return;
         }
         match self.outcome.as_ref() {
-            Some(summary) => Self::render_summary(frame, area, summary),
+            Some(summary) => self.render_summary(frame, area, summary),
             None => self.render_picker(frame, area),
         }
     }
@@ -351,29 +368,28 @@ impl RunWorkflowScreen {
         ))
     }
 
-    fn render_summary(frame: &mut Frame<'_>, area: Rect, summary: &RunSummaryResponse) {
-        let list = List::new(Self::summary_items(summary)).style(Theme::body_style());
-        frame.render_widget(list, area);
+    fn render_summary(&self, frame: &mut Frame<'_>, area: Rect, summary: &RunSummaryResponse) {
+        let content = Paragraph::new(Self::summary_lines(summary))
+            .style(Theme::body_style())
+            .scroll((self.summary_scroll, 0));
+        frame.render_widget(content, area);
     }
 
-    fn summary_items(summary: &RunSummaryResponse) -> Vec<ListItem<'static>> {
-        let mut items = vec![
-            ListItem::new(Line::from(Span::styled(
+    fn summary_lines(summary: &RunSummaryResponse) -> Vec<Line<'static>> {
+        let mut lines = vec![
+            Line::from(Span::styled(
                 format!("{}{}", Self::RESULT_NAME_PREFIX, summary.name()),
                 Theme::body_style(),
-            ))),
-            ListItem::new(Self::status_line(
-                Self::RESULT_STATUS_PREFIX,
-                summary.success(),
             )),
+            Self::status_line(Self::RESULT_STATUS_PREFIX, summary.success()),
         ];
-        items.extend(summary.job_summaries().iter().map(Self::job_item));
-        items
+        lines.extend(summary.job_summaries().iter().map(Self::job_line));
+        lines
     }
 
-    fn job_item(job: &JobSummaryResponse) -> ListItem<'static> {
+    fn job_line(job: &JobSummaryResponse) -> Line<'static> {
         let prefix = format!("{}{}", Self::job_label(job), Self::JOB_STATUS_SEPARATOR);
-        ListItem::new(Self::status_line(&prefix, job.success()))
+        Self::status_line(&prefix, job.success())
     }
 
     fn status_line(prefix: &str, success: bool) -> Line<'static> {
@@ -422,7 +438,7 @@ impl RunWorkflowScreen {
         } else if self.showing_details {
             "Up/Down: Scroll | Esc: Back | q: Quit"
         } else if self.outcome.is_some() {
-            "Esc: Back | d: Details | q: Quit"
+            "Up/Down: Scroll | Esc: Back | d: Details | q: Quit"
         } else {
             Self::PICKER_FOOTER
         }
