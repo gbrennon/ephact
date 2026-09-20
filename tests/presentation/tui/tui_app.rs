@@ -1,4 +1,7 @@
+use std::time::Duration;
+
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use ephact::application::dtos::responses::RunSummaryResponse;
 use ephact::presentation::tui::tui_app::{TuiApp, TuiScreen};
 #[test]
 fn selecting_list_workflows_enters_workflow_screen() {
@@ -41,6 +44,76 @@ fn cancel_key_requests_cancellation_without_leaving_run_screen() {
 
     assert_eq!(app.screen(), TuiScreen::RunWorkflow);
     assert!(app.take_cancel_request());
+}
+
+#[test]
+fn details_key_opens_failed_run_details() {
+    let mut app = TuiApp::new(vec![]);
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.record_run_outcome(RunSummaryResponse::new(
+        "CI",
+        vec![],
+        false,
+        Duration::from_secs(1),
+    ));
+
+    app.handle_key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE));
+
+    assert!(app.run_workflow_screen().showing_details());
+}
+
+#[test]
+fn details_key_does_not_open_successful_run_details() {
+    let mut app = TuiApp::new(vec![]);
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.record_run_outcome(RunSummaryResponse::new(
+        "CI",
+        vec![],
+        true,
+        Duration::from_secs(1),
+    ));
+
+    app.handle_key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE));
+
+    assert!(!app.run_workflow_screen().showing_details());
+}
+
+#[test]
+fn escape_closes_failed_run_details() {
+    let mut app = TuiApp::new(vec![]);
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.record_run_outcome(RunSummaryResponse::new(
+        "CI",
+        vec![],
+        false,
+        Duration::from_secs(1),
+    ));
+    app.handle_key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE));
+
+    app.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+
+    assert!(!app.run_workflow_screen().showing_details());
+}
+
+#[test]
+fn details_screen_scrolls_with_navigation_keys() {
+    let mut app = TuiApp::new(vec![]);
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.record_run_outcome(RunSummaryResponse::new(
+        "CI",
+        vec![],
+        false,
+        Duration::from_secs(1),
+    ));
+    app.handle_key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE));
+
+    app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+
+    assert_eq!(app.run_workflow_screen().details_scroll(), 1);
 }
 
 #[test]
