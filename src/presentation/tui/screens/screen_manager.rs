@@ -120,7 +120,6 @@ impl ScreenManager {
 
     pub fn record_run_outcome(&mut self, outcome: RunSummaryResponse) {
         self.run_workflow.record_outcome(outcome);
-        self.run_workflow.finish_run();
     }
 
     pub fn record_progress(&mut self, line: String) {
