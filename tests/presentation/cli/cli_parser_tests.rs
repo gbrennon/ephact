@@ -18,8 +18,8 @@ mod tests {
         RunSummaryResponse::new("test".to_string(), vec![], true, Duration::ZERO)
     }
 
-    #[test]
-    fn run_dispatches_success_without_exiting() {
+    #[tokio::test]
+    async fn run_dispatches_success_without_exiting() {
         let wf_port = StubRunWorkflowPort {
             result: Ok(ok_summary()),
         };
@@ -29,11 +29,13 @@ mod tests {
         let args = parse_run_test_args(&[]);
         let terminal = SystemTerminal;
         let list_port = FakeListWorkflowsPort::new();
-        RunHandler::handle_cli(args, &wf_port, &all_wf_port, &list_port, &terminal).unwrap();
+        RunHandler::handle_cli(args, &wf_port, &all_wf_port, &list_port, &terminal)
+            .await
+            .unwrap();
     }
 
-    #[test]
-    fn run_dispatches_with_workflow_flag() {
+    #[tokio::test]
+    async fn run_dispatches_with_workflow_flag() {
         let wf_port = StubRunWorkflowPort {
             result: Ok(ok_summary()),
         };
@@ -43,7 +45,9 @@ mod tests {
         let args = parse_run_test_args(&["--workflow", "ci.yml"]);
         let terminal = SystemTerminal;
         let list_port = FakeListWorkflowsPort::new();
-        RunHandler::handle_cli(args, &wf_port, &all_wf_port, &list_port, &terminal).unwrap();
+        RunHandler::handle_cli(args, &wf_port, &all_wf_port, &list_port, &terminal)
+            .await
+            .unwrap();
     }
 
     #[test]
