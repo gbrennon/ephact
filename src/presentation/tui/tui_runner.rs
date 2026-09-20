@@ -8,6 +8,7 @@ use crate::application::dtos::responses::RunSummaryResponse;
 use crate::application::ports::inbound::list_actions_port::ListActionsPort;
 use crate::application::ports::inbound::list_workflows_port::ListWorkflowsPort;
 use crate::application::ports::inbound::run_workflow_port::RunWorkflowPort;
+use crate::application::ports::outbound::DiscoverRunInputsPort;
 use crate::presentation::cli::TuiProgressStream;
 use crate::presentation::handlers::RunHandler;
 
@@ -22,6 +23,7 @@ pub struct TuiRunner {
     list_actions_port: Arc<dyn ListActionsPort>,
     run_workflow_port: Arc<dyn RunWorkflowPort>,
     progress_stream: Option<TuiProgressStream>,
+    discover_run_inputs_port: Option<Arc<dyn DiscoverRunInputsPort>>,
 }
 
 impl TuiRunner {
@@ -35,7 +37,16 @@ impl TuiRunner {
             list_actions_port,
             run_workflow_port,
             progress_stream: None,
+            discover_run_inputs_port: None,
         }
+    }
+
+    pub fn with_input_discovery(
+        mut self,
+        discover_run_inputs_port: Arc<dyn DiscoverRunInputsPort>,
+    ) -> Self {
+        self.discover_run_inputs_port = Some(discover_run_inputs_port);
+        self
     }
 
     pub fn with_progress_stream(mut self, progress_stream: TuiProgressStream) -> Self {
@@ -81,7 +92,14 @@ impl TuiRunner {
         &self,
         workflow: Option<String>,
     ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
-        RunHandler::handle(&*self.run_workflow_port, std::env::current_dir()?, workflow).await
+        RunHandler::handle_with_event_and_inputs(
+            &*self.run_workflow_port,
+            std::env::current_dir()?,
+            workflow,
+            Some("pull_request".to_string()),
+            Vec::new(),
+        )
+        .await
     }
 
     fn init_terminal() -> Result<DefaultTerminal, Box<dyn std::error::Error>> {
@@ -96,9 +114,16 @@ impl TuiRunner {
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut run_task = None;
         let mut cancelled = false;
+        let mut input_configuration_pending = false;
         while app.screen() != TuiScreen::Exit {
-            self.tick(terminal, app, &mut run_task, &mut cancelled)
-                .await?;
+            self.tick(
+                terminal,
+                app,
+                &mut run_task,
+                &mut cancelled,
+                &mut input_configuration_pending,
+            )
+            .await?;
         }
         Ok(())
     }
@@ -120,12 +145,14 @@ impl TuiRunner {
         app: &mut TuiApp,
         run_task: &mut Option<RunTask>,
         cancelled: &mut bool,
+        input_configuration_pending: &mut bool,
     ) -> Result<(), Box<dyn std::error::Error>> {
         self.process_progress(app);
         Self::render_and_handle_input(terminal, app)?;
         self.process_cancel_request(app, run_task, cancelled);
         self.process_finished_run(app, run_task, cancelled).await?;
-        self.process_run_request(app, run_task)?;
+        self.process_run_request(app, run_task, input_configuration_pending)?;
+        self.process_configured_run_request(app, run_task, input_configuration_pending)?;
         Ok(())
     }
 
@@ -182,18 +209,69 @@ impl TuiRunner {
         &self,
         app: &mut TuiApp,
         run_task: &mut Option<RunTask>,
+        input_configuration_pending: &mut bool,
     ) -> Result<(), Box<dyn std::error::Error>> {
         if run_task.is_some() || !app.take_run_request() {
             return Ok(());
         }
+        *input_configuration_pending = false;
+        let events = app.selected_workflow_events();
+        app.begin_run_configuration(events, Vec::new());
+        Ok(())
+    }
+
+    fn process_configured_run_request(
+        &self,
+        app: &mut TuiApp,
+        run_task: &mut Option<RunTask>,
+        input_configuration_pending: &mut bool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let Some(configuration) = app.take_configured_run_request() else {
+            return Ok(());
+        };
         let workflow = app
             .run_workflow_screen()
             .selected_workflow_name()
             .map(ToString::to_string);
+        if !*input_configuration_pending
+            && let Some(discover_port) = self.discover_run_inputs_port.as_ref() {
+                let declarations = RunHandler::discover_inputs(
+                    &**discover_port,
+                    std::env::current_dir()?,
+                    workflow.clone(),
+                    Some(configuration.event().to_string()),
+                );
+                match declarations {
+                    Ok(declarations) if !declarations.is_empty() => {
+                        app.begin_run_configuration(
+                            vec![configuration.event().to_string()],
+                            declarations,
+                        );
+                        *input_configuration_pending = true;
+                        return Ok(());
+                    }
+                    Err(error) => {
+                        app.begin_run_configuration(
+                            vec![configuration.event().to_string()],
+                            Vec::new(),
+                        );
+                        app.set_configuration_error(error.to_string());
+                        return Ok(());
+                    }
+                    Ok(_) => {}
+                }
+            }
+        *input_configuration_pending = false;
         let port = self.run_workflow_port.clone();
         let repository_path = std::env::current_dir()?;
         app.start_run();
-        *run_task = Some(Self::spawn_workflow_task(port, repository_path, workflow));
+        *run_task = Some(Self::spawn_workflow_task(
+            port,
+            repository_path,
+            workflow,
+            configuration.event().to_string(),
+            configuration.inputs().to_vec(),
+        ));
         Ok(())
     }
 
@@ -201,11 +279,19 @@ impl TuiRunner {
         port: Arc<dyn RunWorkflowPort>,
         repository_path: PathBuf,
         workflow: Option<String>,
+        event: String,
+        inputs: Vec<(String, String)>,
     ) -> RunTask {
         tokio::spawn(async move {
-            RunHandler::handle(&*port, repository_path, workflow)
-                .await
-                .map_err(|error| error.to_string())
+            RunHandler::handle_with_event_and_inputs(
+                &*port,
+                repository_path,
+                workflow,
+                Some(event),
+                inputs,
+            )
+            .await
+            .map_err(|error| error.to_string())
         })
     }
 
