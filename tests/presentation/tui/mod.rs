@@ -1,17 +1,18 @@
 mod event_reader;
-mod handlers;
 mod screens;
 mod tui_app;
+mod tui_runner;
 
 use std::env;
+use std::time::Duration;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use ephact::application::dtos::responses::WorkflowListItemResponse;
-use ephact::presentation::tui::{
-    ListActionsHandler, ListWorkflowsHandler,
-    screens::{ListActionsScreen, ListWorkflowsScreen, home::HomeScreen, splash::SplashScreen},
-    tui_app::{TuiApp, TuiScreen},
+use ephact::application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse};
+use ephact::presentation::handlers::{ListActionsHandler, ListWorkflowsHandler};
+use ephact::presentation::tui::screens::{
+    ListActionsScreen, ListWorkflowsScreen, home::HomeScreen, splash::SplashScreen,
 };
+use ephact::presentation::tui::tui_app::{TuiApp, TuiScreen};
 use ratatui::{
     Terminal,
     backend::TestBackend,
@@ -410,4 +411,67 @@ fn list_actions_handler_returns_error_on_invalid_repo_path() {
     let result = ListActionsHandler::handle(&port, "/definitely/not/a/repository".into());
 
     assert!(result.is_err());
+}
+
+#[test]
+fn home_enter_on_run_workflow_transitions_to_run_workflow_screen() {
+    let mut app = TuiApp::new(vec![]);
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+    assert_eq!(app.screen(), TuiScreen::RunWorkflow);
+}
+
+#[test]
+fn run_workflow_esc_returns_to_home() {
+    let mut app = TuiApp::new(vec![]);
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+    app.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+
+    assert_eq!(app.screen(), TuiScreen::Home);
+}
+
+#[test]
+fn run_workflow_enter_requests_run_when_workflows_present() {
+    let workflows = vec![WorkflowListItemResponse::new(
+        Some("CI".into()),
+        None,
+        vec![],
+    )];
+    let mut app = TuiApp::new(workflows);
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+    assert!(app.take_run_request());
+}
+
+#[test]
+fn run_workflow_enter_ignored_without_workflows() {
+    let mut app = TuiApp::new(vec![]);
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+    assert!(!app.take_run_request());
+}
+
+#[test]
+fn recording_run_outcome_exposes_summary_on_run_screen() {
+    let workflows = vec![WorkflowListItemResponse::new(
+        Some("CI".into()),
+        None,
+        vec![],
+    )];
+    let mut app = TuiApp::new(workflows);
+    let summary = RunSummaryResponse::new("CI", vec![], true, Duration::from_secs(1));
+
+    app.record_run_outcome(summary.clone());
+
+    assert_eq!(app.run_workflow_screen().outcome(), Some(&summary));
 }

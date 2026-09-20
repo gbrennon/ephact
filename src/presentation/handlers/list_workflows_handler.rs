@@ -8,6 +8,10 @@ use crate::domain::{RepoPath, Repository, RepositoryName};
 pub struct ListWorkflowsHandler;
 
 impl ListWorkflowsHandler {
+    /// Lists the workflows discovered under `repository_path`.
+    ///
+    /// Converts the path into a [`Repository`], asks the port to list its
+    /// workflows, and returns the raw response for the caller to render.
     pub fn handle(
         port: &dyn ListWorkflowsPort,
         repository_path: PathBuf,
@@ -19,7 +23,16 @@ impl ListWorkflowsHandler {
             repository.path().as_path().to_path_buf(),
             repository.name().as_str().to_string(),
         );
-        let response = port.execute(request)?;
-        Ok(response)
+        Ok(port.execute(request)?)
+    }
+
+    /// Formats the workflow names as a newline-separated list.
+    pub fn render(response: &ListWorkflowsResponse) -> String {
+        response
+            .workflows()
+            .iter()
+            .map(|workflow| workflow.name().unwrap_or("Unnamed workflow").to_string())
+            .collect::<Vec<String>>()
+            .join("\n")
     }
 }

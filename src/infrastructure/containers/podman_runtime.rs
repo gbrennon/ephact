@@ -72,7 +72,7 @@ impl ContainerRuntimePort for PodmanRuntime {
         }
         let options = options_builder.build();
 
-        self.runtime.block_on(async {
+        super::docker_runtime::block_on_runtime(self.runtime.handle(), async {
             let mut stream = self
                 .client
                 .create_image(Some(options), None, None::<AuthCredentials>);
@@ -102,7 +102,7 @@ impl ContainerRuntimePort for PodmanRuntime {
             .build();
         let container_config = build_container_config(config);
 
-        let container = self.runtime.block_on(async {
+        let container = super::docker_runtime::block_on_runtime(self.runtime.handle(), async {
             self.client
                 .create_container(Some(create_options), container_config)
                 .await
@@ -114,7 +114,7 @@ impl ContainerRuntimePort for PodmanRuntime {
                 })
         })?;
 
-        self.runtime.block_on(async {
+        super::docker_runtime::block_on_runtime(self.runtime.handle(), async {
             self.client
                 .start_container(&container.id, None::<StartContainerOptions>)
                 .await
@@ -135,7 +135,7 @@ impl ContainerRuntimePort for PodmanRuntime {
     }
 
     fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
-        self.runtime.block_on(async {
+        super::docker_runtime::block_on_runtime(self.runtime.handle(), async {
             let force = match self
                 .client
                 .inspect_container(name, None::<InspectContainerOptions>)
@@ -158,7 +158,7 @@ impl ContainerRuntimePort for PodmanRuntime {
     }
 
     fn stop_container(&self, name: &str) -> Result<(), ContainerError> {
-        self.runtime.block_on(async {
+        super::docker_runtime::block_on_runtime(self.runtime.handle(), async {
             if let Ok(inspect) = self
                 .client
                 .inspect_container(name, None::<InspectContainerOptions>)
@@ -175,7 +175,7 @@ impl ContainerRuntimePort for PodmanRuntime {
     }
 
     fn kill_container(&self, name: &str) -> Result<(), ContainerError> {
-        self.runtime.block_on(async {
+        super::docker_runtime::block_on_runtime(self.runtime.handle(), async {
             match self
                 .client
                 .inspect_container(name, None::<InspectContainerOptions>)
@@ -192,7 +192,7 @@ impl ContainerRuntimePort for PodmanRuntime {
     }
 
     fn get_host_info(&self) -> Result<HostInfoResponse, ContainerError> {
-        self.runtime.block_on(async {
+        super::docker_runtime::block_on_runtime(self.runtime.handle(), async {
             let info = self
                 .client
                 .version()

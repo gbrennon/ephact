@@ -1,10 +1,11 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::Frame;
 
-use crate::application::dtos::responses::WorkflowListItemResponse;
+use crate::application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse};
 
 use super::screens::{
-    ListActionsScreen, ListWorkflowsScreen, home::HomeScreen, splash::SplashScreen,
+    ListActionsScreen, ListWorkflowsScreen, RunWorkflowScreen, home::HomeScreen,
+    splash::SplashScreen,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -13,6 +14,7 @@ pub enum TuiScreen {
     Home,
     ListWorkflows,
     ListActions,
+    RunWorkflow,
     Exit,
 }
 
@@ -21,6 +23,9 @@ pub struct TuiApp {
     home_selection: usize,
     list_workflows_screen: ListWorkflowsScreen,
     list_actions_screen: ListActionsScreen,
+    run_workflow_screen: RunWorkflowScreen,
+    run_requested: bool,
+    cancel_requested: bool,
 }
 
 impl TuiApp {
@@ -34,8 +39,11 @@ impl TuiApp {
         Self {
             screen: TuiScreen::Splash,
             home_selection: Self::INITIAL_HOME_SELECTION,
-            list_workflows_screen: ListWorkflowsScreen::new(workflows),
+            list_workflows_screen: ListWorkflowsScreen::new(workflows.clone()),
             list_actions_screen: ListActionsScreen::new(Vec::new()),
+            run_workflow_screen: RunWorkflowScreen::new(workflows),
+            run_requested: false,
+            cancel_requested: false,
         }
     }
 
@@ -55,18 +63,50 @@ impl TuiApp {
         &self.list_actions_screen
     }
 
+    pub fn run_workflow_screen(&self) -> &RunWorkflowScreen {
+        &self.run_workflow_screen
+    }
+
+    pub fn take_run_request(&mut self) -> bool {
+        let requested = self.run_requested;
+        self.run_requested = false;
+        requested
+    }
+    pub fn take_cancel_request(&mut self) -> bool {
+        let requested = self.cancel_requested;
+        self.cancel_requested = false;
+        requested
+    }
+
+    pub fn start_run(&mut self) {
+        self.run_workflow_screen.start_run();
+    }
+
+    pub fn finish_run(&mut self) {
+        self.run_workflow_screen.finish_run();
+    }
+
+    pub fn record_run_outcome(&mut self, outcome: RunSummaryResponse) {
+        self.run_workflow_screen.record_outcome(outcome);
+        self.run_workflow_screen.finish_run();
+    }
+
+    pub fn record_progress(&mut self, line: String) {
+        self.run_workflow_screen.record_progress(line);
+    }
+
     pub fn handle_key(&mut self, key: KeyEvent) {
-        match key.code {
-            KeyCode::Char(Self::QUIT_KEY) => {
-                self.screen = TuiScreen::Exit;
-            }
-            _ => match self.screen {
-                TuiScreen::Splash => self.screen = TuiScreen::Home,
-                TuiScreen::Home => self.handle_home_key(key),
-                TuiScreen::ListWorkflows => self.handle_list_workflows_key(key),
-                TuiScreen::ListActions => self.handle_list_actions_key(key),
-                TuiScreen::Exit => {}
-            },
+        if key.code == KeyCode::Char(Self::QUIT_KEY) && !self.run_workflow_screen.is_running() {
+            self.screen = TuiScreen::Exit;
+            return;
+        }
+        match self.screen {
+            TuiScreen::Splash => self.screen = TuiScreen::Home,
+            TuiScreen::Home => self.handle_home_key(key),
+            TuiScreen::ListWorkflows => self.handle_list_workflows_key(key),
+            TuiScreen::ListActions => self.handle_list_actions_key(key),
+            TuiScreen::RunWorkflow => self.handle_run_workflow_key(key),
+            TuiScreen::Exit => {}
         }
     }
 
@@ -76,6 +116,7 @@ impl TuiApp {
             TuiScreen::Home | TuiScreen::Exit => HomeScreen::render(frame, self.home_selection),
             TuiScreen::ListWorkflows => self.list_workflows_screen.render(frame),
             TuiScreen::ListActions => self.list_actions_screen.render(frame),
+            TuiScreen::RunWorkflow => self.run_workflow_screen.render(frame),
         }
     }
 
@@ -84,22 +125,31 @@ impl TuiApp {
     }
 
     fn handle_home_key(&mut self, key: KeyEvent) {
-        match (key.code, self.home_selection) {
-            (KeyCode::Up | KeyCode::Char(Self::PREVIOUS_KEY), _) => {
+        match key.code {
+            KeyCode::Up | KeyCode::Char(Self::PREVIOUS_KEY) => {
                 self.home_selection = self.home_selection.saturating_sub(Self::SELECTION_STEP);
             }
-            (KeyCode::Down | KeyCode::Char(Self::NEXT_KEY), _) => {
+            KeyCode::Down | KeyCode::Char(Self::NEXT_KEY) => {
                 self.home_selection =
                     (self.home_selection + Self::SELECTION_STEP).min(HomeScreen::LAST_MENU_INDEX);
             }
-            (KeyCode::Enter, HomeScreen::LIST_WORKFLOWS_INDEX) => {
-                self.screen = TuiScreen::ListWorkflows;
-            }
-            (KeyCode::Enter, HomeScreen::LIST_ACTIONS_INDEX) => {
-                self.screen = TuiScreen::ListActions;
-            }
+            KeyCode::Enter => self.open_selected_home_screen(),
             _ => {}
         }
+    }
+
+    fn open_selected_home_screen(&mut self) {
+        match self.home_selection {
+            HomeScreen::RUN_WORKFLOW_INDEX => self.open_run_workflow(),
+            HomeScreen::LIST_WORKFLOWS_INDEX => self.screen = TuiScreen::ListWorkflows,
+            HomeScreen::LIST_ACTIONS_INDEX => self.screen = TuiScreen::ListActions,
+            _ => {}
+        }
+    }
+
+    fn open_run_workflow(&mut self) {
+        self.run_workflow_screen.reset();
+        self.screen = TuiScreen::RunWorkflow;
     }
 
     fn handle_list_workflows_key(&mut self, key: KeyEvent) {
@@ -123,6 +173,30 @@ impl TuiApp {
             KeyCode::Down | KeyCode::Char(Self::NEXT_KEY) => self.list_actions_screen.select_next(),
             KeyCode::Esc | KeyCode::Backspace => self.screen = TuiScreen::Home,
             _ => {}
+        }
+    }
+
+    fn handle_run_workflow_key(&mut self, key: KeyEvent) {
+        if self.run_workflow_screen.is_running() {
+            if matches!(key.code, KeyCode::Esc | KeyCode::Backspace) {
+                self.cancel_requested = true;
+            }
+            return;
+        }
+        match key.code {
+            KeyCode::Up | KeyCode::Char(Self::PREVIOUS_KEY) => {
+                self.run_workflow_screen.select_previous()
+            }
+            KeyCode::Down | KeyCode::Char(Self::NEXT_KEY) => self.run_workflow_screen.select_next(),
+            KeyCode::Enter => self.request_run(),
+            KeyCode::Esc | KeyCode::Backspace => self.screen = TuiScreen::Home,
+            _ => {}
+        }
+    }
+
+    fn request_run(&mut self) {
+        if self.run_workflow_screen.has_workflows() {
+            self.run_requested = true;
         }
     }
 }

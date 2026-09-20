@@ -1,0 +1,48 @@
+#[cfg(test)]
+mod tests {
+    use ephact::{
+        application::dtos::requests::CopyRepositoryToContainerRequest,
+        infrastructure::containers::{
+            copy_repository_to_container_port::CopyRepositoryToContainerPort,
+            copy_repository_to_container_service::CopyRepositoryToContainerService,
+        },
+    };
+    use std::fs::{create_dir_all, write};
+    use tempfile::tempdir;
+
+    use crate::common::fakes::stub_recording_container::StubRecordingContainer;
+
+    #[test]
+    fn execute_excludes_nested_worktrees_from_repository_archive() {
+        let repository = tempdir().expect("repository directory");
+        let worktree_plan = repository
+            .path()
+            .join(".worktrees/chore-enforce-quality/docs/superpowers/plans");
+        create_dir_all(&worktree_plan).expect("worktree plan directory");
+        write(repository.path().join("workflow.yml"), "name: CI\n").expect("workflow file");
+        write(
+            worktree_plan.join("2026-09-14-modularize-cargo-llvm-cov-action.md"),
+            "worktree plan",
+        )
+        .expect("worktree file");
+        let container = StubRecordingContainer::new();
+        let request = CopyRepositoryToContainerRequest::new(
+            repository.path().to_path_buf(),
+            "/workspace".to_string(),
+        );
+
+        CopyRepositoryToContainerService::new()
+            .execute(request, &container)
+            .expect("repository copy");
+
+        let copied_files = container.copied_files();
+        let copied_paths = copied_files
+            .first()
+            .expect("copied file entries")
+            .iter()
+            .map(|file| file.path().to_string())
+            .collect::<Vec<_>>();
+        assert_eq!(container.copied_paths(), vec!["/workspace".to_string()]);
+        assert_eq!(copied_paths, vec!["workflow.yml".to_string()]);
+    }
+}

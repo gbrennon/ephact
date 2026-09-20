@@ -17,6 +17,10 @@ pub struct ListActionsArgs {
 }
 
 impl ListActionsArgs {
+    pub fn path(&self) -> &std::path::Path {
+        &self.path
+    }
+
     /// Converts CLI arguments into the domain model: a [`ListActionsRequest`].
     ///
     /// This translation keeps the application layer agnostic to filesystem

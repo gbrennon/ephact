@@ -16,10 +16,10 @@ mod tests {
     use ephact::application::ports::inbound::RunWorkflowPort;
     use ephact::application::ports::outbound::DiscoverRunInputsPort;
     use ephact::presentation::cli::parse_run_test_args;
-    use ephact::presentation::cli::run_handler::{PreflightPorts, RunHandler};
     use ephact::presentation::components::terminal::SystemTerminal;
     use ephact::presentation::components::terminal::Terminal;
-    use std::{cell::RefCell, time::Duration};
+    use ephact::presentation::handlers::{PreflightPorts, RunHandler};
+    use std::{cell::RefCell, sync::Mutex, time::Duration};
 
     use crate::common::fakes::{
         fake_list_workflows_port::FakeListWorkflowsPort,
@@ -37,18 +37,18 @@ mod tests {
     }
 
     struct RecordingRunWorkflowPort {
-        requests: RefCell<Vec<RunWorkflowRequest>>,
+        requests: Mutex<Vec<RunWorkflowRequest>>,
     }
 
     impl RecordingRunWorkflowPort {
         fn new() -> Self {
             Self {
-                requests: RefCell::new(Vec::new()),
+                requests: Mutex::new(Vec::new()),
             }
         }
 
         fn requests(&self) -> Vec<RunWorkflowRequest> {
-            self.requests.borrow().clone()
+            self.requests.lock().expect("request lock").clone()
         }
     }
 
@@ -56,9 +56,19 @@ mod tests {
         fn execute(
             &self,
             request: RunWorkflowRequest,
-        ) -> Result<RunSummaryResponse, ephact::application::errors::RunWorkflowError> {
-            self.requests.borrow_mut().push(request);
-            Ok(summary(true))
+        ) -> std::pin::Pin<
+            Box<
+                dyn std::future::Future<
+                        Output = Result<
+                            RunSummaryResponse,
+                            ephact::application::errors::RunWorkflowError,
+                        >,
+                    > + Send
+                    + '_,
+            >,
+        > {
+            self.requests.lock().expect("request lock").push(request);
+            Box::pin(async { Ok(summary(true)) })
         }
     }
 
@@ -159,8 +169,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn handle_success() {
+    #[tokio::test]
+    async fn handle_success() {
         let args = parse_run_test_args(&[]);
         let wf_port = StubRunWorkflowPort {
             result: Ok(summary(true)),
@@ -170,11 +180,15 @@ mod tests {
         };
         let terminal = SystemTerminal;
         let list_port = FakeListWorkflowsPort::new();
-        assert!(RunHandler::handle(args, &wf_port, &all_wf_port, &list_port, &terminal).is_ok());
+        assert!(
+            RunHandler::handle_cli(args, &wf_port, &all_wf_port, &list_port, &terminal)
+                .await
+                .is_ok()
+        );
     }
 
-    #[test]
-    fn handle_propagates_workflow_failure() {
+    #[tokio::test]
+    async fn handle_propagates_workflow_failure() {
         let args = parse_run_test_args(&[]);
         let wf_port = StubRunWorkflowPort {
             result: Ok(summary(false)),
@@ -184,13 +198,14 @@ mod tests {
         };
         let terminal = SystemTerminal;
         let list_port = FakeListWorkflowsPort::new();
-        let err =
-            RunHandler::handle(args, &wf_port, &all_wf_port, &list_port, &terminal).unwrap_err();
+        let err = RunHandler::handle_cli(args, &wf_port, &all_wf_port, &list_port, &terminal)
+            .await
+            .unwrap_err();
         assert!(err.to_string().contains("workflow failed"));
     }
 
-    #[test]
-    fn handle_propagates_port_error() {
+    #[tokio::test]
+    async fn handle_propagates_port_error() {
         let args = parse_run_test_args(&[]);
         let wf_port = StubRunWorkflowPort {
             result: Err("port failure".into()),
@@ -200,13 +215,14 @@ mod tests {
         };
         let terminal = SystemTerminal;
         let list_port = FakeListWorkflowsPort::new();
-        let err =
-            RunHandler::handle(args, &wf_port, &all_wf_port, &list_port, &terminal).unwrap_err();
+        let err = RunHandler::handle_cli(args, &wf_port, &all_wf_port, &list_port, &terminal)
+            .await
+            .unwrap_err();
         assert!(err.to_string().contains("port failure"));
     }
 
-    #[test]
-    fn non_interactive_execution_does_not_read_stdin() {
+    #[tokio::test]
+    async fn non_interactive_execution_does_not_read_stdin() {
         let args = parse_run_test_args(&[]);
         let wf_port = StubRunWorkflowPort {
             result: Ok(summary(true)),
@@ -218,13 +234,14 @@ mod tests {
         let terminal = RejectingReadTerminal;
 
         let result =
-            RunHandler::handle_with_output(args, &wf_port, &all_wf_port, &list_port, &terminal);
+            RunHandler::handle_with_output(args, &wf_port, &all_wf_port, &list_port, &terminal)
+                .await;
 
         assert!(result.is_ok());
     }
 
-    #[test]
-    fn interactive_selection_supplies_the_pull_request_event() {
+    #[tokio::test]
+    async fn interactive_selection_supplies_the_pull_request_event() {
         let args = parse_run_test_args(&["--interactive"]);
         let run_port = RecordingRunWorkflowPort::new();
         let all_run_port = UnusedRunAllWorkflowsPort;
@@ -236,6 +253,7 @@ mod tests {
         let terminal = ScriptedTerminal::new(vec!["1\n", "\n"]);
 
         RunHandler::handle_with_output(args, &run_port, &all_run_port, &list_port, &terminal)
+            .await
             .unwrap();
 
         let requests = run_port.requests();
@@ -244,8 +262,8 @@ mod tests {
         assert_eq!(requests[0].event(), Some("pull_request"));
     }
 
-    #[test]
-    fn interactive_literal_input_is_forwarded() {
+    #[tokio::test]
+    async fn interactive_literal_input_is_forwarded() {
         let args = parse_run_test_args(&["--interactive"]);
         let run_port = RecordingRunWorkflowPort::new();
         let all_run_port = UnusedRunAllWorkflowsPort;
@@ -257,6 +275,7 @@ mod tests {
         let terminal = ScriptedTerminal::new(vec!["1\n", "environment=staging\n", "\n"]);
 
         RunHandler::handle_with_output(args, &run_port, &all_run_port, &list_port, &terminal)
+            .await
             .unwrap();
 
         let requests = run_port.requests();
@@ -264,8 +283,8 @@ mod tests {
         assert_eq!(requests[0].inputs()[0].1.as_str(), "staging");
     }
 
-    #[test]
-    fn interactive_environment_input_is_resolved_and_forwarded() {
+    #[tokio::test]
+    async fn interactive_environment_input_is_resolved_and_forwarded() {
         unsafe {
             std::env::set_var("EPHACT_INTERACTIVE_INPUT_TEST", "production");
         }
@@ -284,6 +303,7 @@ mod tests {
         ]);
 
         RunHandler::handle_with_output(args, &run_port, &all_run_port, &list_port, &terminal)
+            .await
             .unwrap();
 
         let requests = run_port.requests();
@@ -291,8 +311,8 @@ mod tests {
         assert_eq!(requests[0].inputs()[0].1.as_str(), "production");
     }
 
-    #[test]
-    fn interactive_missing_environment_input_fails_clearly() {
+    #[tokio::test]
+    async fn interactive_missing_environment_input_fails_clearly() {
         unsafe {
             std::env::remove_var("EPHACT_INTERACTIVE_INPUT_MISSING_TEST");
         }
@@ -311,6 +331,7 @@ mod tests {
 
         let error =
             RunHandler::handle_with_output(args, &run_port, &all_run_port, &list_port, &terminal)
+                .await
                 .unwrap_err();
 
         assert!(
@@ -321,8 +342,8 @@ mod tests {
         assert!(run_port.requests().is_empty());
     }
 
-    #[test]
-    fn interactive_lists_only_pull_request_workflows() {
+    #[tokio::test]
+    async fn interactive_lists_only_pull_request_workflows() {
         let args = parse_run_test_args(&["--interactive"]);
         let run_port = RecordingRunWorkflowPort::new();
         let all_run_port = UnusedRunAllWorkflowsPort;
@@ -341,6 +362,7 @@ mod tests {
         let terminal = ScriptedTerminal::new(vec!["1\n", "\n"]);
 
         RunHandler::handle_with_output(args, &run_port, &all_run_port, &list_port, &terminal)
+            .await
             .unwrap();
 
         assert!(terminal.written_text().contains("CI"));
@@ -367,8 +389,8 @@ mod tests {
         ]
     }
 
-    #[test]
-    fn interactive_preflight_prompts_for_each_declared_input() {
+    #[tokio::test]
+    async fn interactive_preflight_prompts_for_each_declared_input() {
         let args = parse_run_test_args(&["--interactive"]);
         let run_port = RecordingRunWorkflowPort::new();
         let all_run_port = UnusedRunAllWorkflowsPort;
@@ -388,6 +410,7 @@ mod tests {
             &all_run_port,
             PreflightPorts::new(&discovery_port, &list_port, &terminal),
         )
+        .await
         .unwrap();
         assert_preflight_inputs(&run_port);
         assert_preflight_prompts(&terminal);
