@@ -3,8 +3,10 @@ mod tests {
     use std::time::Duration;
 
     use ephact::application::dtos::responses::{
-        JobSummaryResponse, RunSummaryResponse, WorkflowListItemResponse,
+        JobSummaryResponse, RunSummaryResponse, StepSummaryDetails, StepSummaryResponse,
+        StepSummaryResponseInput, WorkflowListItemResponse,
     };
+    use ephact::domain::value_objects::StepType;
     use ephact::presentation::tui::screens::RunWorkflowScreen;
     use ratatui::{Terminal, backend::TestBackend};
 
@@ -30,6 +32,22 @@ mod tests {
             .iter()
             .map(|cell| cell.symbol())
             .collect()
+    }
+
+    fn failed_summary() -> RunSummaryResponse {
+        let step = StepSummaryResponse::new(StepSummaryResponseInput::new(
+            "compile",
+            StepType::Run,
+            StepSummaryDetails::new(
+                Some(1),
+                false,
+                Duration::from_secs(1),
+                "",
+                "compiler failed",
+            ),
+        ));
+        let job = JobSummaryResponse::new("build", Some("build".into()), vec![step], false);
+        RunSummaryResponse::new("CI", vec![job], false, Duration::from_secs(1))
     }
 
     fn rendered_line_containing(screen: &RunWorkflowScreen, text: &str) -> String {
@@ -115,11 +133,80 @@ mod tests {
     fn running_state_renders_streamed_progress_lines() {
         let mut screen = RunWorkflowScreen::new(workflows());
         screen.start_run();
-        screen.record_progress("    Step 'compile': running...".to_string());
+        screen.record_progress("Step 'compile': running...".to_string());
 
         let text = rendered_text(&screen);
 
         assert!(text.contains("Step 'compile': running..."));
+    }
+
+    #[test]
+    fn failed_summary_offers_details_without_indenting_jobs() {
+        let mut screen = RunWorkflowScreen::new(workflows());
+        screen.record_outcome(failed_summary());
+
+        let text = rendered_text(&screen);
+
+        assert!(text.contains("d: Details"));
+        assert!(text.contains("build: FAILED"));
+        assert!(!text.contains("  build: FAILED"));
+    }
+
+    #[test]
+    fn successful_summary_does_not_offer_details() {
+        let mut screen = RunWorkflowScreen::new(workflows());
+        screen.record_outcome(RunSummaryResponse::new(
+            "CI",
+            vec![],
+            true,
+            Duration::from_secs(1),
+        ));
+
+        let text = rendered_text(&screen);
+
+        assert!(!text.contains("d: Details"));
+    }
+
+    #[test]
+    fn failure_details_render_step_output() {
+        let mut screen = RunWorkflowScreen::new(workflows());
+        screen.record_outcome(failed_summary());
+
+        assert!(screen.open_details());
+        let text = rendered_text(&screen);
+
+        assert!(text.contains("Failure Details"));
+        assert!(text.contains("Step: compile [FAILED]"));
+        assert!(text.contains("Exit code: 1"));
+        assert!(text.contains("stderr: compiler failed"));
+    }
+
+    #[test]
+    fn successful_summary_cannot_open_details() {
+        let mut screen = RunWorkflowScreen::new(workflows());
+        screen.record_outcome(RunSummaryResponse::new(
+            "CI",
+            vec![],
+            true,
+            Duration::from_secs(1),
+        ));
+
+        assert!(!screen.open_details());
+        assert!(!screen.showing_details());
+    }
+
+    #[test]
+    fn failure_details_scroll_in_both_directions() {
+        let mut screen = RunWorkflowScreen::new(workflows());
+        screen.record_outcome(failed_summary());
+        screen.open_details();
+
+        screen.scroll_details_down();
+        assert_eq!(screen.details_scroll(), 1);
+
+        screen.scroll_details_up();
+        screen.scroll_details_up();
+        assert_eq!(screen.details_scroll(), 0);
     }
 
     #[test]
