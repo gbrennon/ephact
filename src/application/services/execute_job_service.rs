@@ -229,6 +229,9 @@ impl ExecuteJobService {
         step_context: crate::domain::value_objects::EvaluationContext,
         started_at: Instant,
     ) -> crate::application::dtos::responses::SummarizedStepResponse {
+        if let Some(reason) = step.network_policy_violation() {
+            return self.skipped_step(step, started_at.elapsed(), reason);
+        }
         if !request.allow_network()
             && let Some(reason) = step.network_access_reason()
         {
