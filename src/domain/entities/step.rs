@@ -219,6 +219,33 @@ impl Step {
             .as_deref()
             .is_some_and(|v| v.eq_ignore_ascii_case("true"))
     }
+
+    pub fn network_access_reason(&self) -> Option<&'static str> {
+        let script = self.run()?.to_ascii_lowercase();
+        if contains_http_request(&script) {
+            return Some("network access is disabled; the step would send an HTTP request");
+        }
+        if contains_network_command(&script) {
+            return Some("network access is disabled; the step would use a network command");
+        }
+        None
+    }
+}
+
+fn contains_http_request(script: &str) -> bool {
+    script.contains("http://") || script.contains("https://")
+}
+
+fn contains_network_command(script: &str) -> bool {
+    [
+        "curl ",
+        "wget ",
+        "git clone ",
+        "npm install ",
+        "pip install ",
+    ]
+    .iter()
+    .any(|command| script.contains(command))
 }
 
 #[cfg(test)]
