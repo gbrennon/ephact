@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::Modifier,
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, Padding, Paragraph},
 };
 
 use super::{color_support::ColorSupport, emblem::Emblem};
@@ -20,39 +20,61 @@ impl SplashScreen {
     const TITLE: &'static str = "EPHACT";
     const SUBTITLE: &'static str = "run workflows locally in containers";
     const HINT: &'static str = "press any key to continue";
-    const BLOCK_TITLE: &'static str = "welcome";
     const WIDTH_PERCENT: u16 = 60;
     const HEIGHT_PERCENT: u16 = 70;
+    const HORIZONTAL_PADDING: u16 = 4;
+    const VERTICAL_PADDING: u16 = 1;
 
-    /// Renders the splash using the color capability detected from the environment.
-    pub fn render(frame: &mut Frame<'_>) {
-        Self::render_with(frame, ColorSupport::from_env());
+    /// Renders the splash with `title`, using the color capability from the environment.
+    pub fn render(frame: &mut Frame<'_>, title: &str) {
+        Self::render_with(frame, ColorSupport::from_env(), title);
     }
 
-    /// Renders the splash using an explicit color capability.
-    pub fn render_with(frame: &mut Frame<'_>, support: ColorSupport) {
+    /// Renders the splash with `title` and an explicit color capability.
+    pub fn render_with(frame: &mut Frame<'_>, support: ColorSupport, title: &str) {
         let area = Self::centered_area(frame.area(), Self::WIDTH_PERCENT, Self::HEIGHT_PERCENT);
-        let paragraph = Paragraph::new(Self::body_lines(support))
-            .alignment(Alignment::Center)
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .border_style(Theme::border_style())
             .style(Theme::window_style())
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(Theme::border_style())
-                    .title(Span::styled(Self::BLOCK_TITLE, Theme::title_style())),
-            );
-        frame.render_widget(paragraph, area);
+            .padding(Padding::symmetric(
+                Self::HORIZONTAL_PADDING,
+                Self::VERTICAL_PADDING,
+            ))
+            .title(Span::styled(title.to_string(), Theme::title_style()));
+        let inner = block.inner(area);
+        frame.render_widget(block, area);
+
+        let lines = Self::body_lines(support);
+        let content = Self::vertically_centered(inner, lines.len() as u16);
+        frame.render_widget(
+            Paragraph::new(lines)
+                .alignment(Alignment::Center)
+                .style(Theme::window_style()),
+            content,
+        );
     }
 
     fn body_lines(support: ColorSupport) -> Vec<Line<'static>> {
-        let mut lines = vec![Line::from("")];
-        lines.extend(Emblem::lines_for(support));
+        let mut lines = Emblem::lines_for(support);
         lines.push(Line::from(""));
         lines.push(Self::title_line(support));
+        lines.push(Line::from(""));
         lines.push(Self::subtitle_line());
         lines.push(Line::from(""));
         lines.push(Self::hint_line());
         lines
+    }
+
+    fn vertically_centered(area: Rect, content_height: u16) -> Rect {
+        Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Fill(1),
+                Constraint::Length(content_height),
+                Constraint::Fill(1),
+            ])
+            .split(area)[1]
     }
 
     fn title_line(_support: ColorSupport) -> Line<'static> {
