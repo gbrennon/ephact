@@ -1,6 +1,7 @@
-use crate::application::dtos::responses::WorkflowListItemResponse;
-use crate::application::errors::WorkflowSourceError;
-use crate::domain::entities::repository::Repository;
+use crate::{
+    application::{dtos::responses::WorkflowListItemResponse, errors::WorkflowSourceError},
+    domain::entities::repository::Repository,
+};
 
 pub trait WorkflowSourcePort: Send + Sync {
     fn read_workflow(

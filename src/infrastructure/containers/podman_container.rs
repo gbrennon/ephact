@@ -1,16 +1,17 @@
 use std::collections::HashMap;
 
-use super::bollard_wrapper::{Client, types::RemoveContainerOptions};
-use super::exec_streaming_support::{
-    exec_options, run_streaming_exec, runner_context_with_container_env,
+use super::{
+    bollard_wrapper::{Client, types::RemoveContainerOptions},
+    exec_streaming_support::{exec_options, run_streaming_exec, runner_context_with_container_env},
+    tar_transfer::{download_archive, pack_entries, unpack_entries, upload_archive},
 };
-use super::tar_transfer::{download_archive, pack_entries, unpack_entries, upload_archive};
-use crate::application::dtos::responses::ExecResultResponse;
-use crate::application::dtos::responses::FileEntryResponse;
-use crate::application::dtos::responses::RunnerContextResponse;
-use crate::application::ports::outbound::container_port::{ContainerPort, ExecOptions};
-use crate::domain::errors::ContainerError;
-use crate::domain::messages::events::OutputStream;
+use crate::{
+    application::{
+        dtos::responses::{ExecResultResponse, FileEntryResponse, RunnerContextResponse},
+        ports::outbound::container_port::{ContainerPort, ExecOptions},
+    },
+    domain::{errors::ContainerError, messages::events::OutputStream},
+};
 
 /// A running Podman container, created by [`PodmanRuntime`].
 pub(super) struct PodmanContainer {

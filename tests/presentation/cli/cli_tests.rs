@@ -1,19 +1,26 @@
 #[cfg(test)]
 mod tests {
 
-    use ephact::application::dtos::responses::ShowProjectBrandingInfoResponse;
-    use ephact::application::ports::inbound::ShowProjectBrandingInfoPort;
-    use ephact::presentation::cli::Cli;
-    use ephact::presentation::cli::cli::CliDependencies;
-    use ephact::presentation::components::terminal::Terminal;
-
-    use crate::common::fakes::{
-        fake_list_actions_port::FakeListActionsPort,
-        fake_list_workflows_port::FakeListWorkflowsPort,
-        fake_run_all_workflows_port::FakeRunAllWorkflowsPort,
-        fake_run_workflow_port::FakeRunWorkflowPort,
+    use ephact::{
+        application::{
+            dtos::responses::ShowProjectBrandingInfoResponse,
+            ports::inbound::ShowProjectBrandingInfoPort,
+        },
+        presentation::{
+            cli::{Cli, cli::CliDependencies},
+            components::terminal::Terminal,
+        },
     };
-    use crate::fakes::fake_discover_run_inputs_port::FakeDiscoverRunInputsPort;
+
+    use crate::{
+        common::fakes::{
+            fake_list_actions_port::FakeListActionsPort,
+            fake_list_workflows_port::FakeListWorkflowsPort,
+            fake_run_all_workflows_port::FakeRunAllWorkflowsPort,
+            fake_run_workflow_port::FakeRunWorkflowPort,
+        },
+        fakes::fake_discover_run_inputs_port::FakeDiscoverRunInputsPort,
+    };
 
     struct FakeShowProjectBrandingInfoPort;
 

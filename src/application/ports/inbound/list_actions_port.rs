@@ -1,6 +1,7 @@
-use crate::application::dtos::requests::ListActionsRequest;
-use crate::application::dtos::responses::ListActionsResponse;
-use crate::application::errors::ListActionsError;
+use crate::application::{
+    dtos::{requests::ListActionsRequest, responses::ListActionsResponse},
+    errors::ListActionsError,
+};
 
 /// Inbound port for listing actions referenced across workflows.
 pub trait ListActionsPort {

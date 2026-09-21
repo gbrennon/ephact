@@ -1,5 +1,4 @@
-use crate::domain::entities::Step;
-use crate::domain::errors::StepError;
+use crate::domain::{entities::Step, errors::StepError};
 
 pub struct StepFactory;
 

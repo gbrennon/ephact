@@ -3,13 +3,15 @@ mod tests {
     use std::time::Duration;
 
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-    use ephact::application::dtos::responses::{
-        JobSummaryResponse, RunInputDeclarationResponse, RunInputSourceResponse,
-        RunSummaryResponse, StepSummaryDetails, StepSummaryResponse, StepSummaryResponseInput,
-        WorkflowListItemResponse,
+    use ephact::{
+        application::dtos::responses::{
+            JobSummaryResponse, RunInputDeclarationResponse, RunInputSourceResponse,
+            RunSummaryResponse, StepSummaryDetails, StepSummaryResponse, StepSummaryResponseInput,
+            WorkflowListItemResponse,
+        },
+        domain::value_objects::StepType,
+        presentation::tui::screens::RunWorkflowScreen,
     };
-    use ephact::domain::value_objects::StepType;
-    use ephact::presentation::tui::screens::RunWorkflowScreen;
     use ratatui::{Terminal, backend::TestBackend};
 
     fn workflows() -> Vec<WorkflowListItemResponse> {

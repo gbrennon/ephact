@@ -2,18 +2,25 @@
 mod tests {
     use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-    use ephact::application::dtos::requests::{
-        RunActionExecutionInput, RunActionRequest, RunActionRequestInput,
+    use ephact::{
+        application::{
+            dtos::{
+                requests::{RunActionExecutionInput, RunActionRequest, RunActionRequestInput},
+                responses::ExecuteActionResponse,
+            },
+            ports::inbound::RunActionPort,
+            services::run_action_service::RunActionService,
+        },
+        domain::{
+            services::{
+                evaluation_context_mapper::EvaluationContextMapper, step_factory::StepFactory,
+            },
+            value_objects::EvaluationContext,
+        },
+        infrastructure::workflows::yaml::StepYaml,
     };
-    use ephact::application::dtos::responses::ExecuteActionResponse;
-    use ephact::application::ports::inbound::RunActionPort;
-    use ephact::application::services::run_action_service::RunActionService;
-    use ephact::domain::services::evaluation_context_mapper::EvaluationContextMapper;
-    use ephact::domain::services::step_factory::StepFactory;
-    use ephact::domain::value_objects::EvaluationContext;
 
     use crate::common::fakes::{fake_command_bus::FakeCommandBus, stub_container::StubContainer};
-    use ephact::infrastructure::workflows::yaml::StepYaml;
 
     #[test]
     fn execute_delegates_action_execution_to_command_bus() {

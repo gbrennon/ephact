@@ -1,13 +1,15 @@
 #[cfg(test)]
 mod tests {
-    use ephact::infrastructure::actions::{
-        fetch_remote_action_port::FetchRemoteActionPort,
-        fetch_remote_action_service::FetchRemoteActionService,
-    };
     use std::path::PathBuf;
 
-    use ephact::application::dtos::requests::FetchRemoteActionRequest;
-    use ephact::domain::value_objects::RemoteActionReference;
+    use ephact::{
+        application::dtos::requests::FetchRemoteActionRequest,
+        domain::value_objects::RemoteActionReference,
+        infrastructure::actions::{
+            fetch_remote_action_port::FetchRemoteActionPort,
+            fetch_remote_action_service::FetchRemoteActionService,
+        },
+    };
 
     use crate::common::fakes::{
         fake_action_fetcher::FakeActionFetcher,

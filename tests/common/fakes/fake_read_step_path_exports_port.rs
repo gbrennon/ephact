@@ -1,11 +1,13 @@
 #![allow(dead_code)]
-use ephact::infrastructure::steps::read_step_path_exports_port::ReadStepPathExportsPort;
 use std::sync::{
     Arc,
     atomic::{AtomicBool, Ordering},
 };
 
-use ephact::application::dtos::requests::ReadStepPathExportsRequest;
+use ephact::{
+    application::dtos::requests::ReadStepPathExportsRequest,
+    infrastructure::steps::read_step_path_exports_port::ReadStepPathExportsPort,
+};
 
 /// Returns prepared path additions, recording that it was consulted.
 #[derive(Clone)]

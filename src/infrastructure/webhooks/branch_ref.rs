@@ -40,8 +40,7 @@ impl BranchRef {
 
 #[cfg(test)]
 mod tests {
-    use super::super::UserInfo;
-    use super::*;
+    use super::{super::UserInfo, *};
 
     fn repository() -> RepositoryInfo {
         RepositoryInfo::new(

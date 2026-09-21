@@ -1,13 +1,19 @@
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
+    use ephact::{
+        application::dtos::requests::ResolveNodeBinaryRequest,
+        infrastructure::actions::{
+            resolve_node_binary_port::ResolveNodeBinaryPort,
+            resolve_node_binary_service::ResolveNodeBinaryService,
+        },
+    };
+
     use crate::common::fakes::{
         stub_failing_container::StubFailingContainer,
         stub_scripted_container::StubScriptedContainer,
     };
-    use ephact::application::dtos::requests::ResolveNodeBinaryRequest;
-    use ephact::infrastructure::actions::resolve_node_binary_port::ResolveNodeBinaryPort;
-    use ephact::infrastructure::actions::resolve_node_binary_service::ResolveNodeBinaryService;
-    use std::sync::Arc;
 
     #[test]
     fn execute_returns_the_trimmed_path_a_successful_lookup_reports() {

@@ -1,7 +1,6 @@
 use std::{collections::HashMap, path::Path};
 
-use crate::application::dtos::requests::ExecuteActionRequest;
-use crate::domain::entities::Step;
+use crate::{application::dtos::requests::ExecuteActionRequest, domain::entities::Step};
 
 /// Everything needed to run the steps of a composite action.
 pub struct RunCompositeActionRequest<'a> {

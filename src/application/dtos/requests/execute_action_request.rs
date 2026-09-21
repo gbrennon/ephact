@@ -1,6 +1,8 @@
-use std::collections::HashMap;
-use std::fmt;
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashMap,
+    fmt,
+    path::{Path, PathBuf},
+};
 
 use super::execute_action_request_input::ExecuteActionRequestInput;
 

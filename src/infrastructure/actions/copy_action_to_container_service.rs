@@ -1,12 +1,13 @@
+use std::{collections::HashMap, path::Path};
+
 use super::{
     collect_action_files_port::CollectActionFilesPort,
     copy_action_to_container_port::CopyActionToContainerPort,
 };
-use std::{collections::HashMap, path::Path};
-
-use crate::application::dtos::requests::CollectActionFilesRequest;
-use crate::application::dtos::requests::CopyActionToContainerRequest;
-use crate::domain::errors::StepError;
+use crate::{
+    application::dtos::requests::{CollectActionFilesRequest, CopyActionToContainerRequest},
+    domain::errors::StepError,
+};
 
 /// Directory inside the container that holds actions copied in for a run.
 const CONTAINER_ACTIONS_ROOT: &str = "/tmp/ephemeral-act-actions";

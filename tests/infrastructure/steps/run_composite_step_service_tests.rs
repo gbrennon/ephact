@@ -1,28 +1,35 @@
 #[cfg(test)]
 mod tests {
-    use ephact::infrastructure::steps::run_composite_step_port::RunCompositeStepPort;
     use std::{
         collections::HashMap,
         path::{Path, PathBuf},
         sync::Arc,
     };
 
-    use ephact::application::dtos::requests::{
-        ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
-        RunCompositeStepRequest,
+    use ephact::{
+        application::dtos::{
+            requests::{
+                ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
+                RunCompositeStepRequest,
+            },
+            responses::ExecuteActionResponse,
+        },
+        domain::{entities::Step, value_objects::EvaluationContext},
+        infrastructure::{
+            steps::{
+                run_composite_step_port::RunCompositeStepPort,
+                run_composite_step_service::RunCompositeStepService,
+                run_shell_step_service::RunShellStepService,
+            },
+            workflows::yaml::StepYaml,
+        },
     };
-    use ephact::application::dtos::responses::ExecuteActionResponse;
-    use ephact::domain::entities::Step;
-    use ephact::domain::value_objects::EvaluationContext;
-    use ephact::infrastructure::steps::run_composite_step_service::RunCompositeStepService;
-    use ephact::infrastructure::steps::run_shell_step_service::RunShellStepService;
 
     use crate::common::fakes::{
         fake_command_bus::FakeCommandBus, fake_event_bus::FakeEventBus,
         stub_failing_container::StubFailingContainer,
         stub_recording_container::StubRecordingContainer,
     };
-    use ephact::infrastructure::workflows::yaml::StepYaml;
 
     fn step_from(yaml: &str) -> Step {
         serde_yaml::from_str::<StepYaml>(yaml)

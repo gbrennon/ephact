@@ -1,10 +1,10 @@
-use parking_lot::Mutex;
 use std::{path::PathBuf, sync::Arc};
 
 use ephact::{
     domain::{errors::ActionError, value_objects::RemoteActionReference},
     infrastructure::actions::ActionFetcherPort,
 };
+use parking_lot::Mutex;
 
 /// Action fetcher that resolves every remote reference to one checkout already
 /// present on disk, recording what the application asked it to fetch.

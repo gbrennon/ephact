@@ -2,23 +2,30 @@
 mod tests {
     use std::{collections::HashMap, path::Path, sync::Arc};
 
-    use ephact::application::dtos::requests::ExecuteStepRequest;
-    use ephact::application::dtos::responses::ExecResultResponse;
-    use ephact::application::dtos::responses::ExecuteActionResponse;
-    use ephact::application::ports::inbound::execute_step_port::ExecuteStepPort;
-    use ephact::application::services::execute_step_service::ExecuteStepService;
-    use ephact::domain::entities::Step;
-    use ephact::domain::errors::StepError;
-    use ephact::domain::services::evaluation_context_mapper::EvaluationContextMapper;
-    use ephact::domain::services::step_factory::StepFactory;
-    use ephact::domain::value_objects::ContextValue;
-    use ephact::domain::value_objects::EvaluationContext;
+    use ephact::{
+        application::{
+            dtos::{
+                requests::ExecuteStepRequest,
+                responses::{ExecResultResponse, ExecuteActionResponse},
+            },
+            ports::inbound::execute_step_port::ExecuteStepPort,
+            services::execute_step_service::ExecuteStepService,
+        },
+        domain::{
+            entities::Step,
+            errors::StepError,
+            services::{
+                evaluation_context_mapper::EvaluationContextMapper, step_factory::StepFactory,
+            },
+            value_objects::{ContextValue, EvaluationContext},
+        },
+        infrastructure::workflows::yaml::StepYaml,
+    };
 
     use crate::common::fakes::{
         fake_command_bus::FakeCommandBus, fake_run_shell_step_port::FakeRunShellStepPort,
         stub_container::StubContainer,
     };
-    use ephact::infrastructure::workflows::yaml::StepYaml;
 
     fn step_from(yaml: &str) -> Step {
         serde_yaml::from_str::<StepYaml>(yaml)

@@ -1,5 +1,4 @@
-use crate::application::dtos::requests::SummarizeStepRequest;
-use crate::application::dtos::responses::SummarizedStepResponse;
+use crate::application::dtos::{requests::SummarizeStepRequest, responses::SummarizedStepResponse};
 
 /// Inbound port for turning a step's outcome into its run-summary entry.
 pub trait SummarizeStepPort: Send + Sync {

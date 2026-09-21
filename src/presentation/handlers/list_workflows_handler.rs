@@ -1,9 +1,12 @@
 use std::path::PathBuf;
 
-use crate::application::dtos::requests::ListWorkflowsRequest;
-use crate::application::dtos::responses::ListWorkflowsResponse;
-use crate::application::ports::inbound::list_workflows_port::ListWorkflowsPort;
-use crate::domain::{RepoPath, Repository, RepositoryName};
+use crate::{
+    application::{
+        dtos::{requests::ListWorkflowsRequest, responses::ListWorkflowsResponse},
+        ports::inbound::list_workflows_port::ListWorkflowsPort,
+    },
+    domain::{RepoPath, Repository, RepositoryName},
+};
 
 pub struct ListWorkflowsHandler;
 

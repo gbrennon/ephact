@@ -1,8 +1,11 @@
-use crate::application::dtos::requests::BuildJobEnvironmentRequest;
-use crate::application::dtos::responses::BuildJobEnvironmentResponse;
-use crate::application::ports::outbound::build_job_environment_port::BuildJobEnvironmentPort;
-use crate::infrastructure::containers::workspace::{
-    CONTAINER_WORKSPACE, RUNNER_ENV_FILE, RUNNER_PATH_FILE,
+use crate::{
+    application::{
+        dtos::{requests::BuildJobEnvironmentRequest, responses::BuildJobEnvironmentResponse},
+        ports::outbound::build_job_environment_port::BuildJobEnvironmentPort,
+    },
+    infrastructure::containers::workspace::{
+        CONTAINER_WORKSPACE, RUNNER_ENV_FILE, RUNNER_PATH_FILE,
+    },
 };
 
 /// `PATH` a job runs with when neither the workflow nor the job declares one.

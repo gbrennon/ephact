@@ -1,10 +1,14 @@
 #[cfg(test)]
 mod tests {
+    use std::{collections::HashMap, path::Path, sync::Arc};
+
     use ephact::{
-        application::ports::outbound::run_node_action_port::RunNodeActionPort,
+        application::{
+            dtos::requests::RunNodeActionRequest,
+            ports::outbound::run_node_action_port::RunNodeActionPort,
+        },
         infrastructure::actions::run_node_action_service::RunNodeActionService,
     };
-    use std::{collections::HashMap, path::Path, sync::Arc};
 
     use crate::common::fakes::{
         fake_build_action_input_environment_port::FakeBuildActionInputEnvironmentPort,
@@ -13,7 +17,6 @@ mod tests {
         stub_failing_container::StubFailingContainer,
         stub_recording_container::StubRecordingContainer,
     };
-    use ephact::application::dtos::requests::RunNodeActionRequest;
 
     fn action_env() -> HashMap<String, String> {
         let mut env = HashMap::new();

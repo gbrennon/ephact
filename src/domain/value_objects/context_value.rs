@@ -1,7 +1,6 @@
-use crate::domain::value_objects::json_text_reader::JsonTextReader;
 use std::collections::BTreeMap;
 
-use crate::domain::errors::JsonTextError;
+use crate::domain::{errors::JsonTextError, value_objects::json_text_reader::JsonTextReader};
 
 /// Value produced and consumed by expression evaluation.
 ///

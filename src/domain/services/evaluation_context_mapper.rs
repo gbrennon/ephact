@@ -1,5 +1,7 @@
-use crate::domain::errors::JsonTextError;
-use crate::domain::value_objects::{ContextValue, EvaluationContext};
+use crate::domain::{
+    errors::JsonTextError,
+    value_objects::{ContextValue, EvaluationContext},
+};
 
 /// Maps evaluation contexts to and from primitive JSON-text root values.
 pub struct EvaluationContextMapper;

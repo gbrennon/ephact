@@ -2,10 +2,14 @@
 mod tests {
     use std::fs;
 
-    use ephact::application::dtos::requests::ListAllWorkflowFilesRequest;
-    use ephact::infrastructure::workflows::list_all_workflow_files_port::ListAllWorkflowFilesPort;
-    use ephact::infrastructure::workflows::list_all_workflow_files_service::ListAllWorkflowFilesService;
-    use ephact::infrastructure::workflows::list_workflow_directory_service::ListWorkflowDirectoryService;
+    use ephact::{
+        application::dtos::requests::ListAllWorkflowFilesRequest,
+        infrastructure::workflows::{
+            list_all_workflow_files_port::ListAllWorkflowFilesPort,
+            list_all_workflow_files_service::ListAllWorkflowFilesService,
+            list_workflow_directory_service::ListWorkflowDirectoryService,
+        },
+    };
 
     fn service() -> ListAllWorkflowFilesService {
         ListAllWorkflowFilesService::new(Box::new(ListWorkflowDirectoryService::new()))

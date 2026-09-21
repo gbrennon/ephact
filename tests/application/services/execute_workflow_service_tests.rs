@@ -2,12 +2,17 @@
 mod tests {
     use std::path::Path;
 
-    use ephact::application::dtos::requests::ExecuteWorkflowRequest;
-    use ephact::application::dtos::responses::WorkflowExecutionResponse;
-    use ephact::application::ports::inbound::execute_workflow_port::ExecuteWorkflowPort;
-    use ephact::application::services::execute_workflow_service::ExecuteWorkflowService;
-    use ephact::domain::services::evaluation_context_mapper::EvaluationContextMapper;
-    use ephact::domain::value_objects::EvaluationContext;
+    use ephact::{
+        application::{
+            dtos::{requests::ExecuteWorkflowRequest, responses::WorkflowExecutionResponse},
+            ports::inbound::execute_workflow_port::ExecuteWorkflowPort,
+            services::execute_workflow_service::ExecuteWorkflowService,
+        },
+        domain::{
+            services::evaluation_context_mapper::EvaluationContextMapper,
+            value_objects::EvaluationContext,
+        },
+    };
 
     use crate::common::fakes::{
         fake_command_bus::FakeCommandBus, fake_event_bus::FakeEventBus,

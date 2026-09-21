@@ -1,8 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use ephact::application::dtos::responses::WorkflowListItemResponse;
-    use ephact::presentation::cli::parse_list_workflows_test_args;
-    use ephact::presentation::handlers::ListWorkflowsHandler;
+    use ephact::{
+        application::dtos::responses::WorkflowListItemResponse,
+        presentation::{cli::parse_list_workflows_test_args, handlers::ListWorkflowsHandler},
+    };
 
     use crate::common::fakes::fake_list_workflows_port::FakeListWorkflowsPort;
 

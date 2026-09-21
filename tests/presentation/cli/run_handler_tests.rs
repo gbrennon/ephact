@@ -1,25 +1,31 @@
 #[cfg(test)]
 mod tests {
-    use ephact::application::dtos::requests::DiscoverRunInputsRequest;
-    use ephact::application::dtos::requests::ListWorkflowsRequest;
-    use ephact::application::dtos::requests::RunAllWorkflowsRequest;
-    use ephact::application::dtos::requests::RunWorkflowRequest;
-    use ephact::application::dtos::responses::JobSummaryResponse;
-    use ephact::application::dtos::responses::ListWorkflowsResponse;
-    use ephact::application::dtos::responses::RunInputDeclarationResponse;
-    use ephact::application::dtos::responses::RunInputSourceResponse;
-    use ephact::application::dtos::responses::RunSummaryResponse;
-    use ephact::application::dtos::responses::WorkflowListItemResponse;
-    use ephact::application::errors::DiscoverRunInputsError;
-    use ephact::application::ports::inbound::ListWorkflowsPort;
-    use ephact::application::ports::inbound::RunAllWorkflowsPort;
-    use ephact::application::ports::inbound::RunWorkflowPort;
-    use ephact::application::ports::outbound::DiscoverRunInputsPort;
-    use ephact::presentation::cli::parse_run_test_args;
-    use ephact::presentation::components::terminal::SystemTerminal;
-    use ephact::presentation::components::terminal::Terminal;
-    use ephact::presentation::handlers::{PreflightPorts, RunHandler};
     use std::{cell::RefCell, sync::Mutex, time::Duration};
+
+    use ephact::{
+        application::{
+            dtos::{
+                requests::{
+                    DiscoverRunInputsRequest, ListWorkflowsRequest, RunAllWorkflowsRequest,
+                    RunWorkflowRequest,
+                },
+                responses::{
+                    JobSummaryResponse, ListWorkflowsResponse, RunInputDeclarationResponse,
+                    RunInputSourceResponse, RunSummaryResponse, WorkflowListItemResponse,
+                },
+            },
+            errors::DiscoverRunInputsError,
+            ports::{
+                inbound::{ListWorkflowsPort, RunAllWorkflowsPort, RunWorkflowPort},
+                outbound::DiscoverRunInputsPort,
+            },
+        },
+        presentation::{
+            cli::parse_run_test_args,
+            components::terminal::{SystemTerminal, Terminal},
+            handlers::{PreflightPorts, RunHandler},
+        },
+    };
 
     use crate::common::fakes::{
         fake_list_workflows_port::FakeListWorkflowsPort,

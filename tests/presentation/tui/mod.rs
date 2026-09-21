@@ -3,18 +3,23 @@ mod screens;
 mod tui_app;
 mod tui_runner;
 
-use std::env;
-use std::time::Duration;
+use std::{env, time::Duration};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use ephact::application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse};
-use ephact::presentation::handlers::{ListActionsHandler, ListWorkflowsHandler};
-use ephact::presentation::tui::screens::{
-    ListActionsScreen, ListWorkflowsScreen, color_support::ColorSupport, home::HomeScreen,
-    splash::SplashScreen,
+use ephact::{
+    application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse},
+    presentation::{
+        handlers::{ListActionsHandler, ListWorkflowsHandler},
+        tui::{
+            screens::{
+                ListActionsScreen, ListWorkflowsScreen, color_support::ColorSupport,
+                home::HomeScreen, splash::SplashScreen,
+            },
+            theme::Theme,
+            tui_app::{TuiApp, TuiScreen},
+        },
+    },
 };
-use ephact::presentation::tui::theme::Theme;
-use ephact::presentation::tui::tui_app::{TuiApp, TuiScreen};
 use ratatui::{
     Terminal,
     backend::TestBackend,
@@ -22,8 +27,9 @@ use ratatui::{
     style::{Color, Style},
 };
 
-use crate::common::fakes::fake_list_actions_port::FakeListActionsPort;
-use crate::common::fakes::fake_list_workflows_port::FakeListWorkflowsPort;
+use crate::common::fakes::{
+    fake_list_actions_port::FakeListActionsPort, fake_list_workflows_port::FakeListWorkflowsPort,
+};
 
 const QUIT_KEY: char = '\x71';
 struct TuiRenderAssertions;

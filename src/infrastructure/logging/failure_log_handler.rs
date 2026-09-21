@@ -1,11 +1,17 @@
-use std::collections::HashMap;
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::HashMap,
+    fs,
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex},
+};
 
-use crate::domain::messages::events::{DomainEvent, StepFinishedPayload};
-use crate::domain::value_objects::RepositoryName;
-use crate::infrastructure::messaging::DomainEventHandler;
+use crate::{
+    domain::{
+        messages::events::{DomainEvent, StepFinishedPayload},
+        value_objects::RepositoryName,
+    },
+    infrastructure::messaging::DomainEventHandler,
+};
 
 /// Shared status for filesystem failures encountered while writing diagnostics.
 #[derive(Clone, Default)]

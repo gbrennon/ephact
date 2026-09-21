@@ -1,9 +1,11 @@
 #![allow(dead_code)]
-use ephact::application::dtos::responses::ContainerConfigResponse;
-use ephact::application::dtos::responses::HostInfoResponse;
-use ephact::application::ports::outbound::ContainerRuntimePort;
-use ephact::application::ports::outbound::container_port::ContainerPort;
-use ephact::domain::errors::ContainerError;
+use ephact::{
+    application::{
+        dtos::responses::{ContainerConfigResponse, HostInfoResponse},
+        ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
+    },
+    domain::errors::ContainerError,
+};
 
 #[derive(Clone, Default)]
 pub struct StubFailingContainerRuntime;

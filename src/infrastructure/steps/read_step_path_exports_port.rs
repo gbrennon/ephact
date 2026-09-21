@@ -1,5 +1,6 @@
-use crate::application::dtos::requests::ReadStepPathExportsRequest;
-use crate::application::ports::outbound::container_port::ContainerPort;
+use crate::application::{
+    dtos::requests::ReadStepPathExportsRequest, ports::outbound::container_port::ContainerPort,
+};
 
 /// Inbound port for reading the `PATH` additions a step exported.
 pub trait ReadStepPathExportsPort: Send + Sync {

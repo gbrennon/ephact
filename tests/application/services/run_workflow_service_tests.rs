@@ -2,16 +2,19 @@
 mod tests {
     use std::path::Path;
 
-    use ephact::application::dtos::requests::RunWorkflowRequest;
-    use ephact::application::dtos::responses::RunSummaryResponse;
-    use ephact::application::dtos::responses::WorkflowExecutionResponse;
-    use ephact::application::ports::inbound::RunWorkflowPort;
-    use ephact::application::services::run_workflow_service::RunWorkflowService;
-    use ephact::domain::ActRunConfig;
-    use ephact::domain::RepoPath;
-    use ephact::domain::Repository;
-    use ephact::domain::RepositoryName;
-    use ephact::domain::messages::events::DomainEvent;
+    use ephact::{
+        application::{
+            dtos::{
+                requests::RunWorkflowRequest,
+                responses::{RunSummaryResponse, WorkflowExecutionResponse},
+            },
+            ports::inbound::RunWorkflowPort,
+            services::run_workflow_service::RunWorkflowService,
+        },
+        domain::{
+            ActRunConfig, RepoPath, Repository, RepositoryName, messages::events::DomainEvent,
+        },
+    };
 
     use crate::common::fakes::{
         fake_command_bus::FakeCommandBus,

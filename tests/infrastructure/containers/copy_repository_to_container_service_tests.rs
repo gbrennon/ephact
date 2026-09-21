@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod tests {
+    use std::fs::{create_dir_all, write};
+
     use ephact::{
         application::dtos::requests::CopyRepositoryToContainerRequest,
         infrastructure::containers::{
@@ -7,7 +9,6 @@ mod tests {
             copy_repository_to_container_service::CopyRepositoryToContainerService,
         },
     };
-    use std::fs::{create_dir_all, write};
     use tempfile::tempdir;
 
     use crate::common::fakes::stub_recording_container::StubRecordingContainer;

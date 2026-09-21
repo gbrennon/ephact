@@ -1,14 +1,19 @@
 use std::sync::Arc;
 
-use crate::application::dtos::requests::RunCompositeStepRequest;
-use crate::application::dtos::requests::RunShellStepRequest;
-use crate::application::dtos::responses::ExecResultResponse;
-use crate::application::ports::outbound::action_command_bus_port::ActionCommandBusPort;
-use crate::application::ports::outbound::container_port::ContainerPort;
-use crate::application::ports::outbound::run_shell_step_port::RunShellStepPort;
-use crate::domain::errors::StepError;
-use crate::domain::messages::commands::ExecuteActionCommand;
-use crate::infrastructure::steps::run_composite_step_port::RunCompositeStepPort;
+use crate::{
+    application::{
+        dtos::{
+            requests::{RunCompositeStepRequest, RunShellStepRequest},
+            responses::ExecResultResponse,
+        },
+        ports::outbound::{
+            action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
+            run_shell_step_port::RunShellStepPort,
+        },
+    },
+    domain::{errors::StepError, messages::commands::ExecuteActionCommand},
+    infrastructure::steps::run_composite_step_port::RunCompositeStepPort,
+};
 
 /// Runs one step of a composite action: shell steps go straight to the shell
 /// runner, while steps referencing another action are published as an

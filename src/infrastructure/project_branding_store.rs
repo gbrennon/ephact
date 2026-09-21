@@ -1,7 +1,6 @@
-use crate::application::errors::ProjectBrandingStoreError;
-use crate::application::ports::outbound::ProjectBrandingStorePort;
-use crate::domain::{
-    ProjectBranding, ProjectDescription, ProjectEmblem, ProjectName, ProjectVersion,
+use crate::{
+    application::{errors::ProjectBrandingStoreError, ports::outbound::ProjectBrandingStorePort},
+    domain::{ProjectBranding, ProjectDescription, ProjectEmblem, ProjectName, ProjectVersion},
 };
 
 pub struct CargoProjectBrandingStore;

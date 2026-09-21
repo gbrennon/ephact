@@ -1,9 +1,12 @@
 use std::path::PathBuf;
 
-use crate::application::dtos::requests::ListActionsRequest;
-use crate::application::dtos::responses::ListActionsResponse;
-use crate::application::ports::inbound::list_actions_port::ListActionsPort;
-use crate::domain::{RepoPath, Repository, RepositoryName};
+use crate::{
+    application::{
+        dtos::{requests::ListActionsRequest, responses::ListActionsResponse},
+        ports::inbound::list_actions_port::ListActionsPort,
+    },
+    domain::{RepoPath, Repository, RepositoryName},
+};
 
 pub struct ListActionsHandler;
 
