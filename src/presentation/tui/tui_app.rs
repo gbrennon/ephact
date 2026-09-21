@@ -3,7 +3,7 @@ use ratatui::{Frame, widgets::Block};
 
 use super::{
     screens::{
-        ConfigurationAction, RunConfigurationValues, ScreenManager, home::HomeScreen,
+        ConfigurationAction, RunConfigurationValues, ScreenManager, SplashQuotes, home::HomeScreen,
         splash::SplashScreen,
     },
     theme::Theme,
@@ -26,6 +26,7 @@ pub struct TuiApp {
     run_requested: bool,
     cancel_requested: bool,
     configuration_requested: bool,
+    splash_quote: &'static str,
 }
 
 impl TuiApp {
@@ -41,6 +42,7 @@ impl TuiApp {
             run_requested: false,
             cancel_requested: false,
             configuration_requested: false,
+            splash_quote: SplashQuotes::random(),
         }
     }
 
@@ -138,7 +140,7 @@ impl TuiApp {
     pub fn render(&self, frame: &mut Frame<'_>) {
         frame.render_widget(Block::default().style(Theme::window_style()), frame.area());
         match self.screen {
-            TuiScreen::Splash => SplashScreen::render(frame),
+            TuiScreen::Splash => SplashScreen::render(frame, self.splash_quote),
             TuiScreen::Home | TuiScreen::Exit => self.screens.render_home(frame),
             TuiScreen::ListWorkflows => self.screens.render_list_workflows(frame),
             TuiScreen::ListActions => self.screens.render_list_actions(frame),
@@ -246,6 +248,9 @@ impl TuiApp {
             }
             KeyCode::Down | KeyCode::Char(Self::NEXT_KEY) => {
                 self.screens.run_workflow_screen_mut().scroll_details_down();
+            }
+            KeyCode::Enter | KeyCode::Char(' ') => {
+                self.screens.run_workflow_screen_mut().toggle_details();
             }
             KeyCode::Esc | KeyCode::Backspace => {
                 self.screens.run_workflow_screen_mut().close_details();

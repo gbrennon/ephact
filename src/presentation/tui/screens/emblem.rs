@@ -12,6 +12,9 @@ pub const FALLBACK_EMBLEM: &str = include_str!(concat!(
     "/assets/project_emblem.txt"
 ));
 
+const PROMPT_GLYPHS: [char; 2] = ['>', '_'];
+const NODE_GLYPHS: [char; 2] = ['@', 'o'];
+
 /// Builder that renders the project emblem as terminal lines.
 ///
 /// Callers receive fancy 24-bit colored ASCII art when the terminal supports
@@ -32,74 +35,95 @@ impl Emblem {
         FALLBACK_EMBLEM.lines().map(Self::fallback_line).collect()
     }
 
-    /// Returns the colored emblem lines that use the active-accent palette.
+    /// Returns the colored canonical emblem lines using the active-accent palette.
     pub fn fancy_lines() -> Vec<Line<'static>> {
-        vec![
-            Self::frame_line("◈─────────◈", Theme::active_style()),
-            Self::frame_line("╱  ▟▛▜▙  ╲", Theme::node_style()),
-            Self::prompt_line(),
-            Self::name_line(),
-            Self::frame_line("╲  ▜▙▟▛  ╱", Theme::node_style()),
-            Self::frame_line("◈─────────◈", Theme::active_style()),
-        ]
+        FALLBACK_EMBLEM.lines().map(Self::fancy_line).collect()
     }
 
     fn fallback_line(text: &str) -> Line<'static> {
-        Line::from(Span::styled(text.to_string(), Theme::active_style()))
+        Line::from(Span::styled(Self::padded(text), Theme::active_style()))
     }
 
-    fn frame_line(text: &'static str, style: Style) -> Line<'static> {
-        Line::from(Span::styled(text, style))
+    fn fancy_line(text: &str) -> Line<'static> {
+        Line::from(
+            Self::padded(text)
+                .chars()
+                .map(Self::fancy_span)
+                .collect::<Vec<Span<'static>>>(),
+        )
     }
 
-    fn prompt_line() -> Line<'static> {
-        Line::from(vec![
-            Span::styled("◈  ", Theme::node_style()),
-            Span::styled("▸ _", Theme::prompt_style()),
-            Span::styled("  ◈", Theme::node_style()),
-        ])
+    fn padded(text: &str) -> String {
+        let gutter = Self::left_gutter();
+        let width = Self::emblem_width().saturating_sub(gutter);
+        let trimmed = text.get(gutter..).unwrap_or("");
+        format!("{trimmed:<width$}")
     }
 
-    fn name_line() -> Line<'static> {
-        Line::from(vec![
-            Span::styled("◈ ", Theme::node_style()),
-            Span::styled("ephact", Theme::wordmark_style()),
-            Span::styled(" ◈", Theme::node_style()),
-        ])
+    fn emblem_width() -> usize {
+        FALLBACK_EMBLEM.lines().map(str::len).max().unwrap_or(0)
+    }
+
+    fn left_gutter() -> usize {
+        FALLBACK_EMBLEM
+            .lines()
+            .map(|line| line.len() - line.trim_start().len())
+            .min()
+            .unwrap_or(0)
+    }
+
+    fn fancy_span(glyph: char) -> Span<'static> {
+        Span::styled(glyph.to_string(), Self::glyph_style(glyph))
+    }
+
+    fn glyph_style(glyph: char) -> Style {
+        if PROMPT_GLYPHS.contains(&glyph) {
+            return Theme::prompt_style();
+        }
+        if NODE_GLYPHS.contains(&glyph) {
+            return Theme::node_style();
+        }
+        Theme::active_style()
     }
 }
 
-#[test]
-fn lines_for_basic_uses_fallback_art() {
-    let lines = Emblem::lines_for(ColorSupport::Basic);
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    let text: String = lines
-        .iter()
-        .flat_map(|line| line.spans.iter().map(|span| span.content.as_ref()))
-        .collect();
-    assert!(text.contains("@---o"));
-}
+    #[test]
+    fn lines_for_basic_uses_fallback_art() {
+        let lines = Emblem::lines_for(ColorSupport::Basic);
 
-#[test]
-fn lines_for_true_color_uses_rgb_styles() {
-    use ratatui::style::Color;
+        let text: String = lines
+            .iter()
+            .flat_map(|line| line.spans.iter().map(|span| span.content.as_ref()))
+            .collect();
+        assert!(text.contains("@---o"));
+    }
 
-    let lines = Emblem::lines_for(ColorSupport::TrueColor);
+    #[test]
+    fn lines_for_true_color_uses_rgb_styles() {
+        use ratatui::style::Color;
 
-    let uses_rgb = lines
-        .iter()
-        .flat_map(|line| line.spans.iter())
-        .any(|span| matches!(span.style.fg, Some(Color::Rgb(_, _, _))));
-    assert!(uses_rgb);
-}
+        let lines = Emblem::lines_for(ColorSupport::TrueColor);
 
-#[test]
-fn fancy_lines_include_project_name() {
-    let lines = Emblem::fancy_lines();
+        let uses_rgb = lines
+            .iter()
+            .flat_map(|line| line.spans.iter())
+            .any(|span| matches!(span.style.fg, Some(Color::Rgb(_, _, _))));
+        assert!(uses_rgb);
+    }
 
-    let text: String = lines
-        .iter()
-        .flat_map(|line| line.spans.iter().map(|span| span.content.as_ref()))
-        .collect();
-    assert!(text.contains("ephact"));
+    #[test]
+    fn fancy_lines_render_canonical_emblem_art() {
+        let lines = Emblem::fancy_lines();
+
+        let text: String = lines
+            .iter()
+            .flat_map(|line| line.spans.iter().map(|span| span.content.as_ref()))
+            .collect();
+        assert!(text.contains("@---o"));
+        assert!(!text.contains("ephact"));
+    }
 }

@@ -12,7 +12,7 @@ use ephact::{
         handlers::{ListActionsHandler, ListWorkflowsHandler},
         tui::{
             screens::{
-                ListActionsScreen, ListWorkflowsScreen, color_support::ColorSupport,
+                ListActionsScreen, ListWorkflowsScreen, SplashQuotes, color_support::ColorSupport,
                 home::HomeScreen, splash::SplashScreen,
             },
             theme::Theme,
@@ -180,7 +180,7 @@ fn list_workflows_selection_bounds() {
 #[test]
 fn splash_renders_fallback_emblem_without_true_color() {
     let text = TuiRenderAssertions::buffer_text(&TuiRenderAssertions::rendered_buffer(|frame| {
-        SplashScreen::render_with(frame, ColorSupport::Basic);
+        SplashScreen::render_with(frame, ColorSupport::Basic, SplashQuotes::select(0));
     }));
 
     assert!(text.contains("@---o"));
@@ -190,7 +190,7 @@ fn splash_renders_fallback_emblem_without_true_color() {
 #[test]
 fn splash_renders_fancy_emblem_with_true_color() {
     let buffer = TuiRenderAssertions::rendered_buffer(|frame| {
-        SplashScreen::render_with(frame, ColorSupport::TrueColor);
+        SplashScreen::render_with(frame, ColorSupport::TrueColor, SplashQuotes::select(0));
     });
 
     let text = TuiRenderAssertions::buffer_text(&buffer);
@@ -198,7 +198,7 @@ fn splash_renders_fancy_emblem_with_true_color() {
         .content()
         .iter()
         .any(|cell| matches!(cell.style().fg, Some(Color::Rgb(_, _, _))));
-    assert!(text.contains("ephact"));
+    assert!(text.contains("@---o"));
     assert!(uses_rgb);
 }
 
