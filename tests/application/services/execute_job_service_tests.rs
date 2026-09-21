@@ -161,6 +161,68 @@ mod tests {
     }
 
     #[test]
+    fn package_manager_step_runs_without_explicit_network_access() {
+        let wf = single_job_workflow("      - run: npm install\n");
+        let plan = ExecutionPlanner.plan(&wf).unwrap();
+        let run = &plan.stages()[0].runs()[0];
+        let command_bus = FakeCommandBus::new();
+
+        let execution = service(
+            FakePrepareJobContainerPort::named("job-container"),
+            command_bus.clone(),
+            FakeReadStepExportsPort::new(),
+        )
+        .execute(
+            ExecuteJobRequest::new(
+                Path::new("/repo"),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+                "test-run",
+                false,
+            ),
+            run,
+            &wf,
+        )
+        .unwrap();
+
+        assert!(!execution.job_summary().steps()[0].is_skipped());
+        assert_eq!(command_bus.dispatched_steps.lock().len(), 1);
+    }
+
+    #[test]
+    fn remote_mutation_is_skipped_even_with_network_access() {
+        let wf = single_job_workflow("      - run: git push origin main\n");
+        let plan = ExecutionPlanner.plan(&wf).unwrap();
+        let run = &plan.stages()[0].runs()[0];
+        let command_bus = FakeCommandBus::new();
+
+        let execution = service(
+            FakePrepareJobContainerPort::named("job-container"),
+            command_bus.clone(),
+            FakeReadStepExportsPort::new(),
+        )
+        .execute(
+            ExecuteJobRequest::new(
+                Path::new("/repo"),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+                "test-run",
+                false,
+            )
+            .with_allow_network(true),
+            run,
+            &wf,
+        )
+        .unwrap();
+
+        let step = &execution.job_summary().steps()[0];
+        assert!(step.is_skipped());
+        assert_eq!(
+            step.skip_reason(),
+            Some("network operation blocked; the step would modify a remote environment")
+        );
+        assert!(command_bus.dispatched_steps.lock().is_empty());
+    }
+
+    #[test]
     fn execute_publishes_one_step_command_per_step_with_the_prepared_container() {
         let wf = single_job_workflow("      - run: one\n      - run: two\n");
         let plan = ExecutionPlanner.plan(&wf).unwrap();
