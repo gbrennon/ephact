@@ -5,6 +5,7 @@ pub struct ExecuteJobRequest {
     context: Vec<(String, String)>,
     run_id: String,
     allow_repo_writes: bool,
+    allow_network: bool,
 }
 
 impl ExecuteJobRequest {
@@ -19,6 +20,7 @@ impl ExecuteJobRequest {
             context,
             run_id: run_id.into(),
             allow_repo_writes,
+            allow_network: false,
         }
     }
 
@@ -33,5 +35,14 @@ impl ExecuteJobRequest {
     }
     pub fn allow_repo_writes(&self) -> bool {
         self.allow_repo_writes
+    }
+
+    pub fn with_allow_network(mut self, allow_network: bool) -> Self {
+        self.allow_network = allow_network;
+        self
+    }
+
+    pub fn allow_network(&self) -> bool {
+        self.allow_network
     }
 }
