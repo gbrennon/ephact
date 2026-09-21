@@ -222,11 +222,22 @@ impl Step {
 
     pub fn network_access_reason(&self) -> Option<&'static str> {
         let script = self.run()?.to_ascii_lowercase();
+        if contains_package_manager_command(&script) {
+            return None;
+        }
         if contains_http_request(&script) {
             return Some("network access is disabled; the step would send an HTTP request");
         }
         if contains_network_command(&script) {
             return Some("network access is disabled; the step would use a network command");
+        }
+        None
+    }
+
+    pub fn network_policy_violation(&self) -> Option<&'static str> {
+        let script = self.run()?.to_ascii_lowercase();
+        if contains_remote_mutation(&script) {
+            return Some("network operation blocked; the step would modify a remote environment");
         }
         None
     }
@@ -236,13 +247,71 @@ fn contains_http_request(script: &str) -> bool {
     script.contains("http://") || script.contains("https://")
 }
 
-fn contains_network_command(script: &str) -> bool {
+fn contains_package_manager_command(script: &str) -> bool {
     [
-        "curl ",
-        "wget ",
-        "git clone ",
+        "apt install ",
+        "apt-get install ",
+        "apt-get update",
+        "dnf install ",
+        "dnf update",
+        "yum install ",
+        "yum update",
+        "apk add ",
+        "apk update",
+        "pacman -s",
         "npm install ",
+        "npm ci",
+        "npm update",
+        "yarn install",
+        "yarn add ",
+        "yarn upgrade",
+        "pnpm install",
+        "pnpm add ",
+        "pnpm update",
         "pip install ",
+        "uv install ",
+        "uv sync",
+        "cargo fetch",
+        "cargo vendor",
+        "go mod download",
+    ]
+    .iter()
+    .any(|command| script.contains(command))
+}
+
+fn contains_network_command(script: &str) -> bool {
+    ["curl ", "wget ", "git clone "]
+        .iter()
+        .any(|command| script.contains(command))
+}
+
+fn contains_remote_mutation(script: &str) -> bool {
+    [
+        "git push ",
+        "npm publish",
+        "yarn publish",
+        "pnpm publish",
+        "cargo publish",
+        "pip upload",
+        "twine upload",
+        "docker push ",
+        "podman push ",
+        "-x post",
+        "-x put",
+        "-x patch",
+        "-x delete",
+        "--request post",
+        "--request put",
+        "--request patch",
+        "--request delete",
+        "curl -d ",
+        "curl --data ",
+        "curl --data-raw ",
+        "curl --data-binary ",
+        "curl --upload-file ",
+        "wget --post-data ",
+        "http post ",
+        "http put ",
     ]
     .iter()
     .any(|command| script.contains(command))
@@ -330,5 +399,48 @@ mod tests {
             "./action"
         );
         assert_eq!(step(None, None, None).display_name(), "unnamed step");
+    }
+    #[test]
+    fn package_manager_network_access_is_allowed_by_default() {
+        for command in [
+            "apt-get install curl",
+            "dnf install curl",
+            "npm install",
+            "pip install requests",
+            "cargo fetch",
+            "go mod download",
+        ] {
+            let step = step(Some(command), None, None);
+
+            assert_eq!(step.network_access_reason(), None);
+            assert_eq!(step.network_policy_violation(), None);
+        }
+    }
+
+    #[test]
+    fn remote_mutations_are_blocked_even_when_network_is_enabled() {
+        for command in [
+            "git push origin main",
+            "npm publish",
+            "curl --request POST https://example.com",
+            "curl --data payload https://example.com",
+        ] {
+            let step = step(Some(command), None, None);
+
+            assert_eq!(
+                step.network_policy_violation(),
+                Some("network operation blocked; the step would modify a remote environment")
+            );
+        }
+    }
+    #[test]
+    fn compiler_flags_are_not_remote_mutations() {
+        let step = step(
+            Some("cargo clippy --all-targets --locked -- -D warnings"),
+            None,
+            None,
+        );
+
+        assert_eq!(step.network_policy_violation(), None);
     }
 }
