@@ -2,10 +2,13 @@
 mod tests {
     use std::collections::HashMap;
 
-    use ephact::application::dtos::responses::FileEntryResponse;
-    use ephact::application::dtos::responses::{ContainerConfigOptions, ContainerConfigResponse};
-    use ephact::application::ports::outbound::ContainerRuntimePort;
-    use ephact::infrastructure::containers::DockerRuntime;
+    use ephact::{
+        application::{
+            dtos::responses::{ContainerConfigOptions, ContainerConfigResponse, FileEntryResponse},
+            ports::outbound::ContainerRuntimePort,
+        },
+        infrastructure::containers::DockerRuntime,
+    };
     fn make_config(name: &str) -> ContainerConfigResponse {
         ContainerConfigResponse::new(
             "alpine:latest",

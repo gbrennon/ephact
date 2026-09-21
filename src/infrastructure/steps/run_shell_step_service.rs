@@ -1,13 +1,17 @@
-use crate::application::dtos::requests::RunShellStepRequest;
-use crate::application::dtos::responses::ExecResultResponse;
-use crate::application::ports::outbound::container_port::ExecOptions;
-use crate::application::ports::outbound::domain_event_bus_port::DomainEventBusPort;
-use crate::application::ports::outbound::run_shell_step_port::RunShellStepPort;
-use crate::domain::errors::StepError;
-use crate::domain::messages::events::DomainEvent;
-use crate::domain::messages::events::OutputStream;
-use crate::domain::messages::events::StepOutputPayload;
-use crate::domain::value_objects::ShellCommand;
+use crate::{
+    application::{
+        dtos::{requests::RunShellStepRequest, responses::ExecResultResponse},
+        ports::outbound::{
+            container_port::ExecOptions, domain_event_bus_port::DomainEventBusPort,
+            run_shell_step_port::RunShellStepPort,
+        },
+    },
+    domain::{
+        errors::StepError,
+        messages::events::{DomainEvent, OutputStream, StepOutputPayload},
+        value_objects::ShellCommand,
+    },
+};
 
 /// Service that runs a step's shell script inside the container it was given,
 /// relaying the step's output as [`DomainEvent::StepOutput`] events while it

@@ -1,5 +1,4 @@
-use crate::application::errors::ProjectBrandingStoreError;
-use crate::domain::errors::ProjectBrandingError;
+use crate::{application::errors::ProjectBrandingStoreError, domain::errors::ProjectBrandingError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ShowProjectBrandingInfoError {

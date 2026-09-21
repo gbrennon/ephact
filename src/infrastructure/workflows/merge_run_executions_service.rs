@@ -1,9 +1,10 @@
-use super::merge_run_executions_port::MergeRunExecutionsPort;
 use std::error::Error;
 
-use crate::application::dtos::requests::MergeRunExecutionsRequest;
-use crate::application::dtos::responses::JobSummaryResponse;
-use crate::application::dtos::responses::WorkflowExecutionResponse;
+use super::merge_run_executions_port::MergeRunExecutionsPort;
+use crate::application::dtos::{
+    requests::MergeRunExecutionsRequest,
+    responses::{JobSummaryResponse, WorkflowExecutionResponse},
+};
 
 /// Summary name used when every workflow in the repository is executed.
 pub const ALL_WORKFLOWS_SUMMARY_NAME: &str = "all-workflows";

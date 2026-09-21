@@ -1,5 +1,6 @@
-use crate::application::dtos::requests::ResolveWorkflowFilesRequest;
-use crate::application::dtos::responses::ResolveWorkflowFilesResponse;
+use crate::application::dtos::{
+    requests::ResolveWorkflowFilesRequest, responses::ResolveWorkflowFilesResponse,
+};
 
 /// Inbound port for resolving which workflow files a run executes.
 pub trait ResolveWorkflowFilesPort: Send + Sync {

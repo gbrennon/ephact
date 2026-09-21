@@ -1,6 +1,6 @@
-use super::resolve_node_binary_port::ResolveNodeBinaryPort;
 use std::collections::HashMap;
 
+use super::resolve_node_binary_port::ResolveNodeBinaryPort;
 use crate::application::dtos::requests::ResolveNodeBinaryRequest;
 
 /// Interpreter used for JavaScript actions when the container exposes no

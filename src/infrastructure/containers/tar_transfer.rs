@@ -3,12 +3,14 @@ use std::fmt::Display;
 use bytes::Bytes;
 use futures_util::StreamExt;
 
-use crate::application::dtos::responses::FileEntryResponse;
-use crate::domain::errors::ContainerError;
-use crate::infrastructure::containers::bollard_wrapper::Client;
-use crate::infrastructure::containers::bollard_wrapper::body_full;
-use crate::infrastructure::containers::bollard_wrapper::types::DownloadFromContainerOptionsBuilder;
-use crate::infrastructure::containers::bollard_wrapper::types::UploadToContainerOptionsBuilder;
+use crate::{
+    application::dtos::responses::FileEntryResponse,
+    domain::errors::ContainerError,
+    infrastructure::containers::bollard_wrapper::{
+        Client, body_full,
+        types::{DownloadFromContainerOptionsBuilder, UploadToContainerOptionsBuilder},
+    },
+};
 
 /// Packs file entries into an in-memory tar archive.
 pub(super) fn pack_entries(

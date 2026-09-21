@@ -1,12 +1,15 @@
 #![allow(dead_code)]
-use parking_lot::Mutex;
 use std::{path::PathBuf, sync::Arc};
 
-use ephact::application::dtos::requests::CollectActionFilesRequest;
-use ephact::application::dtos::responses::CollectActionFilesResponse;
-use ephact::application::dtos::responses::FileEntryResponse;
-use ephact::domain::errors::StepError;
-use ephact::infrastructure::actions::collect_action_files_port::CollectActionFilesPort;
+use ephact::{
+    application::dtos::{
+        requests::CollectActionFilesRequest,
+        responses::{CollectActionFilesResponse, FileEntryResponse},
+    },
+    domain::errors::StepError,
+    infrastructure::actions::collect_action_files_port::CollectActionFilesPort,
+};
+use parking_lot::Mutex;
 
 /// Returns a prepared set of files, recording the directories it walked.
 #[derive(Clone)]

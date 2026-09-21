@@ -1,8 +1,9 @@
-use super::list_workflow_directory_port::ListWorkflowDirectoryPort;
 use std::{error::Error, fs::read_dir};
 
-use crate::application::dtos::requests::ListWorkflowDirectoryRequest;
-use crate::application::dtos::responses::ListWorkflowDirectoryResponse;
+use super::list_workflow_directory_port::ListWorkflowDirectoryPort;
+use crate::application::dtos::{
+    requests::ListWorkflowDirectoryRequest, responses::ListWorkflowDirectoryResponse,
+};
 
 /// Service that lists the workflow files held directly by one directory.
 pub struct ListWorkflowDirectoryService;

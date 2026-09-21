@@ -1,12 +1,15 @@
 #[cfg(test)]
 mod tests {
-    use ephact::presentation::cli::{CliParser, command::Command, parse_run_test_args};
-    use ephact::presentation::components::terminal::SystemTerminal;
-    use ephact::presentation::handlers::RunHandler;
-
     use std::time::Duration;
 
-    use ephact::application::dtos::responses::RunSummaryResponse;
+    use ephact::{
+        application::dtos::responses::RunSummaryResponse,
+        presentation::{
+            cli::{CliParser, command::Command, parse_run_test_args},
+            components::terminal::SystemTerminal,
+            handlers::RunHandler,
+        },
+    };
 
     use crate::common::fakes::{
         fake_list_workflows_port::FakeListWorkflowsPort,

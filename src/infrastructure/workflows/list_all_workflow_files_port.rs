@@ -1,5 +1,6 @@
-use crate::application::dtos::requests::ListAllWorkflowFilesRequest;
-use crate::application::dtos::responses::ListAllWorkflowFilesResponse;
+use crate::application::dtos::{
+    requests::ListAllWorkflowFilesRequest, responses::ListAllWorkflowFilesResponse,
+};
 
 /// Inbound port for listing every workflow file of a repository.
 pub trait ListAllWorkflowFilesPort: Send + Sync {

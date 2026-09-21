@@ -1,12 +1,15 @@
 #![allow(dead_code)]
-use ephact::application::errors::LoadWorkflowError;
-use ephact::application::ports::outbound::load_workflow_port::LoadWorkflowPort;
-use parking_lot::Mutex;
 use std::sync::Arc;
 
-use ephact::application::dtos::requests::LoadWorkflowRequest;
-use ephact::domain::aggregates::Workflow;
-use ephact::infrastructure::workflows::yaml::WorkflowYaml;
+use ephact::{
+    application::{
+        dtos::requests::LoadWorkflowRequest, errors::LoadWorkflowError,
+        ports::outbound::load_workflow_port::LoadWorkflowPort,
+    },
+    domain::aggregates::Workflow,
+    infrastructure::workflows::yaml::WorkflowYaml,
+};
+use parking_lot::Mutex;
 
 /// Parses a prepared YAML document instead of reading one from disk.
 #[derive(Clone)]

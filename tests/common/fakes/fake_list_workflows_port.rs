@@ -1,9 +1,13 @@
 #![allow(dead_code)]
 
-use ephact::application::dtos::requests::ListWorkflowsRequest;
-use ephact::application::dtos::responses::{ListWorkflowsResponse, WorkflowListItemResponse};
-use ephact::application::errors::ListWorkflowsError;
-use ephact::application::ports::inbound::list_workflows_port::ListWorkflowsPort;
+use ephact::application::{
+    dtos::{
+        requests::ListWorkflowsRequest,
+        responses::{ListWorkflowsResponse, WorkflowListItemResponse},
+    },
+    errors::ListWorkflowsError,
+    ports::inbound::list_workflows_port::ListWorkflowsPort,
+};
 
 pub struct FakeListWorkflowsPort {
     workflows: Vec<WorkflowListItemResponse>,

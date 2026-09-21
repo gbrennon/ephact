@@ -1,11 +1,13 @@
 #![allow(dead_code)]
-use ephact::infrastructure::workflows::detect_workflow_file_port::DetectWorkflowFilePort;
 use std::{
     path::PathBuf,
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use ephact::application::dtos::requests::DetectWorkflowFileRequest;
+use ephact::{
+    application::dtos::requests::DetectWorkflowFileRequest,
+    infrastructure::workflows::detect_workflow_file_port::DetectWorkflowFilePort,
+};
 
 /// Detects a prepared workflow file, recording whether it was consulted.
 pub struct FakeDetectWorkflowFilePort {

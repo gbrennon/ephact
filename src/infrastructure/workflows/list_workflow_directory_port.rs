@@ -1,5 +1,6 @@
-use crate::application::dtos::requests::ListWorkflowDirectoryRequest;
-use crate::application::dtos::responses::ListWorkflowDirectoryResponse;
+use crate::application::dtos::{
+    requests::ListWorkflowDirectoryRequest, responses::ListWorkflowDirectoryResponse,
+};
 
 /// Inbound port for listing the workflow files held directly by one directory.
 pub trait ListWorkflowDirectoryPort: Send + Sync {

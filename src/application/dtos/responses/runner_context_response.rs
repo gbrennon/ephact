@@ -1,5 +1,6 @@
-use crate::application::dtos::responses::RunnerContextPaths;
 use std::collections::HashMap;
+
+use crate::application::dtos::responses::RunnerContextPaths;
 
 /// Context describing the runner environment inside the container.
 #[derive(Debug, Clone)]

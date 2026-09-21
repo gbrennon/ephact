@@ -1,9 +1,11 @@
-use crate::application::ports::inbound::{
-    list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
-    run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
-    show_project_branding_info_port::ShowProjectBrandingInfoPort,
+use crate::application::ports::{
+    inbound::{
+        list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
+        run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
+        show_project_branding_info_port::ShowProjectBrandingInfoPort,
+    },
+    outbound::DiscoverRunInputsPort,
 };
-use crate::application::ports::outbound::DiscoverRunInputsPort;
 
 pub type CliRunDependencies = (
     Box<dyn RunWorkflowPort>,

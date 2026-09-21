@@ -1,12 +1,15 @@
 #[cfg(test)]
 mod tests {
-    use ephact::application::dtos::requests::ResolveActionInputsRequest;
-    use ephact::domain::entities::Step;
-    use ephact::domain::value_objects::ActionDefinition;
-    use ephact::infrastructure::workflows::yaml::{ActionDefinitionYaml, StepYaml};
     use ephact::{
-        application::ports::outbound::resolve_action_inputs_port::ResolveActionInputsPort,
-        infrastructure::actions::resolve_action_inputs_service::ResolveActionInputsService,
+        application::{
+            dtos::requests::ResolveActionInputsRequest,
+            ports::outbound::resolve_action_inputs_port::ResolveActionInputsPort,
+        },
+        domain::{entities::Step, value_objects::ActionDefinition},
+        infrastructure::{
+            actions::resolve_action_inputs_service::ResolveActionInputsService,
+            workflows::yaml::{ActionDefinitionYaml, StepYaml},
+        },
     };
 
     const WITH_DEFAULTS: &str = "name: Deploy\ninputs:\n  mode:\n    description: target\n    default: production\n  token:\n    description: secret\nruns:\n  using: composite\n  steps: []\n";

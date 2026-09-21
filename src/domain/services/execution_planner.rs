@@ -242,7 +242,6 @@ impl ExecutionPlanner {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use crate::domain::{entities::Job, value_objects::WorkflowTrigger};
 
     fn make_job(needs: &[&str]) -> Job {

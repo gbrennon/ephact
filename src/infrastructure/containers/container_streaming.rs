@@ -1,7 +1,10 @@
-use crate::application::dtos::responses::ExecResultResponse;
-use crate::application::ports::outbound::container_port::{ContainerPort, ExecOptions};
-use crate::domain::errors::ContainerError;
-use crate::domain::messages::events::OutputStream;
+use crate::{
+    application::{
+        dtos::responses::ExecResultResponse,
+        ports::outbound::container_port::{ContainerPort, ExecOptions},
+    },
+    domain::{errors::ContainerError, messages::events::OutputStream},
+};
 
 pub trait ContainerStreaming {
     fn exec_streaming(

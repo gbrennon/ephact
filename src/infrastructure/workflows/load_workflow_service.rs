@@ -1,9 +1,11 @@
-use crate::application::errors::LoadWorkflowError;
-use crate::application::ports::outbound::load_workflow_port::LoadWorkflowPort;
-
-use crate::application::dtos::requests::LoadWorkflowRequest;
-use crate::domain::aggregates::Workflow;
-use crate::infrastructure::workflows::yaml::WorkflowYaml;
+use crate::{
+    application::{
+        dtos::requests::LoadWorkflowRequest, errors::LoadWorkflowError,
+        ports::outbound::load_workflow_port::LoadWorkflowPort,
+    },
+    domain::aggregates::Workflow,
+    infrastructure::workflows::yaml::WorkflowYaml,
+};
 
 pub struct LoadWorkflowService;
 

@@ -1,10 +1,13 @@
 #![allow(dead_code)]
 use std::sync::Arc;
 
-use ephact::application::dtos::responses::WorkflowListItemResponse;
-use ephact::application::errors::WorkflowSourceError;
-use ephact::application::ports::outbound::WorkflowSourcePort;
-use ephact::domain::Repository;
+use ephact::{
+    application::{
+        dtos::responses::WorkflowListItemResponse, errors::WorkflowSourceError,
+        ports::outbound::WorkflowSourcePort,
+    },
+    domain::Repository,
+};
 use parking_lot::Mutex;
 
 #[derive(Default)]

@@ -4,16 +4,22 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::application::dtos::requests::DiscoverRunInputsRequest;
-use crate::application::dtos::responses::RunInputDeclarationResponse;
-use crate::application::dtos::responses::RunInputSourceResponse;
-use crate::application::errors::DiscoverRunInputsError;
-use crate::application::ports::outbound::{DiscoverRunInputsPort, WorkflowSourcePort};
-use crate::domain::aggregates::Workflow;
-use crate::domain::entities::Step;
-use crate::domain::value_objects::{ActRunConfig, ActionDefinition, ActionInput, ActionRuntime};
-use crate::infrastructure::workflows::yaml::ActionDefinitionYaml;
-use crate::infrastructure::workflows::yaml::WorkflowYaml;
+use crate::{
+    application::{
+        dtos::{
+            requests::DiscoverRunInputsRequest,
+            responses::{RunInputDeclarationResponse, RunInputSourceResponse},
+        },
+        errors::DiscoverRunInputsError,
+        ports::outbound::{DiscoverRunInputsPort, WorkflowSourcePort},
+    },
+    domain::{
+        aggregates::Workflow,
+        entities::Step,
+        value_objects::{ActRunConfig, ActionDefinition, ActionInput, ActionRuntime},
+    },
+    infrastructure::workflows::yaml::{ActionDefinitionYaml, WorkflowYaml},
+};
 
 pub struct FilesystemRunInputDiscoveryService {
     workflow_source: Box<dyn WorkflowSourcePort>,

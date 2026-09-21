@@ -1,12 +1,14 @@
 #![allow(dead_code)]
-use ephact::application::errors::PrepareJobContainerError;
-use ephact::application::ports::outbound::prepare_job_container_port::PrepareJobContainerPort;
-use parking_lot::Mutex;
 use std::sync::Arc;
 
+use ephact::application::{
+    dtos::{requests::PrepareJobContainerRequest, responses::PreparedJobContainerResponse},
+    errors::PrepareJobContainerError,
+    ports::outbound::prepare_job_container_port::PrepareJobContainerPort,
+};
+use parking_lot::Mutex;
+
 use super::stub_container::StubContainer;
-use ephact::application::dtos::requests::PrepareJobContainerRequest;
-use ephact::application::dtos::responses::PreparedJobContainerResponse;
 
 /// Prepares a stub container under a prepared name, or fails as configured.
 #[derive(Clone)]

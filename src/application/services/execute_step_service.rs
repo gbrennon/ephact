@@ -1,19 +1,29 @@
 use std::sync::Arc;
 
-use crate::application::dtos::requests::ExecuteStepRequest;
-use crate::application::dtos::requests::RunShellStepRequest;
-use crate::application::dtos::responses::ExecuteActionResponse;
-use crate::application::dtos::responses::ExecutedStepResponse;
-use crate::application::errors::ExecuteStepError;
-use crate::application::ports::inbound::execute_step_port::ExecuteStepPort;
-use crate::application::ports::outbound::ContainerPort;
-use crate::application::ports::outbound::action_command_bus_port::ActionCommandBusPort;
-use crate::application::ports::outbound::run_shell_step_port::RunShellStepPort;
-use crate::domain::errors::StepError;
-use crate::domain::messages::commands::ExecuteActionCommand;
-use crate::domain::services::StepInterpolator;
-use crate::domain::services::evaluation_context_mapper::EvaluationContextMapper;
-use crate::domain::services::step_factory::StepFactory;
+use crate::{
+    application::{
+        dtos::{
+            requests::{ExecuteStepRequest, RunShellStepRequest},
+            responses::{ExecuteActionResponse, ExecutedStepResponse},
+        },
+        errors::ExecuteStepError,
+        ports::{
+            inbound::execute_step_port::ExecuteStepPort,
+            outbound::{
+                ContainerPort, action_command_bus_port::ActionCommandBusPort,
+                run_shell_step_port::RunShellStepPort,
+            },
+        },
+    },
+    domain::{
+        errors::StepError,
+        messages::commands::ExecuteActionCommand,
+        services::{
+            StepInterpolator, evaluation_context_mapper::EvaluationContextMapper,
+            step_factory::StepFactory,
+        },
+    },
+};
 
 pub struct ExecuteStepService {
     container: Arc<dyn ContainerPort>,

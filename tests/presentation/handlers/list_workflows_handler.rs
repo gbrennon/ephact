@@ -1,8 +1,9 @@
-use std::env;
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 
-use ephact::application::dtos::responses::WorkflowListItemResponse;
-use ephact::presentation::handlers::ListWorkflowsHandler;
+use ephact::{
+    application::dtos::responses::WorkflowListItemResponse,
+    presentation::handlers::ListWorkflowsHandler,
+};
 
 use crate::common::fakes::fake_list_workflows_port::FakeListWorkflowsPort;
 

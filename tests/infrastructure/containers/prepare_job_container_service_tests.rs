@@ -1,12 +1,14 @@
 #[cfg(test)]
 mod tests {
-    use ephact::{
-        application::ports::outbound::prepare_job_container_port::PrepareJobContainerPort,
-        infrastructure::containers::prepare_job_container_service::PrepareJobContainerService,
-    };
     use std::path::Path;
 
-    use ephact::application::dtos::requests::PrepareJobContainerRequest;
+    use ephact::{
+        application::{
+            dtos::requests::PrepareJobContainerRequest,
+            ports::outbound::prepare_job_container_port::PrepareJobContainerPort,
+        },
+        infrastructure::containers::prepare_job_container_service::PrepareJobContainerService,
+    };
 
     use crate::common::fakes::{
         fake_copy_repository_to_container_port::FakeCopyRepositoryToContainerPort,

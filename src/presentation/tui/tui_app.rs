@@ -1,13 +1,14 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{Frame, widgets::Block};
 
-use crate::application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse};
-
-use super::screens::{
-    ConfigurationAction, RunConfigurationValues, ScreenManager, home::HomeScreen,
-    splash::SplashScreen,
+use super::{
+    screens::{
+        ConfigurationAction, RunConfigurationValues, ScreenManager, home::HomeScreen,
+        splash::SplashScreen,
+    },
+    theme::Theme,
 };
-use super::theme::Theme;
+use crate::application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TuiScreen {

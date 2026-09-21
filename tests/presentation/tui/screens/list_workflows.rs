@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use ephact::application::dtos::responses::WorkflowListItemResponse;
-    use ephact::presentation::tui::screens::ListWorkflowsScreen;
+    use ephact::{
+        application::dtos::responses::WorkflowListItemResponse,
+        presentation::tui::screens::ListWorkflowsScreen,
+    };
     use ratatui::{Terminal, backend::TestBackend};
 
     use crate::common::fakes::fake_list_workflows_port::FakeListWorkflowsPort;

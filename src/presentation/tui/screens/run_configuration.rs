@@ -6,8 +6,9 @@ use ratatui::{
     widgets::{List, ListItem, ListState},
 };
 
-use crate::application::dtos::responses::RunInputDeclarationResponse;
-use crate::presentation::tui::theme::Theme;
+use crate::{
+    application::dtos::responses::RunInputDeclarationResponse, presentation::tui::theme::Theme,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RunConfigurationValues {

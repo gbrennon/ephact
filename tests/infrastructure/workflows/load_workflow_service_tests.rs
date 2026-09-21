@@ -1,11 +1,12 @@
 #[cfg(test)]
 mod tests {
     use ephact::{
-        application::ports::outbound::load_workflow_port::LoadWorkflowPort,
+        application::{
+            dtos::requests::LoadWorkflowRequest,
+            ports::outbound::load_workflow_port::LoadWorkflowPort,
+        },
         infrastructure::workflows::load_workflow_service::LoadWorkflowService,
     };
-
-    use ephact::application::dtos::requests::LoadWorkflowRequest;
 
     const VALID_WORKFLOW: &str = "name: Ci\non: push\nenv:\n  MODE: staging\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n";
 

@@ -2,41 +2,48 @@
 mod tests {
     use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-    use ephact::application::dtos::requests::ExecuteActionRequest;
-    use ephact::application::dtos::responses::ExecuteActionResponse;
-    use ephact::application::dtos::responses::ExecutedStepResponse;
-    use ephact::application::dtos::responses::JobExecutionResponse;
-    use ephact::application::dtos::responses::JobSummaryResponse;
-    use ephact::application::dtos::responses::WorkflowExecutionResponse;
-    use ephact::application::ports::inbound::execute_action_port::ExecuteActionPort;
-    use ephact::application::ports::inbound::execute_job_port::ExecuteJobPort;
-    use ephact::application::ports::inbound::execute_step_port::ExecuteStepPort;
-    use ephact::application::ports::inbound::execute_workflow_port::ExecuteWorkflowPort;
-    use ephact::application::ports::outbound::{
-        action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
-        job_command_bus_port::JobCommandBusPort, step_command_bus_port::StepCommandBusPort,
-        workflow_command_bus_port::WorkflowCommandBusPort,
+    use ephact::{
+        application::{
+            dtos::{
+                requests::ExecuteActionRequest,
+                responses::{
+                    ExecuteActionResponse, ExecutedStepResponse, JobExecutionResponse,
+                    JobSummaryResponse, WorkflowExecutionResponse,
+                },
+            },
+            ports::{
+                inbound::{
+                    execute_action_port::ExecuteActionPort, execute_job_port::ExecuteJobPort,
+                    execute_step_port::ExecuteStepPort, execute_workflow_port::ExecuteWorkflowPort,
+                },
+                outbound::{
+                    action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
+                    job_command_bus_port::JobCommandBusPort,
+                    step_command_bus_port::StepCommandBusPort,
+                    workflow_command_bus_port::WorkflowCommandBusPort,
+                },
+            },
+        },
+        domain::{
+            ActRunConfig, RepoPath, Repository, RepositoryName,
+            aggregates::Workflow,
+            entities::Job,
+            messages::commands::{
+                ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
+            },
+            services::step_factory::StepFactory,
+            value_objects::{EvaluationContext, WorkflowTrigger},
+        },
+        infrastructure::{
+            actions::ActionCommandHandler,
+            jobs::JobCommandHandler,
+            messaging::InMemoryCommandBus,
+            steps::StepCommandHandler,
+            workflows::{WorkflowCommandHandler, yaml::StepYaml},
+        },
     };
-    use ephact::domain::ActRunConfig;
-    use ephact::domain::RepoPath;
-    use ephact::domain::Repository;
-    use ephact::domain::RepositoryName;
-    use ephact::domain::aggregates::Workflow;
-    use ephact::domain::entities::Job;
-    use ephact::domain::messages::commands::{
-        ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
-    };
-    use ephact::domain::services::step_factory::StepFactory;
-    use ephact::domain::value_objects::EvaluationContext;
-    use ephact::domain::value_objects::WorkflowTrigger;
-    use ephact::infrastructure::actions::ActionCommandHandler;
-    use ephact::infrastructure::jobs::JobCommandHandler;
-    use ephact::infrastructure::messaging::InMemoryCommandBus;
-    use ephact::infrastructure::steps::StepCommandHandler;
-    use ephact::infrastructure::workflows::WorkflowCommandHandler;
 
     use crate::common::fakes::stub_container::StubContainer;
-    use ephact::infrastructure::workflows::yaml::StepYaml;
 
     struct StubWorkflowPort;
     impl ExecuteWorkflowPort for StubWorkflowPort {

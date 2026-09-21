@@ -1,7 +1,8 @@
 use std::error::Error;
 
-use crate::application::dtos::requests::CreateJobContainerRequest;
-use crate::application::ports::outbound::container_port::ContainerPort;
+use crate::application::{
+    dtos::requests::CreateJobContainerRequest, ports::outbound::container_port::ContainerPort,
+};
 
 /// Inbound port for creating the container a job's steps run in.
 pub trait CreateJobContainerPort: Send + Sync {

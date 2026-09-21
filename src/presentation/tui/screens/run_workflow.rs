@@ -6,11 +6,13 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, ListState, Padding, Paragraph, Wrap},
 };
 
-use crate::presentation::tui::theme::Theme;
-
 use super::run_configuration::{ConfigurationAction, RunConfiguration, RunConfigurationValues};
-use crate::application::dtos::responses::{
-    JobSummaryResponse, RunInputDeclarationResponse, RunSummaryResponse, WorkflowListItemResponse,
+use crate::{
+    application::dtos::responses::{
+        JobSummaryResponse, RunInputDeclarationResponse, RunSummaryResponse,
+        WorkflowListItemResponse,
+    },
+    presentation::tui::theme::Theme,
 };
 
 /// Screen that lets the user pick a workflow, run it, and read the summary.

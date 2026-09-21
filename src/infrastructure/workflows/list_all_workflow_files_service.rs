@@ -1,13 +1,14 @@
+use std::error::Error;
+
 use super::{
     list_all_workflow_files_port::ListAllWorkflowFilesPort,
     list_workflow_directory_port::ListWorkflowDirectoryPort,
+    workflow_directories::WORKFLOW_DIRECTORIES,
 };
-use std::error::Error;
-
-use super::workflow_directories::WORKFLOW_DIRECTORIES;
-use crate::application::dtos::requests::ListAllWorkflowFilesRequest;
-use crate::application::dtos::requests::ListWorkflowDirectoryRequest;
-use crate::application::dtos::responses::ListAllWorkflowFilesResponse;
+use crate::application::dtos::{
+    requests::{ListAllWorkflowFilesRequest, ListWorkflowDirectoryRequest},
+    responses::ListAllWorkflowFilesResponse,
+};
 
 /// Service that lists every workflow file of a repository, `.forgejo` first.
 pub struct ListAllWorkflowFilesService {

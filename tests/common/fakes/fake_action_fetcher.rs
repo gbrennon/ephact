@@ -1,11 +1,11 @@
 #![allow(dead_code)]
-use parking_lot::Mutex;
 use std::{path::PathBuf, sync::Arc};
 
 use ephact::{
     domain::{errors::ActionError, value_objects::RemoteActionReference},
     infrastructure::actions::ActionFetcherPort,
 };
+use parking_lot::Mutex;
 
 /// Resolves every remote reference to one prepared directory on disk, standing
 /// in for a successful clone.

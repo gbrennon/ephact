@@ -1,13 +1,16 @@
 #[cfg(test)]
 mod tests {
-    use ephact::{
-        application::ports::outbound::resolve_action_directory_port::ResolveActionDirectoryPort,
-        infrastructure::actions::resolve_action_directory_service::ResolveActionDirectoryService,
-    };
     use std::path::{Path, PathBuf};
 
-    use ephact::application::dtos::requests::ResolveActionDirectoryRequest;
-    use ephact::application::dtos::responses::ResolvedActionDirectoryResponse;
+    use ephact::{
+        application::{
+            dtos::{
+                requests::ResolveActionDirectoryRequest, responses::ResolvedActionDirectoryResponse,
+            },
+            ports::outbound::resolve_action_directory_port::ResolveActionDirectoryPort,
+        },
+        infrastructure::actions::resolve_action_directory_service::ResolveActionDirectoryService,
+    };
 
     use crate::common::fakes::fake_fetch_remote_action_port::FakeFetchRemoteActionPort;
 
