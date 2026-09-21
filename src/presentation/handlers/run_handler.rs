@@ -1,23 +1,29 @@
+use std::path::PathBuf;
+
 use super::super::components::{
     box_component::BoxComponent, component::Component, run_summary::RunSummaryComponent,
     terminal::Terminal,
 };
-use crate::application::dtos::requests::DiscoverRunInputsRequest;
-use crate::application::dtos::requests::ListWorkflowsRequest;
-use crate::application::dtos::requests::RunAllWorkflowsRequest;
-use crate::application::dtos::requests::RunWorkflowRequest;
-use crate::application::dtos::responses::RunSummaryResponse;
-use crate::application::ports::inbound::ListWorkflowsPort;
-use crate::application::ports::inbound::RunAllWorkflowsPort;
-use crate::application::ports::inbound::RunWorkflowPort;
-use crate::application::ports::outbound::DiscoverRunInputsPort;
-use crate::domain::value_objects::ActEvent;
-use crate::domain::value_objects::ActInput;
-use crate::domain::value_objects::ActRunConfig;
-use crate::domain::value_objects::ActWorkflow;
-use crate::domain::{RepoPath, Repository, RepositoryName};
-use crate::presentation::cli::run_args::RunArgs;
-use std::path::PathBuf;
+use crate::{
+    application::{
+        dtos::{
+            requests::{
+                DiscoverRunInputsRequest, ListWorkflowsRequest, RunAllWorkflowsRequest,
+                RunWorkflowRequest,
+            },
+            responses::RunSummaryResponse,
+        },
+        ports::{
+            inbound::{ListWorkflowsPort, RunAllWorkflowsPort, RunWorkflowPort},
+            outbound::DiscoverRunInputsPort,
+        },
+    },
+    domain::{
+        RepoPath, Repository, RepositoryName,
+        value_objects::{ActEvent, ActInput, ActRunConfig, ActWorkflow},
+    },
+    presentation::cli::run_args::RunArgs,
+};
 
 /// Handles the `run` subcommand by dispatching parsed CLI arguments to the
 /// application port.
@@ -691,11 +697,12 @@ mod tests {
     use std::time::Duration;
 
     use super::*;
-    use crate::application::dtos::responses::JobSummaryResponse;
-    use crate::application::dtos::responses::{
-        StepSummaryDetails, StepSummaryResponse, StepSummaryResponseInput,
+    use crate::{
+        application::dtos::responses::{
+            JobSummaryResponse, StepSummaryDetails, StepSummaryResponse, StepSummaryResponseInput,
+        },
+        domain::value_objects::StepType,
     };
-    use crate::domain::value_objects::StepType;
 
     fn job(job_id: &str, name: Option<&str>, success: bool) -> JobSummaryResponse {
         JobSummaryResponse::new(job_id, name.map(Into::into), vec![], success)

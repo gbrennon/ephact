@@ -1,13 +1,18 @@
 #[cfg(test)]
 mod tests {
 
+    use ephact::{
+        application::{
+            dtos::responses::{ContainerConfigOptions, ContainerConfigResponse},
+            ports::outbound::ContainerRuntimePort,
+        },
+        infrastructure::containers::container_runtime_adapter::ContainerRuntimeAdapter,
+    };
+
     use crate::common::fakes::{
         spy_container_runtime::SpyContainerRuntime,
         stub_docker_erroring_runtime::StubDockerErroringRuntime,
     };
-    use ephact::application::dtos::responses::{ContainerConfigOptions, ContainerConfigResponse};
-    use ephact::application::ports::outbound::ContainerRuntimePort;
-    use ephact::infrastructure::containers::container_runtime_adapter::ContainerRuntimeAdapter;
     fn make_config(name: &str) -> ContainerConfigResponse {
         ContainerConfigResponse::new(
             "alpine:latest",

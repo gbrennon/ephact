@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Margin, Rect},
@@ -6,13 +8,13 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, ListState, Padding, Paragraph},
 };
 
-use crate::presentation::tui::theme::Theme;
-
-use crate::application::dtos::responses::WorkflowListItemResponse;
-use std::path::PathBuf;
-
-use crate::application::ports::inbound::list_workflows_port::ListWorkflowsPort;
-use crate::presentation::handlers::ListWorkflowsHandler;
+use crate::{
+    application::{
+        dtos::responses::WorkflowListItemResponse,
+        ports::inbound::list_workflows_port::ListWorkflowsPort,
+    },
+    presentation::{handlers::ListWorkflowsHandler, tui::theme::Theme},
+};
 
 pub struct ListWorkflowsScreen {
     workflows: Vec<WorkflowListItemResponse>,

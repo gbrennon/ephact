@@ -1,7 +1,9 @@
-use super::read_step_env_exports_port::ReadStepEnvExportsPort;
 use std::collections::HashMap;
 
-use super::super::containers::workspace::RUNNER_ENV_FILE;
+use super::{
+    super::containers::workspace::RUNNER_ENV_FILE,
+    read_step_env_exports_port::ReadStepEnvExportsPort,
+};
 use crate::application::dtos::requests::ReadStepEnvExportsRequest;
 
 /// Service that reads the environment variables a step exported through

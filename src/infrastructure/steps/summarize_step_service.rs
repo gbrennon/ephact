@@ -1,8 +1,13 @@
-use crate::application::dtos::requests::SummarizeStepRequest;
-use crate::application::dtos::responses::{
-    StepSummaryDetails, StepSummaryResponse, StepSummaryResponseInput, SummarizedStepResponse,
+use crate::application::{
+    dtos::{
+        requests::SummarizeStepRequest,
+        responses::{
+            StepSummaryDetails, StepSummaryResponse, StepSummaryResponseInput,
+            SummarizedStepResponse,
+        },
+    },
+    ports::outbound::summarize_step_port::SummarizeStepPort,
 };
-use crate::application::ports::outbound::summarize_step_port::SummarizeStepPort;
 
 /// Service that turns a step's outcome into its run-summary entry, deciding
 /// whether the outcome fails the job.

@@ -1,11 +1,13 @@
-use std::env;
-use std::time::Duration;
+use std::{env, time::Duration};
 
-use ephact::application::dtos::responses::RunSummaryResponse;
-use ephact::presentation::handlers::RunHandler;
+use ephact::{
+    application::dtos::responses::RunSummaryResponse, presentation::handlers::RunHandler,
+};
 
-use crate::common::fakes::stub_run_workflow_port::StubRunWorkflowPort;
-use crate::fakes::recording_run_workflow_port::RecordingRunWorkflowPort;
+use crate::{
+    common::fakes::stub_run_workflow_port::StubRunWorkflowPort,
+    fakes::recording_run_workflow_port::RecordingRunWorkflowPort,
+};
 
 fn run_summary(success: bool) -> RunSummaryResponse {
     RunSummaryResponse::new("CI", vec![], success, Duration::from_secs(1))

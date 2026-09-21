@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Margin, Rect},
@@ -6,12 +8,10 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, ListState, Padding, Paragraph},
 };
 
-use crate::presentation::tui::theme::Theme;
-
-use std::path::PathBuf;
-
-use crate::application::ports::inbound::list_actions_port::ListActionsPort;
-use crate::presentation::handlers::ListActionsHandler;
+use crate::{
+    application::ports::inbound::list_actions_port::ListActionsPort,
+    presentation::{handlers::ListActionsHandler, tui::theme::Theme},
+};
 
 pub struct ListActionsScreen {
     actions: Vec<String>,

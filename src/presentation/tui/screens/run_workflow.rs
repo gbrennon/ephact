@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Margin, Rect},
@@ -6,13 +8,17 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, ListState, Padding, Paragraph, Wrap},
 };
 
-use crate::presentation::tui::theme::Theme;
-
-use super::run_configuration::{ConfigurationAction, RunConfiguration, RunConfigurationValues};
-use crate::application::dtos::responses::{
-    JobSummaryResponse, RunInputDeclarationResponse, RunSummaryResponse, WorkflowListItemResponse,
+use super::{
+    run_configuration::{ConfigurationAction, RunConfiguration, RunConfigurationValues},
+    run_details::RunDetailsView,
 };
-
+use crate::{
+    application::dtos::responses::{
+        JobSummaryResponse, RunInputDeclarationResponse, RunSummaryResponse,
+        WorkflowListItemResponse,
+    },
+    presentation::tui::theme::Theme,
+};
 /// Screen that lets the user pick a workflow, run it, and read the summary.
 ///
 /// Before a run the screen shows a selectable list of workflow names. Once a
@@ -25,8 +31,9 @@ pub struct RunWorkflowScreen {
     progress_lines: Vec<String>,
     running: bool,
     showing_details: bool,
-    details_scroll: u16,
+    details: RunDetailsView,
     summary_scroll: u16,
+    run_started_at: Option<Instant>,
     configuration: Option<RunConfiguration>,
 }
 
@@ -57,8 +64,9 @@ impl RunWorkflowScreen {
             progress_lines: Vec::new(),
             running: false,
             showing_details: false,
-            details_scroll: 0,
+            details: RunDetailsView::new(),
             summary_scroll: 0,
+            run_started_at: None,
             configuration: None,
         }
     }
@@ -137,34 +145,39 @@ impl RunWorkflowScreen {
         self.outcome = Some(outcome);
         self.configuration = None;
         self.running = false;
+        self.run_started_at = None;
         self.showing_details = false;
-        self.details_scroll = 0;
+        self.details.reset();
         self.summary_scroll = 0;
     }
 
     pub fn open_details(&mut self) -> bool {
         if self.outcome.is_some() {
             self.showing_details = true;
-            self.details_scroll = 0;
+            self.details.reset();
         }
         self.showing_details
     }
 
     pub fn close_details(&mut self) {
         self.showing_details = false;
-        self.details_scroll = 0;
+        self.details.reset();
     }
 
     pub fn scroll_details_up(&mut self) {
-        self.details_scroll = self.details_scroll.saturating_sub(1);
+        self.details.move_up();
     }
 
     pub fn scroll_details_down(&mut self) {
-        self.details_scroll = self.details_scroll.saturating_add(1);
+        if let Some(summary) = self.outcome.as_ref() {
+            self.details.move_down(summary);
+        }
     }
 
-    pub fn details_scroll(&self) -> u16 {
-        self.details_scroll
+    pub fn toggle_details(&mut self) {
+        if let Some(summary) = self.outcome.as_ref() {
+            self.details.toggle(summary);
+        }
     }
 
     pub fn scroll_summary_up(&mut self) {
@@ -175,6 +188,9 @@ impl RunWorkflowScreen {
         self.summary_scroll = self.summary_scroll.saturating_add(1);
     }
 
+    pub fn details_scroll(&self) -> u16 {
+        self.details.cursor() as u16
+    }
     pub fn summary_scroll(&self) -> u16 {
         self.summary_scroll
     }
@@ -188,16 +204,19 @@ impl RunWorkflowScreen {
         self.configuration = None;
         self.progress_lines.clear();
         self.running = true;
+        self.run_started_at = Some(Instant::now());
         self.showing_details = false;
+        self.details.reset();
         self.summary_scroll = 0;
     }
 
     pub fn record_progress(&mut self, line: String) {
-        self.progress_lines.push(line);
+        self.progress_lines.extend(normalize_lines(&line));
     }
 
     pub fn finish_run(&mut self) {
         self.running = false;
+        self.run_started_at = None;
     }
 
     pub fn is_running(&self) -> bool {
@@ -210,7 +229,9 @@ impl RunWorkflowScreen {
         self.configuration = None;
         self.progress_lines.clear();
         self.running = false;
+        self.run_started_at = None;
         self.showing_details = false;
+        self.details.reset();
         self.summary_scroll = 0;
     }
 
@@ -277,12 +298,30 @@ impl RunWorkflowScreen {
     }
 
     fn render_running(&self, frame: &mut Frame<'_>, area: Rect) {
-        let content = if self.progress_lines.is_empty() {
-            "Workflow is running...".to_string()
-        } else {
-            self.progress_lines.join("\n")
-        };
-        frame.render_widget(Paragraph::new(content).style(Theme::body_style()), area);
+        let elapsed = self
+            .run_started_at
+            .map(|started| started.elapsed())
+            .unwrap_or(Duration::ZERO);
+        let spinner = ["|", "/", "-", "\\"][elapsed.as_millis() as usize / 120 % 4];
+        let mut lines = vec![Line::from(format!(
+            "Workflow is running... {spinner} ({:.1}s)",
+            elapsed.as_secs_f32()
+        ))];
+        lines.extend(
+            self.progress_lines
+                .iter()
+                .rev()
+                .take(20)
+                .rev()
+                .cloned()
+                .map(Line::from),
+        );
+        frame.render_widget(
+            Paragraph::new(lines)
+                .style(Theme::body_style())
+                .wrap(Wrap { trim: true }),
+            area,
+        );
     }
 
     fn render_picker(&self, frame: &mut Frame<'_>, area: Rect) {
@@ -306,43 +345,7 @@ impl RunWorkflowScreen {
             );
             return;
         };
-        let content = Paragraph::new(Self::detail_lines(summary))
-            .style(Theme::body_style())
-            .wrap(Wrap { trim: true })
-            .scroll((self.details_scroll, 0));
-        frame.render_widget(content, area);
-    }
-
-    fn detail_lines(summary: &RunSummaryResponse) -> Vec<Line<'static>> {
-        summary
-            .job_summaries()
-            .iter()
-            .flat_map(Self::job_detail_lines)
-            .collect()
-    }
-
-    fn job_detail_lines(job: &JobSummaryResponse) -> Vec<Line<'static>> {
-        let mut lines = vec![Line::from(format!("Job: {}", Self::job_label(job)))];
-        for step in job.steps() {
-            let status = if step.exit_code().is_some_and(|code| code != 0) {
-                Self::FAILURE_LABEL
-            } else {
-                Self::SUCCESS_LABEL
-            };
-            lines.push(Line::from(format!("Step: {} [{status}]", step.name())));
-            if let Some(exit_code) = step.exit_code() {
-                lines.push(Line::from(format!("Exit code: {exit_code}")));
-            }
-            Self::append_output_line(&mut lines, "stdout", step.stdout());
-            Self::append_output_line(&mut lines, "stderr", step.stderr());
-        }
-        lines
-    }
-
-    fn append_output_line(lines: &mut Vec<Line<'static>>, label: &str, output: &str) {
-        if !output.is_empty() {
-            lines.push(Line::from(format!("{label}: {output}")));
-        }
+        self.details.render(frame, area, summary);
     }
 
     fn render_workflow_names(&self, frame: &mut Frame<'_>, area: Rect) {
@@ -368,13 +371,6 @@ impl RunWorkflowScreen {
         ))
     }
 
-    fn render_summary(&self, frame: &mut Frame<'_>, area: Rect, summary: &RunSummaryResponse) {
-        let content = Paragraph::new(Self::summary_lines(summary))
-            .style(Theme::body_style())
-            .scroll((self.summary_scroll, 0));
-        frame.render_widget(content, area);
-    }
-
     fn summary_lines(summary: &RunSummaryResponse) -> Vec<Line<'static>> {
         let mut lines = vec![
             Line::from(Span::styled(
@@ -390,6 +386,14 @@ impl RunWorkflowScreen {
     fn job_line(job: &JobSummaryResponse) -> Line<'static> {
         let prefix = format!("{}{}", Self::job_label(job), Self::JOB_STATUS_SEPARATOR);
         Self::status_line(&prefix, job.success())
+    }
+    fn render_summary(&self, frame: &mut Frame<'_>, area: Rect, summary: &RunSummaryResponse) {
+        let lines = Self::summary_lines(summary);
+        let max_scroll = lines.len().saturating_sub(area.height as usize) as u16;
+        let content = Paragraph::new(lines)
+            .style(Theme::body_style())
+            .scroll((self.summary_scroll.min(max_scroll), 0));
+        frame.render_widget(content, area);
     }
 
     fn status_line(prefix: &str, success: bool) -> Line<'static> {
@@ -436,11 +440,30 @@ impl RunWorkflowScreen {
         if self.running {
             Self::RUNNING_FOOTER
         } else if self.showing_details {
-            "Up/Down: Scroll | Esc: Back | q: Quit"
+            "Up/Down/j/k: Scroll | Enter/Space: Fold | Esc: Back | q: Quit"
         } else if self.outcome.is_some() {
             "Up/Down: Scroll | Esc: Back | d: Details | q: Quit"
         } else {
             Self::PICKER_FOOTER
         }
     }
+}
+
+fn normalize_lines(text: &str) -> Vec<String> {
+    let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
+    normalized
+        .split('\n')
+        .filter(|line| !line.is_empty())
+        .map(|line| {
+            line.chars()
+                .map(|character| {
+                    if character.is_control() {
+                        ' '
+                    } else {
+                        character
+                    }
+                })
+                .collect()
+        })
+        .collect()
 }

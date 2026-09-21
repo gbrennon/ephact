@@ -1,10 +1,14 @@
 #![allow(dead_code)]
-use parking_lot::Mutex;
 use std::{collections::HashMap, sync::Arc};
 
-use ephact::application::dtos::requests::BuildActionInputEnvironmentRequest;
-use ephact::application::dtos::responses::BuildActionInputEnvironmentResponse;
-use ephact::infrastructure::actions::build_action_input_environment_port::BuildActionInputEnvironmentPort;
+use ephact::{
+    application::dtos::{
+        requests::BuildActionInputEnvironmentRequest,
+        responses::BuildActionInputEnvironmentResponse,
+    },
+    infrastructure::actions::build_action_input_environment_port::BuildActionInputEnvironmentPort,
+};
+use parking_lot::Mutex;
 
 /// Returns a prepared environment, recording the action paths it was given.
 #[derive(Clone)]

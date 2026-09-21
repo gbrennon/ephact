@@ -2,19 +2,26 @@
 mod tests {
     use std::{collections::HashMap, path::Path, sync::Arc};
 
-    use ephact::application::dtos::requests::{
-        ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
+    use ephact::{
+        application::{
+            dtos::{
+                requests::{
+                    ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
+                },
+                responses::{ContainerConfigOptions, ContainerConfigResponse, ExecResultResponse},
+            },
+            ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
+        },
+        domain::{
+            entities::Step,
+            value_objects::{ContextValue, EvaluationContext},
+        },
+        infrastructure::{
+            actions::{ActionFetcherPort, ExecuteActionFactory},
+            di::ActionExecutionWiring,
+            workflows::yaml::StepYaml,
+        },
     };
-    use ephact::application::dtos::responses::ExecResultResponse;
-    use ephact::application::dtos::responses::{ContainerConfigOptions, ContainerConfigResponse};
-    use ephact::application::ports::outbound::ContainerRuntimePort;
-    use ephact::application::ports::outbound::container_port::ContainerPort;
-    use ephact::domain::entities::Step;
-    use ephact::domain::value_objects::ContextValue;
-    use ephact::domain::value_objects::EvaluationContext;
-    use ephact::infrastructure::actions::{ActionFetcherPort, ExecuteActionFactory};
-    use ephact::infrastructure::di::ActionExecutionWiring;
-    use ephact::infrastructure::workflows::yaml::StepYaml;
 
     use crate::common::fakes::{
         fake_action_fetcher::FakeActionFetcher,

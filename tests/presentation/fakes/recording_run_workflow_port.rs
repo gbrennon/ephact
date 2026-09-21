@@ -1,9 +1,9 @@
 use std::sync::Mutex;
 
-use ephact::{
-    application::dtos::requests::RunWorkflowRequest,
-    application::dtos::responses::RunSummaryResponse, application::errors::RunWorkflowError,
-    application::ports::inbound::run_workflow_port::RunWorkflowPort,
+use ephact::application::{
+    dtos::{requests::RunWorkflowRequest, responses::RunSummaryResponse},
+    errors::RunWorkflowError,
+    ports::inbound::run_workflow_port::RunWorkflowPort,
 };
 
 pub struct RecordingRunWorkflowPort {

@@ -1,6 +1,5 @@
-use ephact::infrastructure::logging::stderr_filter::StderrFilter;
 use ephact::{
-    infrastructure::Container,
+    infrastructure::{Container, logging::stderr_filter::StderrFilter},
     presentation::{
         cli::run_progress_handler::RunProgressHandler, composition_root::CompositionRoot,
     },

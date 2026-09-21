@@ -1,12 +1,13 @@
-use super::{create_job_container_port::CreateJobContainerPort, workspace::CONTAINER_WORKSPACE};
 use std::{collections::HashMap, error::Error, sync::Arc};
 
-use crate::application::dtos::requests::CreateJobContainerRequest;
-use crate::application::dtos::responses::{
-    ContainerConfigOptions, ContainerConfigResponse, RunnerContextResponse,
+use super::{create_job_container_port::CreateJobContainerPort, workspace::CONTAINER_WORKSPACE};
+use crate::application::{
+    dtos::{
+        requests::CreateJobContainerRequest,
+        responses::{ContainerConfigOptions, ContainerConfigResponse, RunnerContextResponse},
+    },
+    ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
 };
-use crate::application::ports::outbound::ContainerRuntimePort;
-use crate::application::ports::outbound::container_port::ContainerPort;
 
 /// Service that creates the container a job's steps run in, removing any
 /// container left behind by an earlier run of the same job first.

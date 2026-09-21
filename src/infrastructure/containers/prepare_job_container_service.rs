@@ -1,17 +1,22 @@
+use std::{process, time::SystemTime};
+
 use crate::{
-    application::dtos::requests::{
-        CopyRepositoryToContainerRequest, CreateJobContainerRequest, PrepareJobContainerRequest,
-        PullJobImageRequest,
+    application::{
+        dtos::{
+            requests::{
+                CopyRepositoryToContainerRequest, CreateJobContainerRequest,
+                PrepareJobContainerRequest, PullJobImageRequest,
+            },
+            responses::PreparedJobContainerResponse,
+        },
+        errors::PrepareJobContainerError,
+        ports::outbound::prepare_job_container_port::PrepareJobContainerPort,
     },
-    application::dtos::responses::PreparedJobContainerResponse,
-    application::errors::PrepareJobContainerError,
-    application::ports::outbound::prepare_job_container_port::PrepareJobContainerPort,
     infrastructure::containers::{
         copy_repository_to_container_port::CopyRepositoryToContainerPort,
         create_job_container_port::CreateJobContainerPort, pull_job_image_port::PullJobImagePort,
     },
 };
-use std::{process, time::SystemTime};
 
 pub struct PrepareJobContainerService {
     image_puller: Box<dyn PullJobImagePort>,

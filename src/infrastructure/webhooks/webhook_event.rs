@@ -182,15 +182,13 @@ impl WebhookEvent {
 
 #[cfg(test)]
 mod tests {
-    use super::super::{
-        branch_ref::BranchRef,
-        comment_info::CommentInfo,
-        issue_info::IssueInfo,
-        pull_request_info::{PullRequestBranches, PullRequestInfo, PullRequestState},
-        release_info::ReleaseInfo,
-    };
     use super::{
         super::{
+            branch_ref::BranchRef,
+            comment_info::CommentInfo,
+            issue_info::IssueInfo,
+            pull_request_info::{PullRequestBranches, PullRequestInfo, PullRequestState},
+            release_info::ReleaseInfo,
             repository_info::{RepositoryInfo, RepositoryLinks},
             user_info::UserInfo,
         },

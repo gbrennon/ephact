@@ -1,12 +1,14 @@
 #[cfg(test)]
 mod tests {
-    use ephact::infrastructure::actions::{
-        collect_action_files_port::CollectActionFilesPort,
-        collect_action_files_service::CollectActionFilesService,
-    };
     use std::{fs, os::unix::fs::PermissionsExt};
 
-    use ephact::application::dtos::requests::CollectActionFilesRequest;
+    use ephact::{
+        application::dtos::requests::CollectActionFilesRequest,
+        infrastructure::actions::{
+            collect_action_files_port::CollectActionFilesPort,
+            collect_action_files_service::CollectActionFilesService,
+        },
+    };
 
     #[test]
     fn execute_returns_files_with_action_relative_paths_and_contents() {

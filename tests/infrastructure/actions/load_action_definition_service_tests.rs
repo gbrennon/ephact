@@ -1,13 +1,15 @@
 #[cfg(test)]
 mod tests {
-    use ephact::{
-        application::ports::outbound::load_action_definition_port::LoadActionDefinitionPort,
-        infrastructure::actions::load_action_definition_service::LoadActionDefinitionService,
-    };
     use std::fs;
 
-    use ephact::application::dtos::requests::LoadActionDefinitionRequest;
-    use ephact::domain::value_objects::ActionRuntime;
+    use ephact::{
+        application::{
+            dtos::requests::LoadActionDefinitionRequest,
+            ports::outbound::load_action_definition_port::LoadActionDefinitionPort,
+        },
+        domain::value_objects::ActionRuntime,
+        infrastructure::actions::load_action_definition_service::LoadActionDefinitionService,
+    };
 
     const COMPOSITE: &str =
         "name: Greet\nruns:\n  using: composite\n  steps:\n    - run: echo hi\n      shell: bash\n";

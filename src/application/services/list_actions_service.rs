@@ -1,9 +1,11 @@
-use crate::application::dtos::requests::ListActionsRequest;
-use crate::application::dtos::responses::ListActionsResponse;
-use crate::application::errors::ListActionsError;
-use crate::application::ports::inbound::list_actions_port::ListActionsPort;
-use crate::application::ports::outbound::WorkflowSourcePort;
-use crate::domain::services::repository_factory::RepositoryFactory;
+use crate::{
+    application::{
+        dtos::{requests::ListActionsRequest, responses::ListActionsResponse},
+        errors::ListActionsError,
+        ports::{inbound::list_actions_port::ListActionsPort, outbound::WorkflowSourcePort},
+    },
+    domain::services::repository_factory::RepositoryFactory,
+};
 
 /// Application service implementing the `ListActionsPort` entrypoint.
 ///

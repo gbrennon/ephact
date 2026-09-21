@@ -1,11 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use ephact::application::dtos::requests::ListActionsRequest;
-    use ephact::application::ports::inbound::list_actions_port::ListActionsPort;
-    use ephact::application::services::list_actions_service::ListActionsService;
-    use ephact::domain::RepoPath;
-    use ephact::domain::Repository;
-    use ephact::domain::RepositoryName;
+    use ephact::{
+        application::{
+            dtos::requests::ListActionsRequest, ports::inbound::list_actions_port::ListActionsPort,
+            services::list_actions_service::ListActionsService,
+        },
+        domain::{RepoPath, Repository, RepositoryName},
+    };
 
     use crate::common::fakes::fake_workflow_source::FakeWorkflowSource;
 

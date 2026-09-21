@@ -2,26 +2,33 @@
 mod tests {
     use std::{collections::HashMap, path::Path};
 
-    use ephact::application::dtos::requests::ExecuteJobRequest;
-    use ephact::application::ports::inbound::execute_job_port::ExecuteJobPort;
-    use ephact::application::services::execute_job_service::{
-        ExecuteJobDependencies, ExecuteJobService,
+    use ephact::{
+        application::{
+            dtos::requests::ExecuteJobRequest,
+            ports::inbound::execute_job_port::ExecuteJobPort,
+            services::execute_job_service::{ExecuteJobDependencies, ExecuteJobService},
+        },
+        domain::{
+            aggregates::Workflow,
+            services::{ExecutionPlanner, evaluation_context_mapper::EvaluationContextMapper},
+            value_objects::EvaluationContext,
+        },
+        infrastructure::{
+            jobs::RunnerEnvironmentAdapter,
+            steps::{
+                build_step_context_service::BuildStepContextService,
+                prefix_step_path_service::PrefixStepPathService,
+                summarize_step_service::SummarizeStepService,
+            },
+            workflows::yaml::WorkflowYaml,
+        },
     };
-    use ephact::domain::aggregates::Workflow;
-    use ephact::domain::services::ExecutionPlanner;
-    use ephact::domain::services::evaluation_context_mapper::EvaluationContextMapper;
-    use ephact::domain::value_objects::EvaluationContext;
-    use ephact::infrastructure::jobs::RunnerEnvironmentAdapter;
-    use ephact::infrastructure::steps::build_step_context_service::BuildStepContextService;
-    use ephact::infrastructure::steps::prefix_step_path_service::PrefixStepPathService;
-    use ephact::infrastructure::steps::summarize_step_service::SummarizeStepService;
 
     use crate::common::fakes::{
         fake_command_bus::FakeCommandBus, fake_event_bus::FakeEventBus,
         fake_prepare_job_container_port::FakePrepareJobContainerPort,
         fake_read_step_exports_port::FakeReadStepExportsPort,
     };
-    use ephact::infrastructure::workflows::yaml::WorkflowYaml;
 
     fn workflow(yaml: &str) -> Workflow {
         serde_yaml::from_str::<WorkflowYaml>(yaml)

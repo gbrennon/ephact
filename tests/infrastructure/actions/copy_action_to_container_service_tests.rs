@@ -1,13 +1,14 @@
 #[cfg(test)]
 mod tests {
-    use ephact::infrastructure::actions::{
-        copy_action_to_container_port::CopyActionToContainerPort,
-        copy_action_to_container_service::CopyActionToContainerService,
-    };
     use std::{path::PathBuf, sync::Arc};
 
-    use ephact::application::dtos::requests::CopyActionToContainerRequest;
-    use ephact::application::dtos::responses::FileEntryResponse;
+    use ephact::{
+        application::dtos::{requests::CopyActionToContainerRequest, responses::FileEntryResponse},
+        infrastructure::actions::{
+            copy_action_to_container_port::CopyActionToContainerPort,
+            copy_action_to_container_service::CopyActionToContainerService,
+        },
+    };
 
     use crate::common::fakes::{
         fake_collect_action_files_port::FakeCollectActionFilesPort,

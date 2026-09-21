@@ -1,7 +1,8 @@
-use ephact::application::dtos::requests::DiscoverRunInputsRequest;
-use ephact::application::dtos::responses::RunInputDeclarationResponse;
-use ephact::application::errors::DiscoverRunInputsError;
-use ephact::application::ports::outbound::DiscoverRunInputsPort;
+use ephact::application::{
+    dtos::{requests::DiscoverRunInputsRequest, responses::RunInputDeclarationResponse},
+    errors::DiscoverRunInputsError,
+    ports::outbound::DiscoverRunInputsPort,
+};
 pub struct FakeDiscoverRunInputsPort;
 
 impl FakeDiscoverRunInputsPort {

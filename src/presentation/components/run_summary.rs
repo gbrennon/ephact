@@ -1,8 +1,7 @@
-use crate::application::dtos::responses::JobSummaryResponse;
-use crate::application::dtos::responses::RunSummaryResponse;
-use crate::application::dtos::responses::StepSummaryResponse;
-
 use super::component::Component;
+use crate::application::dtos::responses::{
+    JobSummaryResponse, RunSummaryResponse, StepSummaryResponse,
+};
 
 pub struct RunSummaryComponent<'a> {
     summary: &'a RunSummaryResponse,

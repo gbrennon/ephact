@@ -1,6 +1,7 @@
-use crate::application::dtos::requests::DiscoverRunInputsRequest;
-use crate::application::dtos::responses::RunInputDeclarationResponse;
-use crate::application::errors::DiscoverRunInputsError;
+use crate::application::{
+    dtos::{requests::DiscoverRunInputsRequest, responses::RunInputDeclarationResponse},
+    errors::DiscoverRunInputsError,
+};
 
 pub trait DiscoverRunInputsPort {
     fn execute(

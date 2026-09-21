@@ -1,8 +1,9 @@
 #![allow(dead_code)]
 
-use ephact::application::dtos::requests::RunWorkflowRequest;
-use ephact::application::dtos::responses::RunSummaryResponse;
-use ephact::application::ports::inbound::run_workflow_port::RunWorkflowPort;
+use ephact::application::{
+    dtos::{requests::RunWorkflowRequest, responses::RunSummaryResponse},
+    ports::inbound::run_workflow_port::RunWorkflowPort,
+};
 
 pub struct StubRunWorkflowPort {
     pub result: Result<RunSummaryResponse, String>,

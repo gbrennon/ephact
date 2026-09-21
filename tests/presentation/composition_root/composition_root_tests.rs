@@ -1,12 +1,16 @@
 #[cfg(test)]
 mod tests {
-    use ephact::application::dtos::requests::RunActionRequest;
-    use ephact::application::dtos::responses::ExecuteActionResponse;
-    use ephact::application::dtos::responses::ShowProjectBrandingInfoResponse;
-    use ephact::application::ports::inbound::RunActionPort;
-    use ephact::application::ports::inbound::ShowProjectBrandingInfoPort;
-    use ephact::infrastructure::di::AppContainer;
-    use ephact::presentation::composition_root::CompositionRoot;
+    use ephact::{
+        application::{
+            dtos::{
+                requests::RunActionRequest,
+                responses::{ExecuteActionResponse, ShowProjectBrandingInfoResponse},
+            },
+            ports::inbound::{RunActionPort, ShowProjectBrandingInfoPort},
+        },
+        infrastructure::di::AppContainer,
+        presentation::composition_root::CompositionRoot,
+    };
 
     use crate::common::fakes::{
         fake_list_actions_port::FakeListActionsPort,

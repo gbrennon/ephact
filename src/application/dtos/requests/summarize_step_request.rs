@@ -1,8 +1,9 @@
 use std::time::Duration;
 
-use crate::application::dtos::responses::ExecutedStepResponse;
-use crate::domain::entities::Step;
-use crate::domain::errors::StepError;
+use crate::{
+    application::dtos::responses::ExecutedStepResponse,
+    domain::{entities::Step, errors::StepError},
+};
 
 /// Request DTO for the
 /// [`SummarizeStepPort`](crate::application::ports::inbound::summarize_step_port::SummarizeStepPort)

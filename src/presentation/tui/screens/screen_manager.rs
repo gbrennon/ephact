@@ -1,12 +1,11 @@
 use ratatui::Frame;
 
-use crate::application::dtos::responses::{
-    RunInputDeclarationResponse, RunSummaryResponse, WorkflowListItemResponse,
-};
-
 use super::{
     ConfigurationAction, ListActionsScreen, ListWorkflowsScreen, RunConfigurationValues,
     RunWorkflowScreen, home::HomeScreen,
+};
+use crate::application::dtos::responses::{
+    RunInputDeclarationResponse, RunSummaryResponse, WorkflowListItemResponse,
 };
 
 pub struct ScreenManager {

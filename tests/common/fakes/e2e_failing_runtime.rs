@@ -1,11 +1,14 @@
-use ephact::application::dtos::responses::ContainerConfigResponse;
-use ephact::application::dtos::responses::HostInfoResponse;
-use ephact::application::ports::outbound::ContainerRuntimePort;
-use ephact::application::ports::outbound::container_port::ContainerPort;
-use ephact::domain::errors::ContainerError;
+use ephact::{
+    application::{
+        dtos::responses::{ContainerConfigResponse, HostInfoResponse},
+        ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
+    },
+    domain::errors::ContainerError,
+};
 
-use crate::e2e_failing_container::FailingContainer;
-use crate::support::container_activity::ContainerActivity;
+use crate::{
+    e2e_failing_container::FailingContainer, support::container_activity::ContainerActivity,
+};
 
 /// Container runtime of the scenario where containers start normally but every
 /// command inside them exits with a failure status.

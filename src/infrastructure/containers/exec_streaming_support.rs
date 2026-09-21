@@ -3,12 +3,14 @@ use std::collections::HashMap;
 use bollard::errors::Error;
 use futures_util::StreamExt;
 
-use crate::application::dtos::responses::ExecResultResponse;
-use crate::domain::errors::ContainerError;
-use crate::domain::messages::events::OutputStream;
-use crate::infrastructure::containers::bollard_wrapper::Client;
-use crate::infrastructure::containers::bollard_wrapper::types::CreateExecOptions;
-use crate::infrastructure::containers::bollard_wrapper::types::LogOutput;
+use crate::{
+    application::dtos::responses::ExecResultResponse,
+    domain::{errors::ContainerError, messages::events::OutputStream},
+    infrastructure::containers::bollard_wrapper::{
+        Client,
+        types::{CreateExecOptions, LogOutput},
+    },
+};
 
 /// Builds the exec options that attach both output streams to a command.
 pub(super) fn exec_options(

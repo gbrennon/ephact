@@ -1,11 +1,18 @@
-use ephact::application::ports::outbound::ContainerRuntimePort;
-use ephact::domain::errors::ContainerError;
-use ephact::domain::messages::events::{
-    ActRunCompletedPayload, ContainerStartedPayload, DomainEvent, RunFailedPayload,
-};
-use ephact::infrastructure::containers::container_cleanup_handler::ContainerCleanupHandler;
-use ephact::infrastructure::messaging::domain_event_handler::DomainEventHandler;
 use std::sync::{Arc, Mutex};
+
+use ephact::{
+    application::ports::outbound::ContainerRuntimePort,
+    domain::{
+        errors::ContainerError,
+        messages::events::{
+            ActRunCompletedPayload, ContainerStartedPayload, DomainEvent, RunFailedPayload,
+        },
+    },
+    infrastructure::{
+        containers::container_cleanup_handler::ContainerCleanupHandler,
+        messaging::domain_event_handler::DomainEventHandler,
+    },
+};
 
 /// Test that verifies container cleanup handler attempts to remove containers
 #[test]

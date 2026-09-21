@@ -3,18 +3,23 @@ mod screens;
 mod tui_app;
 mod tui_runner;
 
-use std::env;
-use std::time::Duration;
+use std::{env, time::Duration};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use ephact::application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse};
-use ephact::presentation::handlers::{ListActionsHandler, ListWorkflowsHandler};
-use ephact::presentation::tui::screens::{
-    ListActionsScreen, ListWorkflowsScreen, color_support::ColorSupport, home::HomeScreen,
-    splash::SplashScreen,
+use ephact::{
+    application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse},
+    presentation::{
+        handlers::{ListActionsHandler, ListWorkflowsHandler},
+        tui::{
+            screens::{
+                ListActionsScreen, ListWorkflowsScreen, SplashQuotes, color_support::ColorSupport,
+                home::HomeScreen, splash::SplashScreen,
+            },
+            theme::Theme,
+            tui_app::{TuiApp, TuiScreen},
+        },
+    },
 };
-use ephact::presentation::tui::theme::Theme;
-use ephact::presentation::tui::tui_app::{TuiApp, TuiScreen};
 use ratatui::{
     Terminal,
     backend::TestBackend,
@@ -22,8 +27,9 @@ use ratatui::{
     style::{Color, Style},
 };
 
-use crate::common::fakes::fake_list_actions_port::FakeListActionsPort;
-use crate::common::fakes::fake_list_workflows_port::FakeListWorkflowsPort;
+use crate::common::fakes::{
+    fake_list_actions_port::FakeListActionsPort, fake_list_workflows_port::FakeListWorkflowsPort,
+};
 
 const QUIT_KEY: char = '\x71';
 struct TuiRenderAssertions;
@@ -174,7 +180,7 @@ fn list_workflows_selection_bounds() {
 #[test]
 fn splash_renders_fallback_emblem_without_true_color() {
     let text = TuiRenderAssertions::buffer_text(&TuiRenderAssertions::rendered_buffer(|frame| {
-        SplashScreen::render_with(frame, ColorSupport::Basic);
+        SplashScreen::render_with(frame, ColorSupport::Basic, SplashQuotes::select(0));
     }));
 
     assert!(text.contains("@---o"));
@@ -184,7 +190,7 @@ fn splash_renders_fallback_emblem_without_true_color() {
 #[test]
 fn splash_renders_fancy_emblem_with_true_color() {
     let buffer = TuiRenderAssertions::rendered_buffer(|frame| {
-        SplashScreen::render_with(frame, ColorSupport::TrueColor);
+        SplashScreen::render_with(frame, ColorSupport::TrueColor, SplashQuotes::select(0));
     });
 
     let text = TuiRenderAssertions::buffer_text(&buffer);
@@ -192,7 +198,7 @@ fn splash_renders_fancy_emblem_with_true_color() {
         .content()
         .iter()
         .any(|cell| matches!(cell.style().fg, Some(Color::Rgb(_, _, _))));
-    assert!(text.contains("ephact"));
+    assert!(text.contains("@---o"));
     assert!(uses_rgb);
 }
 

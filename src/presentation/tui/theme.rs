@@ -104,46 +104,44 @@ impl Theme {
             .fg(Self::SIGNAL_ACCENT)
             .add_modifier(Modifier::BOLD)
     }
+}
 
-    /// Style for the emblem wordmark that carries the brand accent.
-    pub fn wordmark_style() -> Style {
-        Style::default()
-            .fg(Self::SIGNAL_ACCENT)
-            .add_modifier(Modifier::BOLD)
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn selection_style_uses_signal_accent_background() {
+        let style = Theme::selection_style();
+
+        assert_eq!(style.bg, Some(Theme::SIGNAL_ACCENT));
     }
-}
 
-#[test]
-fn selection_style_uses_signal_accent_background() {
-    let style = Theme::selection_style();
+    #[test]
+    fn selection_style_uses_dark_text_for_legibility() {
+        let style = Theme::selection_style();
 
-    assert_eq!(style.bg, Some(Theme::SIGNAL_ACCENT));
-}
+        assert_eq!(style.fg, Some(Theme::WINDOW_BACKGROUND));
+    }
 
-#[test]
-fn selection_style_uses_dark_text_for_legibility() {
-    let style = Theme::selection_style();
+    #[test]
+    fn title_style_uses_signal_accent() {
+        let style = Theme::title_style();
 
-    assert_eq!(style.fg, Some(Theme::WINDOW_BACKGROUND));
-}
+        assert_eq!(style.fg, Some(Theme::SIGNAL_ACCENT));
+    }
 
-#[test]
-fn title_style_uses_signal_accent() {
-    let style = Theme::title_style();
+    #[test]
+    fn signal_style_uses_signal_accent() {
+        let style = Theme::signal_style();
 
-    assert_eq!(style.fg, Some(Theme::SIGNAL_ACCENT));
-}
+        assert_eq!(style.fg, Some(Theme::SIGNAL_ACCENT));
+    }
 
-#[test]
-fn signal_style_uses_signal_accent() {
-    let style = Theme::signal_style();
+    #[test]
+    fn muted_style_uses_muted_text() {
+        let style = Theme::muted_style();
 
-    assert_eq!(style.fg, Some(Theme::SIGNAL_ACCENT));
-}
-
-#[test]
-fn muted_style_uses_muted_text() {
-    let style = Theme::muted_style();
-
-    assert_eq!(style.fg, Some(Theme::TEXT_MUTED));
+        assert_eq!(style.fg, Some(Theme::TEXT_MUTED));
+    }
 }

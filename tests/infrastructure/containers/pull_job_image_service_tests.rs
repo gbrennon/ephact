@@ -1,11 +1,13 @@
 #[cfg(test)]
 mod tests {
-    use ephact::infrastructure::containers::{
-        pull_job_image_port::PullJobImagePort, pull_job_image_service::PullJobImageService,
-    };
     use std::sync::Arc;
 
-    use ephact::application::dtos::requests::PullJobImageRequest;
+    use ephact::{
+        application::dtos::requests::PullJobImageRequest,
+        infrastructure::containers::{
+            pull_job_image_port::PullJobImagePort, pull_job_image_service::PullJobImageService,
+        },
+    };
 
     use crate::common::fakes::{
         fake_image_mapper::FakeImageMapper, fake_runtime::FakeRuntime,
