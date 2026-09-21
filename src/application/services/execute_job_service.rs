@@ -10,7 +10,7 @@ use crate::{
             },
             responses::{
                 JobExecutionResponse, JobSummaryResponse, PreparedJobContainerResponse,
-                StepSummaryResponse,
+                StepSummaryDetails, StepSummaryResponse, StepSummaryResponseInput,
             },
         },
         errors::ExecuteJobError,
@@ -203,18 +203,7 @@ impl ExecuteJobService {
                 state.step_env.clone(),
             ));
         self.announce_step_started(request, workflow, run, step);
-        let outcome = self.command_bus.dispatch(ExecuteStepCommand::new(
-            step.clone(),
-            state.step_env.clone(),
-            step_context,
-            state.prepared.container_handle(),
-            request.repo_path().to_path_buf(),
-        ));
-        let summarized = self.step_summarizer.execute(SummarizeStepRequest::new(
-            step,
-            outcome,
-            started_at.elapsed(),
-        ));
+        let summarized = self.summarize_step(request, step, state, step_context, started_at);
         state.job_success &= !summarized.fails_job();
         self.announce_step_finished(
             request,
@@ -230,6 +219,48 @@ impl ExecuteJobService {
         let (path_additions, env) = exports.into_parts();
         state.extra_path.extend(path_additions);
         state.step_env.extend(env);
+    }
+
+    fn summarize_step(
+        &self,
+        request: &ExecuteJobRequest,
+        step: &crate::domain::entities::Step,
+        state: &JobExecutionState,
+        step_context: crate::domain::value_objects::EvaluationContext,
+        started_at: Instant,
+    ) -> crate::application::dtos::responses::SummarizedStepResponse {
+        if !request.allow_network()
+            && let Some(reason) = step.network_access_reason()
+        {
+            return self.skipped_step(step, started_at.elapsed(), reason);
+        }
+        let outcome = self.command_bus.dispatch(ExecuteStepCommand::new(
+            step.clone(),
+            state.step_env.clone(),
+            step_context,
+            state.prepared.container_handle(),
+            request.repo_path().to_path_buf(),
+        ));
+        self.step_summarizer.execute(SummarizeStepRequest::new(
+            step,
+            outcome,
+            started_at.elapsed(),
+        ))
+    }
+
+    fn skipped_step(
+        &self,
+        step: &crate::domain::entities::Step,
+        duration: std::time::Duration,
+        reason: &str,
+    ) -> crate::application::dtos::responses::SummarizedStepResponse {
+        let summary = StepSummaryResponse::new(StepSummaryResponseInput::new(
+            step.display_name().to_string(),
+            step.step_type(),
+            StepSummaryDetails::new(None, step.continues_on_error(), duration, "", reason),
+        ))
+        .with_skip_reason(reason);
+        crate::application::dtos::responses::SummarizedStepResponse::new(summary, false)
     }
 
     fn build_response(
