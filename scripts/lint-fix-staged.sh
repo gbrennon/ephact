@@ -6,14 +6,18 @@ if [ -z "$staged_files" ]; then
   exit 0
 fi
 stash_created=false
+changed_files() {
+  git diff --name-only
+}
+
 restore_non_staged_files() {
   local changed_file
 
-  for changed_file in $(git diff --name-only); do
+  while IFS= read -r changed_file; do
     if [[ " $staged_files " != *" $changed_file "* ]]; then
       git restore --worktree -- "$changed_file"
     fi
-  done
+  done < <(changed_files)
 }
 
 restore_stash() {
