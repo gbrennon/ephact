@@ -1,14 +1,15 @@
 #[cfg(test)]
 mod tests {
-    use ephact::infrastructure::workflows::{
-        resolve_workflow_files_port::ResolveWorkflowFilesPort,
-        resolve_workflow_files_service::ResolveWorkflowFilesService,
-    };
     use std::path::{Path, PathBuf};
 
-    use ephact::application::dtos::requests::ResolveWorkflowFilesRequest;
-    use ephact::domain::ActRunConfig;
-    use ephact::domain::ActWorkflow;
+    use ephact::{
+        application::dtos::requests::ResolveWorkflowFilesRequest,
+        domain::{ActRunConfig, ActWorkflow},
+        infrastructure::workflows::{
+            resolve_workflow_files_port::ResolveWorkflowFilesPort,
+            resolve_workflow_files_service::ResolveWorkflowFilesService,
+        },
+    };
 
     use crate::common::fakes::{
         fake_detect_workflow_file_port::FakeDetectWorkflowFilePort,

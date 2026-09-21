@@ -1,18 +1,21 @@
 #[cfg(test)]
 mod tests {
-    use ephact::infrastructure::workflows::{
-        merge_run_executions_port::MergeRunExecutionsPort,
-        merge_run_executions_service::MergeRunExecutionsService,
-    };
     use std::time::Duration;
 
-    use ephact::application::dtos::requests::MergeRunExecutionsRequest;
-    use ephact::application::dtos::responses::JobSummaryResponse;
-    use ephact::application::dtos::responses::WorkflowExecutionResponse;
-    use ephact::application::dtos::responses::{
-        StepSummaryDetails, StepSummaryResponse, StepSummaryResponseInput,
+    use ephact::{
+        application::dtos::{
+            requests::MergeRunExecutionsRequest,
+            responses::{
+                JobSummaryResponse, StepSummaryDetails, StepSummaryResponse,
+                StepSummaryResponseInput, WorkflowExecutionResponse,
+            },
+        },
+        domain::value_objects::StepType,
+        infrastructure::workflows::{
+            merge_run_executions_port::MergeRunExecutionsPort,
+            merge_run_executions_service::MergeRunExecutionsService,
+        },
     };
-    use ephact::domain::value_objects::StepType;
 
     fn job(job_id: &str, name: Option<&str>, success: bool) -> JobSummaryResponse {
         JobSummaryResponse::new(

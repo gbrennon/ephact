@@ -1,9 +1,13 @@
 use std::time::Duration;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use ephact::application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse};
-use ephact::presentation::tui::screens::ScreenManager;
-use ephact::presentation::tui::tui_app::{TuiApp, TuiScreen};
+use ephact::{
+    application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse},
+    presentation::tui::{
+        screens::ScreenManager,
+        tui_app::{TuiApp, TuiScreen},
+    },
+};
 #[test]
 fn screen_manager_retains_home_and_workflow_selection() {
     let workflows = vec![

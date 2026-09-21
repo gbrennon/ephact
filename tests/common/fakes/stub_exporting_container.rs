@@ -1,11 +1,13 @@
 #![allow(dead_code)]
 use std::collections::HashMap;
 
-use ephact::application::dtos::responses::ExecResultResponse;
-use ephact::application::dtos::responses::FileEntryResponse;
-use ephact::application::dtos::responses::RunnerContextResponse;
-use ephact::application::ports::outbound::container_port::ContainerPort;
-use ephact::domain::errors::ContainerError;
+use ephact::{
+    application::{
+        dtos::responses::{ExecResultResponse, FileEntryResponse, RunnerContextResponse},
+        ports::outbound::container_port::ContainerPort,
+    },
+    domain::errors::ContainerError,
+};
 
 /// Container that answers `cat <file>` with prepared contents, standing in for
 /// a container whose steps wrote the runner's export files.

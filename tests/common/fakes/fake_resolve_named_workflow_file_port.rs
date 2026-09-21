@@ -1,9 +1,11 @@
 #![allow(dead_code)]
-use ephact::infrastructure::workflows::resolve_named_workflow_file_port::ResolveNamedWorkflowFilePort;
-use parking_lot::Mutex;
 use std::path::PathBuf;
 
-use ephact::application::dtos::requests::ResolveNamedWorkflowFileRequest;
+use ephact::{
+    application::dtos::requests::ResolveNamedWorkflowFileRequest,
+    infrastructure::workflows::resolve_named_workflow_file_port::ResolveNamedWorkflowFilePort,
+};
+use parking_lot::Mutex;
 
 /// Resolves every name to a prepared path, recording the names it was asked for.
 pub struct FakeResolveNamedWorkflowFilePort {

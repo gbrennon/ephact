@@ -1,14 +1,19 @@
 #![allow(dead_code)]
 use std::{collections::HashMap, path::PathBuf};
 
-use ephact::application::dtos::requests::{
-    ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
+use ephact::{
+    application::{
+        dtos::requests::{
+            ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
+        },
+        ports::outbound::container_port::ContainerPort,
+    },
+    domain::{
+        services::{evaluation_context_mapper::EvaluationContextMapper, step_factory::StepFactory},
+        value_objects::EvaluationContext,
+    },
+    infrastructure::workflows::yaml::StepYaml,
 };
-use ephact::application::ports::outbound::container_port::ContainerPort;
-use ephact::domain::services::evaluation_context_mapper::EvaluationContextMapper;
-use ephact::domain::services::step_factory::StepFactory;
-use ephact::domain::value_objects::EvaluationContext;
-use ephact::infrastructure::workflows::yaml::StepYaml;
 
 /// Builds action execution requests for tests that only care about which
 /// action was requested.

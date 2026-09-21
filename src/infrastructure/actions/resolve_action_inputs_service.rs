@@ -1,8 +1,12 @@
 use std::collections::HashMap;
 
-use crate::application::dtos::requests::ResolveActionInputsRequest;
-use crate::application::ports::outbound::resolve_action_inputs_port::ResolveActionInputsPort;
-use crate::domain::errors::StepError;
+use crate::{
+    application::{
+        dtos::requests::ResolveActionInputsRequest,
+        ports::outbound::resolve_action_inputs_port::ResolveActionInputsPort,
+    },
+    domain::errors::StepError,
+};
 
 /// Service that resolves the inputs an action runs with, overlaying the step's
 /// `with:` values on the defaults the action declared.

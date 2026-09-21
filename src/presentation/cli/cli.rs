@@ -1,24 +1,32 @@
-use std::ffi::OsString;
-use std::sync::Arc;
+use std::{ffi::OsString, sync::Arc};
 
-use super::super::components::{
-    banner::Banner,
-    box_component::BoxComponent,
-    content::ContentComponent,
-    terminal::{SystemTerminal, Terminal},
+use super::{
+    super::components::{
+        banner::Banner,
+        box_component::BoxComponent,
+        content::ContentComponent,
+        terminal::{SystemTerminal, Terminal},
+    },
+    cli_parser::CliParser,
+    command::Command,
+    run_progress_handler::TuiProgressStream,
 };
-use super::run_progress_handler::TuiProgressStream;
-use super::{cli_parser::CliParser, command::Command};
-use crate::application::ports::inbound::{
-    list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
-    run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
-    show_project_branding_info_port::ShowProjectBrandingInfoPort,
+use crate::{
+    application::ports::{
+        inbound::{
+            list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
+            run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
+            show_project_branding_info_port::ShowProjectBrandingInfoPort,
+        },
+        outbound::DiscoverRunInputsPort,
+    },
+    presentation::{
+        handlers::{
+            DiagnosticStores, ListActionsHandler, ListWorkflowsHandler, PreflightPorts, RunHandler,
+        },
+        tui::TuiRunner,
+    },
 };
-use crate::application::ports::outbound::DiscoverRunInputsPort;
-use crate::presentation::handlers::{
-    DiagnosticStores, ListActionsHandler, ListWorkflowsHandler, PreflightPorts, RunHandler,
-};
-use crate::presentation::tui::TuiRunner;
 
 pub struct Cli {
     run_workflow_port: Arc<dyn RunWorkflowPort>,

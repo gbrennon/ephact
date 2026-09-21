@@ -1,6 +1,7 @@
-use crate::application::dtos::requests::ExecuteActionRequest;
-use crate::application::dtos::responses::ExecuteActionResponse;
-use crate::application::errors::ExecuteNestedActionError;
+use crate::application::{
+    dtos::{requests::ExecuteActionRequest, responses::ExecuteActionResponse},
+    errors::ExecuteNestedActionError,
+};
 
 /// Inbound port for recursively executing nested actions inside a composite action.
 pub trait ExecuteNestedActionPort: Send + Sync {

@@ -2,25 +2,30 @@
 mod tests {
     use std::cell::RefCell;
 
+    use ephact::{
+        application::{
+            dtos::{
+                requests::{ListActionsRequest, RunActionRequest},
+                responses::{
+                    ExecuteActionResponse, ListActionsResponse, ShowProjectBrandingInfoResponse,
+                },
+            },
+            errors::{ListActionsError, RunActionError, ShowProjectBrandingInfoError},
+            ports::inbound::{ListActionsPort, RunActionPort, ShowProjectBrandingInfoPort},
+        },
+        infrastructure::di::AppContainer,
+        presentation::{
+            components::terminal::Terminal,
+            composition_root::{Application, CompositionRoot},
+        },
+    };
+
     use crate::common::fakes::{
         fake_list_actions_port::FakeListActionsPort,
         fake_list_workflows_port::FakeListWorkflowsPort,
         fake_run_all_workflows_port::FakeRunAllWorkflowsPort,
         fake_run_workflow_port::FakeRunWorkflowPort,
     };
-    use ephact::application::dtos::requests::{ListActionsRequest, RunActionRequest};
-    use ephact::application::dtos::responses::{
-        ExecuteActionResponse, ListActionsResponse, ShowProjectBrandingInfoResponse,
-    };
-    use ephact::application::errors::{
-        ListActionsError, RunActionError, ShowProjectBrandingInfoError,
-    };
-    use ephact::application::ports::inbound::ShowProjectBrandingInfoPort;
-    use ephact::application::ports::inbound::{ListActionsPort, RunActionPort};
-    use ephact::infrastructure::di::AppContainer;
-    use ephact::presentation::components::terminal::Terminal;
-    use ephact::presentation::composition_root::Application;
-    use ephact::presentation::composition_root::CompositionRoot;
 
     struct FakeShowProjectBrandingInfoPort;
     impl ShowProjectBrandingInfoPort for FakeShowProjectBrandingInfoPort {

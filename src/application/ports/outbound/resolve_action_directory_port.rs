@@ -1,6 +1,9 @@
-use crate::application::dtos::requests::ResolveActionDirectoryRequest;
-use crate::application::dtos::responses::ResolvedActionDirectoryResponse;
-use crate::domain::errors::StepError;
+use crate::{
+    application::dtos::{
+        requests::ResolveActionDirectoryRequest, responses::ResolvedActionDirectoryResponse,
+    },
+    domain::errors::StepError,
+};
 
 /// Inbound port for deciding where the action a step references lives.
 pub trait ResolveActionDirectoryPort: Send + Sync {

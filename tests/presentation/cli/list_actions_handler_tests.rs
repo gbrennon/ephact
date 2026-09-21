@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use ephact::presentation::cli::parse_list_actions_test_args;
-    use ephact::presentation::handlers::ListActionsHandler;
+    use ephact::presentation::{cli::parse_list_actions_test_args, handlers::ListActionsHandler};
 
     use crate::common::fakes::fake_list_actions_port::FakeListActionsPort;
 

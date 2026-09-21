@@ -1,16 +1,18 @@
+use std::error::Error;
+
 use super::{
     detect_workflow_file_port::DetectWorkflowFilePort,
     list_all_workflow_files_port::ListAllWorkflowFilesPort,
     resolve_named_workflow_file_port::ResolveNamedWorkflowFilePort,
     resolve_workflow_files_port::ResolveWorkflowFilesPort,
 };
-use std::error::Error;
-
-use crate::application::dtos::requests::DetectWorkflowFileRequest;
-use crate::application::dtos::requests::ListAllWorkflowFilesRequest;
-use crate::application::dtos::requests::ResolveNamedWorkflowFileRequest;
-use crate::application::dtos::requests::ResolveWorkflowFilesRequest;
-use crate::application::dtos::responses::ResolveWorkflowFilesResponse;
+use crate::application::dtos::{
+    requests::{
+        DetectWorkflowFileRequest, ListAllWorkflowFilesRequest, ResolveNamedWorkflowFileRequest,
+        ResolveWorkflowFilesRequest,
+    },
+    responses::ResolveWorkflowFilesResponse,
+};
 
 /// Service that decides which workflow files a run executes: every workflow of
 /// the repository, the one the caller named, or the detected default.

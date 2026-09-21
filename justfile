@@ -46,7 +46,7 @@ lint:
 
 # Lint fixes (optionally specify files)
 lint-fix +files='':
-	cargo clippy --fix --allow-dirty --allow-staged {{files}}
+	bash scripts/lint-fix-staged.sh {{files}}
 
 # Format the entire workspace (pass cargo fmt arguments through)
 fmt *args:

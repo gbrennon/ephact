@@ -1,5 +1,6 @@
-use crate::application::dtos::requests::MergeRunExecutionsRequest;
-use crate::application::dtos::responses::WorkflowExecutionResponse;
+use crate::application::dtos::{
+    requests::MergeRunExecutionsRequest, responses::WorkflowExecutionResponse,
+};
 
 /// Inbound port for reducing a run's workflow executions to the one execution
 /// the run reports.

@@ -1,23 +1,28 @@
 #[cfg(test)]
 mod tests {
-    use ephact::{
-        application::ports::outbound::run_shell_step_port::RunShellStepPort,
-        infrastructure::steps::run_shell_step_service::RunShellStepService,
-    };
     use std::collections::HashMap;
 
-    use ephact::application::dtos::requests::RunShellStepRequest;
-    use ephact::application::dtos::responses::ExecResultResponse;
-    use ephact::application::dtos::responses::{ContainerConfigOptions, ContainerConfigResponse};
-    use ephact::application::ports::outbound::ContainerRuntimePort;
-    use ephact::application::ports::outbound::container_port::ContainerPort;
-    use ephact::domain::entities::Step;
+    use ephact::{
+        application::{
+            dtos::{
+                requests::RunShellStepRequest,
+                responses::{ContainerConfigOptions, ContainerConfigResponse, ExecResultResponse},
+            },
+            ports::outbound::{
+                ContainerRuntimePort, container_port::ContainerPort,
+                run_shell_step_port::RunShellStepPort,
+            },
+        },
+        domain::entities::Step,
+        infrastructure::{
+            steps::run_shell_step_service::RunShellStepService, workflows::yaml::StepYaml,
+        },
+    };
 
     use crate::common::fakes::{
         fake_event_bus::FakeEventBus, fake_runtime::FakeRuntime,
         stub_failing_container::StubFailingContainer,
     };
-    use ephact::infrastructure::workflows::yaml::StepYaml;
 
     fn container(runtime: &dyn ContainerRuntimePort) -> Box<dyn ContainerPort> {
         runtime

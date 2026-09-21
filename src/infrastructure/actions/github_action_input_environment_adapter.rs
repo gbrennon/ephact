@@ -1,6 +1,7 @@
 use super::build_action_input_environment_port::BuildActionInputEnvironmentPort;
-use crate::application::dtos::requests::BuildActionInputEnvironmentRequest;
-use crate::application::dtos::responses::BuildActionInputEnvironmentResponse;
+use crate::application::dtos::{
+    requests::BuildActionInputEnvironmentRequest, responses::BuildActionInputEnvironmentResponse,
+};
 
 /// Infrastructure adapter that prepares an action's execution environment
 /// following the GitHub Actions specification: `GITHUB_ACTION_PATH` and

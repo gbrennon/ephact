@@ -1,5 +1,7 @@
-use crate::domain::value_objects::act_run_config::ActRunConfigParts;
-use crate::domain::value_objects::{ActEvent, ActInput, ActJob, ActRunConfig, ActWorkflow, Secret};
+use crate::domain::value_objects::{
+    ActEvent, ActInput, ActJob, ActRunConfig, ActWorkflow, Secret,
+    act_run_config::ActRunConfigParts,
+};
 
 #[derive(Default)]
 pub struct ActRunConfigInput {

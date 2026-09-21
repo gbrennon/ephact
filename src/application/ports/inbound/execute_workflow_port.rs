@@ -1,6 +1,7 @@
-use crate::application::dtos::requests::ExecuteWorkflowRequest;
-use crate::application::dtos::responses::WorkflowExecutionResponse;
-use crate::application::errors::ExecuteWorkflowError;
+use crate::application::{
+    dtos::{requests::ExecuteWorkflowRequest, responses::WorkflowExecutionResponse},
+    errors::ExecuteWorkflowError,
+};
 
 pub trait ExecuteWorkflowPort: Send + Sync {
     fn execute(

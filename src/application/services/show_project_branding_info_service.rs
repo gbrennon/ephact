@@ -1,7 +1,8 @@
-use crate::application::dtos::responses::ShowProjectBrandingInfoResponse;
-use crate::application::errors::ShowProjectBrandingInfoError;
-use crate::application::ports::inbound::ShowProjectBrandingInfoPort;
-use crate::application::ports::outbound::ProjectBrandingStorePort;
+use crate::application::{
+    dtos::responses::ShowProjectBrandingInfoResponse,
+    errors::ShowProjectBrandingInfoError,
+    ports::{inbound::ShowProjectBrandingInfoPort, outbound::ProjectBrandingStorePort},
+};
 
 pub struct ShowProjectBrandingInfoService {
     branding_store: Box<dyn ProjectBrandingStorePort>,

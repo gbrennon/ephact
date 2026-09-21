@@ -2,16 +2,15 @@ use std::path::PathBuf;
 
 use clap::Args;
 
-use crate::application::dtos::responses::WorkflowInputSourceResponse;
-use crate::domain::ActRunConfig;
-use crate::domain::Repository;
-use crate::domain::value_objects::ActEvent;
-use crate::domain::value_objects::ActInput;
-use crate::domain::value_objects::ActJob;
-use crate::domain::value_objects::ActWorkflow;
-use crate::domain::value_objects::RepoPath;
-use crate::domain::value_objects::RepositoryName;
-use crate::domain::value_objects::Secret;
+use crate::{
+    application::dtos::responses::WorkflowInputSourceResponse,
+    domain::{
+        ActRunConfig, Repository,
+        value_objects::{
+            ActEvent, ActInput, ActJob, ActWorkflow, RepoPath, RepositoryName, Secret,
+        },
+    },
+};
 
 /// CLI arguments for the `run` subcommand.
 ///

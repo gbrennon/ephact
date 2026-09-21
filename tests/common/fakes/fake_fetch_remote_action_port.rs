@@ -1,11 +1,12 @@
 #![allow(dead_code)]
-use ephact::infrastructure::actions::fetch_remote_action_port::FetchRemoteActionPort;
-use parking_lot::Mutex;
 use std::{path::PathBuf, sync::Arc};
 
-use ephact::application::dtos::requests::FetchRemoteActionRequest;
-use ephact::domain::errors::ActionError;
-use ephact::domain::value_objects::RemoteActionReference;
+use ephact::{
+    application::dtos::requests::FetchRemoteActionRequest,
+    domain::{errors::ActionError, value_objects::RemoteActionReference},
+    infrastructure::actions::fetch_remote_action_port::FetchRemoteActionPort,
+};
+use parking_lot::Mutex;
 
 /// Resolves every remote reference to a prepared directory, or fails.
 #[derive(Clone)]

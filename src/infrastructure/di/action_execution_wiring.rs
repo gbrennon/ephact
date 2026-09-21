@@ -1,17 +1,24 @@
 use std::sync::Arc;
 
-use crate::application::ports::outbound::{
-    ActionCommandBusPort, DomainEventBusPort, LoadActionDefinitionPort, ResolveActionDirectoryPort,
-    ResolveActionInputsPort, RunCompositeActionPort, RunNodeActionPort,
+use crate::{
+    application::{
+        ports::outbound::{
+            ActionCommandBusPort, DomainEventBusPort, LoadActionDefinitionPort,
+            ResolveActionDirectoryPort, ResolveActionInputsPort, RunCompositeActionPort,
+            RunNodeActionPort,
+        },
+        services::execute_action_service::ExecuteActionService,
+    },
+    infrastructure::{
+        actions::{
+            ActionFetcherPort, CollectActionFilesService, CopyActionToContainerService,
+            ExecuteActionFactory, FetchRemoteActionService, GitHubActionInputEnvironmentAdapter,
+            LoadActionDefinitionService, ResolveActionDirectoryService, ResolveActionInputsService,
+            ResolveNodeBinaryService, RunCompositeActionService, RunNodeActionService,
+        },
+        steps::{RunCompositeStepService, RunShellStepService},
+    },
 };
-use crate::application::services::execute_action_service::ExecuteActionService;
-use crate::infrastructure::actions::{
-    ActionFetcherPort, CollectActionFilesService, CopyActionToContainerService,
-    ExecuteActionFactory, FetchRemoteActionService, GitHubActionInputEnvironmentAdapter,
-    LoadActionDefinitionService, ResolveActionDirectoryService, ResolveActionInputsService,
-    ResolveNodeBinaryService, RunCompositeActionService, RunNodeActionService,
-};
-use crate::infrastructure::steps::{RunCompositeStepService, RunShellStepService};
 
 pub struct ActionExecutionWiring;
 

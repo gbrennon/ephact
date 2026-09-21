@@ -1,12 +1,14 @@
 #[cfg(test)]
 mod tests {
-    use ephact::infrastructure::workflows::{
-        list_workflow_directory_port::ListWorkflowDirectoryPort,
-        list_workflow_directory_service::ListWorkflowDirectoryService,
-    };
     use std::fs;
 
-    use ephact::application::dtos::requests::ListWorkflowDirectoryRequest;
+    use ephact::{
+        application::dtos::requests::ListWorkflowDirectoryRequest,
+        infrastructure::workflows::{
+            list_workflow_directory_port::ListWorkflowDirectoryPort,
+            list_workflow_directory_service::ListWorkflowDirectoryService,
+        },
+    };
 
     #[test]
     fn execute_returns_yml_and_yaml_files_sorted_by_path() {

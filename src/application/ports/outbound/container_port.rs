@@ -1,12 +1,10 @@
 use std::collections::HashMap;
 
-use crate::application::dtos::responses::ExecResultResponse;
-use crate::application::dtos::responses::FileEntryResponse;
-use crate::application::dtos::responses::RunnerContextResponse;
-use crate::domain::errors::ContainerError;
-use crate::domain::messages::events::OutputStream;
-
 pub use super::exec_options::ExecOptions;
+use crate::{
+    application::dtos::responses::{ExecResultResponse, FileEntryResponse, RunnerContextResponse},
+    domain::{errors::ContainerError, messages::events::OutputStream},
+};
 
 pub trait ContainerPort: Send + Sync {
     fn exec(

@@ -1,17 +1,24 @@
 use futures_util::StreamExt;
 use tokio::runtime::Runtime;
 
-use super::bollard_wrapper::types::{
-    ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder, HostConfig,
-    InspectContainerOptions, KillContainerOptions, RemoveContainerOptions, StartContainerOptions,
+use super::{
+    bollard_wrapper::{
+        API_DEFAULT_VERSION, AuthCredentials, Client,
+        types::{
+            ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
+            HostConfig, InspectContainerOptions, KillContainerOptions, RemoveContainerOptions,
+            StartContainerOptions,
+        },
+    },
+    podman_container::PodmanContainer,
 };
-use super::bollard_wrapper::{API_DEFAULT_VERSION, AuthCredentials, Client};
-use super::podman_container::PodmanContainer;
-use crate::application::dtos::responses::ContainerConfigResponse;
-use crate::application::dtos::responses::HostInfoResponse;
-use crate::application::ports::outbound::ContainerRuntimePort;
-use crate::application::ports::outbound::container_port::ContainerPort;
-use crate::domain::errors::ContainerError;
+use crate::{
+    application::{
+        dtos::responses::{ContainerConfigResponse, HostInfoResponse},
+        ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
+    },
+    domain::errors::ContainerError,
+};
 
 /// Podman-based container runtime adapter using the bollard crate.
 ///

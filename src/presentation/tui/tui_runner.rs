@@ -1,21 +1,26 @@
-use std::path::PathBuf;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use ratatui::{DefaultTerminal, Terminal, backend::CrosstermBackend};
 
-use crate::application::dtos::responses::RunSummaryResponse;
-use crate::application::ports::inbound::list_actions_port::ListActionsPort;
-use crate::application::ports::inbound::list_workflows_port::ListWorkflowsPort;
-use crate::application::ports::inbound::run_workflow_port::RunWorkflowPort;
-use crate::application::ports::outbound::DiscoverRunInputsPort;
-use crate::presentation::cli::TuiProgressStream;
-use crate::presentation::handlers::RunHandler;
-
-use super::event_reader::EventReader;
-use super::screens::{ListActionsScreen, ListWorkflowsScreen};
-use super::terminal_guard::TerminalGuard;
-use super::tui_app::{TuiApp, TuiScreen};
+use super::{
+    event_reader::EventReader,
+    screens::{ListActionsScreen, ListWorkflowsScreen},
+    terminal_guard::TerminalGuard,
+    tui_app::{TuiApp, TuiScreen},
+};
+use crate::{
+    application::{
+        dtos::responses::RunSummaryResponse,
+        ports::{
+            inbound::{
+                list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
+                run_workflow_port::RunWorkflowPort,
+            },
+            outbound::DiscoverRunInputsPort,
+        },
+    },
+    presentation::{cli::TuiProgressStream, handlers::RunHandler},
+};
 type RunTask = tokio::task::JoinHandle<Result<RunSummaryResponse, String>>;
 
 pub struct TuiRunner {

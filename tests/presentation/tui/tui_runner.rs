@@ -1,14 +1,16 @@
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-    use std::time::Duration;
+    use std::{sync::Arc, time::Duration};
 
-    use ephact::application::dtos::responses::RunSummaryResponse;
-    use ephact::presentation::tui::TuiRunner;
+    use ephact::{application::dtos::responses::RunSummaryResponse, presentation::tui::TuiRunner};
 
-    use crate::common::fakes::fake_list_actions_port::FakeListActionsPort;
-    use crate::common::fakes::fake_list_workflows_port::FakeListWorkflowsPort;
-    use crate::fakes::recording_run_workflow_port::RecordingRunWorkflowPort;
+    use crate::{
+        common::fakes::{
+            fake_list_actions_port::FakeListActionsPort,
+            fake_list_workflows_port::FakeListWorkflowsPort,
+        },
+        fakes::recording_run_workflow_port::RecordingRunWorkflowPort,
+    };
 
     fn ci_summary() -> RunSummaryResponse {
         RunSummaryResponse::new("CI", vec![], true, Duration::from_secs(1))

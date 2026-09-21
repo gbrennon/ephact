@@ -1,15 +1,14 @@
 #[cfg(test)]
 mod tests {
-    use ephact::application::dtos::responses::ShowProjectBrandingInfoResponse;
-    use ephact::application::errors::ProjectBrandingStoreError;
-    use ephact::application::ports::inbound::ShowProjectBrandingInfoPort;
-    use ephact::application::ports::outbound::ProjectBrandingStorePort;
-    use ephact::application::services::show_project_branding_info_service::ShowProjectBrandingInfoService;
-    use ephact::domain::ProjectBranding;
-    use ephact::domain::ProjectDescription;
-    use ephact::domain::ProjectEmblem;
-    use ephact::domain::ProjectName;
-    use ephact::domain::ProjectVersion;
+    use ephact::{
+        application::{
+            dtos::responses::ShowProjectBrandingInfoResponse,
+            errors::ProjectBrandingStoreError,
+            ports::{inbound::ShowProjectBrandingInfoPort, outbound::ProjectBrandingStorePort},
+            services::show_project_branding_info_service::ShowProjectBrandingInfoService,
+        },
+        domain::{ProjectBranding, ProjectDescription, ProjectEmblem, ProjectName, ProjectVersion},
+    };
 
     struct FakeBrandingStore {
         result: Result<ProjectBranding, String>,

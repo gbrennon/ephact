@@ -2,29 +2,31 @@
 mod tests {
     use std::time::Duration;
 
-    use ephact::application::dtos::requests::ListActionsRequest;
-    use ephact::application::dtos::requests::ListWorkflowsRequest;
-    use ephact::application::dtos::requests::RunAllWorkflowsRequest;
-    use ephact::application::dtos::requests::RunWorkflowRequest;
-    use ephact::application::dtos::responses::JobSummaryResponse;
-    use ephact::application::dtos::responses::ListActionsResponse;
-    use ephact::application::dtos::responses::ListWorkflowsResponse;
-    use ephact::application::dtos::responses::RunSummaryResponse;
-    use ephact::application::dtos::responses::ShowProjectBrandingInfoResponse;
-    use ephact::application::dtos::responses::WorkflowListItemResponse;
-    use ephact::application::dtos::responses::{
-        StepSummaryDetails, StepSummaryResponse, StepSummaryResponseInput,
+    use ephact::{
+        application::{
+            dtos::{
+                requests::{
+                    ListActionsRequest, ListWorkflowsRequest, RunAllWorkflowsRequest,
+                    RunWorkflowRequest,
+                },
+                responses::{
+                    JobSummaryResponse, ListActionsResponse, ListWorkflowsResponse,
+                    RunSummaryResponse, ShowProjectBrandingInfoResponse, StepSummaryDetails,
+                    StepSummaryResponse, StepSummaryResponseInput, WorkflowListItemResponse,
+                },
+            },
+            errors::DiscoverRunInputsError,
+            ports::inbound::{
+                ListActionsPort, ListWorkflowsPort, RunAllWorkflowsPort, RunWorkflowPort,
+                ShowProjectBrandingInfoPort,
+            },
+        },
+        domain::value_objects::StepType,
+        presentation::{
+            cli::{Cli, cli::CliDependencies},
+            components::terminal::Terminal,
+        },
     };
-    use ephact::application::errors::DiscoverRunInputsError;
-    use ephact::application::ports::inbound::ListActionsPort;
-    use ephact::application::ports::inbound::ListWorkflowsPort;
-    use ephact::application::ports::inbound::RunAllWorkflowsPort;
-    use ephact::application::ports::inbound::RunWorkflowPort;
-    use ephact::application::ports::inbound::ShowProjectBrandingInfoPort;
-    use ephact::domain::value_objects::StepType;
-    use ephact::presentation::cli::Cli;
-    use ephact::presentation::cli::cli::CliDependencies;
-    use ephact::presentation::components::terminal::Terminal;
 
     use super::super::support::workflow_repository::WorkflowRepository;
 

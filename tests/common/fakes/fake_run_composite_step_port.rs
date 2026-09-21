@@ -1,13 +1,15 @@
 #![allow(dead_code)]
-use parking_lot::Mutex;
 use std::sync::Arc;
 
-use ephact::application::dtos::requests::RunCompositeStepRequest;
-use ephact::application::dtos::responses::ExecResultResponse;
-use ephact::application::ports::outbound::ContainerPort;
-use ephact::domain::entities::Step;
-use ephact::domain::errors::StepError;
-use ephact::infrastructure::steps::run_composite_step_port::RunCompositeStepPort;
+use ephact::{
+    application::{
+        dtos::{requests::RunCompositeStepRequest, responses::ExecResultResponse},
+        ports::outbound::ContainerPort,
+    },
+    domain::{entities::Step, errors::StepError},
+    infrastructure::steps::run_composite_step_port::RunCompositeStepPort,
+};
+use parking_lot::Mutex;
 
 /// Answers each composite step with the next queued result, recording the
 /// steps it was asked to run.

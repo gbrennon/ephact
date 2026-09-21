@@ -1,15 +1,18 @@
 #[cfg(test)]
 mod tests {
-    use ephact::{
-        application::ports::outbound::build_step_context_port::BuildStepContextPort,
-        infrastructure::steps::build_step_context_service::BuildStepContextService,
-    };
     use std::collections::HashMap;
 
-    use ephact::application::dtos::requests::BuildStepContextRequest;
-    use ephact::domain::services::evaluation_context_mapper::EvaluationContextMapper;
-    use ephact::domain::value_objects::ContextValue;
-    use ephact::domain::value_objects::EvaluationContext;
+    use ephact::{
+        application::{
+            dtos::requests::BuildStepContextRequest,
+            ports::outbound::build_step_context_port::BuildStepContextPort,
+        },
+        domain::{
+            services::evaluation_context_mapper::EvaluationContextMapper,
+            value_objects::{ContextValue, EvaluationContext},
+        },
+        infrastructure::steps::build_step_context_service::BuildStepContextService,
+    };
 
     #[test]
     fn execute_mirrors_the_environment_into_the_env_context() {

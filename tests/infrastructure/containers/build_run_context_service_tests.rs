@@ -1,20 +1,18 @@
 #[cfg(test)]
 mod tests {
-    use ephact::infrastructure::containers::{
-        build_run_context_port::BuildRunContextPort,
-        build_run_context_service::BuildRunContextService,
-    };
     use std::path::Path;
 
-    use ephact::application::dtos::requests::BuildRunContextRequest;
-    use ephact::domain::ActRunConfig;
-    use ephact::domain::RepoPath;
-    use ephact::domain::Repository;
-    use ephact::domain::RepositoryName;
-    use ephact::domain::value_objects::ActEvent;
-    use ephact::domain::value_objects::ActInput;
-    use ephact::domain::value_objects::ContextValue;
-    use ephact::domain::value_objects::Secret;
+    use ephact::{
+        application::dtos::requests::BuildRunContextRequest,
+        domain::{
+            ActRunConfig, RepoPath, Repository, RepositoryName,
+            value_objects::{ActEvent, ActInput, ContextValue, Secret},
+        },
+        infrastructure::containers::{
+            build_run_context_port::BuildRunContextPort,
+            build_run_context_service::BuildRunContextService,
+        },
+    };
 
     fn repository(path: &Path) -> Repository {
         Repository::new(

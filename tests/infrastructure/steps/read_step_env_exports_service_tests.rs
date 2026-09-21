@@ -1,8 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use ephact::application::dtos::requests::ReadStepEnvExportsRequest;
-    use ephact::infrastructure::steps::read_step_env_exports_port::ReadStepEnvExportsPort;
-    use ephact::infrastructure::steps::read_step_env_exports_service::ReadStepEnvExportsService;
+    use ephact::{
+        application::dtos::requests::ReadStepEnvExportsRequest,
+        infrastructure::steps::{
+            read_step_env_exports_port::ReadStepEnvExportsPort,
+            read_step_env_exports_service::ReadStepEnvExportsService,
+        },
+    };
 
     use crate::common::fakes::stub_exporting_container::StubExportingContainer;
 

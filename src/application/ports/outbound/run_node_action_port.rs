@@ -1,9 +1,12 @@
 use std::sync::Arc;
 
-use crate::application::dtos::requests::RunNodeActionRequest;
-use crate::application::dtos::responses::RunNodeActionResponse;
-use crate::application::ports::outbound::container_port::ContainerPort;
-use crate::domain::errors::StepError;
+use crate::{
+    application::{
+        dtos::{requests::RunNodeActionRequest, responses::RunNodeActionResponse},
+        ports::outbound::container_port::ContainerPort,
+    },
+    domain::errors::StepError,
+};
 
 /// Inbound port for running a JavaScript action inside the job's container.
 pub trait RunNodeActionPort: Send + Sync {

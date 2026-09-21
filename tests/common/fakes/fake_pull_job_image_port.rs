@@ -1,8 +1,9 @@
 #![allow(dead_code)]
-use ephact::infrastructure::containers::pull_job_image_port::PullJobImagePort;
+use ephact::{
+    application::dtos::requests::PullJobImageRequest,
+    infrastructure::containers::pull_job_image_port::PullJobImagePort,
+};
 use parking_lot::Mutex;
-
-use ephact::application::dtos::requests::PullJobImageRequest;
 
 /// Returns a prepared image, recording the runner labels it was asked about.
 pub struct FakePullJobImagePort {

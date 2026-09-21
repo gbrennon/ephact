@@ -1,14 +1,21 @@
-use crate::application::dtos::requests::DiscoverRunInputsRequest;
-use crate::application::dtos::responses::RunInputDeclarationResponse;
-use crate::application::errors::DiscoverRunInputsError;
-use crate::application::ports::inbound::{
-    list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
-    run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
-    show_project_branding_info_port::ShowProjectBrandingInfoPort,
+use crate::{
+    application::{
+        dtos::{requests::DiscoverRunInputsRequest, responses::RunInputDeclarationResponse},
+        errors::DiscoverRunInputsError,
+        ports::{
+            inbound::{
+                list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
+                run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
+                show_project_branding_info_port::ShowProjectBrandingInfoPort,
+            },
+            outbound::DiscoverRunInputsPort,
+        },
+    },
+    infrastructure::{
+        actions::RunActionFactory,
+        logging::{FailureLogErrorStore, FailureLogPathStore, FailureLogStores},
+    },
 };
-use crate::application::ports::outbound::DiscoverRunInputsPort;
-use crate::infrastructure::actions::RunActionFactory;
-use crate::infrastructure::logging::{FailureLogErrorStore, FailureLogPathStore, FailureLogStores};
 
 pub struct AppContainer {
     show_project_branding_info_port: Box<dyn ShowProjectBrandingInfoPort>,
