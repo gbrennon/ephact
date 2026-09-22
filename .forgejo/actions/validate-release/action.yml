@@ -1,0 +1,36 @@
+name: Validate release
+description: Validate the release branch and ensure its tag is unused
+inputs:
+  head-ref:
+    description: Release pull request head reference
+    required: true
+outputs:
+  version:
+    description: Validated release version
+    value: ${{ steps.release.outputs.version }}
+runs:
+  using: composite
+  steps:
+    - name: Validate release branch and tag
+      id: release
+      shell: bash
+      env:
+        HEAD_REF: ${{ inputs.head-ref }}
+      run: |
+        set -euo pipefail
+
+        release_pattern='^release/v[0-9]+\.[0-9]+\.[0-9]+$'
+        if [[ ! "$HEAD_REF" =~ $release_pattern ]]; then
+          printf 'Invalid release branch: %s\n' "$HEAD_REF" >&2
+          exit 1
+        fi
+
+        version="${HEAD_REF#release/}"
+        tag_reference="refs/tags/$version"
+        if git ls-remote --exit-code --refs origin "$tag_reference" \
+            >/dev/null 2>&1; then
+          printf 'Release tag already exists: %s\n' "$version" >&2
+          exit 1
+        fi
+
+        printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
