@@ -6,7 +6,7 @@ use crate::domain::{
     errors::EvalError,
     services::ExpressionFunctions,
     value_objects::{
-        ComparisonOperator, ContextValue, EvaluationContext, Expression, LiteralValue,
+        ComparisonOperator, ContextValue, EvaluationContext, Expression, ExpressionLiteral,
         LogicalOperator,
     },
 };
@@ -47,13 +47,13 @@ impl<'a> ExpressionEvaluator<'a> {
         }
     }
 
-    fn eval_literal(&self, lit: &LiteralValue) -> Result<ContextValue, EvalError> {
+    fn eval_literal(&self, lit: &ExpressionLiteral) -> Result<ContextValue, EvalError> {
         match lit {
-            LiteralValue::Boolean(b) => Ok(ContextValue::Boolean(*b)),
-            LiteralValue::Null => Ok(ContextValue::Null),
-            LiteralValue::Integer(n) => Ok(ContextValue::Integer(*n)),
-            LiteralValue::Float(f) => self.finite_decimal(*f),
-            LiteralValue::String(s) => Ok(ContextValue::Text(s.clone())),
+            ExpressionLiteral::Boolean(b) => Ok(ContextValue::Boolean(*b)),
+            ExpressionLiteral::Null => Ok(ContextValue::Null),
+            ExpressionLiteral::Integer(n) => Ok(ContextValue::Integer(*n)),
+            ExpressionLiteral::Float(f) => self.finite_decimal(*f),
+            ExpressionLiteral::String(s) => Ok(ContextValue::Text(s.clone())),
         }
     }
 
@@ -239,31 +239,31 @@ mod tests {
 
     #[test]
     fn eval_literal_bool_true() {
-        let result = eval(&Expression::Literal(LiteralValue::Boolean(true))).unwrap();
+        let result = eval(&Expression::Literal(ExpressionLiteral::Boolean(true))).unwrap();
         assert_eq!(result, ContextValue::Boolean(true));
     }
 
     #[test]
     fn eval_literal_bool_false() {
-        let result = eval(&Expression::Literal(LiteralValue::Boolean(false))).unwrap();
+        let result = eval(&Expression::Literal(ExpressionLiteral::Boolean(false))).unwrap();
         assert_eq!(result, ContextValue::Boolean(false));
     }
 
     #[test]
     fn eval_literal_int() {
-        let result = eval(&Expression::Literal(LiteralValue::Integer(42))).unwrap();
+        let result = eval(&Expression::Literal(ExpressionLiteral::Integer(42))).unwrap();
         assert_eq!(result, ContextValue::Integer(42));
     }
 
     #[test]
     fn eval_literal_int_negative() {
-        let result = eval(&Expression::Literal(LiteralValue::Integer(-7))).unwrap();
+        let result = eval(&Expression::Literal(ExpressionLiteral::Integer(-7))).unwrap();
         assert_eq!(result, ContextValue::Integer(-7));
     }
 
     #[test]
     fn eval_literal_float() {
-        let result = eval(&Expression::Literal(LiteralValue::Float(
+        let result = eval(&Expression::Literal(ExpressionLiteral::Float(
             std::f64::consts::PI,
         )))
         .unwrap();
@@ -272,13 +272,16 @@ mod tests {
 
     #[test]
     fn eval_literal_string() {
-        let result = eval(&Expression::Literal(LiteralValue::String("hello".into()))).unwrap();
+        let result = eval(&Expression::Literal(ExpressionLiteral::String(
+            "hello".into(),
+        )))
+        .unwrap();
         assert_eq!(result, ContextValue::text("hello"));
     }
 
     #[test]
     fn eval_literal_null() {
-        let result = eval(&Expression::Literal(LiteralValue::Null)).unwrap();
+        let result = eval(&Expression::Literal(ExpressionLiteral::Null)).unwrap();
         assert_eq!(result, ContextValue::Null);
     }
 
@@ -297,7 +300,9 @@ mod tests {
     #[test]
     fn eval_property_access_on_non_object() {
         let result = eval(&Expression::PropertyAccess(
-            Box::new(Expression::Literal(LiteralValue::String("hello".into()))),
+            Box::new(Expression::Literal(ExpressionLiteral::String(
+                "hello".into(),
+            ))),
             "length".into(),
         ));
         assert!(result.is_err());
@@ -306,7 +311,7 @@ mod tests {
 
     #[test]
     fn eval_property_access_on_object() {
-        let json_str = Expression::Literal(LiteralValue::String(r#"{"x": 10}"#.into()));
+        let json_str = Expression::Literal(ExpressionLiteral::String(r#"{"x": 10}"#.into()));
         let from_json = Expression::FunctionCall("fromJson".into(), vec![json_str]);
         let prop_access = Expression::PropertyAccess(Box::new(from_json), "x".into());
         let result = eval(&prop_access).unwrap();
@@ -315,11 +320,11 @@ mod tests {
 
     #[test]
     fn eval_index_access_array() {
-        let json_str = Expression::Literal(LiteralValue::String(r#"["a", "b", "c"]"#.into()));
+        let json_str = Expression::Literal(ExpressionLiteral::String(r#"["a", "b", "c"]"#.into()));
         let from_json = Expression::FunctionCall("fromJson".into(), vec![json_str]);
         let idx = Expression::IndexAccess(
             Box::new(from_json),
-            Box::new(Expression::Literal(LiteralValue::Integer(1))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(1))),
         );
         let result = eval(&idx).unwrap();
         assert_eq!(result, ContextValue::text("b"));
@@ -327,11 +332,11 @@ mod tests {
 
     #[test]
     fn eval_index_access_object() {
-        let json_str = Expression::Literal(LiteralValue::String(r#"{"key": "val"}"#.into()));
+        let json_str = Expression::Literal(ExpressionLiteral::String(r#"{"key": "val"}"#.into()));
         let from_json = Expression::FunctionCall("fromJson".into(), vec![json_str]);
         let idx = Expression::IndexAccess(
             Box::new(from_json),
-            Box::new(Expression::Literal(LiteralValue::String("key".into()))),
+            Box::new(Expression::Literal(ExpressionLiteral::String("key".into()))),
         );
         let result = eval(&idx).unwrap();
         assert_eq!(result, ContextValue::text("val"));
@@ -340,8 +345,10 @@ mod tests {
     #[test]
     fn eval_index_access_type_error() {
         let idx = Expression::IndexAccess(
-            Box::new(Expression::Literal(LiteralValue::String("hello".into()))),
-            Box::new(Expression::Literal(LiteralValue::Integer(0))),
+            Box::new(Expression::Literal(ExpressionLiteral::String(
+                "hello".into(),
+            ))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(0))),
         );
         let result = eval(&idx);
         assert!(result.is_err());
@@ -350,7 +357,7 @@ mod tests {
 
     #[test]
     fn eval_array_deref_stub() {
-        let inner = Expression::Literal(LiteralValue::Integer(99));
+        let inner = Expression::Literal(ExpressionLiteral::Integer(99));
         let deref = Expression::ArrayDereference(Box::new(inner));
         let result = eval(&deref).unwrap();
         assert_eq!(result, ContextValue::Integer(99));
@@ -358,21 +365,25 @@ mod tests {
 
     #[test]
     fn eval_not_true() {
-        let expr = Expression::Not(Box::new(Expression::Literal(LiteralValue::Boolean(true))));
+        let expr = Expression::Not(Box::new(Expression::Literal(ExpressionLiteral::Boolean(
+            true,
+        ))));
         let result = eval(&expr).unwrap();
         assert_eq!(result, ContextValue::Boolean(false));
     }
 
     #[test]
     fn eval_not_false() {
-        let expr = Expression::Not(Box::new(Expression::Literal(LiteralValue::Boolean(false))));
+        let expr = Expression::Not(Box::new(Expression::Literal(ExpressionLiteral::Boolean(
+            false,
+        ))));
         let result = eval(&expr).unwrap();
         assert_eq!(result, ContextValue::Boolean(true));
     }
 
     #[test]
     fn eval_not_empty_string() {
-        let expr = Expression::Not(Box::new(Expression::Literal(LiteralValue::String(
+        let expr = Expression::Not(Box::new(Expression::Literal(ExpressionLiteral::String(
             String::new(),
         ))));
         let result = eval(&expr).unwrap();
@@ -381,7 +392,7 @@ mod tests {
 
     #[test]
     fn eval_not_non_empty_string() {
-        let expr = Expression::Not(Box::new(Expression::Literal(LiteralValue::String(
+        let expr = Expression::Not(Box::new(Expression::Literal(ExpressionLiteral::String(
             "hi".into(),
         ))));
         let result = eval(&expr).unwrap();
@@ -390,14 +401,14 @@ mod tests {
 
     #[test]
     fn eval_not_null() {
-        let expr = Expression::Not(Box::new(Expression::Literal(LiteralValue::Null)));
+        let expr = Expression::Not(Box::new(Expression::Literal(ExpressionLiteral::Null)));
         let result = eval(&expr).unwrap();
         assert_eq!(result, ContextValue::Boolean(true));
     }
 
     #[test]
     fn eval_not_zero() {
-        let expr = Expression::Not(Box::new(Expression::Literal(LiteralValue::Integer(0))));
+        let expr = Expression::Not(Box::new(Expression::Literal(ExpressionLiteral::Integer(0))));
         let result = eval(&expr).unwrap();
         assert_eq!(result, ContextValue::Boolean(true));
     }
@@ -406,8 +417,8 @@ mod tests {
     fn eval_compare_eq_numbers_true() {
         let expr = Expression::Comparison(
             ComparisonOperator::Equal,
-            Box::new(Expression::Literal(LiteralValue::Integer(5))),
-            Box::new(Expression::Literal(LiteralValue::Integer(5))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(5))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(5))),
         );
         assert_eq!(eval(&expr).unwrap(), ContextValue::Boolean(true));
     }
@@ -416,8 +427,8 @@ mod tests {
     fn eval_compare_eq_numbers_false() {
         let expr = Expression::Comparison(
             ComparisonOperator::Equal,
-            Box::new(Expression::Literal(LiteralValue::Integer(5))),
-            Box::new(Expression::Literal(LiteralValue::Integer(3))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(5))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(3))),
         );
         assert_eq!(eval(&expr).unwrap(), ContextValue::Boolean(false));
     }
@@ -426,8 +437,8 @@ mod tests {
     fn eval_compare_neq_numbers() {
         let expr = Expression::Comparison(
             ComparisonOperator::NotEqual,
-            Box::new(Expression::Literal(LiteralValue::Integer(5))),
-            Box::new(Expression::Literal(LiteralValue::Integer(3))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(5))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(3))),
         );
         assert_eq!(eval(&expr).unwrap(), ContextValue::Boolean(true));
     }
@@ -436,8 +447,8 @@ mod tests {
     fn eval_compare_lt_numbers_true() {
         let expr = Expression::Comparison(
             ComparisonOperator::LessThan,
-            Box::new(Expression::Literal(LiteralValue::Integer(2))),
-            Box::new(Expression::Literal(LiteralValue::Integer(10))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(2))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(10))),
         );
         assert_eq!(eval(&expr).unwrap(), ContextValue::Boolean(true));
     }
@@ -446,8 +457,8 @@ mod tests {
     fn eval_compare_lt_numbers_false() {
         let expr = Expression::Comparison(
             ComparisonOperator::LessThan,
-            Box::new(Expression::Literal(LiteralValue::Integer(10))),
-            Box::new(Expression::Literal(LiteralValue::Integer(2))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(10))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(2))),
         );
         assert_eq!(eval(&expr).unwrap(), ContextValue::Boolean(false));
     }
@@ -456,8 +467,8 @@ mod tests {
     fn eval_compare_gt_numbers() {
         let expr = Expression::Comparison(
             ComparisonOperator::GreaterThan,
-            Box::new(Expression::Literal(LiteralValue::Integer(10))),
-            Box::new(Expression::Literal(LiteralValue::Integer(2))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(10))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(2))),
         );
         assert_eq!(eval(&expr).unwrap(), ContextValue::Boolean(true));
     }
@@ -466,8 +477,8 @@ mod tests {
     fn eval_compare_lte_numbers_equal() {
         let expr = Expression::Comparison(
             ComparisonOperator::LessThanOrEqual,
-            Box::new(Expression::Literal(LiteralValue::Integer(5))),
-            Box::new(Expression::Literal(LiteralValue::Integer(5))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(5))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(5))),
         );
         assert_eq!(eval(&expr).unwrap(), ContextValue::Boolean(true));
     }
@@ -476,8 +487,8 @@ mod tests {
     fn eval_compare_lte_numbers_less() {
         let expr = Expression::Comparison(
             ComparisonOperator::LessThanOrEqual,
-            Box::new(Expression::Literal(LiteralValue::Integer(3))),
-            Box::new(Expression::Literal(LiteralValue::Integer(5))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(3))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(5))),
         );
         assert_eq!(eval(&expr).unwrap(), ContextValue::Boolean(true));
     }
@@ -486,8 +497,8 @@ mod tests {
     fn eval_compare_gte_numbers() {
         let expr = Expression::Comparison(
             ComparisonOperator::GreaterThanOrEqual,
-            Box::new(Expression::Literal(LiteralValue::Integer(5))),
-            Box::new(Expression::Literal(LiteralValue::Integer(5))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(5))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(5))),
         );
         assert_eq!(eval(&expr).unwrap(), ContextValue::Boolean(true));
     }
@@ -496,8 +507,8 @@ mod tests {
     fn eval_compare_strings_eq() {
         let expr = Expression::Comparison(
             ComparisonOperator::Equal,
-            Box::new(Expression::Literal(LiteralValue::String("abc".into()))),
-            Box::new(Expression::Literal(LiteralValue::String("abc".into()))),
+            Box::new(Expression::Literal(ExpressionLiteral::String("abc".into()))),
+            Box::new(Expression::Literal(ExpressionLiteral::String("abc".into()))),
         );
         assert_eq!(eval(&expr).unwrap(), ContextValue::Boolean(true));
     }
@@ -506,8 +517,8 @@ mod tests {
     fn eval_compare_strings_lt() {
         let expr = Expression::Comparison(
             ComparisonOperator::LessThan,
-            Box::new(Expression::Literal(LiteralValue::String("abc".into()))),
-            Box::new(Expression::Literal(LiteralValue::String("xyz".into()))),
+            Box::new(Expression::Literal(ExpressionLiteral::String("abc".into()))),
+            Box::new(Expression::Literal(ExpressionLiteral::String("xyz".into()))),
         );
         assert_eq!(eval(&expr).unwrap(), ContextValue::Boolean(true));
     }
@@ -516,8 +527,8 @@ mod tests {
     fn eval_compare_bools() {
         let expr = Expression::Comparison(
             ComparisonOperator::LessThan,
-            Box::new(Expression::Literal(LiteralValue::Boolean(false))),
-            Box::new(Expression::Literal(LiteralValue::Boolean(true))),
+            Box::new(Expression::Literal(ExpressionLiteral::Boolean(false))),
+            Box::new(Expression::Literal(ExpressionLiteral::Boolean(true))),
         );
         assert_eq!(eval(&expr).unwrap(), ContextValue::Boolean(true));
     }
@@ -526,8 +537,8 @@ mod tests {
     fn eval_compare_type_mismatch() {
         let expr = Expression::Comparison(
             ComparisonOperator::Equal,
-            Box::new(Expression::Literal(LiteralValue::Integer(1))),
-            Box::new(Expression::Literal(LiteralValue::String("1".into()))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(1))),
+            Box::new(Expression::Literal(ExpressionLiteral::String("1".into()))),
         );
         let result = eval(&expr);
         assert!(result.is_err());
@@ -538,8 +549,8 @@ mod tests {
     fn eval_logical_and_both_truthy() {
         let expr = Expression::Logical(
             LogicalOperator::And,
-            Box::new(Expression::Literal(LiteralValue::Boolean(true))),
-            Box::new(Expression::Literal(LiteralValue::Integer(42))),
+            Box::new(Expression::Literal(ExpressionLiteral::Boolean(true))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(42))),
         );
         assert_eq!(eval(&expr).unwrap(), ContextValue::Integer(42));
     }
@@ -548,8 +559,10 @@ mod tests {
     fn eval_logical_and_short_circuit() {
         let expr = Expression::Logical(
             LogicalOperator::And,
-            Box::new(Expression::Literal(LiteralValue::Boolean(false))),
-            Box::new(Expression::Literal(LiteralValue::String("never".into()))),
+            Box::new(Expression::Literal(ExpressionLiteral::Boolean(false))),
+            Box::new(Expression::Literal(ExpressionLiteral::String(
+                "never".into(),
+            ))),
         );
         assert_eq!(eval(&expr).unwrap(), ContextValue::Boolean(false));
     }
@@ -558,8 +571,8 @@ mod tests {
     fn eval_logical_or_both_falsy() {
         let expr = Expression::Logical(
             LogicalOperator::Or,
-            Box::new(Expression::Literal(LiteralValue::Boolean(false))),
-            Box::new(Expression::Literal(LiteralValue::Integer(0))),
+            Box::new(Expression::Literal(ExpressionLiteral::Boolean(false))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(0))),
         );
         assert_eq!(eval(&expr).unwrap(), ContextValue::Integer(0));
     }
@@ -568,8 +581,12 @@ mod tests {
     fn eval_logical_or_short_circuit() {
         let expr = Expression::Logical(
             LogicalOperator::Or,
-            Box::new(Expression::Literal(LiteralValue::String("first".into()))),
-            Box::new(Expression::Literal(LiteralValue::String("never".into()))),
+            Box::new(Expression::Literal(ExpressionLiteral::String(
+                "first".into(),
+            ))),
+            Box::new(Expression::Literal(ExpressionLiteral::String(
+                "never".into(),
+            ))),
         );
         assert_eq!(eval(&expr).unwrap(), ContextValue::text("first"));
     }
@@ -579,8 +596,8 @@ mod tests {
         let expr = Expression::FunctionCall(
             "contains".into(),
             vec![
-                Expression::Literal(LiteralValue::String("Hello World".into())),
-                Expression::Literal(LiteralValue::String("world".into())),
+                Expression::Literal(ExpressionLiteral::String("Hello World".into())),
+                Expression::Literal(ExpressionLiteral::String("world".into())),
             ],
         );
         assert_eq!(eval(&expr).unwrap(), ContextValue::Boolean(true));
@@ -591,8 +608,8 @@ mod tests {
         let expr = Expression::FunctionCall(
             "contains".into(),
             vec![
-                Expression::Literal(LiteralValue::String("Hello World".into())),
-                Expression::Literal(LiteralValue::String("xyz".into())),
+                Expression::Literal(ExpressionLiteral::String("Hello World".into())),
+                Expression::Literal(ExpressionLiteral::String("xyz".into())),
             ],
         );
         assert_eq!(eval(&expr).unwrap(), ContextValue::Boolean(false));
@@ -610,13 +627,13 @@ mod tests {
     fn eval_nested_logical_with_compare() {
         let left_cmp = Expression::Comparison(
             ComparisonOperator::GreaterThan,
-            Box::new(Expression::Literal(LiteralValue::Integer(5))),
-            Box::new(Expression::Literal(LiteralValue::Integer(3))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(5))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(3))),
         );
         let right_cmp = Expression::Comparison(
             ComparisonOperator::LessThan,
-            Box::new(Expression::Literal(LiteralValue::Integer(10))),
-            Box::new(Expression::Literal(LiteralValue::Integer(20))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(10))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(20))),
         );
         let expr = Expression::Logical(
             LogicalOperator::And,
@@ -630,8 +647,8 @@ mod tests {
     fn eval_nested_not_compare() {
         let cmp = Expression::Comparison(
             ComparisonOperator::Equal,
-            Box::new(Expression::Literal(LiteralValue::Integer(1))),
-            Box::new(Expression::Literal(LiteralValue::Integer(2))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(1))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(2))),
         );
         let expr = Expression::Not(Box::new(cmp));
         assert_eq!(eval(&expr).unwrap(), ContextValue::Boolean(true));
@@ -647,7 +664,7 @@ mod tests {
 
     #[test]
     fn eval_property_access_missing_key_errors() {
-        let json_str = Expression::Literal(LiteralValue::String(r#"{"x": 10}"#.into()));
+        let json_str = Expression::Literal(ExpressionLiteral::String(r#"{"x": 10}"#.into()));
         let from_json = Expression::FunctionCall("fromJson".into(), vec![json_str]);
         let prop_access = Expression::PropertyAccess(Box::new(from_json), "missing".into());
         let result = eval(&prop_access);
@@ -659,9 +676,11 @@ mod tests {
     fn eval_index_access_negative_index_errors() {
         let arr = Expression::FunctionCall(
             "fromJson".into(),
-            vec![Expression::Literal(LiteralValue::String("[1,2,3]".into()))],
+            vec![Expression::Literal(ExpressionLiteral::String(
+                "[1,2,3]".into(),
+            ))],
         );
-        let idx = Expression::Literal(LiteralValue::Integer(-1));
+        let idx = Expression::Literal(ExpressionLiteral::Integer(-1));
         let expr = Expression::IndexAccess(Box::new(arr), Box::new(idx));
         let result = eval(&expr);
         assert!(result.is_err());
@@ -672,9 +691,11 @@ mod tests {
     fn eval_index_access_out_of_bounds_errors() {
         let arr = Expression::FunctionCall(
             "fromJson".into(),
-            vec![Expression::Literal(LiteralValue::String("[1,2,3]".into()))],
+            vec![Expression::Literal(ExpressionLiteral::String(
+                "[1,2,3]".into(),
+            ))],
         );
-        let idx = Expression::Literal(LiteralValue::Integer(10));
+        let idx = Expression::Literal(ExpressionLiteral::Integer(10));
         let expr = Expression::IndexAccess(Box::new(arr), Box::new(idx));
         let result = eval(&expr);
         assert!(result.is_err());
@@ -683,7 +704,7 @@ mod tests {
 
     #[test]
     fn from_json_round_trips_through_to_json_with_sorted_keys() {
-        let source = Expression::Literal(LiteralValue::String(
+        let source = Expression::Literal(ExpressionLiteral::String(
             r#"{"b":[1,2.5,true,null],"a":"x"}"#.into(),
         ));
         let parsed = Expression::FunctionCall("fromJson".into(), vec![source]);
@@ -696,12 +717,12 @@ mod tests {
 
     #[test]
     fn format_renders_a_parsed_list_as_compact_json() {
-        let source = Expression::Literal(LiteralValue::String("[1,2]".into()));
+        let source = Expression::Literal(ExpressionLiteral::String("[1,2]".into()));
         let parsed = Expression::FunctionCall("fromJson".into(), vec![source]);
         let expr = Expression::FunctionCall(
             "format".into(),
             vec![
-                Expression::Literal(LiteralValue::String("{0}".into())),
+                Expression::Literal(ExpressionLiteral::String("{0}".into())),
                 parsed,
             ],
         );

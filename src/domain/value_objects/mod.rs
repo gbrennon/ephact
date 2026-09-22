@@ -19,13 +19,17 @@ pub mod execution_defaults;
 pub mod execution_plan;
 pub mod execution_stage;
 pub mod expression;
+pub mod expression_literal;
 pub mod expression_token;
 pub mod git_dir_kind;
+pub mod interface_mode;
 pub mod job_matrix;
 pub mod job_strategy;
 pub(crate) mod json_text_reader;
-pub mod literal_value;
 pub mod logical_operator;
+pub mod operation_mode;
+pub mod output_preferences;
+pub mod permissions;
 pub mod project_description;
 pub mod project_emblem;
 pub mod project_name;
@@ -51,9 +55,10 @@ pub use self::{
     container_engine::ContainerEngine, container_specification::ContainerSpecification,
     context_value::ContextValue, evaluation_context::EvaluationContext,
     execution_defaults::ExecutionDefaults, execution_plan::ExecutionPlan,
-    execution_stage::ExecutionStage, expression::Expression, expression_token::ExpressionToken,
-    git_dir_kind::GitDirKind, job_matrix::JobMatrix, job_strategy::JobStrategy,
-    literal_value::LiteralValue, logical_operator::LogicalOperator,
+    execution_stage::ExecutionStage, expression::Expression, expression_literal::ExpressionLiteral,
+    expression_token::ExpressionToken, git_dir_kind::GitDirKind, interface_mode::InterfaceMode,
+    job_matrix::JobMatrix, job_strategy::JobStrategy, logical_operator::LogicalOperator,
+    operation_mode::OperationMode, output_preferences::OutputPreferences, permissions::Permissions,
     project_description::ProjectDescription, project_emblem::ProjectEmblem,
     project_name::ProjectName, project_version::ProjectVersion,
     remote_action_reference::RemoteActionReference, repo_path::RepoPath,
