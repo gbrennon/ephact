@@ -20,6 +20,9 @@ impl<'a> RunSummaryComponent<'a> {
     }
 
     fn step_status(step: &StepSummaryResponse) -> &'static str {
+        if step.is_skipped() {
+            return "skipped";
+        }
         match step.exit_code() {
             Some(0) => "ok",
             Some(_) => "failed",
@@ -35,10 +38,15 @@ impl Component for RunSummaryComponent<'_> {
             let status = if job.success() { "ok" } else { "failed" };
             output.push_str(&format!("\n  [{status}] {}", Self::job_label(job)));
             for step in job.steps() {
+                let status = Self::step_status(step);
+                let reason = step
+                    .skip_reason()
+                    .map(|value| format!(": {value}"))
+                    .unwrap_or_default();
                 output.push_str(&format!(
-                    "\n    [{}] Step '{}'",
-                    Self::step_status(step),
-                    step.name()
+                    "\n    [{status}] Step '{}'{}",
+                    step.name(),
+                    reason
                 ));
             }
         }

@@ -19,8 +19,8 @@ impl ListWorkflowsHandler {
         port: &dyn ListWorkflowsPort,
         repository_path: PathBuf,
     ) -> Result<ListWorkflowsResponse, Box<dyn std::error::Error>> {
-        let repo_path = RepoPath::new(repository_path).map_err(|e| format!("{e:?}"))?;
-        let repo_name = RepositoryName::from_repo_path(&repo_path).map_err(|e| format!("{e:?}"))?;
+        let repo_path = RepoPath::new(repository_path)?;
+        let repo_name = RepositoryName::from_repo_path(&repo_path)?;
         let repository = Repository::new(repo_path, repo_name);
         let request = ListWorkflowsRequest::new(
             repository.path().as_path().to_path_buf(),

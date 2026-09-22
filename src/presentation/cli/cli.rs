@@ -10,6 +10,7 @@ use super::{
     cli_parser::CliParser,
     command::Command,
     run_progress_handler::TuiProgressStream,
+    settings_command::{SettingName, SettingsCommand},
 };
 use crate::{
     application::ports::{
@@ -18,8 +19,9 @@ use crate::{
             run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
             show_project_branding_info_port::ShowProjectBrandingInfoPort,
         },
-        outbound::DiscoverRunInputsPort,
+        outbound::{DiscoverRunInputsPort, SettingsStorePort},
     },
+    domain::{InterfaceMode, Settings},
     presentation::{
         handlers::{
             DiagnosticStores, ListActionsHandler, ListWorkflowsHandler, PreflightPorts, RunHandler,
@@ -38,6 +40,8 @@ pub struct Cli {
     failure_log_error_store: crate::infrastructure::logging::FailureLogErrorStore,
     failure_log_path_store: crate::infrastructure::logging::FailureLogPathStore,
     tui_runner: TuiRunner,
+    settings: Settings,
+    settings_store: Option<Arc<dyn SettingsStorePort>>,
 }
 pub use super::cli_dependencies::{
     CliDependencies, CliListDependencies, CliParts, CliRunDependencies,
@@ -84,6 +88,8 @@ impl Cli {
             failure_log_error_store: failure_log_stores.error_store(),
             failure_log_path_store: failure_log_stores.path_store(),
             tui_runner,
+            settings: Settings::default(),
+            settings_store: None,
         }
     }
 
@@ -125,7 +131,21 @@ impl Cli {
             failure_log_error_store: failure_log_stores.error_store(),
             failure_log_path_store: failure_log_stores.path_store(),
             tui_runner,
+            settings: Settings::default(),
+            settings_store: None,
         }
+    }
+    pub fn with_settings(
+        mut self,
+        settings: Settings,
+        settings_store: Arc<dyn SettingsStorePort>,
+    ) -> Self {
+        self.settings = settings.clone();
+        self.settings_store = Some(settings_store.clone());
+        self.tui_runner = self
+            .tui_runner
+            .with_settings(settings, Some(settings_store));
+        self
     }
 }
 
@@ -177,33 +197,208 @@ impl Cli {
         self.execute_cli(args, terminal).await
     }
 
+    fn is_tui_command(args: &[OsString]) -> bool {
+        args.get(1).is_some_and(|arg| arg == "tui")
+    }
     async fn execute_cli(
         &self,
         args: Vec<OsString>,
         terminal: &dyn Terminal,
     ) -> Result<String, Box<dyn std::error::Error>> {
-        let branding = self.show_project_branding_info_port.execute()?;
-        let parsed = CliParser::try_parse_from(args);
+        let force_cli = Self::is_cli_command(&args);
+        let parse_args = Self::remove_cli_command(args);
+        let parsed = CliParser::try_parse_from(parse_args);
         let cli = match parsed {
             Ok(cli) => cli,
-            Err(e) => return Self::render_parse_error(e),
+            Err(error) => {
+                self.show_project_branding_info_port.execute()?;
+                return Self::render_parse_error(error);
+            }
         };
-        let mut output = BoxComponent::new(Banner::new(&branding), terminal).render();
-        let command = cli.command();
-        self.execute_command(command, terminal, &mut output).await?;
-        Ok(output)
-    }
-    fn is_tui_command(args: &[OsString]) -> bool {
-        args.get(1).is_some_and(|arg| arg == "tui")
+        self.dispatch_parsed_cli(cli, terminal, force_cli).await
     }
 
-    fn render_parse_error(e: clap::error::Error) -> Result<String, Box<dyn std::error::Error>> {
+    fn is_cli_command(args: &[OsString]) -> bool {
+        args.get(1).is_some_and(|arg| arg == "cli")
+    }
+
+    fn remove_cli_command(mut args: Vec<OsString>) -> Vec<OsString> {
+        if Self::is_cli_command(&args) {
+            args.remove(1);
+        }
+        args
+    }
+
+    async fn dispatch_parsed_cli(
+        &self,
+        cli: CliParser,
+        terminal: &dyn Terminal,
+        force_cli: bool,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        if !cli.has_explicit_command() {
+            return if force_cli {
+                Ok(CliParser::build_command().render_long_help().to_string())
+            } else {
+                self.execute_default_interface().await
+            };
+        }
+        self.execute_explicit_command(cli.command(), terminal).await
+    }
+
+    async fn execute_default_interface(&self) -> Result<String, Box<dyn std::error::Error>> {
+        if self.settings.default_interface() == InterfaceMode::Tui {
+            self.tui_runner.run().await?;
+            return Ok(String::new());
+        }
+        Ok(CliParser::build_command().render_long_help().to_string())
+    }
+
+    async fn execute_explicit_command(
+        &self,
+        command: Command,
+        terminal: &dyn Terminal,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        match command {
+            Command::Cli => Ok(CliParser::build_command().render_long_help().to_string()),
+            Command::Settings(settings) => self.execute_settings(settings),
+            command => {
+                let branding = self.show_project_branding_info_port.execute()?;
+                let mut output = BoxComponent::new(Banner::new(&branding), terminal).render();
+                self.execute_command(command, terminal, &mut output).await?;
+                Ok(output)
+            }
+        }
+    }
+
+    fn render_parse_error(e: clap::Error) -> Result<String, Box<dyn std::error::Error>> {
         if e.kind() == clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
             || !e.use_stderr()
         {
             Ok(e.to_string())
         } else {
             Err(e.to_string().into())
+        }
+    }
+
+    fn execute_settings(
+        &self,
+        command: SettingsCommand,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let store = self
+            .settings_store
+            .as_ref()
+            .ok_or_else(|| std::io::Error::other("settings store is not configured"))?;
+        match command {
+            SettingsCommand::Show => self.show_settings(&**store),
+            SettingsCommand::Reset => self.reset_settings(&**store),
+            SettingsCommand::Set(arguments) => self.persist_setting(&**store, arguments),
+        }
+    }
+
+    fn show_settings(
+        &self,
+        store: &dyn SettingsStorePort,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let settings = store.read_settings()?;
+        Ok(Self::render_settings(&settings, &store.config_path()))
+    }
+
+    fn reset_settings(
+        &self,
+        store: &dyn SettingsStorePort,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let settings = Settings::default();
+        store.write_settings(&settings)?;
+        Ok(Self::render_settings(&settings, &store.config_path()))
+    }
+
+    fn persist_setting(
+        &self,
+        store: &dyn SettingsStorePort,
+        arguments: super::settings_command::SettingsSetArgs,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let settings =
+            Self::update_setting(store.read_settings()?, arguments.name(), arguments.value())?;
+        store.write_settings(&settings)?;
+        Ok(Self::render_settings(&settings, &store.config_path()))
+    }
+
+    fn update_setting(
+        settings: Settings,
+        name: SettingName,
+        value: &str,
+    ) -> Result<Settings, String> {
+        match name {
+            SettingName::DefaultInterface => match value {
+                "tui" => Ok(settings.with_default_interface(InterfaceMode::Tui)),
+                "cli" => Ok(settings.with_default_interface(InterfaceMode::Cli)),
+                _ => Err("default-interface must be tui or cli".to_string()),
+            },
+            SettingName::AllowRepoWrites => {
+                Self::update_bool(settings, value, Settings::with_allow_repo_writes)
+            }
+            SettingName::AllowRealContainer => {
+                Self::update_bool(settings, value, Settings::with_allow_real_container)
+            }
+            SettingName::AllowRealFetcher => {
+                Self::update_bool(settings, value, Settings::with_allow_real_fetcher)
+            }
+            SettingName::AllowNetwork => {
+                Self::update_bool(settings, value, Settings::with_allow_network)
+            }
+            SettingName::Preserve => Self::update_bool(settings, value, Settings::with_preserve),
+            SettingName::Verbose => Self::update_bool(settings, value, Settings::with_verbose),
+            SettingName::Interactive => {
+                Self::update_bool(settings, value, Settings::with_interactive)
+            }
+            SettingName::AllWorkflows => {
+                Self::update_bool(settings, value, Settings::with_all_workflows)
+            }
+        }
+    }
+
+    fn update_bool(
+        settings: Settings,
+        value: &str,
+        update: fn(Settings, bool) -> Settings,
+    ) -> Result<Settings, String> {
+        let parsed = match value {
+            "true" => true,
+            "false" => false,
+            _ => return Err("setting value must be true or false".to_string()),
+        };
+        Ok(update(settings, parsed))
+    }
+
+    fn render_settings(settings: &Settings, path: &std::path::Path) -> String {
+        format!(
+            "Config: {}\n\
+default-interface = {}\n\
+allow-repo-writes = {}\n\
+allow-real-container = {}\n\
+allow-real-fetcher = {}\n\
+allow-network = {}\n\
+preserve = {}\n\
+verbose = {}\n\
+interactive = {}\n\
+all-workflows = {}\n",
+            path.display(),
+            Self::interface_name(settings.default_interface()),
+            settings.allow_repo_writes(),
+            settings.allow_real_container(),
+            settings.allow_real_fetcher(),
+            settings.allow_network(),
+            settings.preserve(),
+            settings.verbose(),
+            settings.interactive(),
+            settings.all_workflows(),
+        )
+    }
+
+    fn interface_name(mode: InterfaceMode) -> &'static str {
+        match mode {
+            InterfaceMode::Tui => "tui",
+            InterfaceMode::Cli => "cli",
         }
     }
     async fn execute_command(
@@ -216,7 +411,15 @@ impl Cli {
             Command::Run(args) => self.execute_run(*args, terminal, output).await,
             Command::ListWorkflows(args) => self.execute_list_workflows(*args, terminal, output),
             Command::ListActions(args) => self.execute_list_actions(*args, terminal, output),
+            Command::Settings(settings) => {
+                output.push_str(&self.execute_settings(settings)?);
+                Ok(())
+            }
             Command::Tui => self.tui_runner.run().await,
+            Command::Cli => {
+                output.push_str(&CliParser::build_command().render_long_help().to_string());
+                Ok(())
+            }
         }
     }
 
@@ -226,6 +429,8 @@ impl Cli {
         terminal: &dyn Terminal,
         output: &mut String,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let mut args = args;
+        args.apply_settings(&self.settings);
         if args.interactive() {
             print!("{output}");
             output.clear();
