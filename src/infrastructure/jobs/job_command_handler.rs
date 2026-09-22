@@ -1,11 +1,15 @@
-use crate::application::ports::inbound::execute_job_port::ExecuteJobPort;
 use std::error::Error;
 
-use crate::application::dtos::requests::ExecuteJobRequest;
-use crate::application::dtos::responses::JobExecutionResponse;
-use crate::domain::entities::JobRun;
-use crate::domain::messages::commands::ExecuteJobCommand;
-use crate::domain::services::evaluation_context_mapper::EvaluationContextMapper;
+use crate::{
+    application::{
+        dtos::{requests::ExecuteJobRequest, responses::JobExecutionResponse},
+        ports::inbound::execute_job_port::ExecuteJobPort,
+    },
+    domain::{
+        entities::JobRun, messages::commands::ExecuteJobCommand,
+        services::evaluation_context_mapper::EvaluationContextMapper,
+    },
+};
 
 /// Infrastructure command handler that processes `ExecuteJobCommand`.
 pub struct JobCommandHandler {
@@ -18,6 +22,7 @@ impl JobCommandHandler {
     }
 
     pub fn handle(&self, cmd: ExecuteJobCommand) -> Result<JobExecutionResponse, Box<dyn Error>> {
+        let allow_network = cmd.allow_network();
         let (job, job_id, workflow, repo_path, context, run_id, allow_repo_writes) =
             cmd.into_parts();
         let run = JobRun::new(workflow.name().map(str::to_string), job_id, job, None);
@@ -27,7 +32,8 @@ impl JobCommandHandler {
             EvaluationContextMapper::to_parts(&context),
             run_id,
             allow_repo_writes,
-        );
+        )
+        .with_allow_network(allow_network);
         Ok(self.executor.execute(req, &run, &workflow)?)
     }
 }

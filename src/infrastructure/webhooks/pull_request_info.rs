@@ -131,8 +131,10 @@ impl PullRequestInfo {
 
 #[cfg(test)]
 mod tests {
-    use super::super::{RepositoryInfo, RepositoryLinks, UserInfo};
-    use super::*;
+    use super::{
+        super::{RepositoryInfo, RepositoryLinks, UserInfo},
+        *,
+    };
 
     fn branch() -> BranchRef {
         BranchRef::new(

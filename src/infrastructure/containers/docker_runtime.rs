@@ -1,17 +1,24 @@
 use futures_util::StreamExt;
-use tokio::runtime::Runtime;
+use tokio::runtime::{Handle, Runtime};
 
-use super::bollard_wrapper::types::{
-    ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder, HostConfig,
-    InspectContainerOptions, KillContainerOptions, RemoveContainerOptions, StartContainerOptions,
+use super::{
+    bollard_wrapper::{
+        AuthCredentials, Client,
+        types::{
+            ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
+            HostConfig, InspectContainerOptions, KillContainerOptions, RemoveContainerOptions,
+            StartContainerOptions,
+        },
+    },
+    docker_container::DockerContainer,
 };
-use super::bollard_wrapper::{AuthCredentials, Client};
-use super::docker_container::DockerContainer;
-use crate::application::dtos::responses::ContainerConfigResponse;
-use crate::application::dtos::responses::HostInfoResponse;
-use crate::application::ports::outbound::ContainerRuntimePort;
-use crate::application::ports::outbound::container_port::ContainerPort;
-use crate::domain::errors::ContainerError;
+use crate::{
+    application::{
+        dtos::responses::{ContainerConfigResponse, HostInfoResponse},
+        ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
+    },
+    domain::errors::ContainerError,
+};
 
 /// Docker-based container runtime adapter using the bollard crate.
 ///
@@ -29,6 +36,17 @@ impl DockerRuntime {
             Client::connect_with_local_defaults().map_err(|_e| ContainerError::NotAvailable)?;
         let runtime = Runtime::new().map_err(|e| ContainerError::Internal(e.to_string()))?;
         Ok(Self { docker, runtime })
+    }
+}
+
+pub(super) fn block_on_runtime<F, T>(runtime: &Handle, future: F) -> T
+where
+    F: std::future::Future<Output = T>,
+{
+    if Handle::try_current().is_ok() {
+        tokio::task::block_in_place(|| runtime.block_on(future))
+    } else {
+        runtime.block_on(future)
     }
 }
 fn build_container_config(config: &ContainerConfigResponse) -> ContainerCreateBody {
@@ -60,7 +78,7 @@ impl ContainerRuntimePort for DockerRuntime {
             options_builder = options_builder.platform(p);
         }
         let options = options_builder.build();
-        self.runtime.block_on(async {
+        block_on_runtime(self.runtime.handle(), async {
             let mut stream = self
                 .docker
                 .create_image(Some(options), None, None::<AuthCredentials>);
@@ -90,7 +108,7 @@ impl ContainerRuntimePort for DockerRuntime {
             .build();
         let container_config = build_container_config(config);
 
-        let container = self.runtime.block_on(async {
+        let container = block_on_runtime(self.runtime.handle(), async {
             self.docker
                 .create_container(Some(create_options), container_config)
                 .await
@@ -102,7 +120,7 @@ impl ContainerRuntimePort for DockerRuntime {
                 })
         })?;
 
-        self.runtime.block_on(async {
+        block_on_runtime(self.runtime.handle(), async {
             self.docker
                 .start_container(&container.id, None::<StartContainerOptions>)
                 .await
@@ -123,7 +141,7 @@ impl ContainerRuntimePort for DockerRuntime {
     }
 
     fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
-        self.runtime.block_on(async {
+        block_on_runtime(self.runtime.handle(), async {
             let force = match self
                 .docker
                 .inspect_container(name, None::<InspectContainerOptions>)
@@ -146,7 +164,7 @@ impl ContainerRuntimePort for DockerRuntime {
     }
 
     fn stop_container(&self, name: &str) -> Result<(), ContainerError> {
-        self.runtime.block_on(async {
+        block_on_runtime(self.runtime.handle(), async {
             if let Ok(inspect) = self
                 .docker
                 .inspect_container(name, None::<InspectContainerOptions>)
@@ -163,7 +181,7 @@ impl ContainerRuntimePort for DockerRuntime {
     }
 
     fn kill_container(&self, name: &str) -> Result<(), ContainerError> {
-        self.runtime.block_on(async {
+        block_on_runtime(self.runtime.handle(), async {
             match self
                 .docker
                 .inspect_container(name, None::<InspectContainerOptions>)
@@ -180,7 +198,7 @@ impl ContainerRuntimePort for DockerRuntime {
     }
 
     fn get_host_info(&self) -> Result<HostInfoResponse, ContainerError> {
-        self.runtime.block_on(async {
+        block_on_runtime(self.runtime.handle(), async {
             let info = self
                 .docker
                 .version()
@@ -193,5 +211,20 @@ impl ContainerRuntimePort for DockerRuntime {
                 info.version.unwrap_or_else(|| "unknown".to_string()),
             ))
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn block_on_runtime_allows_nested_runtime_calls() {
+        let result = tokio::task::block_in_place(|| {
+            let runtime = Runtime::new().expect("runtime");
+            block_on_runtime(runtime.handle(), async { 7 })
+        });
+
+        assert_eq!(result, 7);
     }
 }

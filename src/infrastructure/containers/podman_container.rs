@@ -1,16 +1,17 @@
 use std::collections::HashMap;
 
-use super::bollard_wrapper::{Client, types::RemoveContainerOptions};
-use super::exec_streaming_support::{
-    exec_options, run_streaming_exec, runner_context_with_container_env,
+use super::{
+    bollard_wrapper::{Client, types::RemoveContainerOptions},
+    exec_streaming_support::{exec_options, run_streaming_exec, runner_context_with_container_env},
+    tar_transfer::{download_archive, pack_entries, unpack_entries, upload_archive},
 };
-use super::tar_transfer::{download_archive, pack_entries, unpack_entries, upload_archive};
-use crate::application::dtos::responses::ExecResultResponse;
-use crate::application::dtos::responses::FileEntryResponse;
-use crate::application::dtos::responses::RunnerContextResponse;
-use crate::application::ports::outbound::container_port::{ContainerPort, ExecOptions};
-use crate::domain::errors::ContainerError;
-use crate::domain::messages::events::OutputStream;
+use crate::{
+    application::{
+        dtos::responses::{ExecResultResponse, RunnerContextResponse},
+        ports::outbound::container_port::{ContainerPort, ExecOptions},
+    },
+    domain::{entities::FileEntry, errors::ContainerError, messages::events::OutputStream},
+};
 
 /// A running Podman container, created by [`PodmanRuntime`].
 pub(super) struct PodmanContainer {
@@ -52,30 +53,22 @@ impl ContainerPort for PodmanContainer {
         on_output: &mut dyn FnMut(OutputStream, &str),
     ) -> Result<ExecResultResponse, ContainerError> {
         let exec_options = exec_options(options.cmd(), options.workdir(), options.env());
-        self.runtime.block_on(run_streaming_exec(
-            &self.client,
-            &self.container_id,
-            exec_options,
-            on_output,
-        ))
+        super::docker_runtime::block_on_runtime(
+            &self.runtime,
+            run_streaming_exec(&self.client, &self.container_id, exec_options, on_output),
+        )
     }
 
-    fn copy_to(
-        &self,
-        container_path: &str,
-        entries: &[FileEntryResponse],
-    ) -> Result<(), ContainerError> {
+    fn copy_to(&self, container_path: &str, entries: &[FileEntry]) -> Result<(), ContainerError> {
         let archive = pack_entries(entries, &self.container_id)?;
-        self.runtime.block_on(upload_archive(
-            &self.client,
-            &self.container_id,
-            container_path,
-            archive,
-        ))
+        super::docker_runtime::block_on_runtime(
+            &self.runtime,
+            upload_archive(&self.client, &self.container_id, container_path, archive),
+        )
     }
 
-    fn copy_from(&self, container_path: &str) -> Result<Vec<FileEntryResponse>, ContainerError> {
-        self.runtime.block_on(async {
+    fn copy_from(&self, container_path: &str) -> Result<Vec<FileEntry>, ContainerError> {
+        super::docker_runtime::block_on_runtime(&self.runtime, async {
             let archive =
                 download_archive(&self.client, &self.container_id, container_path).await?;
             unpack_entries(&archive, &self.container_id)
@@ -83,7 +76,7 @@ impl ContainerPort for PodmanContainer {
     }
 
     fn remove(&self) -> Result<(), ContainerError> {
-        self.runtime.block_on(async {
+        super::docker_runtime::block_on_runtime(&self.runtime, async {
             self.client
                 .remove_container(
                     &self.container_id,
@@ -100,7 +93,7 @@ impl ContainerPort for PodmanContainer {
     }
 
     fn get_runner_context(&self) -> Result<RunnerContextResponse, ContainerError> {
-        self.runtime.block_on(async {
+        super::docker_runtime::block_on_runtime(&self.runtime, async {
             let info = self
                 .client
                 .inspect_container(&self.container_id, None)

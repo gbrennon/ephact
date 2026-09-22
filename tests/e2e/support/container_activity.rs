@@ -1,5 +1,6 @@
-use parking_lot::Mutex;
 use std::{collections::HashMap, sync::Arc};
+
+use parking_lot::Mutex;
 
 /// Records everything the application asks a container runtime to do, so an
 /// end-to-end test can assert on the commands a workflow produced without

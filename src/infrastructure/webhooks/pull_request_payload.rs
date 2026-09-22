@@ -54,8 +54,7 @@ impl PullRequestPayload {
 
 #[cfg(test)]
 mod tests {
-    use super::super::BranchRef;
-    use super::*;
+    use super::{super::BranchRef, *};
 
     fn repository() -> RepositoryInfo {
         RepositoryInfo::new(

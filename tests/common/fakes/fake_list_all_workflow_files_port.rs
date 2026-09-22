@@ -1,10 +1,13 @@
 #![allow(dead_code)]
-use ephact::infrastructure::workflows::list_all_workflow_files_port::ListAllWorkflowFilesPort;
-use parking_lot::Mutex;
 use std::path::PathBuf;
 
-use ephact::application::dtos::requests::ListAllWorkflowFilesRequest;
-use ephact::application::dtos::responses::ListAllWorkflowFilesResponse;
+use ephact::{
+    application::dtos::{
+        requests::ListAllWorkflowFilesRequest, responses::ListAllWorkflowFilesResponse,
+    },
+    infrastructure::workflows::list_all_workflow_files_port::ListAllWorkflowFilesPort,
+};
+use parking_lot::Mutex;
 
 /// Returns a prepared list of workflow files, or a prepared failure.
 pub struct FakeListAllWorkflowFilesPort {

@@ -1,5 +1,6 @@
-use crate::application::dtos::responses::{ContainerConfigOptions, RunnerContextResponse};
 use std::collections::HashMap;
+
+use crate::application::dtos::responses::{ContainerConfigOptions, RunnerContextResponse};
 
 /// Configuration for creating a container: image, environment, mounts, and the
 /// runner context exposed to steps. Consumed by the outbound

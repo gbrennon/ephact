@@ -1,28 +1,37 @@
 #[cfg(test)]
 mod tests {
-    use ephact::{
-        application::ports::outbound::run_composite_action_port::RunCompositeActionPort,
-        infrastructure::actions::run_composite_action_service::RunCompositeActionService,
-    };
     use std::{
         collections::HashMap,
         path::{Path, PathBuf},
         sync::Arc,
     };
 
-    use ephact::application::dtos::requests::RunCompositeActionRequest;
-    use ephact::application::dtos::requests::{
-        ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
+    use ephact::{
+        application::{
+            dtos::{
+                requests::{
+                    ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
+                    RunCompositeActionRequest,
+                },
+                responses::ExecResultResponse,
+            },
+            ports::outbound::{
+                container_port::ContainerPort, run_composite_action_port::RunCompositeActionPort,
+            },
+        },
+        domain::{
+            entities::Step, errors::StepError, services::step_factory::StepFactory,
+            value_objects::EvaluationContext,
+        },
+        infrastructure::{
+            actions::run_composite_action_service::RunCompositeActionService,
+            workflows::yaml::StepYaml,
+        },
     };
-    use ephact::application::dtos::responses::ExecResultResponse;
-    use ephact::application::ports::outbound::container_port::ContainerPort;
-    use ephact::domain::services::step_factory::StepFactory;
-    use ephact::domain::{entities::Step, errors::StepError, value_objects::EvaluationContext};
 
     use crate::common::fakes::{
         fake_run_composite_step_port::FakeRunCompositeStepPort, stub_container::StubContainer,
     };
-    use ephact::infrastructure::workflows::yaml::StepYaml;
 
     fn steps(yaml: &str) -> Vec<Step> {
         serde_yaml::from_str::<Vec<StepYaml>>(yaml)

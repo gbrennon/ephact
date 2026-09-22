@@ -46,8 +46,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::super::{content::ContentComponent, terminal::Terminal};
-    use super::BoxComponent;
+    use super::{
+        super::{content::ContentComponent, terminal::Terminal},
+        BoxComponent,
+    };
 
     struct FakeTerminal;
 

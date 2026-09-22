@@ -1,29 +1,39 @@
 use std::{collections::HashMap, error::Error, time::Instant};
 
-use crate::application::dtos::requests::BuildJobEnvironmentRequest;
-use crate::application::dtos::requests::BuildStepContextRequest;
-use crate::application::dtos::requests::ExecuteJobRequest;
-use crate::application::dtos::requests::PrefixStepPathRequest;
-use crate::application::dtos::requests::PrepareJobContainerRequest;
-use crate::application::dtos::requests::ReadStepExportsRequest;
-use crate::application::dtos::requests::SummarizeStepRequest;
-use crate::application::dtos::responses::JobExecutionResponse;
-use crate::application::dtos::responses::JobSummaryResponse;
-use crate::application::dtos::responses::{PreparedJobContainerResponse, StepSummaryResponse};
-use crate::application::errors::ExecuteJobError;
-use crate::application::ports::inbound::execute_job_port::ExecuteJobPort;
-use crate::application::ports::outbound::build_job_environment_port::BuildJobEnvironmentPort;
-use crate::application::ports::outbound::build_step_context_port::BuildStepContextPort;
-use crate::application::ports::outbound::domain_event_bus_port::DomainEventBusPort;
-use crate::application::ports::outbound::prefix_step_path_port::PrefixStepPathPort;
-use crate::application::ports::outbound::prepare_job_container_port::PrepareJobContainerPort;
-use crate::application::ports::outbound::read_step_exports_port::ReadStepExportsPort;
-use crate::application::ports::outbound::step_command_bus_port::StepCommandBusPort;
-use crate::application::ports::outbound::summarize_step_port::SummarizeStepPort;
-use crate::domain::messages::commands::ExecuteStepCommand;
-use crate::domain::messages::events::StepStartedPayload;
-use crate::domain::messages::events::{
-    ContainerStartedPayload, DomainEvent, StepFinishedDetails, StepFinishedPayload,
+use crate::{
+    application::{
+        dtos::{
+            requests::{
+                BuildJobEnvironmentRequest, BuildStepContextRequest, ExecuteJobRequest,
+                PrefixStepPathRequest, PrepareJobContainerRequest, ReadStepExportsRequest,
+                SummarizeStepRequest,
+            },
+            responses::{
+                JobExecutionResponse, JobSummaryResponse, PreparedJobContainerResponse,
+                StepSummaryDetails, StepSummaryResponse, StepSummaryResponseInput,
+            },
+        },
+        errors::ExecuteJobError,
+        ports::{
+            inbound::execute_job_port::ExecuteJobPort,
+            outbound::{
+                build_job_environment_port::BuildJobEnvironmentPort,
+                build_step_context_port::BuildStepContextPort,
+                domain_event_bus_port::DomainEventBusPort,
+                prefix_step_path_port::PrefixStepPathPort,
+                prepare_job_container_port::PrepareJobContainerPort,
+                read_step_exports_port::ReadStepExportsPort,
+                step_command_bus_port::StepCommandBusPort, summarize_step_port::SummarizeStepPort,
+            },
+        },
+    },
+    domain::messages::{
+        commands::ExecuteStepCommand,
+        events::{
+            ContainerStartedPayload, DomainEvent, StepFinishedDetails, StepFinishedPayload,
+            StepStartedPayload,
+        },
+    },
 };
 
 /// Application service coordinating the execution of one job.
@@ -193,18 +203,7 @@ impl ExecuteJobService {
                 state.step_env.clone(),
             ));
         self.announce_step_started(request, workflow, run, step);
-        let outcome = self.command_bus.dispatch(ExecuteStepCommand::new(
-            step.clone(),
-            state.step_env.clone(),
-            step_context,
-            state.prepared.container_handle(),
-            request.repo_path().to_path_buf(),
-        ));
-        let summarized = self.step_summarizer.execute(SummarizeStepRequest::new(
-            step,
-            outcome,
-            started_at.elapsed(),
-        ));
+        let summarized = self.summarize_step(request, step, state, step_context, started_at);
         state.job_success &= !summarized.fails_job();
         self.announce_step_finished(
             request,
@@ -220,6 +219,51 @@ impl ExecuteJobService {
         let (path_additions, env) = exports.into_parts();
         state.extra_path.extend(path_additions);
         state.step_env.extend(env);
+    }
+
+    fn summarize_step(
+        &self,
+        request: &ExecuteJobRequest,
+        step: &crate::domain::entities::Step,
+        state: &JobExecutionState,
+        step_context: crate::domain::value_objects::EvaluationContext,
+        started_at: Instant,
+    ) -> crate::application::dtos::responses::SummarizedStepResponse {
+        if let Some(reason) = step.network_policy_violation() {
+            return self.skipped_step(step, started_at.elapsed(), reason);
+        }
+        if !request.allow_network()
+            && let Some(reason) = step.network_access_reason()
+        {
+            return self.skipped_step(step, started_at.elapsed(), reason);
+        }
+        let outcome = self.command_bus.dispatch(ExecuteStepCommand::new(
+            step.clone(),
+            state.step_env.clone(),
+            step_context,
+            state.prepared.container_handle(),
+            request.repo_path().to_path_buf(),
+        ));
+        self.step_summarizer.execute(SummarizeStepRequest::new(
+            step,
+            outcome,
+            started_at.elapsed(),
+        ))
+    }
+
+    fn skipped_step(
+        &self,
+        step: &crate::domain::entities::Step,
+        duration: std::time::Duration,
+        reason: &str,
+    ) -> crate::application::dtos::responses::SummarizedStepResponse {
+        let summary = StepSummaryResponse::new(StepSummaryResponseInput::new(
+            step.display_name().to_string(),
+            step.step_type(),
+            StepSummaryDetails::new(None, step.continues_on_error(), duration, "", reason),
+        ))
+        .with_skip_reason(reason);
+        crate::application::dtos::responses::SummarizedStepResponse::new(summary, false)
     }
 
     fn build_response(

@@ -2,26 +2,33 @@
 mod tests {
     use std::{collections::HashMap, path::Path};
 
-    use ephact::application::dtos::requests::ExecuteJobRequest;
-    use ephact::application::ports::inbound::execute_job_port::ExecuteJobPort;
-    use ephact::application::services::execute_job_service::{
-        ExecuteJobDependencies, ExecuteJobService,
+    use ephact::{
+        application::{
+            dtos::requests::ExecuteJobRequest,
+            ports::inbound::execute_job_port::ExecuteJobPort,
+            services::execute_job_service::{ExecuteJobDependencies, ExecuteJobService},
+        },
+        domain::{
+            aggregates::Workflow,
+            services::{ExecutionPlanner, evaluation_context_mapper::EvaluationContextMapper},
+            value_objects::EvaluationContext,
+        },
+        infrastructure::{
+            jobs::RunnerEnvironmentAdapter,
+            steps::{
+                build_step_context_service::BuildStepContextService,
+                prefix_step_path_service::PrefixStepPathService,
+                summarize_step_service::SummarizeStepService,
+            },
+            workflows::yaml::WorkflowYaml,
+        },
     };
-    use ephact::domain::aggregates::Workflow;
-    use ephact::domain::services::ExecutionPlanner;
-    use ephact::domain::services::evaluation_context_mapper::EvaluationContextMapper;
-    use ephact::domain::value_objects::EvaluationContext;
-    use ephact::infrastructure::jobs::RunnerEnvironmentAdapter;
-    use ephact::infrastructure::steps::build_step_context_service::BuildStepContextService;
-    use ephact::infrastructure::steps::prefix_step_path_service::PrefixStepPathService;
-    use ephact::infrastructure::steps::summarize_step_service::SummarizeStepService;
 
     use crate::common::fakes::{
         fake_command_bus::FakeCommandBus, fake_event_bus::FakeEventBus,
         fake_prepare_job_container_port::FakePrepareJobContainerPort,
         fake_read_step_exports_port::FakeReadStepExportsPort,
     };
-    use ephact::infrastructure::workflows::yaml::WorkflowYaml;
 
     fn workflow(yaml: &str) -> Workflow {
         serde_yaml::from_str::<WorkflowYaml>(yaml)
@@ -88,6 +95,131 @@ mod tests {
         assert_eq!(execution.job_summary().steps().len(), 1);
         assert!(execution.job_summary().success());
         assert_eq!(execution.container_name(), "job-container");
+    }
+
+    #[test]
+    fn network_step_is_skipped_without_failing_the_job() {
+        let wf = single_job_workflow("      - run: curl https://example.com\n");
+        let plan = ExecutionPlanner.plan(&wf).unwrap();
+        let run = &plan.stages()[0].runs()[0];
+        let command_bus = FakeCommandBus::new();
+
+        let execution = service(
+            FakePrepareJobContainerPort::named("job-container"),
+            command_bus.clone(),
+            FakeReadStepExportsPort::new(),
+        )
+        .execute(
+            ExecuteJobRequest::new(
+                Path::new("/repo"),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+                "test-run",
+                false,
+            ),
+            run,
+            &wf,
+        )
+        .unwrap();
+
+        let step = &execution.job_summary().steps()[0];
+        assert!(execution.job_summary().success());
+        assert!(step.is_skipped());
+        assert_eq!(
+            step.skip_reason(),
+            Some("network access is disabled; the step would send an HTTP request")
+        );
+        assert!(command_bus.dispatched_steps.lock().is_empty());
+    }
+
+    #[test]
+    fn network_step_runs_when_network_access_is_allowed() {
+        let wf = single_job_workflow("      - run: curl https://example.com\n");
+        let plan = ExecutionPlanner.plan(&wf).unwrap();
+        let run = &plan.stages()[0].runs()[0];
+        let command_bus = FakeCommandBus::new();
+
+        let execution = service(
+            FakePrepareJobContainerPort::named("job-container"),
+            command_bus.clone(),
+            FakeReadStepExportsPort::new(),
+        )
+        .execute(
+            ExecuteJobRequest::new(
+                Path::new("/repo"),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+                "test-run",
+                false,
+            )
+            .with_allow_network(true),
+            run,
+            &wf,
+        )
+        .unwrap();
+
+        assert!(!execution.job_summary().steps()[0].is_skipped());
+        assert_eq!(command_bus.dispatched_steps.lock().len(), 1);
+    }
+
+    #[test]
+    fn package_manager_step_runs_without_explicit_network_access() {
+        let wf = single_job_workflow("      - run: npm install\n");
+        let plan = ExecutionPlanner.plan(&wf).unwrap();
+        let run = &plan.stages()[0].runs()[0];
+        let command_bus = FakeCommandBus::new();
+
+        let execution = service(
+            FakePrepareJobContainerPort::named("job-container"),
+            command_bus.clone(),
+            FakeReadStepExportsPort::new(),
+        )
+        .execute(
+            ExecuteJobRequest::new(
+                Path::new("/repo"),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+                "test-run",
+                false,
+            ),
+            run,
+            &wf,
+        )
+        .unwrap();
+
+        assert!(!execution.job_summary().steps()[0].is_skipped());
+        assert_eq!(command_bus.dispatched_steps.lock().len(), 1);
+    }
+
+    #[test]
+    fn remote_mutation_is_skipped_even_with_network_access() {
+        let wf = single_job_workflow("      - run: git push origin main\n");
+        let plan = ExecutionPlanner.plan(&wf).unwrap();
+        let run = &plan.stages()[0].runs()[0];
+        let command_bus = FakeCommandBus::new();
+
+        let execution = service(
+            FakePrepareJobContainerPort::named("job-container"),
+            command_bus.clone(),
+            FakeReadStepExportsPort::new(),
+        )
+        .execute(
+            ExecuteJobRequest::new(
+                Path::new("/repo"),
+                EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+                "test-run",
+                false,
+            )
+            .with_allow_network(true),
+            run,
+            &wf,
+        )
+        .unwrap();
+
+        let step = &execution.job_summary().steps()[0];
+        assert!(step.is_skipped());
+        assert_eq!(
+            step.skip_reason(),
+            Some("network operation blocked; the step would modify a remote environment")
+        );
+        assert!(command_bus.dispatched_steps.lock().is_empty());
     }
 
     #[test]

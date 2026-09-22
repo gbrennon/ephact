@@ -1,17 +1,31 @@
 #[cfg(test)]
 mod tests {
-    use ephact::application::dtos::responses::ShowProjectBrandingInfoResponse;
-    use ephact::application::ports::inbound::ShowProjectBrandingInfoPort;
-    use ephact::presentation::cli::Cli;
-    use ephact::presentation::cli::cli::CliDependencies;
+    use std::sync::Arc;
 
-    use crate::common::fakes::{
-        fake_list_actions_port::FakeListActionsPort,
-        fake_list_workflows_port::FakeListWorkflowsPort,
-        fake_run_all_workflows_port::FakeRunAllWorkflowsPort,
-        fake_run_workflow_port::FakeRunWorkflowPort,
+    use ephact::{
+        application::{
+            dtos::responses::ShowProjectBrandingInfoResponse,
+            ports::inbound::ShowProjectBrandingInfoPort,
+        },
+        domain::{InterfaceMode, Settings},
+        presentation::{
+            cli::{Cli, cli::CliDependencies},
+            components::terminal::SystemTerminal,
+        },
     };
-    use crate::fakes::fake_discover_run_inputs_port::FakeDiscoverRunInputsPort;
+
+    use crate::{
+        common::fakes::{
+            fake_list_actions_port::FakeListActionsPort,
+            fake_list_workflows_port::FakeListWorkflowsPort,
+            fake_run_all_workflows_port::FakeRunAllWorkflowsPort,
+            fake_run_workflow_port::FakeRunWorkflowPort,
+        },
+        fakes::{
+            fake_discover_run_inputs_port::FakeDiscoverRunInputsPort,
+            fake_settings_store::FakeSettingsStore,
+        },
+    };
 
     struct FakeShowProjectBrandingInfoPort;
 
@@ -71,5 +85,51 @@ mod tests {
         let result = cli.run(["ephact", "list-actions"]);
 
         assert!(result.is_ok());
+    }
+    #[test]
+    fn settings_set_persists_one_typed_value() {
+        let store = Arc::new(FakeSettingsStore::new(Settings::default()));
+        let cli = make_cli().with_settings(Settings::default(), store.clone());
+        let terminal = SystemTerminal;
+
+        let output = cli
+            .run_with_terminal(
+                ["ephact", "settings", "set", "default-interface", "cli"],
+                &terminal,
+            )
+            .expect("settings command should succeed");
+
+        assert!(output.contains("default-interface = cli"));
+        assert_eq!(store.writes().len(), 1);
+        assert_eq!(store.writes()[0].default_interface(), InterfaceMode::Cli);
+    }
+
+    #[test]
+    fn invalid_settings_value_is_rejected() {
+        let store = Arc::new(FakeSettingsStore::new(Settings::default()));
+        let cli = make_cli().with_settings(Settings::default(), store.clone());
+        let terminal = SystemTerminal;
+
+        let result = cli.run_with_terminal(
+            ["ephact", "settings", "set", "allow-network", "sometimes"],
+            &terminal,
+        );
+
+        assert!(result.is_err());
+        assert!(store.writes().is_empty());
+    }
+
+    #[test]
+    fn persisted_cli_interface_makes_no_subcommand_render_help() {
+        let settings = Settings::default().with_default_interface(InterfaceMode::Cli);
+        let store = Arc::new(FakeSettingsStore::new(settings.clone()));
+        let cli = make_cli().with_settings(settings, store);
+        let terminal = SystemTerminal;
+
+        let output = cli
+            .run_with_terminal(["ephact"], &terminal)
+            .expect("CLI default should render help");
+
+        assert!(output.contains("Usage:"));
     }
 }

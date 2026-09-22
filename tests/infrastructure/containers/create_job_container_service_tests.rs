@@ -1,12 +1,14 @@
 #[cfg(test)]
 mod tests {
-    use ephact::infrastructure::containers::{
-        create_job_container_port::CreateJobContainerPort,
-        create_job_container_service::CreateJobContainerService,
-    };
     use std::{path::Path, sync::Arc};
 
-    use ephact::application::dtos::requests::CreateJobContainerRequest;
+    use ephact::{
+        application::dtos::requests::CreateJobContainerRequest,
+        infrastructure::containers::{
+            create_job_container_port::CreateJobContainerPort,
+            create_job_container_service::CreateJobContainerService,
+        },
+    };
 
     use crate::common::fakes::{
         fake_runtime::FakeRuntime, stub_failing_container_runtime::StubFailingContainerRuntime,

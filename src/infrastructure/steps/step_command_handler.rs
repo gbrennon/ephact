@@ -1,11 +1,15 @@
-use crate::application::dtos::requests::ExecuteStepRequest;
-use crate::application::dtos::responses::ExecutedStepResponse;
-use crate::application::ports::outbound::container_port::ContainerPort;
-use crate::domain::errors::StepError;
-use crate::domain::messages::commands::ExecuteStepCommand;
-use crate::domain::services::evaluation_context_mapper::EvaluationContextMapper;
-use crate::domain::services::step_factory::StepFactory;
-use crate::infrastructure::steps::ExecuteStepFactory;
+use crate::{
+    application::{
+        dtos::{requests::ExecuteStepRequest, responses::ExecutedStepResponse},
+        ports::outbound::container_port::ContainerPort,
+    },
+    domain::{
+        errors::StepError,
+        messages::commands::ExecuteStepCommand,
+        services::{evaluation_context_mapper::EvaluationContextMapper, step_factory::StepFactory},
+    },
+    infrastructure::steps::ExecuteStepFactory,
+};
 
 /// Infrastructure command handler that processes `ExecuteStepCommand`.
 pub struct StepCommandHandler {

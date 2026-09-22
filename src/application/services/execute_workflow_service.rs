@@ -1,22 +1,30 @@
 use std::error::Error;
 
-use crate::application::dtos::requests::ExecuteWorkflowRequest;
-use crate::application::dtos::requests::LoadWorkflowRequest;
-use crate::application::dtos::responses::WorkflowExecutionResponse;
-use crate::application::errors::ExecuteWorkflowError;
-use crate::application::ports::inbound::execute_workflow_port::ExecuteWorkflowPort;
-use crate::application::ports::outbound::domain_event_bus_port::DomainEventBusPort;
-use crate::application::ports::outbound::job_command_bus_port::JobCommandBusPort;
-use crate::application::ports::outbound::load_workflow_port::LoadWorkflowPort;
-use crate::domain::entities::JobRun;
-use crate::domain::messages::commands::ExecuteJobCommand;
-use crate::domain::messages::events::DomainEvent;
-use crate::domain::messages::events::JobFinishedPayload;
-use crate::domain::messages::events::JobStartedPayload;
-use crate::domain::messages::events::WorkflowStartedPayload;
-use crate::domain::services::ExecutionPlanner;
-use crate::domain::services::evaluation_context_mapper::EvaluationContextMapper;
-use crate::domain::value_objects::EvaluationContext;
+use crate::{
+    application::{
+        dtos::{
+            requests::{ExecuteWorkflowRequest, LoadWorkflowRequest},
+            responses::WorkflowExecutionResponse,
+        },
+        errors::ExecuteWorkflowError,
+        ports::{
+            inbound::execute_workflow_port::ExecuteWorkflowPort,
+            outbound::{
+                domain_event_bus_port::DomainEventBusPort, job_command_bus_port::JobCommandBusPort,
+                load_workflow_port::LoadWorkflowPort,
+            },
+        },
+    },
+    domain::{
+        entities::JobRun,
+        messages::{
+            commands::ExecuteJobCommand,
+            events::{DomainEvent, JobFinishedPayload, JobStartedPayload, WorkflowStartedPayload},
+        },
+        services::{ExecutionPlanner, evaluation_context_mapper::EvaluationContextMapper},
+        value_objects::EvaluationContext,
+    },
+};
 
 /// Application service coordinating the execution of a single workflow.
 ///
@@ -38,6 +46,7 @@ struct JobExecutionInput<'a> {
     context: &'a crate::domain::value_objects::EvaluationContext,
     run_id: &'a str,
     allow_repo_writes: bool,
+    allow_network: bool,
 }
 
 impl<'a> JobExecutionInput<'a> {
@@ -54,6 +63,7 @@ impl<'a> JobExecutionInput<'a> {
             context,
             run_id: request.run_id(),
             allow_repo_writes: request.allow_repo_writes(),
+            allow_network: request.allow_network(),
         }
     }
 }
@@ -146,7 +156,8 @@ impl ExecuteWorkflowService {
                 input.context.clone(),
             )
             .with_run_id(input.run_id.to_string())
-            .with_allow_repo_writes(input.allow_repo_writes),
+            .with_allow_repo_writes(input.allow_repo_writes)
+            .with_allow_network(input.allow_network),
         )?;
         self.announce_job_finished(
             input.workflow.name().unwrap_or("unnamed"),

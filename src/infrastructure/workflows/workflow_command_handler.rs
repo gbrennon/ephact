@@ -1,14 +1,17 @@
-use crate::application::ports::inbound::execute_workflow_port::ExecuteWorkflowPort;
-use std::error::Error;
+use std::{collections::BTreeMap, error::Error};
 
 use super::super::containers::workspace::CONTAINER_WORKSPACE;
-use crate::application::dtos::requests::ExecuteWorkflowRequest;
-use crate::application::dtos::responses::WorkflowExecutionResponse;
-use crate::domain::messages::commands::ExecuteWorkflowCommand;
-use crate::domain::services::evaluation_context_mapper::EvaluationContextMapper;
-use crate::domain::value_objects::ContextValue;
-use crate::domain::value_objects::EvaluationContext;
-use std::collections::BTreeMap;
+use crate::{
+    application::{
+        dtos::{requests::ExecuteWorkflowRequest, responses::WorkflowExecutionResponse},
+        ports::inbound::execute_workflow_port::ExecuteWorkflowPort,
+    },
+    domain::{
+        messages::commands::ExecuteWorkflowCommand,
+        services::evaluation_context_mapper::EvaluationContextMapper,
+        value_objects::{ContextValue, EvaluationContext},
+    },
+};
 
 pub struct WorkflowCommandHandler {
     executor: Box<dyn ExecuteWorkflowPort>,
@@ -70,7 +73,8 @@ impl WorkflowCommandHandler {
             EvaluationContextMapper::to_parts(&context),
             cmd.run_id().to_string(),
             cmd.allow_repo_writes(),
-        );
+        )
+        .with_allow_network(cmd.config().allow_network());
         Ok(self.executor.execute(req)?)
     }
 }

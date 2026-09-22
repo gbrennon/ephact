@@ -1,25 +1,33 @@
-use crate::domain::messages::commands::ExecuteWorkflowCommand;
-
 use std::{error::Error, time::Instant};
 
-use crate::application::dtos::requests::RunAllWorkflowsRequest;
-use crate::application::dtos::responses::JobSummaryResponse;
-use crate::application::dtos::responses::RunSummaryResponse;
-use crate::application::dtos::responses::WorkflowExecutionResponse;
-use crate::application::errors::RunAllWorkflowsError;
-use crate::application::ports::inbound::run_all_workflows_port::RunAllWorkflowsPort;
-use crate::application::ports::outbound::DetectWorkflowTriggerPort;
-use crate::application::ports::outbound::WorkflowSourcePort;
-use crate::application::ports::outbound::domain_event_bus_port::DomainEventBusPort;
-use crate::application::ports::outbound::workflow_command_bus_port::WorkflowCommandBusPort;
-use crate::application::services::pull_request_workflow::PULL_REQUEST_EVENT_NAME;
-use crate::application::services::pull_request_workflow::config_for_pull_request_event;
-use crate::domain::messages::events::ActRunCompletedPayload;
-use crate::domain::messages::events::DomainEvent;
-use crate::domain::messages::events::RunFailedPayload;
-use crate::domain::messages::events::RunStartedPayload;
-use crate::domain::services::act_run_config_factory::{ActRunConfigFactory, ActRunConfigInput};
-use crate::domain::services::repository_factory::RepositoryFactory;
+use crate::{
+    application::{
+        dtos::{
+            requests::RunAllWorkflowsRequest,
+            responses::{JobSummaryResponse, RunSummaryResponse, WorkflowExecutionResponse},
+        },
+        errors::RunAllWorkflowsError,
+        ports::{
+            inbound::run_all_workflows_port::RunAllWorkflowsPort,
+            outbound::{
+                DetectWorkflowTriggerPort, WorkflowSourcePort,
+                domain_event_bus_port::DomainEventBusPort,
+                workflow_command_bus_port::WorkflowCommandBusPort,
+            },
+        },
+        services::pull_request_workflow::{PULL_REQUEST_EVENT_NAME, config_for_pull_request_event},
+    },
+    domain::{
+        messages::{
+            commands::ExecuteWorkflowCommand,
+            events::{ActRunCompletedPayload, DomainEvent, RunFailedPayload, RunStartedPayload},
+        },
+        services::{
+            act_run_config_factory::{ActRunConfigFactory, ActRunConfigInput},
+            repository_factory::RepositoryFactory,
+        },
+    },
+};
 
 /// Name reported for the aggregate summary of a full multi-workflow run.
 pub const ALL_WORKFLOWS_SUMMARY_NAME: &str = "All Workflows";
@@ -105,7 +113,6 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
         ))
     }
 }
-
 impl RunAllWorkflowsService {
     fn execute_all_workflows(
         &self,

@@ -1,6 +1,8 @@
 use std::path::{Path, PathBuf};
 
-/// Primitive request for executing one workflow in a repository.
+use crate::domain::{ActRunConfig, Repository};
+
+/// Primitive request for executing one workflow selection.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RunWorkflowRequest {
     repository_path: PathBuf,
@@ -19,40 +21,35 @@ pub struct RunWorkflowRequest {
 }
 
 impl RunWorkflowRequest {
-    /// Creates a workflow request from primitive values.
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        repository_path: PathBuf,
-        repository_name: String,
-        workflow: Option<String>,
-        job: Option<String>,
-        event: Option<String>,
-        inputs: Vec<(String, String)>,
-        secrets: Vec<(String, String)>,
-        all_workflows: bool,
-        allow_repo_writes: bool,
-        allow_real_container: bool,
-        allow_real_fetcher: bool,
-        allow_network: bool,
-        run_id: String,
-    ) -> Self {
+    /// Creates a primitive request from the domain run configuration.
+    pub fn from_domain(repository: &Repository, config: &ActRunConfig) -> Self {
         Self {
-            repository_path,
-            repository_name,
-            workflow,
-            job,
-            event,
-            inputs,
-            secrets,
-            all_workflows,
-            allow_repo_writes,
-            allow_real_container,
-            allow_real_fetcher,
-            allow_network,
-            run_id,
+            repository_path: repository.path().as_path().to_path_buf(),
+            repository_name: repository.name().as_str().to_string(),
+            workflow: config.workflow().map(|value| value.as_str().to_string()),
+            job: config.job().map(|value| value.as_str().to_string()),
+            event: config.event().map(|value| value.as_str().to_string()),
+            inputs: config
+                .inputs()
+                .iter()
+                .map(|input| (input.key().to_string(), input.value().to_string()))
+                .collect(),
+            secrets: config
+                .secrets()
+                .iter()
+                .map(|secret| (secret.name().to_string(), secret.value().to_string()))
+                .collect(),
+            all_workflows: config.all_workflows(),
+            allow_repo_writes: config.allow_repo_writes(),
+            allow_real_container: config.allow_real_container(),
+            allow_real_fetcher: config.allow_real_fetcher(),
+            allow_network: config.allow_network(),
+            run_id: config.run_id().to_string(),
         }
     }
+}
 
+impl RunWorkflowRequest {
     /// Returns the repository path.
     pub fn repository_path(&self) -> &Path {
         &self.repository_path

@@ -1,14 +1,17 @@
-use super::collect_action_files_port::CollectActionFilesPort;
 use std::{
     fs::{read, read_dir},
     os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
 };
 
-use crate::application::dtos::requests::CollectActionFilesRequest;
-use crate::application::dtos::responses::CollectActionFilesResponse;
-use crate::application::dtos::responses::FileEntryResponse;
-use crate::domain::errors::StepError;
+use super::collect_action_files_port::CollectActionFilesPort;
+use crate::{
+    application::dtos::{
+        requests::CollectActionFilesRequest,
+        responses::{CollectActionFilesResponse, FileEntryResponse},
+    },
+    domain::errors::StepError,
+};
 
 /// Directory never copied into the container along with an action.
 const GIT_DIRECTORY: &str = ".git";

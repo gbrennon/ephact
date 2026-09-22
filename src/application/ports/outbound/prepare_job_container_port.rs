@@ -1,6 +1,7 @@
-use crate::application::dtos::requests::PrepareJobContainerRequest;
-use crate::application::dtos::responses::PreparedJobContainerResponse;
-use crate::application::errors::PrepareJobContainerError;
+use crate::application::{
+    dtos::{requests::PrepareJobContainerRequest, responses::PreparedJobContainerResponse},
+    errors::PrepareJobContainerError,
+};
 
 pub trait PrepareJobContainerPort: Send + Sync {
     fn execute(

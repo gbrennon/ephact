@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
-use ephact::application::dtos::responses::ExecResultResponse;
-use ephact::application::dtos::responses::FileEntryResponse;
-use ephact::application::dtos::responses::RunnerContextResponse;
-use ephact::application::ports::outbound::container_port::ContainerPort;
-use ephact::domain::errors::ContainerError;
+use ephact::{
+    application::{
+        dtos::responses::{ExecResultResponse, RunnerContextResponse},
+        ports::outbound::container_port::ContainerPort,
+    },
+    domain::{entities::FileEntry, errors::ContainerError},
+};
 
 use crate::support::container_activity::ContainerActivity;
 
@@ -31,16 +33,12 @@ impl ContainerPort for FailingContainer {
         Ok(ExecResultResponse::new(1, String::new(), String::new()))
     }
 
-    fn copy_to(
-        &self,
-        container_path: &str,
-        _entries: &[FileEntryResponse],
-    ) -> Result<(), ContainerError> {
+    fn copy_to(&self, container_path: &str, _entries: &[FileEntry]) -> Result<(), ContainerError> {
         self.activity.record_copy(container_path);
         Ok(())
     }
 
-    fn copy_from(&self, _container_path: &str) -> Result<Vec<FileEntryResponse>, ContainerError> {
+    fn copy_from(&self, _container_path: &str) -> Result<Vec<FileEntry>, ContainerError> {
         Ok(Vec::new())
     }
 

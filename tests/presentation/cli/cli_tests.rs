@@ -1,19 +1,26 @@
 #[cfg(test)]
 mod tests {
 
-    use ephact::application::dtos::responses::ShowProjectBrandingInfoResponse;
-    use ephact::application::ports::inbound::ShowProjectBrandingInfoPort;
-    use ephact::presentation::cli::Cli;
-    use ephact::presentation::cli::cli::CliDependencies;
-    use ephact::presentation::components::terminal::Terminal;
-
-    use crate::common::fakes::{
-        fake_list_actions_port::FakeListActionsPort,
-        fake_list_workflows_port::FakeListWorkflowsPort,
-        fake_run_all_workflows_port::FakeRunAllWorkflowsPort,
-        fake_run_workflow_port::FakeRunWorkflowPort,
+    use ephact::{
+        application::{
+            dtos::responses::ShowProjectBrandingInfoResponse,
+            ports::inbound::ShowProjectBrandingInfoPort,
+        },
+        presentation::{
+            cli::{Cli, cli::CliDependencies},
+            components::terminal::Terminal,
+        },
     };
-    use crate::fakes::fake_discover_run_inputs_port::FakeDiscoverRunInputsPort;
+
+    use crate::{
+        common::fakes::{
+            fake_list_actions_port::FakeListActionsPort,
+            fake_list_workflows_port::FakeListWorkflowsPort,
+            fake_run_all_workflows_port::FakeRunAllWorkflowsPort,
+            fake_run_workflow_port::FakeRunWorkflowPort,
+        },
+        fakes::fake_discover_run_inputs_port::FakeDiscoverRunInputsPort,
+    };
 
     struct FakeShowProjectBrandingInfoPort;
 
@@ -68,16 +75,21 @@ mod tests {
         let _cli = make_cli();
     }
     #[test]
-    fn run_no_args_displays_help() {
+    fn run_help_flag_displays_help() {
         let cli = make_cli();
-        let result = cli.run(["ephact"]);
+
+        let result = cli.run(["ephact", "--help"]);
+
         assert!(result.is_ok());
     }
 
     #[test]
-    fn run_no_args_displays_supported_platforms() {
+    fn run_help_flag_displays_supported_platforms() {
         let cli = make_cli();
-        let output = cli.run_with_terminal(["ephact"], &TestTerminal).unwrap();
+        let output = cli
+            .run_with_terminal(["ephact", "--help"], &TestTerminal)
+            .expect("help should render");
+
         assert!(output.contains("Forgejo"));
         assert!(output.contains("GitHub"));
     }

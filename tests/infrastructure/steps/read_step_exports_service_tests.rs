@@ -1,12 +1,14 @@
 #[cfg(test)]
 mod tests {
-    use ephact::{
-        application::ports::outbound::read_step_exports_port::ReadStepExportsPort,
-        infrastructure::steps::read_step_exports_service::ReadStepExportsService,
-    };
     use std::collections::HashMap;
 
-    use ephact::application::dtos::requests::ReadStepExportsRequest;
+    use ephact::{
+        application::{
+            dtos::requests::ReadStepExportsRequest,
+            ports::outbound::read_step_exports_port::ReadStepExportsPort,
+        },
+        infrastructure::steps::read_step_exports_service::ReadStepExportsService,
+    };
 
     use crate::common::fakes::{
         fake_read_step_env_exports_port::FakeReadStepEnvExportsPort,

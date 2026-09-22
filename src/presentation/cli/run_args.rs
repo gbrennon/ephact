@@ -2,16 +2,15 @@ use std::path::PathBuf;
 
 use clap::Args;
 
-use crate::application::dtos::responses::WorkflowInputSourceResponse;
-use crate::domain::ActRunConfig;
-use crate::domain::Repository;
-use crate::domain::value_objects::ActEvent;
-use crate::domain::value_objects::ActInput;
-use crate::domain::value_objects::ActJob;
-use crate::domain::value_objects::ActWorkflow;
-use crate::domain::value_objects::RepoPath;
-use crate::domain::value_objects::RepositoryName;
-use crate::domain::value_objects::Secret;
+use crate::{
+    application::dtos::responses::WorkflowInputSourceResponse,
+    domain::{
+        ActRunConfig, Repository,
+        value_objects::{
+            ActEvent, ActInput, ActJob, ActWorkflow, RepoPath, RepositoryName, Secret,
+        },
+    },
+};
 
 /// CLI arguments for the `run` subcommand.
 ///
@@ -92,9 +91,8 @@ impl RunArgs {
     }
 
     fn build_repository(&self) -> Result<Repository, Box<dyn std::error::Error>> {
-        let repo_path = RepoPath::new(self.path.clone()).map_err(|e| format!("{:?}", e))?;
-        let repo_name =
-            RepositoryName::from_repo_path(&repo_path).map_err(|e| format!("{:?}", e))?;
+        let repo_path = RepoPath::new(self.path.clone())?;
+        let repo_name = RepositoryName::from_repo_path(&repo_path)?;
         Ok(Repository::new(repo_path, repo_name))
     }
 
@@ -118,10 +116,11 @@ impl RunArgs {
         if let Some(job) = &self.job {
             config = config.with_job(ActJob::new(job.clone()));
         }
-        if let Some(event) = &self.event {
-            config = config.with_event(ActEvent::new(event.clone()));
-        }
-        config
+        let event = self
+            .event
+            .clone()
+            .unwrap_or_else(|| "pull_request".to_string());
+        config.with_event(ActEvent::new(event))
     }
 
     fn apply_inputs(
@@ -153,6 +152,16 @@ impl RunArgs {
     /// Reports whether verbose output was requested.
     pub fn verbose(&self) -> bool {
         self.verbose
+    }
+    pub(crate) fn apply_settings(&mut self, settings: &crate::domain::Settings) {
+        self.interactive |= settings.interactive();
+        self.all_workflows |= settings.all_workflows();
+        self.preserve |= settings.preserve();
+        self.allow_repo_writes |= settings.allow_repo_writes();
+        self.allow_real_container |= settings.allow_real_container();
+        self.allow_real_fetcher |= settings.allow_real_fetcher();
+        self.allow_network |= settings.allow_network();
+        self.verbose |= settings.verbose();
     }
 
     /// Reports whether the given argument is the verbose flag.

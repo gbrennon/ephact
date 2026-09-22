@@ -1,5 +1,4 @@
-use crate::application::dtos::responses::StepSummaryDetails;
-use crate::domain::value_objects::StepType;
+use crate::{application::dtos::responses::StepSummaryDetails, domain::value_objects::StepType};
 
 pub struct StepSummaryResponseInput {
     name: String,

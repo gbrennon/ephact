@@ -1,6 +1,9 @@
-use crate::application::dtos::requests::CollectActionFilesRequest;
-use crate::application::dtos::responses::CollectActionFilesResponse;
-use crate::domain::errors::StepError;
+use crate::{
+    application::dtos::{
+        requests::CollectActionFilesRequest, responses::CollectActionFilesResponse,
+    },
+    domain::errors::StepError,
+};
 
 /// Inbound port for reading the files that make up an action.
 pub trait CollectActionFilesPort: Send + Sync {

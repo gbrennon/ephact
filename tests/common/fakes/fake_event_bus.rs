@@ -1,11 +1,11 @@
 #![allow(dead_code)]
-use parking_lot::Mutex;
 use std::sync::Arc;
 
 use ephact::{
     application::ports::outbound::domain_event_bus_port::DomainEventBusPort,
     domain::messages::events::DomainEvent,
 };
+use parking_lot::Mutex;
 
 #[derive(Clone, Default)]
 pub struct FakeEventBus {

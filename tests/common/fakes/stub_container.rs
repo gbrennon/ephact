@@ -1,11 +1,13 @@
 #![allow(dead_code)]
 use std::collections::HashMap;
 
-use ephact::application::dtos::responses::ExecResultResponse;
-use ephact::application::dtos::responses::FileEntryResponse;
-use ephact::application::dtos::responses::RunnerContextResponse;
-use ephact::application::ports::outbound::container_port::ContainerPort;
-use ephact::domain::errors::ContainerError;
+use ephact::{
+    application::{
+        dtos::responses::{ExecResultResponse, RunnerContextResponse},
+        ports::outbound::container_port::ContainerPort,
+    },
+    domain::{entities::FileEntry, errors::ContainerError},
+};
 
 /// Container that succeeds at everything without recording anything, for tests
 /// that need a container handle but never inspect it.
@@ -21,11 +23,11 @@ impl ContainerPort for StubContainer {
         Ok(ExecResultResponse::new(0, String::new(), String::new()))
     }
 
-    fn copy_to(&self, _path: &str, _entries: &[FileEntryResponse]) -> Result<(), ContainerError> {
+    fn copy_to(&self, _path: &str, _entries: &[FileEntry]) -> Result<(), ContainerError> {
         Ok(())
     }
 
-    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntryResponse>, ContainerError> {
+    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntry>, ContainerError> {
         Ok(vec![])
     }
 

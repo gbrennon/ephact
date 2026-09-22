@@ -2,9 +2,13 @@
 mod tests {
     use std::collections::HashMap;
 
-    use ephact::application::dtos::requests::BuildActionInputEnvironmentRequest;
-    use ephact::infrastructure::actions::GitHubActionInputEnvironmentAdapter;
-    use ephact::infrastructure::actions::build_action_input_environment_port::BuildActionInputEnvironmentPort;
+    use ephact::{
+        application::dtos::requests::BuildActionInputEnvironmentRequest,
+        infrastructure::actions::{
+            GitHubActionInputEnvironmentAdapter,
+            build_action_input_environment_port::BuildActionInputEnvironmentPort,
+        },
+    };
 
     fn map(pairs: &[(&str, &str)]) -> HashMap<String, String> {
         pairs

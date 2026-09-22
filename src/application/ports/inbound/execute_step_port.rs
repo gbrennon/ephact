@@ -1,6 +1,7 @@
-use crate::application::dtos::requests::ExecuteStepRequest;
-use crate::application::dtos::responses::ExecutedStepResponse;
-use crate::application::errors::ExecuteStepError;
+use crate::application::{
+    dtos::{requests::ExecuteStepRequest, responses::ExecutedStepResponse},
+    errors::ExecuteStepError,
+};
 
 /// Inbound port for executing one step of a job.
 pub trait ExecuteStepPort: Send + Sync {

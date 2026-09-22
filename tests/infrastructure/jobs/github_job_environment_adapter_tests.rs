@@ -2,11 +2,14 @@
 mod tests {
     use std::collections::HashMap;
 
-    use ephact::application::dtos::requests::BuildJobEnvironmentRequest;
-    use ephact::application::ports::outbound::build_job_environment_port::BuildJobEnvironmentPort;
-    use ephact::domain::aggregates::Workflow;
-    use ephact::infrastructure::jobs::RunnerEnvironmentAdapter;
-    use ephact::infrastructure::workflows::yaml::WorkflowYaml;
+    use ephact::{
+        application::{
+            dtos::requests::BuildJobEnvironmentRequest,
+            ports::outbound::build_job_environment_port::BuildJobEnvironmentPort,
+        },
+        domain::aggregates::Workflow,
+        infrastructure::{jobs::RunnerEnvironmentAdapter, workflows::yaml::WorkflowYaml},
+    };
 
     const DEFAULT_PATH: &str = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
 

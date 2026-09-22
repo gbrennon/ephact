@@ -7,6 +7,7 @@ pub struct ExecuteWorkflowRequest {
     context: Vec<(String, String)>,
     run_id: String,
     allow_repo_writes: bool,
+    allow_network: bool,
 }
 
 impl ExecuteWorkflowRequest {
@@ -24,6 +25,7 @@ impl ExecuteWorkflowRequest {
             context,
             run_id,
             allow_repo_writes,
+            allow_network: false,
         }
     }
 
@@ -50,5 +52,13 @@ impl ExecuteWorkflowRequest {
     /// Returns whether repository writes are allowed.
     pub fn allow_repo_writes(&self) -> bool {
         self.allow_repo_writes
+    }
+    pub fn with_allow_network(mut self, allow_network: bool) -> Self {
+        self.allow_network = allow_network;
+        self
+    }
+
+    pub fn allow_network(&self) -> bool {
+        self.allow_network
     }
 }

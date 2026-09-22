@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-use ephact::infrastructure::steps::read_step_env_exports_port::ReadStepEnvExportsPort;
 use std::{
     collections::HashMap,
     sync::{
@@ -8,7 +7,10 @@ use std::{
     },
 };
 
-use ephact::application::dtos::requests::ReadStepEnvExportsRequest;
+use ephact::{
+    application::dtos::requests::ReadStepEnvExportsRequest,
+    infrastructure::steps::read_step_env_exports_port::ReadStepEnvExportsPort,
+};
 
 /// Returns prepared environment exports, recording that it was consulted.
 #[derive(Clone)]

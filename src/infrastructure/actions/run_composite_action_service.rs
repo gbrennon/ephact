@@ -1,16 +1,22 @@
 use std::{collections::HashMap, sync::Arc};
 
 use super::super::steps::run_composite_step_port::RunCompositeStepPort;
-use crate::application::dtos::requests::RunCompositeActionRequest;
-use crate::application::dtos::requests::RunCompositeStepRequest;
-use crate::application::dtos::responses::ExecuteActionResponse;
-use crate::application::ports::outbound::container_port::ContainerPort;
-use crate::application::ports::outbound::run_composite_action_port::RunCompositeActionPort;
-use crate::domain::errors::StepError;
-use crate::domain::services::StepInterpolator;
-use crate::domain::services::evaluation_context_mapper::EvaluationContextMapper;
-use crate::domain::value_objects::ContextValue;
-use crate::domain::value_objects::EvaluationContext;
+use crate::{
+    application::{
+        dtos::{
+            requests::{RunCompositeActionRequest, RunCompositeStepRequest},
+            responses::ExecuteActionResponse,
+        },
+        ports::outbound::{
+            container_port::ContainerPort, run_composite_action_port::RunCompositeActionPort,
+        },
+    },
+    domain::{
+        errors::StepError,
+        services::{StepInterpolator, evaluation_context_mapper::EvaluationContextMapper},
+        value_objects::{ContextValue, EvaluationContext},
+    },
+};
 
 /// Service that runs a composite action's steps in order, accumulating their
 /// output and stopping at the first one that fails.

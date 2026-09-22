@@ -5,13 +5,13 @@
 /// function calls, and the ternary-like `a && b || c` pattern.
 use std::fmt;
 
-use crate::domain::value_objects::{ComparisonOperator, LiteralValue, LogicalOperator};
+use crate::domain::value_objects::{ComparisonOperator, ExpressionLiteral, LogicalOperator};
 
 /// A complete expression.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
     /// A literal value: string, number, boolean, or null.
-    Literal(LiteralValue),
+    Literal(ExpressionLiteral),
     /// A top-level context variable: `github`, `env`, `job`, `steps`, etc.
     Variable(String),
     /// Property access: `foo.bar`
@@ -63,23 +63,26 @@ mod tests {
 
     #[test]
     fn display_literal_bool() {
-        assert_eq!(LiteralValue::Boolean(true).to_string(), "true");
-        assert_eq!(LiteralValue::Boolean(false).to_string(), "false");
+        assert_eq!(ExpressionLiteral::Boolean(true).to_string(), "true");
+        assert_eq!(ExpressionLiteral::Boolean(false).to_string(), "false");
     }
 
     #[test]
     fn display_literal_null() {
-        assert_eq!(LiteralValue::Null.to_string(), "null");
+        assert_eq!(ExpressionLiteral::Null.to_string(), "null");
     }
 
     #[test]
     fn display_literal_int() {
-        assert_eq!(LiteralValue::Integer(42).to_string(), "42");
+        assert_eq!(ExpressionLiteral::Integer(42).to_string(), "42");
     }
 
     #[test]
     fn display_literal_string() {
-        assert_eq!(LiteralValue::String("hello".into()).to_string(), "'hello'");
+        assert_eq!(
+            ExpressionLiteral::String("hello".into()).to_string(),
+            "'hello'"
+        );
     }
 
     #[test]
@@ -101,8 +104,8 @@ mod tests {
         let expr = Expression::FunctionCall(
             "contains".into(),
             vec![
-                Expression::Literal(LiteralValue::String("hello".into())),
-                Expression::Literal(LiteralValue::String("ll".into())),
+                Expression::Literal(ExpressionLiteral::String("hello".into())),
+                Expression::Literal(ExpressionLiteral::String("ll".into())),
             ],
         );
         assert_eq!(expr.to_string(), "contains('hello', 'll')");
@@ -113,7 +116,9 @@ mod tests {
         let expr = Expression::Comparison(
             ComparisonOperator::Equal,
             Box::new(Expression::Variable("github".into())),
-            Box::new(Expression::Literal(LiteralValue::String("push".into()))),
+            Box::new(Expression::Literal(ExpressionLiteral::String(
+                "push".into(),
+            ))),
         );
         assert_eq!(expr.to_string(), "github == 'push'");
     }
@@ -122,8 +127,8 @@ mod tests {
     fn display_logical() {
         let expr = Expression::Logical(
             LogicalOperator::And,
-            Box::new(Expression::Literal(LiteralValue::Boolean(true))),
-            Box::new(Expression::Literal(LiteralValue::Boolean(false))),
+            Box::new(Expression::Literal(ExpressionLiteral::Boolean(true))),
+            Box::new(Expression::Literal(ExpressionLiteral::Boolean(false))),
         );
         assert_eq!(expr.to_string(), "true && false");
     }
@@ -132,7 +137,7 @@ mod tests {
     fn display_index_access() {
         let expr = Expression::IndexAccess(
             Box::new(Expression::Variable("arr".into())),
-            Box::new(Expression::Literal(LiteralValue::Integer(0))),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(0))),
         );
         assert_eq!(expr.to_string(), "arr[0]");
     }

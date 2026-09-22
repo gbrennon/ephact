@@ -2,10 +2,14 @@
 mod tests {
     use std::collections::HashMap;
 
-    use ephact::application::dtos::responses::FileEntryResponse;
-    use ephact::application::dtos::responses::{ContainerConfigOptions, ContainerConfigResponse};
-    use ephact::application::ports::outbound::ContainerRuntimePort;
-    use ephact::infrastructure::containers::DockerRuntime;
+    use ephact::{
+        application::{
+            dtos::responses::{ContainerConfigOptions, ContainerConfigResponse},
+            ports::outbound::ContainerRuntimePort,
+        },
+        domain::entities::FileEntry,
+        infrastructure::containers::DockerRuntime,
+    };
 
     fn make_config(name: &str) -> ContainerConfigResponse {
         ContainerConfigResponse::new(
@@ -161,11 +165,7 @@ mod tests {
         let _ = runtime.remove_container("ephemeral-act-test-docker-copyto");
         let container = runtime.create_container(&config).unwrap();
 
-        let entries = vec![FileEntryResponse::new(
-            "test.txt",
-            b"hello copy_to".to_vec(),
-            0o644,
-        )];
+        let entries = vec![FileEntry::new("test.txt", b"hello copy_to".to_vec(), 0o644)];
         container.copy_to("/tmp", &entries).unwrap();
 
         let result = container
@@ -214,11 +214,7 @@ mod tests {
         let container = runtime.create_container(&config).unwrap();
 
         let original = b"roundtrip data 12345";
-        let entries = vec![FileEntryResponse::new(
-            "roundtrip.bin",
-            original.to_vec(),
-            0o644,
-        )];
+        let entries = vec![FileEntry::new("roundtrip.bin", original.to_vec(), 0o644)];
         container.copy_to("/tmp", &entries).unwrap();
 
         let retrieved = container.copy_from("/tmp/roundtrip.bin").unwrap();

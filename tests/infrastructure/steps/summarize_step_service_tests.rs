@@ -1,17 +1,20 @@
 #[cfg(test)]
 mod tests {
-    use ephact::{
-        application::ports::outbound::summarize_step_port::SummarizeStepPort,
-        infrastructure::steps::summarize_step_service::SummarizeStepService,
-    };
     use std::time::Duration;
 
-    use ephact::application::dtos::requests::SummarizeStepRequest;
-    use ephact::application::dtos::responses::ExecuteActionResponse;
-    use ephact::application::dtos::responses::ExecutedStepResponse;
-    use ephact::domain::entities::Step;
-    use ephact::domain::errors::StepError;
-    use ephact::infrastructure::workflows::yaml::StepYaml;
+    use ephact::{
+        application::{
+            dtos::{
+                requests::SummarizeStepRequest,
+                responses::{ExecuteActionResponse, ExecutedStepResponse},
+            },
+            ports::outbound::summarize_step_port::SummarizeStepPort,
+        },
+        domain::{entities::Step, errors::StepError},
+        infrastructure::{
+            steps::summarize_step_service::SummarizeStepService, workflows::yaml::StepYaml,
+        },
+    };
 
     fn step_from(yaml: &str) -> Step {
         serde_yaml::from_str::<StepYaml>(yaml)

@@ -13,6 +13,7 @@ mod project_branding_store_error;
 mod run_action_error;
 mod run_all_workflows_error;
 mod run_workflow_error;
+mod settings_store_error;
 mod show_project_branding_info_error;
 mod workflow_source_error;
 
@@ -31,5 +32,6 @@ pub use project_branding_store_error::ProjectBrandingStoreError;
 pub use run_action_error::RunActionError;
 pub use run_all_workflows_error::RunAllWorkflowsError;
 pub use run_workflow_error::RunWorkflowError;
+pub use settings_store_error::SettingsStoreError;
 pub use show_project_branding_info_error::ShowProjectBrandingInfoError;
 pub use workflow_source_error::WorkflowSourceError;
