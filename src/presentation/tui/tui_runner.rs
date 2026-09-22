@@ -4,9 +4,10 @@ use ratatui::{DefaultTerminal, Terminal, backend::CrosstermBackend};
 
 use super::{
     event_reader::EventReader,
+    screen_manager::TuiScreen,
     screens::{ListActionsScreen, ListWorkflowsScreen},
     terminal_guard::TerminalGuard,
-    tui_app::{TuiApp, TuiScreen},
+    tui_app::TuiApp,
 };
 use crate::{
     application::{
@@ -16,9 +17,10 @@ use crate::{
                 list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
                 run_workflow_port::RunWorkflowPort,
             },
-            outbound::DiscoverRunInputsPort,
+            outbound::{DiscoverRunInputsPort, SettingsStorePort},
         },
     },
+    domain::Settings,
     presentation::{cli::TuiProgressStream, handlers::RunHandler},
 };
 type RunTask = tokio::task::JoinHandle<Result<RunSummaryResponse, String>>;
@@ -29,6 +31,8 @@ pub struct TuiRunner {
     run_workflow_port: Arc<dyn RunWorkflowPort>,
     progress_stream: Option<TuiProgressStream>,
     discover_run_inputs_port: Option<Arc<dyn DiscoverRunInputsPort>>,
+    settings: Settings,
+    settings_store: Option<Arc<dyn SettingsStorePort>>,
 }
 
 impl TuiRunner {
@@ -43,6 +47,8 @@ impl TuiRunner {
             run_workflow_port,
             progress_stream: None,
             discover_run_inputs_port: None,
+            settings: Settings::default(),
+            settings_store: None,
         }
     }
 
@@ -56,6 +62,15 @@ impl TuiRunner {
 
     pub fn with_progress_stream(mut self, progress_stream: TuiProgressStream) -> Self {
         self.progress_stream = Some(progress_stream);
+        self
+    }
+    pub fn with_settings(
+        mut self,
+        settings: Settings,
+        store: Option<Arc<dyn SettingsStorePort>>,
+    ) -> Self {
+        self.settings = settings;
+        self.settings_store = store;
         self
     }
 
@@ -88,7 +103,8 @@ impl TuiRunner {
         let actions_screen =
             ListActionsScreen::from_handler(&*self.list_actions_port, current_dir)?;
         Ok(TuiApp::new(workflows_screen.workflows().to_vec())
-            .with_actions(actions_screen.actions().to_vec()))
+            .with_actions(actions_screen.actions().to_vec())
+            .with_settings(self.settings.clone(), self.settings_store.clone()))
     }
 
     /// Runs the given workflow (or all workflows when `None`) in the current
@@ -97,11 +113,12 @@ impl TuiRunner {
         &self,
         workflow: Option<String>,
     ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
+        let event = Some("pull_request".to_string());
         RunHandler::handle_with_event_and_inputs(
             &*self.run_workflow_port,
             std::env::current_dir()?,
             workflow,
-            Some("pull_request".to_string()),
+            event,
             Vec::new(),
         )
         .await
@@ -220,7 +237,7 @@ impl TuiRunner {
             return Ok(());
         }
         *input_configuration_pending = false;
-        let events = app.selected_workflow_events();
+        let events = vec!["pull_request".to_string()];
         app.begin_run_configuration(events, Vec::new());
         Ok(())
     }
@@ -234,10 +251,7 @@ impl TuiRunner {
         let Some(configuration) = app.take_configured_run_request() else {
             return Ok(());
         };
-        let workflow = app
-            .run_workflow_screen()
-            .selected_workflow_name()
-            .map(ToString::to_string);
+        let workflow = app.selected_workflow_name().map(ToString::to_string);
         if self.prepare_input_configuration(
             app,
             &workflow,
