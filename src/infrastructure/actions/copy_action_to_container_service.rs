@@ -6,7 +6,7 @@ use super::{
 };
 use crate::{
     application::dtos::requests::{CollectActionFilesRequest, CopyActionToContainerRequest},
-    domain::errors::StepError,
+    domain::{entities::FileEntry, errors::StepError},
 };
 
 /// Directory inside the container that holds actions copied in for a run.
@@ -46,7 +46,11 @@ impl CopyActionToContainerPort for CopyActionToContainerService {
         let files_response = self.file_collector.execute(CollectActionFilesRequest::new(
             request.action_dir().to_path_buf(),
         ))?;
-        let files = files_response.files();
+        let files: Vec<FileEntry> = files_response
+            .into_files()
+            .into_iter()
+            .map(FileEntry::from)
+            .collect();
 
         request
             .container()
@@ -60,7 +64,7 @@ impl CopyActionToContainerPort for CopyActionToContainerService {
             })?;
         request
             .container()
-            .copy_to(&container_dir, files)
+            .copy_to(&container_dir, &files)
             .map_err(|error| StepError::new(format!("failed to copy action files: {error:?}")))?;
 
         Ok(container_dir)

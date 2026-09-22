@@ -4,8 +4,7 @@ use bytes::Bytes;
 use futures_util::StreamExt;
 
 use crate::{
-    application::dtos::responses::FileEntryResponse,
-    domain::errors::ContainerError,
+    domain::{entities::FileEntry, errors::ContainerError},
     infrastructure::containers::bollard_wrapper::{
         Client, body_full,
         types::{DownloadFromContainerOptionsBuilder, UploadToContainerOptionsBuilder},
@@ -14,7 +13,7 @@ use crate::{
 
 /// Packs file entries into an in-memory tar archive.
 pub(super) fn pack_entries(
-    entries: &[FileEntryResponse],
+    entries: &[FileEntry],
     container_id: &str,
 ) -> Result<Vec<u8>, ContainerError> {
     let mut builder = tar::Builder::new(Vec::new());
@@ -26,7 +25,7 @@ pub(super) fn pack_entries(
 
 fn append_entry(
     builder: &mut tar::Builder<Vec<u8>>,
-    entry: &FileEntryResponse,
+    entry: &FileEntry,
     container_id: &str,
 ) -> Result<(), ContainerError> {
     let mut header = tar::Header::new_gnu();
@@ -89,7 +88,7 @@ pub(super) async fn download_archive(
 pub(super) fn unpack_entries(
     archive: &[u8],
     container_id: &str,
-) -> Result<Vec<FileEntryResponse>, ContainerError> {
+) -> Result<Vec<FileEntry>, ContainerError> {
     let mut unpacked = Vec::new();
     let mut archive = tar::Archive::new(archive);
     for entry in archive
@@ -105,7 +104,7 @@ pub(super) fn unpack_entries(
 fn read_entry<R: std::io::Read>(
     mut entry: tar::Entry<'_, R>,
     container_id: &str,
-) -> Result<FileEntryResponse, ContainerError> {
+) -> Result<FileEntry, ContainerError> {
     let path = entry
         .path()
         .map_err(|error| copy_failed(container_id, error))?
@@ -118,7 +117,7 @@ fn read_entry<R: std::io::Read>(
     let mut content = Vec::new();
     std::io::Read::read_to_end(&mut entry, &mut content)
         .map_err(|error| copy_failed(container_id, error))?;
-    Ok(FileEntryResponse::new(path, content, mode))
+    Ok(FileEntry::new(path, content, mode))
 }
 
 fn copy_failed(container_id: &str, error: impl Display) -> ContainerError {

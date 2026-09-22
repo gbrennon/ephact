@@ -1,5 +1,6 @@
 mod event_reader;
 mod screens;
+mod settings_tests;
 mod tui_app;
 mod tui_runner;
 
@@ -11,12 +12,11 @@ use ephact::{
     presentation::{
         handlers::{ListActionsHandler, ListWorkflowsHandler},
         tui::{
-            screens::{
-                ListActionsScreen, ListWorkflowsScreen, SplashQuotes, color_support::ColorSupport,
-                home::HomeScreen, splash::SplashScreen,
-            },
+            components::{ColorSupport, ScreenFrame, SplashQuotes},
+            screen_manager::TuiScreen,
+            screens::{HomeScreen, ListActionsScreen, ListWorkflowsScreen, SplashScreen},
             theme::Theme,
-            tui_app::{TuiApp, TuiScreen},
+            tui_app::TuiApp,
         },
     },
 };
@@ -39,6 +39,20 @@ impl TuiRenderAssertions {
         let backend = TestBackend::new(80, 24);
         let mut terminal = Terminal::new(backend).expect("test terminal");
         terminal.draw(render).expect("render screen");
+        terminal.backend().buffer().clone()
+    }
+
+    fn rendered_screen(
+        render: impl FnOnce(&mut ratatui::Frame<'_>, ratatui::layout::Rect),
+    ) -> Buffer {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).expect("test terminal");
+        terminal
+            .draw(|frame| {
+                let area = ScreenFrame::render(frame, "test quote");
+                render(frame, area);
+            })
+            .expect("render screen");
         terminal.backend().buffer().clone()
     }
 
@@ -66,15 +80,50 @@ impl TuiRenderAssertions {
         let row = (0..buffer.area.height)
             .find(|row| Self::row_text(buffer, *row).contains(label))
             .expect("label row");
+        let start = Self::label_start_column(buffer, label, row);
+        Self::row_styles(buffer, row)[start..start + label.chars().count()].to_vec()
+    }
+
+    fn label_start_column(buffer: &Buffer, label: &str, row: u16) -> usize {
         let text = Self::row_text(buffer, row);
         let columns: Vec<char> = text.chars().collect();
         let wanted: Vec<char> = label.chars().collect();
-        let start = columns
+        columns
             .windows(wanted.len())
             .position(|window| window == wanted.as_slice())
-            .expect("label on row");
-        Self::row_styles(buffer, row)[start..start + wanted.len()].to_vec()
+            .expect("label on row")
     }
+}
+
+#[test]
+fn home_frame_title_matches_other_inner_frame_padding() {
+    let home = TuiRenderAssertions::rendered_screen(|frame, area| {
+        HomeScreen::render(frame, area, 0);
+    });
+    let actions = TuiRenderAssertions::rendered_screen(|frame, area| {
+        ListActionsScreen::new(vec![]).render(frame, area);
+    });
+
+    let home_column =
+        TuiRenderAssertions::label_start_column(&home, "What would you like to do?", 5);
+    let actions_column = TuiRenderAssertions::label_start_column(&actions, "Actions", 5);
+
+    assert_eq!(home_column, actions_column);
+}
+
+#[test]
+fn home_menu_item_matches_other_inner_frame_padding() {
+    let home = TuiRenderAssertions::rendered_screen(|frame, area| {
+        HomeScreen::render(frame, area, 0);
+    });
+    let actions = TuiRenderAssertions::rendered_screen(|frame, area| {
+        ListActionsScreen::new(vec!["build".into()]).render(frame, area);
+    });
+
+    let home_column = TuiRenderAssertions::label_start_column(&home, "Run workflow", 6);
+    let actions_column = TuiRenderAssertions::label_start_column(&actions, "build", 6);
+
+    assert_eq!(home_column, actions_column);
 }
 
 #[test]
@@ -106,7 +155,7 @@ fn home_navigation_bounds() {
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
     assert_eq!(app.home_selection(), 2);
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-    assert_eq!(app.home_selection(), 2);
+    assert_eq!(app.home_selection(), 3);
 }
 
 #[test]
@@ -168,13 +217,13 @@ fn list_workflows_selection_bounds() {
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
     app.handle_key(KeyEvent::new(KeyCode::Up, KeyModifiers::NONE));
-    assert_eq!(app.list_workflows_screen().selected_index(), 0);
+    assert_eq!(app.selected_workflow_index(), 0);
     app.handle_key(KeyEvent::new(KeyCode::Up, KeyModifiers::NONE));
-    assert_eq!(app.list_workflows_screen().selected_index(), 0);
+    assert_eq!(app.selected_workflow_index(), 0);
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-    assert_eq!(app.list_workflows_screen().selected_index(), 1);
+    assert_eq!(app.selected_workflow_index(), 1);
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-    assert_eq!(app.list_workflows_screen().selected_index(), 1);
+    assert_eq!(app.selected_workflow_index(), 1);
 }
 
 #[test]
@@ -204,13 +253,29 @@ fn splash_renders_fancy_emblem_with_true_color() {
 
 #[test]
 fn home_renders_initial_menu() {
-    let text = TuiRenderAssertions::buffer_text(&TuiRenderAssertions::rendered_buffer(|frame| {
-        HomeScreen::render(frame, 0);
-    }));
+    let text =
+        TuiRenderAssertions::buffer_text(&TuiRenderAssertions::rendered_screen(|frame, area| {
+            HomeScreen::render(frame, area, 0)
+        }));
 
     assert!(text.contains("Run workflow"));
     assert!(text.contains("List workflows"));
     assert!(text.contains("List actions"));
+}
+
+#[test]
+fn home_frame_title_uses_signal_title_style() {
+    let buffer = TuiRenderAssertions::rendered_screen(|frame, area| {
+        HomeScreen::render(frame, area, 0);
+    });
+
+    let title_styles = TuiRenderAssertions::styles_for_label(&buffer, "What would you like to do?");
+
+    assert!(
+        title_styles
+            .iter()
+            .all(|style| style.fg == Some(Theme::SIGNAL_ACCENT))
+    );
 }
 
 #[test]
@@ -224,7 +289,7 @@ fn list_workflows_screen_renders_populated_items() {
         WorkflowListItemResponse::new(None, None, vec![]),
     ];
     let screen = ListWorkflowsScreen::new(workflows);
-    let buffer = TuiRenderAssertions::rendered_buffer(|frame| screen.render(frame));
+    let buffer = TuiRenderAssertions::rendered_screen(|frame, area| screen.render(frame, area));
     let text = TuiRenderAssertions::buffer_text(&buffer);
 
     assert!(text.contains("CI  (.github/workflows/ci.yml)  [push, pull_request]"));
@@ -234,7 +299,7 @@ fn list_workflows_screen_renders_populated_items() {
 #[test]
 fn list_workflows_screen_renders_empty_message() {
     let screen = ListWorkflowsScreen::new(vec![]);
-    let buffer = TuiRenderAssertions::rendered_buffer(|frame| screen.render(frame));
+    let buffer = TuiRenderAssertions::rendered_screen(|frame, area| screen.render(frame, area));
 
     assert!(TuiRenderAssertions::buffer_text(&buffer).contains("No workflows found in repository"));
 }
@@ -247,7 +312,7 @@ fn list_workflows_screen_renders_highlight_on_selected_row() {
     ];
     let mut screen = ListWorkflowsScreen::new(workflows);
     screen.select_next();
-    let buffer = TuiRenderAssertions::rendered_buffer(|frame| screen.render(frame));
+    let buffer = TuiRenderAssertions::rendered_screen(|frame, area| screen.render(frame, area));
 
     let selected = TuiRenderAssertions::styles_for_label(&buffer, "second");
     let unselected = TuiRenderAssertions::styles_for_label(&buffer, "first");
@@ -265,7 +330,8 @@ fn list_workflows_screen_renders_highlight_on_selected_row() {
 
 #[test]
 fn home_renders_highlight_on_selected_menu_item() {
-    let buffer = TuiRenderAssertions::rendered_buffer(|frame| HomeScreen::render(frame, 1));
+    let buffer =
+        TuiRenderAssertions::rendered_screen(|frame, area| HomeScreen::render(frame, area, 1));
 
     let selected = TuiRenderAssertions::styles_for_label(&buffer, "List workflows");
     let unselected = TuiRenderAssertions::styles_for_label(&buffer, "Run workflow");
@@ -370,13 +436,13 @@ fn list_actions_selection_bounds() {
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
     app.handle_key(KeyEvent::new(KeyCode::Up, KeyModifiers::NONE));
-    assert_eq!(app.list_actions_screen().selected_index(), 0);
+    assert_eq!(app.selected_action_index(), 0);
     app.handle_key(KeyEvent::new(KeyCode::Up, KeyModifiers::NONE));
-    assert_eq!(app.list_actions_screen().selected_index(), 0);
+    assert_eq!(app.selected_action_index(), 0);
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-    assert_eq!(app.list_actions_screen().selected_index(), 1);
+    assert_eq!(app.selected_action_index(), 1);
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-    assert_eq!(app.list_actions_screen().selected_index(), 1);
+    assert_eq!(app.selected_action_index(), 1);
 }
 
 #[test]
@@ -386,7 +452,7 @@ fn list_actions_screen_renders_populated_items() {
         "docker://node:20".to_string(),
     ];
     let screen = ListActionsScreen::new(actions);
-    let buffer = TuiRenderAssertions::rendered_buffer(|frame| screen.render(frame));
+    let buffer = TuiRenderAssertions::rendered_screen(|frame, area| screen.render(frame, area));
     let text = TuiRenderAssertions::buffer_text(&buffer);
 
     assert!(text.contains("actions/checkout@v4"));
@@ -396,7 +462,7 @@ fn list_actions_screen_renders_populated_items() {
 #[test]
 fn list_actions_screen_renders_empty_message() {
     let screen = ListActionsScreen::new(vec![]);
-    let buffer = TuiRenderAssertions::rendered_buffer(|frame| screen.render(frame));
+    let buffer = TuiRenderAssertions::rendered_screen(|frame, area| screen.render(frame, area));
 
     assert!(TuiRenderAssertions::buffer_text(&buffer).contains("No actions found in repository"));
 }
@@ -409,7 +475,7 @@ fn list_actions_screen_renders_highlight_on_selected_row() {
     ];
     let mut screen = ListActionsScreen::new(actions);
     screen.select_next();
-    let buffer = TuiRenderAssertions::rendered_buffer(|frame| screen.render(frame));
+    let buffer = TuiRenderAssertions::rendered_screen(|frame, area| screen.render(frame, area));
 
     let selected = TuiRenderAssertions::styles_for_label(&buffer, "docker://node:20");
     let unselected = TuiRenderAssertions::styles_for_label(&buffer, "actions/checkout@v4");
@@ -427,8 +493,8 @@ fn list_actions_screen_renders_highlight_on_selected_row() {
 
 #[test]
 fn home_renders_highlight_on_selected_list_actions_item() {
-    let buffer = TuiRenderAssertions::rendered_buffer(|frame| {
-        HomeScreen::render(frame, HomeScreen::LIST_ACTIONS_INDEX)
+    let buffer = TuiRenderAssertions::rendered_screen(|frame, area| {
+        HomeScreen::render(frame, area, HomeScreen::LIST_ACTIONS_INDEX)
     });
 
     let selected = TuiRenderAssertions::styles_for_label(&buffer, "List actions");
@@ -529,5 +595,5 @@ fn recording_run_outcome_exposes_summary_on_run_screen() {
 
     app.record_run_outcome(summary.clone());
 
-    assert_eq!(app.run_workflow_screen().outcome(), Some(&summary));
+    assert_eq!(app.run_outcome(), Some(&summary));
 }

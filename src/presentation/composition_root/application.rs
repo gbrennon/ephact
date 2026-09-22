@@ -11,6 +11,15 @@ impl Application {
         Self { cli }
     }
 
+    pub fn with_settings(
+        mut self,
+        settings: crate::domain::Settings,
+        store: std::sync::Arc<dyn crate::application::ports::outbound::SettingsStorePort>,
+    ) -> Self {
+        self.cli = self.cli.with_settings(settings, store);
+        self
+    }
+
     pub fn cli(&self) -> &Cli {
         &self.cli
     }

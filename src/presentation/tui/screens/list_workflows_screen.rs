@@ -2,50 +2,57 @@ use std::path::PathBuf;
 
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Layout, Margin, Rect},
+    layout::{Constraint, Direction, Layout, Rect},
     style::Style,
     text::{Line, Span},
     widgets::{Block, Borders, List, ListItem, ListState, Padding, Paragraph},
 };
 
 use crate::{
-    application::ports::inbound::list_actions_port::ListActionsPort,
-    presentation::{handlers::ListActionsHandler, tui::theme::Theme},
+    application::{
+        dtos::responses::WorkflowListItemResponse,
+        ports::inbound::list_workflows_port::ListWorkflowsPort,
+    },
+    presentation::{handlers::ListWorkflowsHandler, tui::theme::Theme},
 };
 
-pub struct ListActionsScreen {
-    actions: Vec<String>,
+#[derive(Clone)]
+pub struct ListWorkflowsScreen {
+    workflows: Vec<WorkflowListItemResponse>,
     selected_index: usize,
 }
 
-impl ListActionsScreen {
-    const TITLE: &'static str = "Actions";
-    const EMPTY_MESSAGE: &'static str = "No actions found in repository";
+impl ListWorkflowsScreen {
+    const TITLE: &'static str = "Workflows";
+    const EMPTY_MESSAGE: &'static str = "No workflows found in repository";
+    const UNNAMED_WORKFLOW: &'static str = "Unnamed workflow";
+    const MISSING_FILE: &'static str = "-";
+    const MISSING_EVENTS: &'static str = "-";
+    const EVENT_SEPARATOR: &'static str = ", ";
     const FOOTER: &'static str = "Up/Down: Navigate | Esc: Back | q: Quit";
     const INITIAL_SELECTION: usize = 0;
     const SELECTION_STEP: usize = 1;
-    const MARGIN: u16 = 2;
     const CONTENT_MIN_HEIGHT: u16 = 5;
     const FOOTER_HEIGHT: u16 = 1;
 
-    pub fn new(actions: Vec<String>) -> Self {
+    pub fn new(workflows: Vec<WorkflowListItemResponse>) -> Self {
         Self {
-            actions,
+            workflows,
             selected_index: Self::INITIAL_SELECTION,
         }
     }
 
-    /// Builds the screen by listing the actions under `repository_path`.
+    /// Builds the screen by listing the workflows under `repository_path`.
     pub fn from_handler(
-        port: &dyn ListActionsPort,
+        port: &dyn ListWorkflowsPort,
         repository_path: PathBuf,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let response = ListActionsHandler::handle(port, repository_path)?;
-        Ok(Self::new(response.into_actions()))
+        let response = ListWorkflowsHandler::handle(port, repository_path)?;
+        Ok(Self::new(response.into_workflows()))
     }
 
-    pub fn actions(&self) -> &[String] {
-        &self.actions
+    pub fn workflows(&self) -> &[WorkflowListItemResponse] {
+        &self.workflows
     }
 
     pub fn selected_index(&self) -> usize {
@@ -53,8 +60,8 @@ impl ListActionsScreen {
     }
 
     pub fn select_next(&mut self) {
-        if !self.actions.is_empty()
-            && self.selected_index + Self::SELECTION_STEP < self.actions.len()
+        if !self.workflows.is_empty()
+            && self.selected_index + Self::SELECTION_STEP < self.workflows.len()
         {
             self.selected_index += Self::SELECTION_STEP;
         }
@@ -66,8 +73,7 @@ impl ListActionsScreen {
         }
     }
 
-    pub fn render(&self, frame: &mut Frame<'_>) {
-        let area = frame.area().inner(Margin::new(Self::MARGIN, Self::MARGIN));
+    pub fn render(&self, frame: &mut Frame<'_>, area: Rect) {
         let block = Block::default()
             .borders(Borders::ALL)
             .border_style(Theme::border_style())
@@ -87,7 +93,7 @@ impl ListActionsScreen {
     }
 
     fn render_content(&self, frame: &mut Frame<'_>, area: Rect) {
-        if self.actions.is_empty() {
+        if self.workflows.is_empty() {
             self.render_empty(frame, area);
         } else {
             self.render_populated(frame, area);
@@ -101,9 +107,9 @@ impl ListActionsScreen {
 
     fn render_populated(&self, frame: &mut Frame<'_>, area: Rect) {
         let items = self
-            .actions
+            .workflows
             .iter()
-            .map(|action| Self::action_item(action))
+            .map(Self::workflow_item)
             .collect::<Vec<_>>();
         let list = List::new(items)
             .style(Theme::body_style())
@@ -113,8 +119,19 @@ impl ListActionsScreen {
         frame.render_stateful_widget(list, area, &mut state);
     }
 
-    fn action_item(action: &str) -> ListItem<'static> {
-        ListItem::new(Line::from(action.to_string()))
+    fn workflow_item(workflow: &WorkflowListItemResponse) -> ListItem<'static> {
+        let name = workflow.name().unwrap_or(Self::UNNAMED_WORKFLOW);
+        let file = workflow.file().unwrap_or(Self::MISSING_FILE);
+        let events = Self::format_events(workflow);
+        ListItem::new(Line::from(format!("{name}  ({file})  [{events}]")))
+    }
+
+    fn format_events(workflow: &WorkflowListItemResponse) -> String {
+        if workflow.events().is_empty() {
+            Self::MISSING_EVENTS.to_string()
+        } else {
+            workflow.events().join(Self::EVENT_SEPARATOR)
+        }
     }
 
     fn highlight_style() -> Style {

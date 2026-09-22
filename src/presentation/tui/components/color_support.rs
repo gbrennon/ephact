@@ -48,36 +48,41 @@ impl ColorSupport {
     }
 }
 
-#[test]
-fn detect_truecolor_colorterm_reports_true_color() {
-    let support = ColorSupport::detect(Some("truecolor"), Some("xterm-256color"));
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    assert_eq!(support, ColorSupport::TrueColor);
-}
+    #[test]
+    fn detect_truecolor_colorterm_reports_true_color() {
+        let support = ColorSupport::detect(Some("truecolor"), Some("xterm-256color"));
 
-#[test]
-fn detect_24bit_colorterm_reports_true_color() {
-    let support = ColorSupport::detect(Some("24bit"), None);
+        assert_eq!(support, ColorSupport::TrueColor);
+    }
 
-    assert_eq!(support, ColorSupport::TrueColor);
-}
+    #[test]
+    fn detect_24bit_colorterm_reports_true_color() {
+        let support = ColorSupport::detect(Some("24bit"), None);
 
-#[test]
-fn detect_direct_term_reports_true_color() {
-    let support = ColorSupport::detect(None, Some("xterm-direct"));
+        assert_eq!(support, ColorSupport::TrueColor);
+    }
 
-    assert_eq!(support, ColorSupport::TrueColor);
-}
+    #[test]
+    fn detect_direct_term_reports_true_color() {
+        let support = ColorSupport::detect(None, Some("xterm-direct"));
 
-#[test]
-fn detect_without_true_color_hints_reports_basic() {
-    let support = ColorSupport::detect(None, Some("xterm-256color"));
+        assert_eq!(support, ColorSupport::TrueColor);
+    }
 
-    assert_eq!(support, ColorSupport::Basic);
-}
+    #[test]
+    fn detect_without_true_color_hints_reports_basic() {
+        let support = ColorSupport::detect(None, Some("xterm-256color"));
 
-#[test]
-fn is_true_color_reflects_variant() {
-    assert!(ColorSupport::TrueColor.is_true_color());
-    assert!(!ColorSupport::Basic.is_true_color());
+        assert_eq!(support, ColorSupport::Basic);
+    }
+
+    #[test]
+    fn is_true_color_reflects_variant() {
+        assert!(ColorSupport::TrueColor.is_true_color());
+        assert!(!ColorSupport::Basic.is_true_color());
+    }
 }

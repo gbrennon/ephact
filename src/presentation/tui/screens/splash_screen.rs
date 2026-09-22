@@ -6,8 +6,10 @@ use ratatui::{
     widgets::{Block, Borders, Padding, Paragraph},
 };
 
-use super::{color_support::ColorSupport, emblem::Emblem};
-use crate::presentation::tui::theme::Theme;
+use crate::presentation::tui::{
+    components::{ColorSupport, Emblem},
+    theme::Theme,
+};
 
 /// Splash screen shown before the home menu.
 ///

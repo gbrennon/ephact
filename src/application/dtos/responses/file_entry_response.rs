@@ -1,3 +1,5 @@
+use crate::domain::entities::FileEntry;
+
 /// A file entry for copy operations.
 #[derive(Debug, Clone)]
 pub struct FileEntryResponse {
@@ -29,5 +31,19 @@ impl FileEntryResponse {
 
     pub fn into_parts(self) -> (String, Vec<u8>, u32) {
         (self.path, self.content, self.mode)
+    }
+}
+
+impl From<FileEntryResponse> for FileEntry {
+    fn from(value: FileEntryResponse) -> Self {
+        let (path, content, mode) = value.into_parts();
+        Self::new(path, content, mode)
+    }
+}
+
+impl From<FileEntry> for FileEntryResponse {
+    fn from(value: FileEntry) -> Self {
+        let (path, content, mode) = value.into_parts();
+        Self::new(path, content, mode)
     }
 }

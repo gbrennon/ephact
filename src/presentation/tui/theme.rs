@@ -4,6 +4,19 @@ use ratatui::style::{Color, Modifier, Style};
 ///
 /// Each constant and style is named for the role it plays in the interface so
 /// callers express intent instead of raw palette slots.
+///
+/// | Role | Color name | RGB code |
+/// | --- | --- | --- |
+/// | `WINDOW_BACKGROUND` | Deep space | `Color::Rgb(8, 11, 16)` |
+/// | `PANEL_BACKGROUND` | Panel slate | `Color::Rgb(22, 28, 38)` |
+/// | `BORDER` | Steel blue | `Color::Rgb(110, 132, 158)` |
+/// | `TEXT_PRIMARY` | Ice white | `Color::Rgb(234, 241, 247)` |
+/// | `TEXT_MUTED` | Blue gray | `Color::Rgb(162, 179, 195)` |
+/// | `ACTIVE_ACCENT` | Cyan | `Color::Rgb(72, 245, 212)` |
+/// | `STRUCTURE_ACCENT` | Electric blue | `Color::Rgb(58, 130, 232)` |
+/// | `SIGNAL_ACCENT` | Orange | `Color::Rgb(255, 148, 51)` |
+/// | `CRITICAL` | Coral red | `Color::Rgb(239, 71, 84)` |
+/// | `SUBTLE_HIGHLIGHT` | Soft violet | `Color::Rgb(150, 112, 196)` |
 pub struct Theme;
 
 impl Theme {
