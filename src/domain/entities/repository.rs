@@ -69,6 +69,7 @@ mod tests {
         assert_eq!(repo.path(), &path);
         assert_eq!(repo.name(), &name);
     }
+
     #[test]
     fn reports_repository_kind() {
         let repository = Repository::new(repo_path(), repo_name());

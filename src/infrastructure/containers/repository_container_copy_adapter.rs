@@ -5,9 +5,12 @@ use std::{
 };
 
 use super::copy_repository_to_container_port::CopyRepositoryToContainerPort;
-use crate::application::{
-    dtos::requests::CopyRepositoryToContainerRequest, errors::CopyRepositoryToContainerError,
-    ports::outbound::container_port::ContainerPort,
+use crate::{
+    application::{
+        dtos::requests::CopyRepositoryToContainerRequest, errors::CopyRepositoryToContainerError,
+        ports::outbound::container_port::ContainerPort,
+    },
+    domain::entities::FileEntry,
 };
 
 const EXCLUDED_DIRS: &[&str] = &[
@@ -22,9 +25,9 @@ const EXCLUDED_DIRS: &[&str] = &[
     ".DS_Store",
 ];
 
-pub struct CopyRepositoryToContainerService;
+pub struct RepositoryContainerCopyAdapter;
 
-impl CopyRepositoryToContainerService {
+impl RepositoryContainerCopyAdapter {
     pub fn new() -> Self {
         Self
     }
@@ -46,15 +49,12 @@ impl CopyRepositoryToContainerService {
     fn read_file_entry(
         root: &Path,
         path: &Path,
-    ) -> Result<
-        crate::application::dtos::responses::FileEntryResponse,
-        CopyRepositoryToContainerError,
-    > {
+    ) -> Result<FileEntry, CopyRepositoryToContainerError> {
         let relative = path.strip_prefix(root).map_err(|error| {
             CopyRepositoryToContainerError::Filesystem(std::io::Error::other(error.to_string()))
         })?;
         let content = read(path).map_err(CopyRepositoryToContainerError::Filesystem)?;
-        Ok(crate::application::dtos::responses::FileEntryResponse::new(
+        Ok(FileEntry::new(
             relative.display().to_string(),
             content,
             Self::file_mode(path),
@@ -64,7 +64,7 @@ impl CopyRepositoryToContainerService {
     fn process_entry(
         root: &Path,
         path: PathBuf,
-        files: &mut Vec<crate::application::dtos::responses::FileEntryResponse>,
+        files: &mut Vec<FileEntry>,
     ) -> Result<(), CopyRepositoryToContainerError> {
         if Self::should_exclude(&path, root) {
             return Ok(());
@@ -79,7 +79,7 @@ impl CopyRepositoryToContainerService {
     fn collect_files_into(
         root: &Path,
         directory: &Path,
-        files: &mut Vec<crate::application::dtos::responses::FileEntryResponse>,
+        files: &mut Vec<FileEntry>,
     ) -> Result<(), CopyRepositoryToContainerError> {
         for entry in read_dir(directory).map_err(CopyRepositoryToContainerError::Filesystem)? {
             let path = entry
@@ -91,13 +91,13 @@ impl CopyRepositoryToContainerService {
     }
 }
 
-impl Default for CopyRepositoryToContainerService {
+impl Default for RepositoryContainerCopyAdapter {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl CopyRepositoryToContainerPort for CopyRepositoryToContainerService {
+impl CopyRepositoryToContainerPort for RepositoryContainerCopyAdapter {
     fn execute(
         &self,
         request: CopyRepositoryToContainerRequest,

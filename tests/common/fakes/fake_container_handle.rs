@@ -3,10 +3,10 @@ use std::{collections::HashMap, sync::Arc};
 
 use ephact::{
     application::{
-        dtos::responses::{ExecResultResponse, FileEntryResponse, RunnerContextResponse},
+        dtos::responses::{ExecResultResponse, RunnerContextResponse},
         ports::outbound::container_port::ContainerPort,
     },
-    domain::errors::ContainerError,
+    domain::{entities::FileEntry, errors::ContainerError},
 };
 use parking_lot::Mutex;
 
@@ -64,12 +64,12 @@ impl ContainerPort for FakeContainerHandle {
         }
     }
 
-    fn copy_to(&self, path: &str, _entries: &[FileEntryResponse]) -> Result<(), ContainerError> {
+    fn copy_to(&self, path: &str, _entries: &[FileEntry]) -> Result<(), ContainerError> {
         self.copied_paths.lock().push(path.to_string());
         Ok(())
     }
 
-    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntryResponse>, ContainerError> {
+    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntry>, ContainerError> {
         Ok(vec![])
     }
 
