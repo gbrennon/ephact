@@ -2,28 +2,30 @@ use std::time::{Duration, Instant};
 
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Layout, Margin, Rect},
+    layout::{Constraint, Direction, Layout, Rect},
     style::Style,
     text::{Line, Span},
     widgets::{Block, Borders, List, ListItem, ListState, Padding, Paragraph, Wrap},
 };
 
-use super::{
-    run_configuration::{ConfigurationAction, RunConfiguration, RunConfigurationValues},
-    run_details::RunDetailsView,
-};
 use crate::{
     application::dtos::responses::{
         JobSummaryResponse, RunInputDeclarationResponse, RunSummaryResponse,
         WorkflowListItemResponse,
     },
-    presentation::tui::theme::Theme,
+    presentation::tui::{
+        components::{
+            ConfigurationAction, RunConfiguration, RunConfigurationValues, RunDetailsView,
+        },
+        theme::Theme,
+    },
 };
 /// Screen that lets the user pick a workflow, run it, and read the summary.
 ///
 /// Before a run the screen shows a selectable list of workflow names. Once a
 /// run finishes, [`RunWorkflowScreen::record_outcome`] stores the summary and
 /// the screen renders the per-job result instead of the picker.
+#[derive(Clone)]
 pub struct RunWorkflowScreen {
     workflows: Vec<WorkflowListItemResponse>,
     selected_index: usize,
@@ -53,7 +55,6 @@ impl RunWorkflowScreen {
     const FAILURE_LABEL: &'static str = "FAILED";
     const INITIAL_SELECTION: usize = 0;
     const SELECTION_STEP: usize = 1;
-    const MARGIN: u16 = 2;
     const CONTENT_MIN_HEIGHT: u16 = 5;
     const FOOTER_HEIGHT: u16 = 1;
     pub fn new(workflows: Vec<WorkflowListItemResponse>) -> Self {
@@ -249,8 +250,7 @@ impl RunWorkflowScreen {
         }
     }
 
-    pub fn render(&self, frame: &mut Frame<'_>) {
-        let area = frame.area().inner(Margin::new(Self::MARGIN, Self::MARGIN));
+    pub fn render(&self, frame: &mut Frame<'_>, area: Rect) {
         let title = if self.showing_details {
             Self::DETAILS_TITLE
         } else if self.configuration.is_some() {

@@ -32,6 +32,7 @@ enum Row {
     Output(Line<'static>),
 }
 
+#[derive(Clone)]
 pub struct RunDetailsView {
     workflow_expanded: bool,
     collapsed_jobs: HashSet<usize>,
@@ -162,20 +163,18 @@ impl RunDetailsView {
         let has_output = !data.stdout().is_empty() || !data.stderr().is_empty();
         let mark = fold_mark(expanded, has_output);
         let label = format!("Step: {}", data.name());
-        let mut line = header_line(2, mark, label, step_success(data));
+        let mut line = if data.is_skipped() {
+            skipped_header_line(2, mark, label)
+        } else {
+            header_line(2, mark, label, step_success(data))
+        };
         push_exit_code(&mut line, data);
         line
     }
 
     fn append_step_output(&self, rows: &mut Vec<Row>, data: &StepSummaryResponse, width: u16) {
         append_stream(rows, "stdout", data.stdout(), Theme::muted_style(), width);
-        append_stream(
-            rows,
-            "stderr",
-            data.stderr(),
-            Theme::critical_style(),
-            width,
-        );
+        append_stream(rows, "stderr", data.stderr(), stderr_style(data), width);
     }
 }
 
@@ -267,6 +266,15 @@ fn status_span(success: bool) -> Span<'static> {
     Span::styled(label, style)
 }
 
+fn skipped_header_line(depth: usize, mark: &str, label: String) -> Line<'static> {
+    Line::from(vec![
+        Span::styled(format!("{}{}", indent(depth), mark), Theme::muted_style()),
+        Span::styled(label, Theme::body_style()),
+        Span::raw(" "),
+        Span::styled("[SKIPPED]", Theme::signal_style()),
+    ])
+}
+
 fn fold_mark(expanded: bool, has_children: bool) -> &'static str {
     if !has_children {
         return LEAF_MARK;
@@ -280,6 +288,13 @@ fn fold_mark(expanded: bool, has_children: bool) -> &'static str {
 
 fn step_success(step: &StepSummaryResponse) -> bool {
     step.exit_code().is_none_or(|code| code == 0)
+}
+fn stderr_style(step: &StepSummaryResponse) -> Style {
+    if step_success(step) {
+        Theme::muted_style()
+    } else {
+        Theme::critical_style()
+    }
 }
 
 fn toggle_membership<T: Eq + std::hash::Hash>(set: &mut HashSet<T>, key: T) {
@@ -347,6 +362,54 @@ mod tests {
         ));
         let job = JobSummaryResponse::new("build", Some("Build".to_string()), vec![step], true);
         RunSummaryResponse::new("CI", vec![job], true, Duration::ZERO)
+    }
+    fn summary_with_stderr(exit_code: i64, stderr: &str) -> RunSummaryResponse {
+        let step = StepSummaryResponse::new(StepSummaryResponseInput::new(
+            "compile",
+            StepType::Run,
+            StepSummaryDetails::new(Some(exit_code), false, Duration::ZERO, "", stderr),
+        ));
+        let job = JobSummaryResponse::new(
+            "build",
+            Some("Build".to_string()),
+            vec![step],
+            exit_code == 0,
+        );
+        RunSummaryResponse::new("CI", vec![job], exit_code == 0, Duration::ZERO)
+    }
+
+    #[test]
+    fn successful_stderr_is_rendered_as_muted_diagnostics() {
+        let summary = summary_with_stderr(0, "Downloading crates");
+        let view = RunDetailsView::new();
+
+        let rows = view.rows(&summary, 80);
+        let stderr = rows
+            .iter()
+            .find_map(|row| match row {
+                Row::Output(line) if row_text(row).contains("stderr:") => Some(line),
+                _ => None,
+            })
+            .expect("stderr row");
+
+        assert_eq!(stderr.spans[0].style, Theme::muted_style());
+    }
+
+    #[test]
+    fn failed_stderr_is_rendered_as_critical_diagnostics() {
+        let summary = summary_with_stderr(1, "compiler failed");
+        let view = RunDetailsView::new();
+
+        let rows = view.rows(&summary, 80);
+        let stderr = rows
+            .iter()
+            .find_map(|row| match row {
+                Row::Output(line) if row_text(row).contains("stderr:") => Some(line),
+                _ => None,
+            })
+            .expect("stderr row");
+
+        assert_eq!(stderr.spans[0].style, Theme::critical_style());
     }
 
     fn row_text(row: &Row) -> String {

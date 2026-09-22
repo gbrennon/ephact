@@ -5,7 +5,7 @@ mod tests {
     use ephact::{
         application::dtos::responses::RunSummaryResponse,
         presentation::{
-            cli::{CliParser, command::Command, parse_run_test_args},
+            cli::{CliParser, SettingName, SettingsCommand, command::Command, parse_run_test_args},
             components::terminal::SystemTerminal,
             handlers::RunHandler,
         },
@@ -60,15 +60,37 @@ mod tests {
     }
 
     #[test]
-    fn no_args_displays_help() {
-        let result = CliParser::try_parse_from(["ephact"]);
-        let err = match result {
-            Ok(_) => panic!("expected missing-command error"),
-            Err(e) => e,
-        };
-        assert_eq!(
-            err.kind(),
-            clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
-        );
+    fn parses_cli_command() {
+        let cli = CliParser::try_parse_from(["ephact", "cli"]).expect("cli should parse");
+
+        assert!(matches!(cli.command(), Command::Cli));
+    }
+    #[test]
+    fn parses_settings_show_and_set_commands() {
+        let show = CliParser::try_parse_from(["ephact", "settings", "show"])
+            .expect("settings show should parse");
+        assert!(matches!(
+            show.command(),
+            Command::Settings(SettingsCommand::Show)
+        ));
+
+        let set =
+            CliParser::try_parse_from(["ephact", "settings", "set", "default-interface", "cli"])
+                .expect("settings set should parse");
+        match set.command() {
+            Command::Settings(SettingsCommand::Set(arguments)) => {
+                assert_eq!(arguments.name(), SettingName::DefaultInterface);
+                assert_eq!(arguments.value(), "cli");
+            }
+            _ => panic!("expected settings set"),
+        }
+    }
+
+    #[test]
+    fn no_args_selects_tui_by_default() {
+        let cli = CliParser::try_parse_from(["ephact"]).expect("no subcommand should parse");
+
+        assert!(!cli.has_explicit_command());
+        assert!(matches!(cli.command(), Command::Tui));
     }
 }

@@ -7,6 +7,7 @@ pub mod list_actions_args;
 pub mod list_workflows_args;
 pub mod run_args;
 pub mod run_progress_handler;
+pub mod settings_command;
 
 pub use cli::Cli;
 pub use cli_parser::{
@@ -16,6 +17,7 @@ pub use list_actions_args::ListActionsArgs;
 pub use list_workflows_args::ListWorkflowsArgs;
 pub use run_args::RunArgs;
 pub use run_progress_handler::{RunProgressHandler, TuiProgressStream};
+pub use settings_command::{SettingName, SettingsCommand, SettingsSetArgs};
 
 pub use crate::presentation::handlers::{
     DiagnosticStores, ListActionsHandler, ListWorkflowsHandler, PreflightPorts, RunHandler,

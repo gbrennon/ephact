@@ -1,4 +1,4 @@
-use ephact::presentation::tui::screens::ListActionsScreen;
+use ephact::presentation::tui::{components::ScreenFrame, screens::ListActionsScreen};
 use ratatui::{Terminal, backend::TestBackend};
 
 use crate::common::fakes::fake_list_actions_port::FakeListActionsPort;
@@ -42,7 +42,10 @@ fn render_empty_screen_shows_repository_message() {
     let mut terminal = Terminal::new(backend).expect("test terminal");
 
     terminal
-        .draw(|frame| screen.render(frame))
+        .draw(|frame| {
+            let area = ScreenFrame::render(frame, "test quote");
+            screen.render(frame, area);
+        })
         .expect("render screen");
 
     let text = terminal
@@ -66,7 +69,10 @@ fn render_populated_screen_shows_action_items() {
     let mut terminal = Terminal::new(backend).expect("test terminal");
 
     terminal
-        .draw(|frame| screen.render(frame))
+        .draw(|frame| {
+            let area = ScreenFrame::render(frame, "test quote");
+            screen.render(frame, area);
+        })
         .expect("render screen");
 
     let text = terminal

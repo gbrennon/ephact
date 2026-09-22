@@ -6,7 +6,6 @@ const SUPPORTED_WORKFLOWS: &str = ".forgejo/workflows, .github/workflows";
 #[derive(Parser)]
 #[command(
     name = "ephact",
-    arg_required_else_help = true,
     after_long_help = r#"EXAMPLES:
     ephact run
     ephact run --workflow CI --job test
@@ -16,14 +15,17 @@ CI host from the repository layout and manages ephemeral copies internally."#
 )]
 pub struct CliParser {
     #[command(subcommand)]
-    command: super::command::Command,
+    command: Option<super::command::Command>,
 }
 
 impl CliParser {
     pub fn command(self) -> super::command::Command {
-        self.command
+        self.command.unwrap_or(super::command::Command::Tui)
     }
 
+    pub fn has_explicit_command(&self) -> bool {
+        self.command.is_some()
+    }
     /// Builds the base CLI command with dynamic platform and workflow descriptions.
     pub fn build_command() -> clap::Command {
         let platforms = SUPPORTED_PLATFORMS;

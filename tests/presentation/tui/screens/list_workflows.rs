@@ -2,7 +2,7 @@
 mod tests {
     use ephact::{
         application::dtos::responses::WorkflowListItemResponse,
-        presentation::tui::screens::ListWorkflowsScreen,
+        presentation::tui::{components::ScreenFrame, screens::ListWorkflowsScreen},
     };
     use ratatui::{Terminal, backend::TestBackend};
 
@@ -29,7 +29,10 @@ mod tests {
         let mut terminal = Terminal::new(backend).expect("test terminal");
 
         terminal
-            .draw(|frame| screen.render(frame))
+            .draw(|frame| {
+                let area = ScreenFrame::render(frame, "test quote");
+                screen.render(frame, area);
+            })
             .expect("render screen");
 
         let text = terminal

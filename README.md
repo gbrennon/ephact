@@ -57,11 +57,18 @@ Supported platforms are **Forgejo** and **GitHub**. Workflows are discovered
 automatically from `.forgejo/workflows` and `.github/workflows`.
 
 ### Subcommands
+
+- No subcommand: Open the TUI using the persisted default interface.
 - `run [PATH]`: Run supported pull-request workflows from a Git repository
   bind-mounted read-only into job containers by default. Use
   `--allow-repo-writes` to enable workflow writes.
+- `list-workflows [PATH]`: List workflows discovered in a repository.
 - `list-actions [PATH]`: List actions referenced across workflows.
-- `tui`: Open the terminal user interface with its splash and home screens.
+- `settings`: Show, update, or reset persisted settings.
+- `tui`: Open the terminal user interface explicitly.
+
+The explicit `tui`, `run`, `list-workflows`, and `list-actions` commands take
+precedence over the persisted default interface.
 
 Built on Rust edition **2024**; the toolchain comes from
 [`rust-toolchain.toml`](rust-toolchain.toml).

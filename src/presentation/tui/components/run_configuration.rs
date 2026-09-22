@@ -33,12 +33,14 @@ pub enum ConfigurationAction {
     Cancel,
 }
 
+#[derive(Clone)]
 struct InputField {
     name: String,
     required: bool,
     value: String,
 }
 
+#[derive(Clone)]
 pub struct RunConfiguration {
     events: Vec<String>,
     selected_index: usize,

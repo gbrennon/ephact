@@ -27,6 +27,14 @@ mod tests {
     }
 
     #[test]
+    fn to_domain_defaults_event_to_pull_request() {
+        let args = parse_run_test_args(&[]);
+        let (config, _repo) = args.to_domain().unwrap();
+
+        assert_eq!(config.event().unwrap().as_str(), "pull_request");
+    }
+
+    #[test]
     fn to_domain_with_workflow() {
         let args = parse_run_test_args(&["--workflow", "ci.yml"]);
         let (config, _repo) = args.to_domain().unwrap();

@@ -1,13 +1,44 @@
 # Using ephact
 
-`ephact` provides three subcommands to inspect workflows and run supported
-pull-request workflows in Docker or Podman containers:
+`ephact` provides a terminal user interface by default and supports commands to
+inspect workflows, manage settings, and run supported pull-request workflows in
+Docker or Podman containers:
 
+- No subcommand: Open the TUI using the persisted default interface.
 - `run`: Execute pull-request workflows with the selected Git repository mounted
   read-only at `/workspace` by default. Use `--allow-repo-writes` to enable
   workflow writes.
 - `list-workflows`: Discover and list named workflows in a repository.
 - `list-actions`: Discover and list unique action references across workflows.
+- `settings`: Show, update, or reset persisted settings.
+
+An explicit subcommand takes precedence over the persisted default interface.
+Use `ephact tui` to open the TUI explicitly.
+
+## Settings (`ephact settings`)
+
+Settings are stored in `~/.config/ephact/config.toml`. Missing files use the
+built-in defaults. Use `settings show` to display the effective persisted
+settings and the configuration path:
+
+```sh
+ephact settings show
+```
+
+Update one setting with a typed value:
+
+```sh
+ephact settings set default-interface cli
+```
+
+Restore all built-in defaults:
+
+```sh
+ephact settings reset
+```
+
+Persisted execution defaults apply when the corresponding `run` option is
+absent. Explicit command-line options override them for the current invocation.
 
 ## Running Workflows (`ephact run`)
 

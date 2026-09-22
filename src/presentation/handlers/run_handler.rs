@@ -121,8 +121,8 @@ impl RunHandler {
     fn build_repository(
         repository_path: PathBuf,
     ) -> Result<Repository, Box<dyn std::error::Error>> {
-        let repo_path = RepoPath::new(repository_path).map_err(|e| format!("{e:?}"))?;
-        let repo_name = RepositoryName::from_repo_path(&repo_path).map_err(|e| format!("{e:?}"))?;
+        let repo_path = RepoPath::new(repository_path)?;
+        let repo_name = RepositoryName::from_repo_path(&repo_path)?;
         Ok(Repository::new(repo_path, repo_name))
     }
 
