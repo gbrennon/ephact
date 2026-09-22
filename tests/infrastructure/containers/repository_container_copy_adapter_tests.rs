@@ -6,7 +6,7 @@ mod tests {
         application::dtos::requests::CopyRepositoryToContainerRequest,
         infrastructure::containers::{
             copy_repository_to_container_port::CopyRepositoryToContainerPort,
-            copy_repository_to_container_service::CopyRepositoryToContainerService,
+            repository_container_copy_adapter::RepositoryContainerCopyAdapter,
         },
     };
     use tempfile::tempdir;
@@ -26,7 +26,7 @@ mod tests {
             "/workspace".to_string(),
         );
 
-        CopyRepositoryToContainerService::new()
+        RepositoryContainerCopyAdapter::new()
             .execute(request, &container)
             .expect("repository copy");
 
@@ -64,7 +64,7 @@ mod tests {
             "/workspace".to_string(),
         );
 
-        CopyRepositoryToContainerService::new()
+        RepositoryContainerCopyAdapter::new()
             .execute(request, &container)
             .expect("repository copy");
 
