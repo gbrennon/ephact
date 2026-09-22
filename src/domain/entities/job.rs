@@ -249,6 +249,7 @@ impl Job {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn new_and_accessors_preserve_fields() {
         let job = Job::new(
@@ -289,6 +290,7 @@ mod tests {
         assert!(job.permissions().is_none());
         assert!(job.concurrency().is_none());
     }
+
     #[test]
     fn exposes_dependency_and_failure_policy_behavior() {
         let job = Job::new(None, None, Vec::new(), vec!["setup".into()])

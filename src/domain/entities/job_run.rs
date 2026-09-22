@@ -64,6 +64,7 @@ impl JobRun {
             .map(String::as_str)
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -77,6 +78,7 @@ mod tests {
         assert!(run.job().steps().is_empty());
         assert!(run.matrix_values().is_none());
     }
+
     #[test]
     fn finds_matrix_value_by_name() {
         let run = JobRun::new(
