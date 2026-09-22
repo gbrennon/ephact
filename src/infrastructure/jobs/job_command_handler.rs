@@ -22,6 +22,7 @@ impl JobCommandHandler {
     }
 
     pub fn handle(&self, cmd: ExecuteJobCommand) -> Result<JobExecutionResponse, Box<dyn Error>> {
+        let allow_network = cmd.allow_network();
         let (job, job_id, workflow, repo_path, context, run_id, allow_repo_writes) =
             cmd.into_parts();
         let run = JobRun::new(workflow.name().map(str::to_string), job_id, job, None);
@@ -31,7 +32,8 @@ impl JobCommandHandler {
             EvaluationContextMapper::to_parts(&context),
             run_id,
             allow_repo_writes,
-        );
+        )
+        .with_allow_network(allow_network);
         Ok(self.executor.execute(req, &run, &workflow)?)
     }
 }

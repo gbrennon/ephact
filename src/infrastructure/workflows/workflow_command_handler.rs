@@ -73,7 +73,8 @@ impl WorkflowCommandHandler {
             EvaluationContextMapper::to_parts(&context),
             cmd.run_id().to_string(),
             cmd.allow_repo_writes(),
-        );
+        )
+        .with_allow_network(cmd.config().allow_network());
         Ok(self.executor.execute(req)?)
     }
 }
