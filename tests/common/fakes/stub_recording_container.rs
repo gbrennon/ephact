@@ -3,10 +3,10 @@ use std::{collections::HashMap, sync::Arc};
 
 use ephact::{
     application::{
-        dtos::responses::{ExecResultResponse, FileEntryResponse, RunnerContextResponse},
+        dtos::responses::{ExecResultResponse, RunnerContextResponse},
         ports::outbound::container_port::ContainerPort,
     },
-    domain::errors::ContainerError,
+    domain::{entities::FileEntry, errors::ContainerError},
 };
 use parking_lot::Mutex;
 
@@ -17,7 +17,7 @@ pub struct StubRecordingContainer {
     executed_commands: Arc<Mutex<Vec<Vec<String>>>>,
     exec_environments: Arc<Mutex<Vec<HashMap<String, String>>>>,
     copied_paths: Arc<Mutex<Vec<String>>>,
-    copied_files: Arc<Mutex<Vec<Vec<FileEntryResponse>>>>,
+    copied_files: Arc<Mutex<Vec<Vec<FileEntry>>>>,
 }
 
 impl StubRecordingContainer {
@@ -37,7 +37,7 @@ impl StubRecordingContainer {
         self.copied_paths.lock().clone()
     }
 
-    pub fn copied_files(&self) -> Vec<Vec<FileEntryResponse>> {
+    pub fn copied_files(&self) -> Vec<Vec<FileEntry>> {
         self.copied_files.lock().clone()
     }
 }
@@ -54,13 +54,13 @@ impl ContainerPort for StubRecordingContainer {
         Ok(ExecResultResponse::new(0, String::new(), String::new()))
     }
 
-    fn copy_to(&self, path: &str, entries: &[FileEntryResponse]) -> Result<(), ContainerError> {
+    fn copy_to(&self, path: &str, entries: &[FileEntry]) -> Result<(), ContainerError> {
         self.copied_paths.lock().push(path.to_string());
         self.copied_files.lock().push(entries.to_vec());
         Ok(())
     }
 
-    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntryResponse>, ContainerError> {
+    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntry>, ContainerError> {
         Ok(vec![])
     }
 

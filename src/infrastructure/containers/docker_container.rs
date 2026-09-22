@@ -7,10 +7,10 @@ use super::{
 };
 use crate::{
     application::{
-        dtos::responses::{ExecResultResponse, FileEntryResponse, RunnerContextResponse},
+        dtos::responses::{ExecResultResponse, RunnerContextResponse},
         ports::outbound::container_port::{ContainerPort, ExecOptions},
     },
-    domain::{errors::ContainerError, messages::events::OutputStream},
+    domain::{entities::FileEntry, errors::ContainerError, messages::events::OutputStream},
 };
 
 /// A running Docker container, created by [`DockerRuntime`].
@@ -59,11 +59,7 @@ impl ContainerPort for DockerContainer {
         )
     }
 
-    fn copy_to(
-        &self,
-        container_path: &str,
-        entries: &[FileEntryResponse],
-    ) -> Result<(), ContainerError> {
+    fn copy_to(&self, container_path: &str, entries: &[FileEntry]) -> Result<(), ContainerError> {
         let archive = pack_entries(entries, &self.container_id)?;
         super::docker_runtime::block_on_runtime(
             &self.runtime,
@@ -71,7 +67,7 @@ impl ContainerPort for DockerContainer {
         )
     }
 
-    fn copy_from(&self, container_path: &str) -> Result<Vec<FileEntryResponse>, ContainerError> {
+    fn copy_from(&self, container_path: &str) -> Result<Vec<FileEntry>, ContainerError> {
         super::docker_runtime::block_on_runtime(&self.runtime, async {
             let archive =
                 download_archive(&self.docker, &self.container_id, container_path).await?;

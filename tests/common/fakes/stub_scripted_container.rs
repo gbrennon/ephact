@@ -3,10 +3,10 @@ use std::collections::HashMap;
 
 use ephact::{
     application::{
-        dtos::responses::{ExecResultResponse, FileEntryResponse, RunnerContextResponse},
+        dtos::responses::{ExecResultResponse, RunnerContextResponse},
         ports::outbound::container_port::ContainerPort,
     },
-    domain::errors::ContainerError,
+    domain::{entities::FileEntry, errors::ContainerError},
 };
 
 /// Container that answers every execution with one prepared result.
@@ -38,11 +38,11 @@ impl ContainerPort for StubScriptedContainer {
         ))
     }
 
-    fn copy_to(&self, _path: &str, _entries: &[FileEntryResponse]) -> Result<(), ContainerError> {
+    fn copy_to(&self, _path: &str, _entries: &[FileEntry]) -> Result<(), ContainerError> {
         Ok(())
     }
 
-    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntryResponse>, ContainerError> {
+    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntry>, ContainerError> {
         Ok(vec![])
     }
 

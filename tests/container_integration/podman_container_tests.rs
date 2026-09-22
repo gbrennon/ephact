@@ -4,9 +4,10 @@ mod tests {
 
     use ephact::{
         application::{
-            dtos::responses::{ContainerConfigOptions, ContainerConfigResponse, FileEntryResponse},
+            dtos::responses::{ContainerConfigOptions, ContainerConfigResponse},
             ports::outbound::ContainerRuntimePort,
         },
+        domain::entities::FileEntry,
         infrastructure::containers::PodmanRuntime,
     };
 
@@ -100,11 +101,7 @@ mod tests {
         let container = runtime.create_container(&config).unwrap();
 
         let original = b"container roundtrip data";
-        let entries = vec![FileEntryResponse::new(
-            "ct_roundtrip.bin",
-            original.to_vec(),
-            0o644,
-        )];
+        let entries = vec![FileEntry::new("ct_roundtrip.bin", original.to_vec(), 0o644)];
         container.copy_to("/tmp", &entries).unwrap();
 
         let retrieved = container.copy_from("/tmp/ct_roundtrip.bin").unwrap();

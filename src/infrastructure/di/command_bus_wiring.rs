@@ -16,10 +16,10 @@ use crate::{
     infrastructure::{
         actions::{ActionCommandHandler, ActionFetcherPort},
         containers::{
-            copy_repository_to_container_service::CopyRepositoryToContainerService,
             create_job_container_service::CreateJobContainerService,
             prepare_job_container_service::PrepareJobContainerService,
             pull_job_image_service::PullJobImageService,
+            repository_container_copy_adapter::RepositoryContainerCopyAdapter,
         },
         di::action_execution_wiring::ActionExecutionWiring,
         images::ImageMapperPort,
@@ -118,7 +118,7 @@ impl CommandBusWiring {
                     image_mapper.clone(),
                 )),
                 Box::new(CreateJobContainerService::new(runtime.clone())),
-                Box::new(CopyRepositoryToContainerService::new()),
+                Box::new(RepositoryContainerCopyAdapter::new()),
             )),
             (
                 Box::new(PrefixStepPathService::new()),
