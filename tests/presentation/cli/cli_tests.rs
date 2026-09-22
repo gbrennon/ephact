@@ -75,16 +75,21 @@ mod tests {
         let _cli = make_cli();
     }
     #[test]
-    fn run_no_args_displays_help() {
+    fn run_help_flag_displays_help() {
         let cli = make_cli();
-        let result = cli.run(["ephact"]);
+
+        let result = cli.run(["ephact", "--help"]);
+
         assert!(result.is_ok());
     }
 
     #[test]
-    fn run_no_args_displays_supported_platforms() {
+    fn run_help_flag_displays_supported_platforms() {
         let cli = make_cli();
-        let output = cli.run_with_terminal(["ephact"], &TestTerminal).unwrap();
+        let output = cli
+            .run_with_terminal(["ephact", "--help"], &TestTerminal)
+            .expect("help should render");
+
         assert!(output.contains("Forgejo"));
         assert!(output.contains("GitHub"));
     }

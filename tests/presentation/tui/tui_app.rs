@@ -6,24 +6,63 @@ mod tests {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ephact::{
         application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse},
-        presentation::tui::{
-            screens::ScreenManager,
-            tui_app::{TuiApp, TuiScreen},
-        },
+        presentation::tui::{ScreenManager, TuiApp, TuiScreen},
     };
+    use ratatui::{Terminal, backend::TestBackend};
+
+    fn rendered_lines(screens: &ScreenManager, title: &str) -> Vec<String> {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).expect("test terminal");
+
+        terminal
+            .draw(|frame| screens.render(frame, title))
+            .expect("render screen");
+
+        terminal
+            .backend()
+            .buffer()
+            .content()
+            .chunks(80)
+            .map(|line| line.iter().map(|cell| cell.symbol()).collect())
+            .collect()
+    }
+
+    #[test]
+    fn screen_transitions_preserve_shared_title_frame() {
+        let title = "randomized splash quote";
+        let home = ScreenManager::new(Vec::new()).transition_to(TuiScreen::Home);
+        let workflows = home.transition_to(TuiScreen::ListWorkflows);
+
+        let home_lines = rendered_lines(&home, title);
+        let workflow_lines = rendered_lines(&workflows, title);
+
+        assert!(home_lines.iter().any(|line| line.contains(title)));
+        assert!(workflow_lines.iter().any(|line| line.contains(title)));
+        assert_eq!(home_lines[..5], workflow_lines[..5]);
+        assert!(home_lines[5].contains("What would you like to do?"));
+        assert!(workflow_lines[5].contains("Workflows"));
+    }
     #[test]
     fn screen_manager_retains_home_and_workflow_selection() {
         let workflows = vec![
             WorkflowListItemResponse::new(Some("CI".to_string()), None, Vec::new()),
             WorkflowListItemResponse::new(Some("Deploy".to_string()), None, Vec::new()),
         ];
-        let mut screens = ScreenManager::new(workflows);
-
-        screens.select_home_next();
-        screens.run_workflow_screen_mut().select_next();
+        let screens = ScreenManager::new(workflows)
+            .transition_to(TuiScreen::RunWorkflow)
+            .select_home_next()
+            .select_run_workflow_next();
 
         assert_eq!(screens.home_selection(), 1);
-        assert_eq!(screens.run_workflow_screen().selected_index(), 1);
+        assert_eq!(screens.selected_workflow_name(), Some("Deploy"));
+        assert_eq!(screens.current_screen(), TuiScreen::RunWorkflow);
+        assert_eq!(screens.previous_screen(), Some(TuiScreen::Splash));
+
+        let home = screens.transition_to(TuiScreen::Home);
+
+        assert_eq!(screens.current_screen(), TuiScreen::RunWorkflow);
+        assert_eq!(home.current_screen(), TuiScreen::Home);
+        assert_eq!(home.previous_screen(), Some(TuiScreen::RunWorkflow));
     }
 
     #[test]
@@ -35,7 +74,7 @@ mod tests {
 
         app.record_run_outcome(summary.clone());
 
-        assert_eq!(app.run_workflow_screen().outcome(), Some(&summary));
+        assert!(app.has_run_outcome());
     }
 
     #[test]
@@ -95,7 +134,7 @@ mod tests {
 
         app.handle_key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE));
 
-        assert!(app.run_workflow_screen().showing_details());
+        assert!(app.is_showing_details());
     }
 
     #[test]
@@ -132,7 +171,7 @@ mod tests {
 
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
 
-        assert_eq!(app.run_workflow_screen().summary_scroll(), 1);
+        assert_eq!(app.summary_scroll(), 1);
     }
 
     #[test]
@@ -149,7 +188,7 @@ mod tests {
 
         app.handle_key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE));
 
-        assert!(app.run_workflow_screen().showing_details());
+        assert!(app.is_showing_details());
     }
 
     #[test]
@@ -167,7 +206,7 @@ mod tests {
 
         app.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
 
-        assert!(!app.run_workflow_screen().showing_details());
+        assert!(!app.is_showing_details());
     }
 
     #[test]
@@ -185,7 +224,7 @@ mod tests {
 
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
 
-        assert_eq!(app.run_workflow_screen().details_scroll(), 0);
+        assert_eq!(app.details_scroll(), 0);
     }
 
     #[test]

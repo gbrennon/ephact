@@ -109,7 +109,7 @@ mod tests {
     fn composed_application_runs_help_through_cli_field() {
         let app = compose_application();
 
-        let result = app.run(["ephact"]);
+        let result = app.run(["ephact", "--help"]);
 
         assert!(result.is_ok());
     }

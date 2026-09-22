@@ -10,7 +10,7 @@ mod tests {
             WorkflowListItemResponse,
         },
         domain::value_objects::StepType,
-        presentation::tui::screens::RunWorkflowScreen,
+        presentation::tui::{components::ScreenFrame, screens::RunWorkflowScreen},
     };
     use ratatui::{Terminal, backend::TestBackend};
 
@@ -26,7 +26,10 @@ mod tests {
         let mut terminal = Terminal::new(backend).expect("test terminal");
 
         terminal
-            .draw(|frame| screen.render(frame))
+            .draw(|frame| {
+                let area = ScreenFrame::render(frame, "test quote");
+                screen.render(frame, area);
+            })
             .expect("render screen");
 
         terminal
@@ -59,7 +62,10 @@ mod tests {
         let mut terminal = Terminal::new(backend).expect("test terminal");
 
         terminal
-            .draw(|frame| screen.render(frame))
+            .draw(|frame| {
+                let area = ScreenFrame::render(frame, "test quote");
+                screen.render(frame, area);
+            })
             .expect("render screen");
 
         for line in terminal.backend().buffer().content().chunks(80) {
@@ -238,7 +244,7 @@ mod tests {
 
         assert_eq!(
             screen.handle_configuration_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE)),
-            ephact::presentation::tui::screens::ConfigurationAction::Submit
+            ephact::presentation::tui::components::ConfigurationAction::Submit
         );
         let configuration = screen.take_configuration().expect("configuration");
         assert_eq!(configuration.event(), "schedule");
@@ -265,7 +271,7 @@ mod tests {
 
         assert_eq!(
             screen.handle_configuration_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE)),
-            ephact::presentation::tui::screens::ConfigurationAction::Continue
+            ephact::presentation::tui::components::ConfigurationAction::Continue
         );
         assert!(screen.configuration_error().is_some());
     }
