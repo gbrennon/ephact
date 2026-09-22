@@ -2,7 +2,7 @@ use crate::domain::{
     errors::ParseError,
     services::ExpressionLexer,
     value_objects::{
-        ComparisonOperator, Expression, ExpressionToken, LiteralValue, LogicalOperator,
+        ComparisonOperator, Expression, ExpressionLiteral, ExpressionToken, LogicalOperator,
     },
 };
 
@@ -140,32 +140,32 @@ impl ExpressionParser {
             Some(ExpressionToken::Identifier(name)) => {
                 self.advance();
                 match name.as_str() {
-                    "true" => return Ok(Expression::Literal(LiteralValue::Boolean(true))),
-                    "false" => return Ok(Expression::Literal(LiteralValue::Boolean(false))),
-                    "null" => return Ok(Expression::Literal(LiteralValue::Null)),
+                    "true" => return Ok(Expression::Literal(ExpressionLiteral::Boolean(true))),
+                    "false" => return Ok(Expression::Literal(ExpressionLiteral::Boolean(false))),
+                    "null" => return Ok(Expression::Literal(ExpressionLiteral::Null)),
                     _ => {}
                 }
                 Ok(Expression::Variable(name))
             }
             Some(ExpressionToken::String(s)) => {
                 self.advance();
-                Ok(Expression::Literal(LiteralValue::String(s)))
+                Ok(Expression::Literal(ExpressionLiteral::String(s)))
             }
             Some(ExpressionToken::Integer(n)) => {
                 self.advance();
-                Ok(Expression::Literal(LiteralValue::Integer(n)))
+                Ok(Expression::Literal(ExpressionLiteral::Integer(n)))
             }
             Some(ExpressionToken::Float(f)) => {
                 self.advance();
-                Ok(Expression::Literal(LiteralValue::Float(f)))
+                Ok(Expression::Literal(ExpressionLiteral::Float(f)))
             }
             Some(ExpressionToken::Boolean(b)) => {
                 self.advance();
-                Ok(Expression::Literal(LiteralValue::Boolean(b)))
+                Ok(Expression::Literal(ExpressionLiteral::Boolean(b)))
             }
             Some(ExpressionToken::Null) => {
                 self.advance();
-                Ok(Expression::Literal(LiteralValue::Null))
+                Ok(Expression::Literal(ExpressionLiteral::Null))
             }
             Some(ExpressionToken::LeftParenthesis) => {
                 self.advance();
@@ -265,37 +265,37 @@ mod tests {
     #[test]
     fn parse_bool_true() {
         let expr = parse("true").unwrap();
-        assert_eq!(expr, Expression::Literal(LiteralValue::Boolean(true)));
+        assert_eq!(expr, Expression::Literal(ExpressionLiteral::Boolean(true)));
     }
 
     #[test]
     fn parse_bool_false() {
         let expr = parse("false").unwrap();
-        assert_eq!(expr, Expression::Literal(LiteralValue::Boolean(false)));
+        assert_eq!(expr, Expression::Literal(ExpressionLiteral::Boolean(false)));
     }
 
     #[test]
     fn parse_null() {
         let expr = parse("null").unwrap();
-        assert_eq!(expr, Expression::Literal(LiteralValue::Null));
+        assert_eq!(expr, Expression::Literal(ExpressionLiteral::Null));
     }
 
     #[test]
     fn parse_int() {
         let expr = parse("42").unwrap();
-        assert_eq!(expr, Expression::Literal(LiteralValue::Integer(42)));
+        assert_eq!(expr, Expression::Literal(ExpressionLiteral::Integer(42)));
     }
 
     #[test]
     fn parse_negative_int() {
         let expr = parse("7").unwrap();
-        assert_eq!(expr, Expression::Literal(LiteralValue::Integer(7)));
+        assert_eq!(expr, Expression::Literal(ExpressionLiteral::Integer(7)));
     }
 
     #[test]
     fn parse_float() {
         let expr = parse("2.71").unwrap();
-        assert_eq!(expr, Expression::Literal(LiteralValue::Float(2.71)));
+        assert_eq!(expr, Expression::Literal(ExpressionLiteral::Float(2.71)));
     }
 
     #[test]
@@ -303,7 +303,7 @@ mod tests {
         let expr = parse("'hello'").unwrap();
         assert_eq!(
             expr,
-            Expression::Literal(LiteralValue::String("hello".into()))
+            Expression::Literal(ExpressionLiteral::String("hello".into()))
         );
     }
 
@@ -365,7 +365,7 @@ mod tests {
             expr,
             Expression::IndexAccess(
                 Box::new(Expression::Variable("arr".into())),
-                Box::new(Expression::Literal(LiteralValue::Integer(0)))
+                Box::new(Expression::Literal(ExpressionLiteral::Integer(0)))
             )
         );
     }
@@ -377,7 +377,7 @@ mod tests {
             expr,
             Expression::IndexAccess(
                 Box::new(Expression::Variable("obj".into())),
-                Box::new(Expression::Literal(LiteralValue::String("key".into())))
+                Box::new(Expression::Literal(ExpressionLiteral::String("key".into())))
             )
         );
     }
@@ -411,8 +411,8 @@ mod tests {
             Expression::FunctionCall(
                 "contains".into(),
                 vec![
-                    Expression::Literal(LiteralValue::String("hello".into())),
-                    Expression::Literal(LiteralValue::String("ll".into()))
+                    Expression::Literal(ExpressionLiteral::String("hello".into())),
+                    Expression::Literal(ExpressionLiteral::String("ll".into()))
                 ]
             )
         );
@@ -625,7 +625,7 @@ mod tests {
                         Box::new(Expression::Variable("github".into())),
                         "ref".into()
                     )),
-                    Box::new(Expression::Literal(LiteralValue::String(
+                    Box::new(Expression::Literal(ExpressionLiteral::String(
                         "refs/heads/main".into()
                     )))
                 )),
@@ -645,7 +645,7 @@ mod tests {
                         Box::new(Expression::Variable("foo".into())),
                         "bar".into()
                     )),
-                    Box::new(Expression::Literal(LiteralValue::Integer(0)))
+                    Box::new(Expression::Literal(ExpressionLiteral::Integer(0)))
                 )),
                 "baz".into()
             )

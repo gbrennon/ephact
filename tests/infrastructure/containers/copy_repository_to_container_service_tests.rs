@@ -14,6 +14,38 @@ mod tests {
     use crate::common::fakes::stub_recording_container::StubRecordingContainer;
 
     #[test]
+    fn execute_preserves_git_metadata_for_ci_commands() {
+        let repository = tempdir().expect("repository directory");
+        let git_config = repository.path().join(".git/config");
+        create_dir_all(repository.path().join(".git")).expect("git directory");
+        write(&git_config, "[core]\n").expect("git configuration");
+        write(repository.path().join("workflow.yml"), "name: CI\n").expect("workflow file");
+        let container = StubRecordingContainer::new();
+        let request = CopyRepositoryToContainerRequest::new(
+            repository.path().to_path_buf(),
+            "/workspace".to_string(),
+        );
+
+        CopyRepositoryToContainerService::new()
+            .execute(request, &container)
+            .expect("repository copy");
+
+        let mut copied_paths = container
+            .copied_files()
+            .first()
+            .expect("copied file entries")
+            .iter()
+            .map(|file| file.path().to_string())
+            .collect::<Vec<_>>();
+        copied_paths.sort();
+
+        assert_eq!(
+            copied_paths,
+            vec![".git/config".to_string(), "workflow.yml".to_string()]
+        );
+    }
+
+    #[test]
     fn execute_excludes_nested_worktrees_from_repository_archive() {
         let repository = tempdir().expect("repository directory");
         let worktree_plan = repository

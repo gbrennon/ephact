@@ -46,6 +46,7 @@ struct JobExecutionInput<'a> {
     context: &'a crate::domain::value_objects::EvaluationContext,
     run_id: &'a str,
     allow_repo_writes: bool,
+    allow_network: bool,
 }
 
 impl<'a> JobExecutionInput<'a> {
@@ -62,6 +63,7 @@ impl<'a> JobExecutionInput<'a> {
             context,
             run_id: request.run_id(),
             allow_repo_writes: request.allow_repo_writes(),
+            allow_network: request.allow_network(),
         }
     }
 }
@@ -154,7 +156,8 @@ impl ExecuteWorkflowService {
                 input.context.clone(),
             )
             .with_run_id(input.run_id.to_string())
-            .with_allow_repo_writes(input.allow_repo_writes),
+            .with_allow_repo_writes(input.allow_repo_writes)
+            .with_allow_network(input.allow_network),
         )?;
         self.announce_job_finished(
             input.workflow.name().unwrap_or("unnamed"),

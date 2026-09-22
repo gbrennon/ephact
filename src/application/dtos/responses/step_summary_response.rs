@@ -10,6 +10,7 @@ pub struct StepSummaryResponse {
     duration: std::time::Duration,
     stdout: String,
     stderr: String,
+    skip_reason: Option<String>,
 }
 
 impl StepSummaryResponse {
@@ -24,6 +25,7 @@ impl StepSummaryResponse {
             duration,
             stdout,
             stderr,
+            skip_reason: None,
         }
     }
 
@@ -53,6 +55,19 @@ impl StepSummaryResponse {
 
     pub fn stderr(&self) -> &str {
         &self.stderr
+    }
+
+    pub fn is_skipped(&self) -> bool {
+        self.skip_reason.is_some()
+    }
+
+    pub fn skip_reason(&self) -> Option<&str> {
+        self.skip_reason.as_deref()
+    }
+
+    pub fn with_skip_reason(mut self, reason: impl Into<String>) -> Self {
+        self.skip_reason = Some(reason.into());
+        self
     }
 
     pub fn into_parts(

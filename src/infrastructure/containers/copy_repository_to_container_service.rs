@@ -11,7 +11,6 @@ use crate::application::{
 };
 
 const EXCLUDED_DIRS: &[&str] = &[
-    ".git",
     ".worktrees",
     "target",
     "node_modules",
