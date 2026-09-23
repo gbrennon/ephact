@@ -24,7 +24,7 @@ use crate::{
         images::{ImageMapperPort, PlatformImageMapper},
         logging::{FailureLogErrorStore, FailureLogHandler, FailureLogPathStore, FailureLogStores},
         messaging::{DomainEventHandler, InMemoryEventBus, SharedCommandBus, SharedEventBus},
-        project_branding_store::CargoProjectBrandingStore,
+        persistence::CargoProjectBrandingStore,
         workflows::{
             DetectWorkflowTriggerService, FilesystemRunInputDiscoveryService,
             FilesystemWorkflowSource, SharedWorkflowSource,
@@ -32,7 +32,7 @@ use crate::{
     },
 };
 
-pub struct Container;
+pub struct Container {}
 
 impl Container {
     pub fn build(progress_reporter: Option<Box<dyn DomainEventHandler>>) -> AppContainer {
@@ -106,7 +106,7 @@ impl Container {
             ))
         });
         let show_project_branding_info_service =
-            ShowProjectBrandingInfoService::new(Box::new(CargoProjectBrandingStore));
+            ShowProjectBrandingInfoService::new(Box::new(CargoProjectBrandingStore::new()));
 
         (
             Box::new(show_project_branding_info_service),
