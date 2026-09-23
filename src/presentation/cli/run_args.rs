@@ -116,11 +116,11 @@ impl RunArgs {
         if let Some(job) = &self.job {
             config = config.with_job(ActJob::new(job.clone()));
         }
-        let event = self
-            .event
-            .clone()
-            .unwrap_or_else(|| "pull_request".to_string());
-        config.with_event(ActEvent::new(event))
+        if let Some(event) = self.event.clone() {
+            config.with_event(ActEvent::new(event))
+        } else {
+            config
+        }
     }
 
     fn apply_inputs(

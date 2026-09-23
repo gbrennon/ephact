@@ -15,7 +15,6 @@ use crate::{
                 workflow_command_bus_port::WorkflowCommandBusPort,
             },
         },
-        services::pull_request_workflow::{PULL_REQUEST_EVENT_NAME, config_for_pull_request_event},
     },
     domain::{
         Repository,
@@ -118,7 +117,7 @@ impl RunWorkflowPort for RunWorkflowService {
             let workflow_content = self
                 .read_workflow(&context)
                 .map_err(|error| RunWorkflowError::Workflow(error.to_string()))?;
-            self.ensure_pull_request_trigger(&context, &workflow_content)
+            self.ensure_requested_trigger(&context, &workflow_content)
                 .map_err(|error| RunWorkflowError::Workflow(error.to_string()))?;
             let execution = self
                 .dispatch_workflow(&context, workflow_content)
@@ -150,18 +149,24 @@ impl RunWorkflowService {
         }
     }
 
-    fn ensure_pull_request_trigger(
+    fn ensure_requested_trigger(
         &self,
         context: &RunExecutionContext,
         workflow_content: &str,
     ) -> Result<(), Box<dyn Error>> {
+        let Some(event) = context.config.event() else {
+            let error: Box<dyn Error> = "workflow event must be specified".into();
+            self.announce_run_failed(context, &*error);
+            return Err(error);
+        };
         if self
             .trigger_detector
-            .triggers_on_event(workflow_content, PULL_REQUEST_EVENT_NAME)
+            .triggers_on_event(workflow_content, event.as_str())
         {
             return Ok(());
         }
-        let error: Box<dyn Error> = "workflow does not define a pull_request event".into();
+        let error: Box<dyn Error> =
+            format!("workflow does not define a {} event", event.as_str()).into();
         self.announce_run_failed(context, &*error);
         Err(error)
     }
@@ -171,13 +176,12 @@ impl RunWorkflowService {
         context: &RunExecutionContext,
         workflow_content: String,
     ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
-        let config = config_for_pull_request_event(context.config.clone());
         match self.command_bus.dispatch(ExecuteWorkflowCommand::new(
             workflow_content,
-            config.clone(),
+            context.config.clone(),
             context.repository.clone(),
             context.run_id.clone(),
-            config.allow_repo_writes(),
+            context.config.allow_repo_writes(),
         )) {
             Ok(execution) => Ok(execution),
             Err(error) => {

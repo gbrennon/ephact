@@ -214,7 +214,7 @@ mod tests {
     fn workflow_named(name: &str) -> Workflow {
         Workflow::new(
             Some(name.to_string()),
-            WorkflowTrigger::Single("pull_request".to_string()),
+            vec![WorkflowTrigger::PullRequest(None)],
             HashMap::new(),
             HashMap::new(),
         )

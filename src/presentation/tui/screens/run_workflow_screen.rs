@@ -123,7 +123,7 @@ impl RunWorkflowScreen {
     pub fn take_configuration(&mut self) -> Option<RunConfigurationValues> {
         self.configuration
             .take()
-            .map(|configuration| configuration.values())
+            .and_then(|configuration| configuration.values())
     }
 
     pub fn configuration_footer(&self) -> Option<&'static str> {

@@ -13,6 +13,7 @@ mod tests {
         },
         domain::{
             ActRunConfig, RepoPath, Repository, RepositoryName, messages::events::DomainEvent,
+            value_objects::ActEvent,
         },
     };
 
@@ -51,7 +52,7 @@ mod tests {
                 true,
             ));
         let event_bus = FakeEventBus::new();
-        let config = ActRunConfig::new();
+        let config = ActRunConfig::new().with_event(ActEvent::new("pull_request".to_owned()));
         let run_id = config.run_id().to_string();
         let repository_path = temp.path().display().to_string();
 
@@ -120,17 +121,18 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn execute_publishes_run_failed_when_trigger_is_missing() {
+    async fn execute_publishes_run_failed_when_event_is_missing() {
         let temp = tempfile::tempdir().unwrap();
         let repo = make_repo(temp.path());
         let workflow_source =
             FakeWorkflowSource::new().with_workflow_content("name: CI\non: merge_group\njobs: {}");
         let event_bus = FakeEventBus::new();
+        let command_bus = FakeCommandBus::new();
         let config = ActRunConfig::new();
         let run_id = config.run_id().to_string();
         let service = RunWorkflowService::new(
             Box::new(workflow_source),
-            Box::new(FakeCommandBus::new()),
+            Box::new(command_bus.clone()),
             Box::new(event_bus.clone()),
             Box::new(FakeDetectWorkflowTriggerPort::never_triggering()),
         );
@@ -140,21 +142,19 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert!(error.to_string().contains("pull_request"));
+        assert_eq!(error.to_string(), "workflow event must be specified");
         let events = event_bus.events();
         assert_eq!(events.len(), 2);
         let DomainEvent::RunFailed(payload) = &events[1] else {
             panic!("expected RunFailed event");
         };
         assert_eq!(payload.run_id(), run_id);
-        assert_eq!(
-            payload.error(),
-            "workflow does not define a pull_request event"
-        );
+        assert_eq!(payload.error(), "workflow event must be specified");
+        assert!(command_bus.dispatched_workflows.lock().is_empty());
     }
 
     #[tokio::test]
-    async fn execute_rejects_workflows_without_pull_request_event() {
+    async fn execute_rejects_workflows_without_an_explicit_event() {
         let temp = tempfile::tempdir().unwrap();
         let repo = make_repo(temp.path());
         let workflow_source =
@@ -171,7 +171,7 @@ mod tests {
 
         let error = service.execute(request).await.unwrap_err();
 
-        assert!(error.to_string().contains("pull_request"));
+        assert_eq!(error.to_string(), "workflow event must be specified");
         assert!(command_bus.dispatched_workflows.lock().is_empty());
     }
 }

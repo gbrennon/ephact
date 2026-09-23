@@ -46,7 +46,7 @@ impl ExecutionPlanner {
     /// ]);
     /// let workflow = Workflow::new(
     ///     None,
-    ///     WorkflowTrigger::default(),
+    ///     vec![WorkflowTrigger::Push(None)],
     ///     HashMap::new(),
     ///     jobs,
     /// );
@@ -254,7 +254,12 @@ mod tests {
             .iter()
             .map(|(id, needs)| ((*id).to_owned(), make_job(needs)))
             .collect();
-        Workflow::new(None, WorkflowTrigger::default(), HashMap::new(), jobs)
+        Workflow::new(
+            None,
+            vec![WorkflowTrigger::Push(None)],
+            HashMap::new(),
+            jobs,
+        )
     }
 
     #[test]

@@ -1,5 +1,5 @@
 use crate::{
-    application::ports::outbound::DetectWorkflowTriggerPort,
+    application::ports::outbound::DetectWorkflowTriggerPort, domain::value_objects::TriggerKind,
     infrastructure::workflows::yaml::WorkflowYaml,
 };
 
@@ -22,8 +22,15 @@ impl Default for DetectWorkflowTriggerService {
 
 impl DetectWorkflowTriggerPort for DetectWorkflowTriggerService {
     fn triggers_on_event(&self, workflow_content: &str, event_name: &str) -> bool {
+        let kind = match event_name {
+            "push" => TriggerKind::Push,
+            "pull_request" => TriggerKind::PullRequest,
+            "workflow_dispatch" => TriggerKind::Manual,
+            "schedule" => TriggerKind::Schedule,
+            _ => return false,
+        };
         serde_yaml::from_str::<WorkflowYaml>(workflow_content)
-            .map(|parsed| parsed.into_domain().trigger().has_event(event_name))
+            .map(|parsed| parsed.into_domain().triggers_on(kind))
             .unwrap_or(false)
     }
 }
