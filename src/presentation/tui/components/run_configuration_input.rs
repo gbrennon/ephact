@@ -100,36 +100,39 @@ impl InputField {
 
     fn editing_line(&self, required: &str, marker: &Marker) -> Line<'static> {
         if self.kind != InputKind::Boolean {
-            return Line::from(vec![
-                Span::raw(format!("Input: {}{} = {}", self.name, required, self.value)),
-                Span::styled(marker.as_text().to_string(), Theme::selection_style()),
-            ]);
+            return self.text_editing_line(required, marker);
         }
-        let false_style = if self.value == "false" {
-            Theme::selection_style()
-        } else {
-            Theme::body_style()
-        };
-        let true_style = if self.value == "true" {
-            Theme::selection_style()
-        } else {
-            Theme::body_style()
-        };
-        let false_text = if self.value == "false" {
-            "[false]"
-        } else {
-            "false"
-        };
-        let true_text = if self.value == "true" {
-            "[true]"
-        } else {
-            "true"
-        };
+        self.boolean_editing_line(required)
+    }
+
+    fn text_editing_line(&self, required: &str, marker: &Marker) -> Line<'static> {
+        Line::from(vec![
+            Span::raw(format!("Input: {}{} = {}", self.name, required, self.value)),
+            Span::styled(marker.as_text().to_string(), Theme::selection_style()),
+        ])
+    }
+
+    fn boolean_editing_line(&self, required: &str) -> Line<'static> {
         Line::from(vec![
             Span::raw(format!("Input: {}{} = ", self.name, required)),
-            Span::styled(false_text, false_style),
+            Self::boolean_option_span(&self.value, "false"),
             Span::raw(" "),
-            Span::styled(true_text, true_style),
+            Self::boolean_option_span(&self.value, "true"),
         ])
+    }
+
+    fn boolean_option_span(value: &str, option: &str) -> Span<'static> {
+        let selected = value == option;
+        let text = if selected {
+            format!("[{option}]")
+        } else {
+            option.to_string()
+        };
+        let style = if selected {
+            Theme::selection_style()
+        } else {
+            Theme::body_style()
+        };
+        Span::styled(text, style)
     }
 }
