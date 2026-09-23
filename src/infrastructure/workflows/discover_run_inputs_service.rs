@@ -82,7 +82,9 @@ impl FilesystemRunInputDiscoveryService {
                         input.description().map(str::to_owned),
                         input.required(),
                         input.default_value().map(str::to_owned),
-                    ),
+                    )
+                    .with_type(input.value_type().map(str::to_owned))
+                    .with_options(input.options().to_vec()),
                 );
             }
         }
@@ -282,12 +284,12 @@ mod tests {
         fs::create_dir_all(&action_dir).unwrap();
         fs::write(
             workflow_dir.join("ci.yml"),
-            "name: CI\non:\n  workflow_dispatch:\n    inputs:\n      workflow_name:\n        required: true\n      optional:\n        required: false\n        default: default-value\njobs:\n  test:\n    steps:\n      - uses: ./.forgejo/actions/check\n",
+            "name: CI\non:\n  workflow_dispatch:\n    inputs:\n      workflow_name:\n        required: true\n      optional:\n        required: false\n        default: false\n        type: boolean\njobs:\n  test:\n    steps:\n      - uses: ./.forgejo/actions/check\n",
         )
         .unwrap();
         fs::write(
             action_dir.join("action.yml"),
-            "name: Check\ninputs:\n  action_name:\n    required: true\nruns:\n  using: composite\n  steps:\n    - run: echo check\n",
+            "name: Check\ninputs:\n  action_name:\n    required: true\n    default: false\nruns:\n  using: composite\n  steps:\n    - run: echo check\n",
         )
         .unwrap();
         let repository = Repository::new(
@@ -309,5 +311,15 @@ mod tests {
             .collect::<Vec<_>>();
         names.sort_unstable();
         assert_eq!(names, vec!["action_name", "optional", "workflow_name"]);
+        let optional = declarations
+            .iter()
+            .find(|declaration| declaration.name() == "optional")
+            .expect("optional input");
+        assert_eq!(optional.input_type(), Some("boolean"));
+        let action = declarations
+            .iter()
+            .find(|declaration| declaration.name() == "action_name")
+            .expect("action input");
+        assert_eq!(action.default(), Some("false"));
     }
 }
