@@ -9,6 +9,7 @@ use std::{env, time::Duration};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ephact::{
     application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse},
+    domain::{Settings, value_objects::Marker},
     presentation::{
         handlers::{ListActionsHandler, ListWorkflowsHandler},
         tui::{
@@ -127,6 +128,28 @@ fn home_menu_item_matches_other_inner_frame_padding() {
 }
 
 #[test]
+fn home_renders_keybind_footer() {
+    let home = TuiRenderAssertions::rendered_screen(|frame, area| {
+        HomeScreen::render(frame, area, 0);
+    });
+
+    let text = TuiRenderAssertions::buffer_text(&home);
+    assert!(text.contains("Up/Down/j/k: Move"));
+    assert!(text.contains("Enter: Select"));
+    assert!(text.contains("q: Quit"));
+}
+
+#[test]
+fn splash_renders_its_keybind_hint() {
+    let splash = TuiRenderAssertions::rendered_buffer(|frame| {
+        SplashScreen::render_with(frame, ColorSupport::Basic, SplashQuotes::select(0));
+    });
+
+    let text = TuiRenderAssertions::buffer_text(&splash);
+    assert!(text.contains("press any key to continue"));
+}
+
+#[test]
 fn splash_advances_to_home_on_non_q_key() {
     let mut app = TuiApp::new(vec![]);
 
@@ -234,6 +257,18 @@ fn splash_renders_fallback_emblem_without_true_color() {
 
     assert!(text.contains("@---o"));
     assert!(text.contains("EPHACT"));
+}
+
+#[test]
+fn configured_marker_reaches_splash_rendering() {
+    let app = TuiApp::new(Vec::new()).with_settings(
+        Settings::default().with_marker(Marker::custom_text("🚀")),
+        None,
+    );
+    let buffer = TuiRenderAssertions::rendered_buffer(|frame| app.render(frame));
+    let text = TuiRenderAssertions::buffer_text(&buffer);
+
+    assert!(text.contains("🚀"));
 }
 
 #[test]

@@ -5,7 +5,10 @@ mod tests {
 
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ephact::{
-        application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse},
+        application::dtos::responses::{
+            RunInputDeclarationResponse, RunInputSourceResponse, RunSummaryResponse,
+            WorkflowListItemResponse,
+        },
         presentation::tui::{ScreenManager, TuiApp, TuiScreen},
     };
     use ratatui::{Terminal, backend::TestBackend};
@@ -101,6 +104,59 @@ mod tests {
     }
 
     #[test]
+    fn boolean_input_editing_works_through_tui_app() {
+        let mut app = TuiApp::new(vec![WorkflowListItemResponse::new(
+            Some("CI".to_string()),
+            None,
+            vec!["push".to_string()],
+        )]);
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.begin_run_configuration(
+            vec!["push".to_string()],
+            vec![RunInputDeclarationResponse::new(
+                "include-sysroot",
+                RunInputSourceResponse::Workflow,
+                None,
+                false,
+                Some("false".to_string()),
+            )],
+        );
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Char('l'), KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE));
+
+        let configuration = app
+            .take_configured_run_request()
+            .expect("boolean input configuration");
+        assert_eq!(
+            configuration.inputs(),
+            &[("include-sysroot".into(), "true".into())]
+        );
+    }
+
+    #[test]
+    fn run_picker_configures_on_enter_and_ignores_details_key() {
+        let mut app = TuiApp::new(vec![WorkflowListItemResponse::new(
+            Some("CI".to_string()),
+            None,
+            vec!["push".to_string()],
+        )]);
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        app.handle_key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE));
+        assert!(!app.is_showing_details());
+
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        assert!(app.take_run_request());
+        assert_eq!(app.screen(), TuiScreen::RunWorkflow);
+    }
+
+    #[test]
     fn cancel_key_requests_cancellation_without_leaving_run_screen() {
         let mut app = TuiApp::new(vec![
             ephact::application::dtos::responses::WorkflowListItemResponse::new(
@@ -148,7 +204,7 @@ mod tests {
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.begin_run_configuration(vec!["push".to_string(), "schedule".to_string()], vec![]);
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
         let configuration = app
             .take_configured_run_request()

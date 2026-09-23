@@ -4,7 +4,7 @@ mod tests {
 
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ephact::{
-        domain::{InterfaceMode, Settings},
+        domain::{InterfaceMode, Marker, Settings},
         presentation::tui::{TuiApp, TuiScreen, components::ScreenFrame, screens::SettingsScreen},
     };
     use ratatui::{Terminal, backend::TestBackend};
@@ -28,6 +28,24 @@ mod tests {
         app.handle_key(key(KeyCode::Enter));
     }
 
+    fn render_text(screen: &SettingsScreen) -> String {
+        let backend = TestBackend::new(100, 24);
+        let mut terminal = Terminal::new(backend).expect("test terminal");
+        terminal
+            .draw(|frame| {
+                let area = ScreenFrame::render(frame, "test quote");
+                screen.render(frame, area);
+            })
+            .expect("render settings");
+        terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect()
+    }
+
     #[test]
     fn settings_render_inside_themed_frame() {
         let screen = SettingsScreen::new(Settings::default(), None);
@@ -45,9 +63,15 @@ mod tests {
         assert_eq!(buffer[(2, 2)].symbol(), "┌");
         assert!(text.contains("test quote"));
         assert!(text.contains("Settings"));
+        assert!(text.contains("Up/Down/j/k: Move"));
+        assert!(text.contains("Enter: Edit"));
+        assert!(text.contains("s: Save"));
+        assert!(text.contains("Esc/Bksp: Back"));
+        assert!(text.contains("q: Quit"));
     }
+
     #[test]
-    fn editing_interface_shows_alternatives_and_highlights_current_value() {
+    fn editing_settings_renders_editing_keybinds() {
         let mut screen = SettingsScreen::new(Settings::default(), None);
         screen.handle_key(key(KeyCode::Enter));
         let backend = TestBackend::new(80, 24);
@@ -70,6 +94,78 @@ mod tests {
             .expect("interface setting row");
 
         assert!(row.contains("[tui] cli"));
+        assert!(screen.footer().contains("Left/Right: Choose"));
+        assert!(screen.footer().contains("Enter: Confirm"));
+        assert!(screen.footer().contains("Esc: Cancel"));
+        assert!(screen.footer().contains("q: Quit"));
+    }
+
+    #[test]
+    fn marker_setting_is_the_tenth_row_and_previews_presets() {
+        let mut screen = SettingsScreen::new(Settings::default(), None);
+        assert!(render_text(&screen).contains("marker = _"));
+
+        for _ in 0..9 {
+            screen.handle_key(key(KeyCode::Down));
+        }
+        screen.handle_key(key(KeyCode::Enter));
+
+        let editing = render_text(&screen);
+        assert!(
+            editing.contains("marker = > [_] $ # ❯ ➜ ▶ Custom"),
+            "{editing}"
+        );
+        assert!(screen.footer().contains("Left/Right: Choose"));
+
+        screen.handle_key(key(KeyCode::Left));
+        assert_eq!(screen.settings().marker().as_text(), ">");
+        assert!(!screen.footer().contains("Type: Custom"));
+        assert!(render_text(&screen).contains("marker = [>] _ $ # ❯ ➜ ▶ Custom"));
+        screen.handle_key(key(KeyCode::Right));
+        assert_eq!(screen.settings().marker().as_text(), "_");
+        assert!(!screen.footer().contains("Type: Custom"));
+    }
+
+    #[test]
+    fn marker_custom_editor_accepts_unicode_shows_cursor_and_cancels() {
+        let mut screen = SettingsScreen::new(Settings::default(), None);
+        for _ in 0..9 {
+            screen.handle_key(key(KeyCode::Down));
+        }
+        screen.handle_key(key(KeyCode::Enter));
+        for _ in 0..6 {
+            screen.handle_key(key(KeyCode::Right));
+        }
+        screen.handle_key(key(KeyCode::Char('q')));
+        screen.handle_key(key(KeyCode::Char('🚀')));
+
+        assert!(
+            render_text(&screen).contains("marker = Custom: q🚀 |"),
+            "{}",
+            render_text(&screen)
+        );
+        assert!(screen.footer().contains("Type: Custom"));
+        screen.handle_key(key(KeyCode::Backspace));
+        screen.handle_key(key(KeyCode::Char('🚀')));
+        screen.handle_key(key(KeyCode::Esc));
+
+        assert_eq!(screen.settings().marker(), &Marker::default());
+    }
+
+    #[test]
+    fn marker_custom_editor_confirms_unicode_value() {
+        let mut screen = SettingsScreen::new(Settings::default(), None);
+        for _ in 0..9 {
+            screen.handle_key(key(KeyCode::Down));
+        }
+        screen.handle_key(key(KeyCode::Enter));
+        for _ in 0..6 {
+            screen.handle_key(key(KeyCode::Right));
+        }
+        screen.handle_key(key(KeyCode::Char('🚀')));
+        screen.handle_key(key(KeyCode::Enter));
+
+        assert_eq!(screen.settings().marker().as_text(), "🚀");
     }
 
     #[test]
@@ -120,6 +216,30 @@ mod tests {
         app.handle_key(save_key());
 
         assert_eq!(app.screen(), TuiScreen::Settings);
+    }
+
+    #[test]
+    fn settings_save_persists_custom_marker() {
+        let store = Arc::new(FakeSettingsStore::new(Settings::default()));
+        let mut app =
+            TuiApp::new(Vec::new()).with_settings(Settings::default(), Some(store.clone()));
+        open_settings(&mut app);
+
+        for _ in 0..9 {
+            app.handle_key(key(KeyCode::Down));
+        }
+        app.handle_key(key(KeyCode::Enter));
+        for _ in 0..6 {
+            app.handle_key(key(KeyCode::Right));
+        }
+        app.handle_key(key(KeyCode::Char('q')));
+        app.handle_key(key(KeyCode::Char('🚀')));
+        app.handle_key(key(KeyCode::Enter));
+        app.handle_key(save_key());
+
+        assert_eq!(app.screen(), TuiScreen::Home);
+        assert_eq!(store.writes().len(), 1);
+        assert_eq!(store.writes()[0].marker(), &Marker::custom_text("q🚀"));
     }
 
     #[test]

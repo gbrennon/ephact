@@ -56,6 +56,9 @@ fn render_empty_screen_shows_repository_message() {
         .map(|cell| cell.symbol())
         .collect::<String>();
     assert!(text.contains("No actions found in repository"));
+    assert!(text.contains("Up/Down/j/k: Move"));
+    assert!(text.contains("Esc/Bksp: Back"));
+    assert!(text.contains("q: Quit"));
 }
 
 #[test]

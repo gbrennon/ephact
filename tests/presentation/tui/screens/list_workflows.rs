@@ -43,6 +43,9 @@ mod tests {
             .map(|cell| cell.symbol())
             .collect::<String>();
         assert!(text.contains("No workflows found in repository"));
+        assert!(text.contains("Up/Down/j/k: Move"));
+        assert!(text.contains("Esc/Bksp: Back"));
+        assert!(text.contains("q: Quit"));
     }
 
     #[test]
