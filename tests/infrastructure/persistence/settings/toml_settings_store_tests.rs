@@ -25,12 +25,13 @@ mod tests {
 
         store.write_settings(&settings).expect("settings write");
         let contents = std::fs::read_to_string(store.path()).expect("settings file");
+        let reloaded = store.read_settings().expect("settings read");
 
         assert!(contents.contains("allow_network = true"));
         assert!(!contents.contains("allow_repo_writes"));
-
-        assert_eq!(store.read_settings().expect("settings read"), settings);
+        assert_eq!(reloaded, settings);
     }
+
     #[test]
     fn directory_read_failure_is_reported() {
         let directory = TempDir::new().expect("temporary directory");

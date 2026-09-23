@@ -1,0 +1,8 @@
+name: Install git-cliff
+description: Install git-cliff for release generation
+
+runs:
+  using: composite
+  steps:
+    - name: Install git-cliff
+      uses: taiki-e/install-action@git-cliff

@@ -1,0 +1,3 @@
+mod cargo_project_branding_store;
+
+pub use cargo_project_branding_store::CargoProjectBrandingStore;

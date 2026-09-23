@@ -1,0 +1,38 @@
+name: Update changelog
+description: Generate and commit the release changelog
+inputs:
+  version:
+    description: Release version
+    required: true
+  default-branch:
+    description: Default branch to update
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Generate and commit changelog
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        DEFAULT_BRANCH: ${{ inputs.default-branch }}
+      run: |
+        set -euo pipefail
+
+        git cliff --config cliff.toml --tag "$VERSION" \
+          --no-exec --output CHANGELOG.md
+        heading="## [${VERSION#v}]"
+        if ! grep --fixed-strings --quiet "$heading" CHANGELOG.md; then
+          printf 'Generated changelog is missing heading: %s\n' "$heading" >&2
+          exit 1
+        fi
+
+        git config user.name github-actions[bot]
+        git config user.email \
+          41898282+github-actions[bot]@users.noreply.github.com
+        if git diff --quiet -- CHANGELOG.md; then
+          exit 0
+        fi
+
+        git add CHANGELOG.md
+        git commit -m "chore(release): update changelog for $VERSION"
+        git push origin "HEAD:$DEFAULT_BRANCH"

@@ -1,0 +1,18 @@
+name: Push release tag
+description: Create and push the release tag
+inputs:
+  version:
+    description: Release version
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Create and push release tag
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+
+        git tag "$VERSION"
+        git push origin "refs/tags/$VERSION"
