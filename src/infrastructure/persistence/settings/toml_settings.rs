@@ -10,35 +10,37 @@ enum TomlInterfaceMode {
     Cli,
 }
 
-fn is_tui(value: &TomlInterfaceMode) -> bool {
-    matches!(value, TomlInterfaceMode::Tui)
-}
-
-fn is_false(value: &bool) -> bool {
-    !value
-}
-
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub(super) struct TomlSettings {
-    #[serde(skip_serializing_if = "is_tui")]
+    #[serde(skip_serializing_if = "Self::is_default_interface")]
     default_interface: TomlInterfaceMode,
-    #[serde(skip_serializing_if = "is_false")]
+    #[serde(skip_serializing_if = "Self::is_default_bool")]
     allow_repo_writes: bool,
-    #[serde(skip_serializing_if = "is_false")]
+    #[serde(skip_serializing_if = "Self::is_default_bool")]
     allow_real_container: bool,
-    #[serde(skip_serializing_if = "is_false")]
+    #[serde(skip_serializing_if = "Self::is_default_bool")]
     allow_real_fetcher: bool,
-    #[serde(skip_serializing_if = "is_false")]
+    #[serde(skip_serializing_if = "Self::is_default_bool")]
     allow_network: bool,
-    #[serde(skip_serializing_if = "is_false")]
+    #[serde(skip_serializing_if = "Self::is_default_bool")]
     preserve: bool,
-    #[serde(skip_serializing_if = "is_false")]
+    #[serde(skip_serializing_if = "Self::is_default_bool")]
     verbose: bool,
-    #[serde(skip_serializing_if = "is_false")]
+    #[serde(skip_serializing_if = "Self::is_default_bool")]
     interactive: bool,
-    #[serde(skip_serializing_if = "is_false")]
+    #[serde(skip_serializing_if = "Self::is_default_bool")]
     all_workflows: bool,
+}
+
+impl TomlSettings {
+    fn is_default_interface(value: &TomlInterfaceMode) -> bool {
+        matches!(value, TomlInterfaceMode::Tui)
+    }
+
+    fn is_default_bool(value: &bool) -> bool {
+        !value
+    }
 }
 
 impl From<&Settings> for TomlSettings {
