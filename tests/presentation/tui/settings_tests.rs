@@ -15,6 +15,10 @@ mod tests {
         KeyEvent::new(code, KeyModifiers::NONE)
     }
 
+    fn save_key() -> KeyEvent {
+        key(KeyCode::Char(char::from(b"s"[0])))
+    }
+
     fn open_settings(app: &mut TuiApp) {
         app.handle_key(key(KeyCode::Enter));
         app.handle_key(key(KeyCode::Down));
@@ -86,7 +90,7 @@ mod tests {
         app.handle_key(key(KeyCode::Enter));
         app.handle_key(key(KeyCode::Right));
         app.handle_key(key(KeyCode::Enter));
-        app.handle_key(key(KeyCode::Char('s')));
+        app.handle_key(save_key());
 
         assert_eq!(app.screen(), TuiScreen::Home);
         assert_eq!(store.writes().len(), 1);
@@ -113,8 +117,81 @@ mod tests {
         let store = Arc::new(FakeSettingsStore::failing(Settings::default(), "disk full"));
         let mut app = TuiApp::new(Vec::new()).with_settings(Settings::default(), Some(store));
         open_settings(&mut app);
-        app.handle_key(key(KeyCode::Char('s')));
+        app.handle_key(save_key());
 
         assert_eq!(app.screen(), TuiScreen::Settings);
+    }
+
+    #[test]
+    fn settings_save_persists_toggled_boolean_settings() {
+        let store = Arc::new(FakeSettingsStore::new(Settings::default()));
+        let mut app =
+            TuiApp::new(Vec::new()).with_settings(Settings::default(), Some(store.clone()));
+        open_settings(&mut app);
+
+        app.handle_key(key(KeyCode::Down));
+        app.handle_key(key(KeyCode::Enter));
+        app.handle_key(key(KeyCode::Right));
+        app.handle_key(key(KeyCode::Enter));
+        app.handle_key(save_key());
+
+        assert_eq!(app.screen(), TuiScreen::Home);
+        assert_eq!(store.writes().len(), 1);
+        assert!(store.writes()[0].allow_repo_writes());
+        assert_eq!(store.writes()[0].default_interface(), InterfaceMode::Tui);
+        assert!(!store.writes()[0].allow_network());
+    }
+
+    #[test]
+    fn settings_save_persists_multiple_modified_settings() {
+        let store = Arc::new(FakeSettingsStore::new(Settings::default()));
+        let mut app =
+            TuiApp::new(Vec::new()).with_settings(Settings::default(), Some(store.clone()));
+        open_settings(&mut app);
+
+        app.handle_key(key(KeyCode::Enter));
+        app.handle_key(key(KeyCode::Right));
+        app.handle_key(key(KeyCode::Enter));
+        app.handle_key(key(KeyCode::Down));
+        app.handle_key(key(KeyCode::Down));
+        app.handle_key(key(KeyCode::Down));
+        app.handle_key(key(KeyCode::Down));
+        app.handle_key(key(KeyCode::Enter));
+        app.handle_key(key(KeyCode::Right));
+        app.handle_key(key(KeyCode::Enter));
+        app.handle_key(key(KeyCode::Down));
+        app.handle_key(key(KeyCode::Down));
+        app.handle_key(key(KeyCode::Enter));
+        app.handle_key(key(KeyCode::Right));
+        app.handle_key(key(KeyCode::Enter));
+        app.handle_key(save_key());
+
+        assert_eq!(app.screen(), TuiScreen::Home);
+        assert_eq!(store.writes().len(), 1);
+        assert_eq!(store.writes()[0].default_interface(), InterfaceMode::Cli);
+        assert!(store.writes()[0].allow_network());
+        assert!(store.writes()[0].verbose());
+        assert!(!store.writes()[0].allow_repo_writes());
+    }
+
+    #[test]
+    fn settings_canceling_boolean_edit_with_escape_reverts_value() {
+        let store = Arc::new(FakeSettingsStore::new(Settings::default()));
+        let mut app =
+            TuiApp::new(Vec::new()).with_settings(Settings::default(), Some(store.clone()));
+        open_settings(&mut app);
+
+        app.handle_key(key(KeyCode::Down));
+        app.handle_key(key(KeyCode::Down));
+        app.handle_key(key(KeyCode::Down));
+        app.handle_key(key(KeyCode::Down));
+        app.handle_key(key(KeyCode::Enter));
+        app.handle_key(key(KeyCode::Right));
+        app.handle_key(key(KeyCode::Esc));
+        app.handle_key(save_key());
+
+        assert_eq!(app.screen(), TuiScreen::Home);
+        assert_eq!(store.writes().len(), 1);
+        assert!(!store.writes()[0].allow_network());
     }
 }

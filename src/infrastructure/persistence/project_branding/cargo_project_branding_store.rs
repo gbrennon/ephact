@@ -3,7 +3,18 @@ use crate::{
     domain::{ProjectBranding, ProjectDescription, ProjectEmblem, ProjectName, ProjectVersion},
 };
 
-pub struct CargoProjectBrandingStore;
+/// Reads project branding metadata compiled into the binary from Cargo package variables
+/// and embedded text assets.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct CargoProjectBrandingStore {}
+
+impl CargoProjectBrandingStore {
+    /// Creates a new instance of the Cargo project branding store.
+    #[must_use]
+    pub fn new() -> Self {
+        Self {}
+    }
+}
 
 impl ProjectBrandingStorePort for CargoProjectBrandingStore {
     fn read_project_branding(&self) -> Result<ProjectBranding, ProjectBrandingStoreError> {
@@ -15,7 +26,7 @@ impl ProjectBrandingStorePort for CargoProjectBrandingStore {
             ProjectVersion::new(env!("CARGO_PKG_VERSION").to_string())
                 .map_err(|error| ProjectBrandingStoreError::Read(error.to_string()))?,
             ProjectEmblem::new(
-                include_str!("../../assets/project_emblem.txt")
+                include_str!("../../../../assets/project_emblem.txt")
                     .trim_end()
                     .to_string(),
             )
