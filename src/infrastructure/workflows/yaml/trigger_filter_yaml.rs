@@ -32,26 +32,39 @@ pub struct TriggerFilterYaml {
 
 impl TriggerFilterYaml {
     pub fn into_domain(self) -> TriggerFilter {
-        let mut filter = TriggerFilter::new().with_event_types(self.types);
-        for pattern in self.branches {
-            filter = filter.with_included_ref(RefPattern::branch(pattern));
-        }
-        for pattern in self.tags {
-            filter = filter.with_included_ref(RefPattern::tag(pattern));
-        }
-        for pattern in self.paths {
-            filter = filter.with_included_ref(RefPattern::path(pattern));
-        }
-        for pattern in self.branches_ignore {
-            filter = filter.with_excluded_ref(RefPattern::branch(pattern));
-        }
-        for pattern in self.tags_ignore {
-            filter = filter.with_excluded_ref(RefPattern::tag(pattern));
-        }
-        for pattern in self.paths_ignore {
-            filter = filter.with_excluded_ref(RefPattern::path(pattern));
-        }
-        filter
+        let included_refs = self
+            .branches
+            .into_iter()
+            .map(RefPattern::branch)
+            .chain(self.tags.into_iter().map(RefPattern::tag))
+            .chain(self.paths.into_iter().map(RefPattern::path));
+        let excluded_refs = self
+            .branches_ignore
+            .into_iter()
+            .map(RefPattern::branch)
+            .chain(self.tags_ignore.into_iter().map(RefPattern::tag))
+            .chain(self.paths_ignore.into_iter().map(RefPattern::path));
+        let filter = TriggerFilter::new().with_event_types(self.types);
+        let filter = Self::add_included_refs(filter, included_refs);
+        Self::add_excluded_refs(filter, excluded_refs)
+    }
+
+    fn add_included_refs<I>(filter: TriggerFilter, refs: I) -> TriggerFilter
+    where
+        I: IntoIterator<Item = RefPattern>,
+    {
+        refs.into_iter().fold(filter, |filter, reference| {
+            filter.with_included_ref(reference)
+        })
+    }
+
+    fn add_excluded_refs<I>(filter: TriggerFilter, refs: I) -> TriggerFilter
+    where
+        I: IntoIterator<Item = RefPattern>,
+    {
+        refs.into_iter().fold(filter, |filter, reference| {
+            filter.with_excluded_ref(reference)
+        })
     }
 
     pub fn into_inputs(self) -> HashMap<String, TriggerInput> {
