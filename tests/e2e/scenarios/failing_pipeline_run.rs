@@ -65,6 +65,8 @@ impl FailingPipelineRun {
                 "ephact",
                 "run",
                 &repository.path_argument(),
+                "--event",
+                "pull_request",
                 "--workflow",
                 "release.yml",
             ])

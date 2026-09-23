@@ -53,6 +53,8 @@ impl ContinueOnErrorPipelineRun {
                 "ephact",
                 "run",
                 &repository.path_argument(),
+                "--event",
+                "pull_request",
                 "--workflow",
                 "audit.yml",
             ])

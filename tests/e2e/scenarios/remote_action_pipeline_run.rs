@@ -74,10 +74,10 @@ impl RemoteActionPipelineRun {
                 "ephact",
                 "run",
                 &repository.path_argument(),
-                "--workflow",
-                "toolchain.yml",
                 "--event",
                 "pull_request",
+                "--workflow",
+                "toolchain.yml",
             ])
             .map_err(|error| error.to_string());
 
