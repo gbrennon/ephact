@@ -7,7 +7,7 @@ mod di;
 mod images;
 mod jobs;
 mod messaging;
+mod persistence;
 mod project_branding_store_tests;
-mod settings_store_tests;
 mod steps;
 mod workflows;
