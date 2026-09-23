@@ -4,6 +4,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Rect},
+    style::Style,
     text::{Line, Span},
     widgets::{Block, Borders, List, ListItem, ListState, Padding, Paragraph},
 };
@@ -155,6 +156,25 @@ impl SettingsScreen {
     }
 
     fn handle_marker_key(&mut self, key: KeyEvent) -> SettingsAction {
+        if self.marker_custom_editing {
+            return self.handle_custom_marker_key(key);
+        }
+        self.handle_marker_navigation_key(key)
+    }
+
+    fn handle_custom_marker_key(&mut self, key: KeyEvent) -> SettingsAction {
+        if key.code == KeyCode::Backspace {
+            self.delete_custom_marker_character();
+            return SettingsAction::Continue;
+        }
+        if let KeyCode::Char(character) = key.code {
+            self.append_custom_marker_character(character);
+            return SettingsAction::Continue;
+        }
+        self.handle_marker_navigation_key(key)
+    }
+
+    fn handle_marker_navigation_key(&mut self, key: KeyEvent) -> SettingsAction {
         match key.code {
             KeyCode::Enter => {
                 self.editing = false;
@@ -167,29 +187,31 @@ impl SettingsScreen {
             }
             KeyCode::Left => self.select_previous_marker(),
             KeyCode::Right => self.select_next_marker(),
-            KeyCode::Backspace if self.marker_custom_editing => {
-                if let Marker::CustomText(value) = self.settings.marker() {
-                    let mut value = value.clone();
-                    value.pop();
-                    self.settings = self
-                        .settings
-                        .clone()
-                        .with_marker(Marker::custom_text(value));
-                }
-            }
-            KeyCode::Char(character) if self.marker_custom_editing => {
-                if let Marker::CustomText(value) = self.settings.marker() {
-                    let mut value = value.clone();
-                    value.push(character);
-                    self.settings = self
-                        .settings
-                        .clone()
-                        .with_marker(Marker::custom_text(value));
-                }
-            }
             _ => {}
         }
         SettingsAction::Continue
+    }
+
+    fn delete_custom_marker_character(&mut self) {
+        if let Marker::CustomText(value) = self.settings.marker() {
+            let mut value = value.clone();
+            value.pop();
+            self.settings = self
+                .settings
+                .clone()
+                .with_marker(Marker::custom_text(value));
+        }
+    }
+
+    fn append_custom_marker_character(&mut self, character: char) {
+        if let Marker::CustomText(value) = self.settings.marker() {
+            let mut value = value.clone();
+            value.push(character);
+            self.settings = self
+                .settings
+                .clone()
+                .with_marker(Marker::custom_text(value));
+        }
     }
 
     fn select_previous_marker(&mut self) {
@@ -197,13 +219,13 @@ impl SettingsScreen {
         if index == 0 {
             return;
         }
-        self.set_marker_option(index - 1);
+        self.choose_marker_option(index - 1);
     }
 
     fn select_next_marker(&mut self) {
         let index = self.marker_index();
         if index < Self::CUSTOM_MARKER_INDEX {
-            self.set_marker_option(index + 1);
+            self.choose_marker_option(index + 1);
         } else {
             self.marker_custom_editing = true;
             if !matches!(self.settings.marker(), Marker::CustomText(_)) {
@@ -220,7 +242,7 @@ impl SettingsScreen {
             .unwrap_or(Self::CUSTOM_MARKER_INDEX)
     }
 
-    fn set_marker_option(&mut self, index: usize) {
+    fn choose_marker_option(&mut self, index: usize) {
         if let Some(preset) = MarkerPreset::ALL.get(index).copied() {
             self.settings = self.settings.clone().with_marker(Marker::preset(preset));
             self.marker_custom_editing = false;
@@ -293,49 +315,57 @@ impl SettingsScreen {
             return Line::from(format!("marker = {}", self.settings.marker().as_text()));
         }
         if self.marker_custom_editing {
-            let value = self.settings.marker().as_text();
-            return Line::from(vec![
-                Span::raw("marker = Custom: "),
-                Span::styled(value.to_string(), Theme::body_style()),
-                Span::styled("|", Theme::selection_style()),
-            ]);
+            return self.custom_marker_line();
         }
+        self.preset_marker_line()
+    }
+
+    fn custom_marker_line(&self) -> Line<'static> {
+        let value = self.settings.marker().as_text();
+        Line::from(vec![
+            Span::raw("marker = Custom: "),
+            Span::styled(value.to_string(), Theme::body_style()),
+            Span::styled("|", Theme::selection_style()),
+        ])
+    }
+
+    fn preset_marker_line(&self) -> Line<'static> {
         let selected = self.marker_index();
         let spans = MarkerPreset::ALL
             .iter()
             .enumerate()
-            .map(|(index, preset)| {
-                let is_selected = index == selected;
-                let text = if is_selected {
-                    format!("[{}]", preset.as_text())
-                } else {
-                    preset.as_text().to_string()
-                };
-                let style = if is_selected {
-                    Theme::selection_style()
-                } else {
-                    Theme::body_style()
-                };
-                Span::styled(text, style)
-            })
-            .chain(std::iter::once(Span::styled(
-                if selected == Self::CUSTOM_MARKER_INDEX {
-                    "[Custom]"
-                } else {
-                    "Custom"
-                },
-                if selected == Self::CUSTOM_MARKER_INDEX {
-                    Theme::selection_style()
-                } else {
-                    Theme::body_style()
-                },
-            )))
+            .map(|(index, preset)| Self::preset_marker_span(index, *preset, selected))
+            .chain(std::iter::once(Self::custom_marker_span(selected)))
             .collect::<Vec<_>>();
         Line::from(
             std::iter::once(Span::raw("marker = "))
                 .chain(spans.into_iter().flat_map(|span| [span, Span::raw(" ")]))
                 .collect::<Vec<_>>(),
         )
+    }
+
+    fn preset_marker_span(index: usize, preset: MarkerPreset, selected: usize) -> Span<'static> {
+        let is_selected = index == selected;
+        let text = if is_selected {
+            format!("[{}]", preset.as_text())
+        } else {
+            preset.as_text().to_string()
+        };
+        Span::styled(text, Self::marker_option_style(is_selected))
+    }
+
+    fn custom_marker_span(selected: usize) -> Span<'static> {
+        let is_selected = selected == Self::CUSTOM_MARKER_INDEX;
+        let text = if is_selected { "[Custom]" } else { "Custom" };
+        Span::styled(text, Self::marker_option_style(is_selected))
+    }
+
+    fn marker_option_style(selected: bool) -> Style {
+        if selected {
+            Theme::selection_style()
+        } else {
+            Theme::body_style()
+        }
     }
 
     fn setting_lines_primary(&self) -> Vec<Line<'static>> {
