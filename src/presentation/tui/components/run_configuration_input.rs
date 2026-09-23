@@ -5,7 +5,8 @@ use ratatui::{
 };
 
 use crate::{
-    application::dtos::responses::RunInputDeclarationResponse, presentation::tui::theme::Theme,
+    application::dtos::responses::RunInputDeclarationResponse, domain::value_objects::Marker,
+    presentation::tui::theme::Theme,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -86,21 +87,22 @@ impl InputField {
         index: usize,
         selected_index: usize,
         editing: bool,
+        marker: &Marker,
     ) -> ListItem<'static> {
         let required = if self.required { " (required)" } else { "" };
         let line = if editing && selected_index == index {
-            self.editing_line(required)
+            self.editing_line(required, marker)
         } else {
             Line::from(format!("Input: {}{} = {}", self.name, required, self.value))
         };
         ListItem::new(line)
     }
 
-    fn editing_line(&self, required: &str) -> Line<'static> {
+    fn editing_line(&self, required: &str, marker: &Marker) -> Line<'static> {
         if self.kind != InputKind::Boolean {
             return Line::from(vec![
                 Span::raw(format!("Input: {}{} = {}", self.name, required, self.value)),
-                Span::styled("|", Theme::selection_style()),
+                Span::styled(marker.as_text().to_string(), Theme::selection_style()),
             ]);
         }
         let false_style = if self.value == "false" {

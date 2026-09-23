@@ -13,6 +13,7 @@ use crate::{
         JobSummaryResponse, RunInputDeclarationResponse, RunSummaryResponse,
         WorkflowListItemResponse,
     },
+    domain::value_objects::Marker,
     presentation::tui::{
         components::{
             ConfigurationAction, RunConfiguration, RunConfigurationValues, RunDetailsView,
@@ -109,6 +110,15 @@ impl RunWorkflowScreen {
         declarations: Vec<RunInputDeclarationResponse>,
     ) {
         self.configuration = Some(RunConfiguration::new(events, declarations));
+    }
+
+    pub fn begin_configuration_with_marker(
+        &mut self,
+        events: Vec<String>,
+        declarations: Vec<RunInputDeclarationResponse>,
+        marker: &Marker,
+    ) {
+        self.configuration = Some(RunConfiguration::new(events, declarations).with_marker(marker));
     }
 
     pub fn handle_configuration_key(

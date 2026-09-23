@@ -1,18 +1,15 @@
 #[cfg(test)]
 mod tests {
 
-    use std::{fs, sync::Arc, time::Duration};
+    use std::time::Duration;
 
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ephact::{
-        application::{
-            dtos::responses::{
-                RunInputDeclarationResponse, RunInputSourceResponse, RunSummaryResponse,
-                WorkflowListItemResponse,
-            },
-            ports::outbound::SettingsStorePort,
+        application::dtos::responses::{
+            RunInputDeclarationResponse, RunInputSourceResponse, RunSummaryResponse,
+            WorkflowListItemResponse,
         },
-        infrastructure::TomlSettingsStore,
+        domain::{Marker, Settings},
         presentation::tui::{ScreenManager, TuiApp, TuiScreen},
     };
     use ratatui::{Terminal, backend::TestBackend};
@@ -49,20 +46,6 @@ mod tests {
             .chunks(80)
             .map(|line| line.iter().map(|cell| cell.symbol()).collect())
             .collect()
-    }
-
-    #[test]
-    fn tui_app_renders_marker_loaded_from_toml_settings() {
-        let directory = tempfile::tempdir().expect("temporary directory");
-        let path = directory.path().join("config.toml");
-        fs::write(&path, "marker = \"❯\"\n").expect("write settings");
-        let store = Arc::new(TomlSettingsStore::new(path));
-        let settings = store.read_settings().expect("read settings");
-        let app = TuiApp::new(Vec::new()).with_settings(settings, Some(store));
-
-        let lines = rendered_app_lines(&app);
-
-        assert!(lines.iter().any(|line| line.contains("❯")));
     }
 
     #[test]
@@ -136,6 +119,35 @@ mod tests {
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
         assert_eq!(app.screen(), TuiScreen::ListActions);
+    }
+
+    #[test]
+    fn configured_marker_is_used_by_text_input_form() {
+        let settings = Settings::default().with_marker(Marker::custom_text("❯"));
+        let mut app = TuiApp::new(vec![WorkflowListItemResponse::new(
+            Some("CI".to_string()),
+            None,
+            vec!["push".to_string()],
+        )])
+        .with_settings(settings, None);
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.begin_run_configuration(
+            vec!["push".to_string()],
+            vec![RunInputDeclarationResponse::new(
+                "rustc-version",
+                RunInputSourceResponse::Workflow,
+                None,
+                false,
+                Some("stable".to_string()),
+            )],
+        );
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        let lines = rendered_app_lines(&app);
+
+        assert!(lines.iter().any(|line| line.contains("stable❯")));
     }
 
     #[test]

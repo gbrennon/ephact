@@ -9,7 +9,6 @@ use std::{env, time::Duration};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ephact::{
     application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse},
-    domain::{Settings, value_objects::Marker},
     presentation::{
         handlers::{ListActionsHandler, ListWorkflowsHandler},
         tui::{
@@ -257,18 +256,6 @@ fn splash_renders_fallback_emblem_without_true_color() {
 
     assert!(text.contains("@---o"));
     assert!(text.contains("EPHACT"));
-}
-
-#[test]
-fn configured_marker_reaches_splash_rendering() {
-    let app = TuiApp::new(Vec::new()).with_settings(
-        Settings::default().with_marker(Marker::custom_text("🚀")),
-        None,
-    );
-    let buffer = TuiRenderAssertions::rendered_buffer(|frame| app.render(frame));
-    let text = TuiRenderAssertions::buffer_text(&buffer);
-
-    assert!(text.contains("🚀"));
 }
 
 #[test]

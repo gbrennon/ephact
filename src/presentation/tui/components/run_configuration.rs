@@ -8,6 +8,7 @@ use ratatui::{
 
 use crate::{
     application::dtos::responses::RunInputDeclarationResponse,
+    domain::value_objects::Marker,
     presentation::tui::{
         components::run_configuration_input::{InputField, InputKind},
         theme::Theme,
@@ -39,6 +40,7 @@ pub enum ConfigurationAction {
 
 #[derive(Clone)]
 pub struct RunConfiguration {
+    marker: Marker,
     events: Vec<String>,
     selected_index: usize,
     selected_event: usize,
@@ -58,6 +60,7 @@ impl RunConfiguration {
 
     pub fn new(events: Vec<String>, declarations: Vec<RunInputDeclarationResponse>) -> Self {
         Self {
+            marker: Marker::default(),
             events,
             selected_index: 0,
             selected_event: 0,
@@ -68,6 +71,11 @@ impl RunConfiguration {
             editing: false,
             error: None,
         }
+    }
+
+    pub fn with_marker(mut self, marker: &Marker) -> Self {
+        self.marker = marker.clone();
+        self
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) -> ConfigurationAction {
@@ -274,6 +282,6 @@ impl RunConfiguration {
     }
 
     fn input_item(&self, index: usize, input: &InputField) -> ListItem<'static> {
-        input.render(index, self.selected_index, self.editing)
+        input.render(index, self.selected_index, self.editing, &self.marker)
     }
 }

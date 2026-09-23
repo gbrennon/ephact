@@ -111,11 +111,10 @@ impl ScreenManager {
     pub fn render(&self, frame: &mut Frame<'_>, splash_quote: &str) {
         frame.render_widget(Block::default().style(Theme::window_style()), frame.area());
         if self.current_screen == TuiScreen::Splash {
-            SplashScreen::render_with_marker(
+            SplashScreen::render_with(
                 frame,
                 crate::presentation::tui::components::ColorSupport::from_env(),
                 splash_quote,
-                self.settings.settings().marker(),
             );
             return;
         }
@@ -186,7 +185,11 @@ impl ScreenManager {
         declarations: Vec<RunInputDeclarationResponse>,
     ) -> Self {
         let mut next = self.clone();
-        next.run_workflow.begin_configuration(events, declarations);
+        next.run_workflow.begin_configuration_with_marker(
+            events,
+            declarations,
+            next.settings.settings().marker(),
+        );
         next
     }
 

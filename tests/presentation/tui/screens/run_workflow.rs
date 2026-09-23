@@ -350,7 +350,7 @@ mod tests {
         screen.handle_configuration_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         let editing = rendered_text(&screen);
         assert!(editing.contains("Type: Edit"));
-        assert!(editing.contains("Input: environment (required) = |"));
+        assert!(editing.contains("Input: environment (required) = _"));
         assert!(editing.contains("Enter/Esc: Finish"));
         assert!(editing.contains("Bksp: Delete"));
 
@@ -376,7 +376,27 @@ mod tests {
         screen.handle_configuration_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         screen.handle_configuration_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
-        assert!(rendered_text(&screen).contains("Input: rustc-version = stable|"));
+        assert!(rendered_text(&screen).contains("Input: rustc-version = stable_"));
+    }
+
+    #[test]
+    fn text_input_uses_the_selected_custom_marker() {
+        let mut screen = RunWorkflowScreen::new(workflows());
+        screen.begin_configuration_with_marker(
+            vec!["push".to_string()],
+            vec![RunInputDeclarationResponse::new(
+                "rustc-version",
+                RunInputSourceResponse::Workflow,
+                None,
+                false,
+                Some("stable".to_string()),
+            )],
+            &ephact::domain::value_objects::Marker::custom_text("❯"),
+        );
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        assert!(rendered_text(&screen).contains("Input: rustc-version = stable❯"));
     }
 
     #[test]
