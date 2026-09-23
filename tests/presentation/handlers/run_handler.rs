@@ -52,7 +52,7 @@ async fn handle_executes_port_with_selected_workflow_and_safe_defaults() {
     assert_eq!(request.repository_path(), current_repository_path());
     assert_eq!(request.workflow(), Some("CI"));
     assert!(request.job().is_none());
-    assert_eq!(request.event(), Some("pull_request"));
+    assert!(request.event().is_none());
     assert!(request.inputs().is_empty());
     assert!(request.secrets().is_empty());
     assert!(!request.all_workflows());

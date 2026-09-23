@@ -1,4 +1,7 @@
-use ephact::{domain::aggregates::Workflow, infrastructure::workflows::yaml::WorkflowYaml};
+use ephact::{
+    domain::{aggregates::Workflow, value_objects::TriggerKind},
+    infrastructure::workflows::yaml::WorkflowYaml,
+};
 
 fn workflow_from(yaml: &str) -> Workflow {
     serde_yaml::from_str::<WorkflowYaml>(yaml)
@@ -18,18 +21,18 @@ fn a_minimal_workflow_keeps_its_jobs() {
 }
 
 #[test]
-fn the_on_entry_becomes_the_workflow_trigger() {
+fn the_on_entry_becomes_domain_triggers() {
     let workflow = workflow_from("on: [push, pull_request]\njobs: {}\n");
 
-    assert!(workflow.trigger().has_event("push"));
-    assert!(workflow.trigger().has_event("pull_request"));
+    assert!(workflow.triggers_on(TriggerKind::Push));
+    assert!(workflow.triggers_on(TriggerKind::PullRequest));
 }
 
 #[test]
 fn a_workflow_without_an_on_entry_defaults_to_push() {
     let workflow = workflow_from("jobs: {}\n");
 
-    assert!(workflow.trigger().has_event("push"));
+    assert!(workflow.triggers_on(TriggerKind::Push));
 }
 
 #[test]

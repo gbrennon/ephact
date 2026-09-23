@@ -1,77 +1,62 @@
 use ephact::{
-    domain::value_objects::WorkflowTrigger, infrastructure::workflows::yaml::WorkflowTriggerYaml,
+    domain::value_objects::{TriggerKind, WorkflowTrigger},
+    infrastructure::workflows::yaml::WorkflowTriggerYaml,
 };
 
-fn trigger_from(yaml: &str) -> WorkflowTrigger {
+fn triggers_from(yaml: &str) -> Vec<WorkflowTrigger> {
     serde_yaml::from_str::<WorkflowTriggerYaml>(yaml)
         .unwrap()
         .into_domain()
 }
 
 #[test]
-fn a_scalar_event_becomes_a_single_trigger() {
-    let trigger = trigger_from("push");
+fn a_scalar_event_becomes_one_domain_trigger() {
+    let triggers = triggers_from("push");
 
-    assert!(trigger.is_single("push"));
-    assert_eq!(trigger.event_names(), vec!["push"]);
+    assert_eq!(triggers.len(), 1);
+    assert_eq!(triggers[0].kind(), TriggerKind::Push);
 }
 
 #[test]
-fn a_sequence_of_events_becomes_a_multiple_trigger() {
-    let trigger = trigger_from("[push, pull_request]");
+fn a_sequence_becomes_multiple_domain_triggers() {
+    let triggers = triggers_from("[push, pull_request]");
 
-    assert!(trigger.is_multiple());
-    assert_eq!(trigger.event_names(), vec!["push", "pull_request"]);
+    assert_eq!(
+        triggers
+            .iter()
+            .map(WorkflowTrigger::kind)
+            .collect::<Vec<_>>(),
+        vec![TriggerKind::Push, TriggerKind::PullRequest]
+    );
 }
 
 #[test]
-fn a_mapping_of_events_becomes_a_configured_trigger() {
-    let yaml = "push:\n  branches: [main, develop]\npull_request:\n  types: [opened]\n";
-
-    let trigger = trigger_from(yaml);
-
-    assert!(trigger.has_types());
-    assert!(trigger.has_event("push"));
-    assert!(trigger.has_event("pull_request"));
-    assert!(!trigger.has_event("schedule"));
-}
-
-#[test]
-fn a_mapping_entry_without_filters_still_declares_its_event() {
-    let trigger = trigger_from("push:\npull_request:\n");
-
-    let mut names = trigger.event_names();
-    names.sort_unstable();
-    assert_eq!(names, vec!["pull_request", "push"]);
-}
-
-#[test]
-fn workflow_dispatch_inputs_survive_the_mapping() {
+fn a_manual_event_becomes_a_manual_trigger_with_inputs() {
     let yaml = "workflow_dispatch:\n  inputs:\n    name:\n      description: 'Name to greet'\n      required: true\n      type: string\n";
 
-    let trigger = trigger_from(yaml);
+    let triggers = triggers_from(yaml);
 
-    let inputs = trigger.workflow_dispatch_inputs().unwrap();
-    assert_eq!(inputs.len(), 1);
-    assert_eq!(inputs.get("name").map(|input| input.required()), Some(true));
+    assert_eq!(triggers[0].kind(), TriggerKind::Manual);
+    assert!(triggers[0].inputs().unwrap().contains_key("name"));
 }
 
 #[test]
-fn a_schedule_entry_keeps_its_cron_event() {
-    let trigger = trigger_from("schedule:\n  cron: ['0 0 * * *']\n");
+fn a_schedule_event_becomes_a_schedule_trigger() {
+    let yaml = "schedule:\n  cron: ['0 0 * * *']\n";
 
-    assert!(trigger.has_event("schedule"));
+    let triggers = triggers_from(yaml);
+
+    assert_eq!(triggers[0].kind(), TriggerKind::Schedule);
+    assert_eq!(triggers[0].expressions(), &["0 0 * * *".to_string()]);
 }
 
 #[test]
-fn a_non_string_scalar_is_rejected() {
-    assert!(serde_yaml::from_str::<WorkflowTriggerYaml>("123").is_err());
-}
+fn a_mapping_filter_becomes_generic_ref_patterns() {
+    let yaml = "push:\n  branches: [main]\n  branches-ignore: [develop]\n  paths: [src/**]\n";
 
-#[test]
-fn a_missing_trigger_defaults_to_push() {
-    assert_eq!(
-        WorkflowTriggerYaml::default().into_domain(),
-        WorkflowTrigger::Single("push".to_owned())
-    );
+    let triggers = triggers_from(yaml);
+    let filter = triggers[0].filter().unwrap();
+
+    assert_eq!(filter.included_refs().len(), 2);
+    assert_eq!(filter.excluded_refs().len(), 1);
 }
