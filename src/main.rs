@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
 use ephact::{
-    infrastructure::{Container, logging::stderr_filter::StderrFilter},
+    application::ports::outbound::SettingsStorePort,
+    infrastructure::{Container, TomlSettingsStore, logging::stderr_filter::StderrFilter},
     presentation::{
         cli::run_progress_handler::RunProgressHandler, composition_root::CompositionRoot,
     },
@@ -23,6 +26,13 @@ fn run_application() -> Result<(), Box<dyn std::error::Error>> {
         std::env::args_os().any(|arg| ephact::presentation::cli::RunArgs::is_verbose_flag(&arg));
     let (progress_reporter, progress_stream) = RunProgressHandler::with_tui_stream(verbose);
     let container = Container::build(Some(Box::new(progress_reporter)));
-    let app = CompositionRoot::compose_with_tui_progress(container, progress_stream);
+    let settings_store = Arc::new(TomlSettingsStore::from_environment()?);
+    let settings = settings_store.read_settings()?;
+    let app = CompositionRoot::compose_with_tui_progress_and_settings(
+        container,
+        progress_stream,
+        settings,
+        settings_store,
+    );
     app.run(std::env::args_os())
 }
