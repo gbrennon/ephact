@@ -118,6 +118,73 @@ mod tests {
         assert!(result.is_err());
         assert!(store.writes().is_empty());
     }
+    #[test]
+    fn settings_set_persists_boolean_flag() {
+        let store = Arc::new(FakeSettingsStore::new(Settings::default()));
+        let cli = make_cli().with_settings(Settings::default(), store.clone());
+        let terminal = SystemTerminal;
+
+        let output = cli
+            .run_with_terminal(
+                ["ephact", "settings", "set", "allow-network", "true"],
+                &terminal,
+            )
+            .expect("settings set allow-network should succeed");
+
+        assert!(output.contains("allow-network = true"));
+        assert_eq!(store.writes().len(), 1);
+        assert!(store.writes()[0].allow_network());
+    }
+
+    #[test]
+    fn settings_set_sequentially_updates_multiple_settings() {
+        let store = Arc::new(FakeSettingsStore::new(Settings::default()));
+        let terminal = SystemTerminal;
+
+        make_cli()
+            .with_settings(Settings::default(), store.clone())
+            .run_with_terminal(
+                ["ephact", "settings", "set", "allow-network", "true"],
+                &terminal,
+            )
+            .expect("set allow-network");
+        make_cli()
+            .with_settings(Settings::default(), store.clone())
+            .run_with_terminal(["ephact", "settings", "set", "verbose", "true"], &terminal)
+            .expect("set verbose");
+        let output = make_cli()
+            .with_settings(Settings::default(), store.clone())
+            .run_with_terminal(
+                ["ephact", "settings", "set", "allow-network", "false"],
+                &terminal,
+            )
+            .expect("set allow-network back to false");
+
+        assert!(output.contains("allow-network = false"));
+        assert!(output.contains("verbose = true"));
+        assert_eq!(store.writes().len(), 3);
+        assert!(!store.writes()[2].allow_network());
+        assert!(store.writes()[2].verbose());
+    }
+
+    #[test]
+    fn settings_reset_restores_default_settings() {
+        let modified = Settings::default()
+            .with_allow_network(true)
+            .with_verbose(true);
+        let store = Arc::new(FakeSettingsStore::new(modified.clone()));
+        let cli = make_cli().with_settings(modified, store.clone());
+        let terminal = SystemTerminal;
+
+        let output = cli
+            .run_with_terminal(["ephact", "settings", "reset"], &terminal)
+            .expect("settings reset should succeed");
+
+        assert!(output.contains("allow-network = false"));
+        assert!(output.contains("verbose = false"));
+        assert_eq!(store.writes().len(), 1);
+        assert_eq!(store.writes()[0], Settings::default());
+    }
 
     #[test]
     fn persisted_cli_interface_makes_no_subcommand_render_help() {
