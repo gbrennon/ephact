@@ -4,6 +4,9 @@ mod tests {
 
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ephact::{
+        application::dtos::responses::{
+            RunInputDeclarationResponse, RunInputSourceResponse, WorkflowListItemResponse,
+        },
         domain::{InterfaceMode, Marker, Settings},
         presentation::tui::{TuiApp, TuiScreen, components::ScreenFrame, screens::SettingsScreen},
     };
@@ -26,6 +29,21 @@ mod tests {
         app.handle_key(key(KeyCode::Down));
         app.handle_key(key(KeyCode::Down));
         app.handle_key(key(KeyCode::Enter));
+    }
+
+    fn render_app_text(app: &TuiApp) -> String {
+        let backend = TestBackend::new(100, 24);
+        let mut terminal = Terminal::new(backend).expect("test terminal");
+        terminal
+            .draw(|frame| app.render(frame))
+            .expect("render app");
+        terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect()
     }
 
     fn render_text(screen: &SettingsScreen) -> String {
@@ -175,6 +193,46 @@ mod tests {
         open_settings(&mut app);
 
         assert_eq!(app.screen(), TuiScreen::Settings);
+    }
+
+    #[test]
+    fn selected_marker_controls_the_text_input_form() {
+        let store = Arc::new(FakeSettingsStore::new(Settings::default()));
+        let workflow =
+            WorkflowListItemResponse::new(Some("CI".to_string()), None, vec!["push".to_string()]);
+        let mut app =
+            TuiApp::new(vec![workflow]).with_settings(Settings::default(), Some(store.clone()));
+        open_settings(&mut app);
+        for _ in 0..9 {
+            app.handle_key(key(KeyCode::Down));
+        }
+        app.handle_key(key(KeyCode::Enter));
+        for _ in 0..3 {
+            app.handle_key(key(KeyCode::Right));
+        }
+        app.handle_key(key(KeyCode::Enter));
+        app.handle_key(save_key());
+
+        assert_eq!(store.writes()[0].marker().as_text(), "❯");
+
+        for _ in 0..3 {
+            app.handle_key(key(KeyCode::Up));
+        }
+        app.handle_key(key(KeyCode::Enter));
+        app.begin_run_configuration(
+            vec!["push".to_string()],
+            vec![RunInputDeclarationResponse::new(
+                "rustc-version",
+                RunInputSourceResponse::Workflow,
+                None,
+                false,
+                Some("stable".to_string()),
+            )],
+        );
+        app.handle_key(key(KeyCode::Down));
+        app.handle_key(key(KeyCode::Enter));
+
+        assert!(render_app_text(&app).contains("stable❯"));
     }
 
     #[test]
