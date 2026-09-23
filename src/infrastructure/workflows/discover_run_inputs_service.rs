@@ -69,7 +69,10 @@ impl FilesystemRunInputDiscoveryService {
         workflow: &Workflow,
         declarations: &mut Vec<RunInputDeclarationResponse>,
     ) -> Result<(), DiscoverRunInputsError> {
-        if let Some(inputs) = workflow.trigger().workflow_dispatch_inputs() {
+        for trigger in workflow.trigger() {
+            let Some(inputs) = trigger.inputs() else {
+                continue;
+            };
             for (name, input) in inputs {
                 Self::add_declaration(
                     declarations,
@@ -78,7 +81,7 @@ impl FilesystemRunInputDiscoveryService {
                         RunInputSourceResponse::Workflow,
                         input.description().map(str::to_owned),
                         input.required(),
-                        input.default().map(str::to_owned),
+                        input.default_value().map(str::to_owned),
                     ),
                 );
             }

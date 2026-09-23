@@ -1,88 +1,56 @@
 use std::collections::HashMap;
 
-use crate::domain::value_objects::{TriggerFilter, WorkflowDispatchInput};
+use super::{TriggerFilter, TriggerInput};
 
-/// The event(s) that trigger a workflow.
-///
-/// The workflow format supports three forms for the `on` field:
-/// - **Scalar**: `on: push`
-/// - **Sequence**: `on: [push, pull_request]`
-/// - **Mapping**: `on: { push: { branches: [main] } }`
-///
-/// Each form is a distinct variant, so a caller can ask which spelling a
-/// workflow used as well as which events it declares.
-///
-/// # Examples
-///
-/// ```
-/// use ephact::domain::value_objects::WorkflowTrigger;
-///
-/// let single = WorkflowTrigger::Single("push".to_owned());
-/// assert!(single.is_single("push"));
-///
-/// let multiple =
-///     WorkflowTrigger::Multiple(vec!["push".to_owned(), "pull_request".to_owned()]);
-/// assert!(multiple.is_multiple());
-/// assert!(multiple.has_event("pull_request"));
-/// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TriggerKind {
+    Push,
+    PullRequest,
+    Manual,
+    Schedule,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WorkflowTrigger {
-    /// A single event name (e.g. `on: push`).
-    Single(String),
-    /// Multiple event names (e.g. `on: [push, pull_request]`).
-    Multiple(Vec<String>),
-    /// Event names with type-specific configuration
-    /// (e.g. `on: { push: { branches: [main] } }`).
-    WithTypes(HashMap<String, Option<TriggerFilter>>),
+    Push(Option<TriggerFilter>),
+    PullRequest(Option<TriggerFilter>),
+    Manual {
+        inputs: HashMap<String, TriggerInput>,
+    },
+    Schedule {
+        expressions: Vec<String>,
+    },
 }
 
 impl WorkflowTrigger {
-    /// Returns `true` if the `on` field matches a single event name.
-    pub fn is_single(&self, name: &str) -> bool {
-        matches!(self, WorkflowTrigger::Single(n) if n == name)
-    }
-
-    /// Returns `true` if the `on` field contains multiple events.
-    pub fn is_multiple(&self) -> bool {
-        matches!(self, WorkflowTrigger::Multiple(_))
-    }
-
-    /// Returns `true` if the `on` field has type-specific configuration.
-    pub fn has_types(&self) -> bool {
-        matches!(self, WorkflowTrigger::WithTypes(_))
-    }
-
-    /// Returns `true` if the given event name is present in any form.
-    pub fn has_event(&self, name: &str) -> bool {
+    pub fn kind(&self) -> TriggerKind {
         match self {
-            WorkflowTrigger::Single(n) => n == name,
-            WorkflowTrigger::Multiple(names) => names.iter().any(|n| n == name),
-            WorkflowTrigger::WithTypes(map) => map.contains_key(name),
+            Self::Push(_) => TriggerKind::Push,
+            Self::PullRequest(_) => TriggerKind::PullRequest,
+            Self::Manual { .. } => TriggerKind::Manual,
+            Self::Schedule { .. } => TriggerKind::Schedule,
         }
     }
 
-    /// Returns all event names regardless of form.
-    pub fn event_names(&self) -> Vec<&str> {
+    pub fn filter(&self) -> Option<&TriggerFilter> {
         match self {
-            WorkflowTrigger::Single(name) => vec![name.as_str()],
-            WorkflowTrigger::Multiple(names) => names.iter().map(|s| s.as_str()).collect(),
-            WorkflowTrigger::WithTypes(map) => map.keys().map(|s| s.as_str()).collect(),
+            Self::Push(filter) | Self::PullRequest(filter) => filter.as_ref(),
+            Self::Manual { .. } | Self::Schedule { .. } => None,
         }
     }
-    pub fn workflow_dispatch_inputs(&self) -> Option<&HashMap<String, WorkflowDispatchInput>> {
-        match self {
-            Self::WithTypes(events) => events
-                .get("workflow_dispatch")
-                .and_then(Option::as_ref)
-                .map(TriggerFilter::inputs),
-            _ => None,
-        }
-    }
-}
 
-impl Default for WorkflowTrigger {
-    fn default() -> Self {
-        WorkflowTrigger::Single("push".to_owned())
+    pub fn inputs(&self) -> Option<&HashMap<String, TriggerInput>> {
+        match self {
+            Self::Manual { inputs } => Some(inputs),
+            Self::Push(_) | Self::PullRequest(_) | Self::Schedule { .. } => None,
+        }
+    }
+
+    pub fn expressions(&self) -> &[String] {
+        match self {
+            Self::Schedule { expressions } => expressions,
+            Self::Push(_) | Self::PullRequest(_) | Self::Manual { .. } => &[],
+        }
     }
 }
 
@@ -90,82 +58,39 @@ impl Default for WorkflowTrigger {
 mod tests {
     use super::*;
 
-    fn events(names: &[&str]) -> WorkflowTrigger {
-        WorkflowTrigger::WithTypes(
-            names
-                .iter()
-                .map(|name| ((*name).to_owned(), None))
-                .collect(),
-        )
+    #[test]
+    fn identifies_domain_trigger_kinds() {
+        assert_eq!(WorkflowTrigger::Push(None).kind(), TriggerKind::Push);
+        assert_eq!(
+            WorkflowTrigger::PullRequest(None).kind(),
+            TriggerKind::PullRequest
+        );
+        assert_eq!(
+            WorkflowTrigger::Manual {
+                inputs: HashMap::new()
+            }
+            .kind(),
+            TriggerKind::Manual
+        );
+        assert_eq!(
+            WorkflowTrigger::Schedule {
+                expressions: vec!["0 0 * * *".into()]
+            }
+            .kind(),
+            TriggerKind::Schedule
+        );
     }
 
     #[test]
-    fn single_reports_only_its_own_event() {
-        let trigger = WorkflowTrigger::Single("push".to_owned());
-
-        assert!(trigger.is_single("push"));
-        assert!(!trigger.is_single("pull_request"));
-        assert!(trigger.has_event("push"));
-        assert!(!trigger.has_event("pull_request"));
-        assert_eq!(trigger.event_names(), vec!["push"]);
-    }
-
-    #[test]
-    fn multiple_reports_every_listed_event() {
-        let trigger = WorkflowTrigger::Multiple(vec!["push".to_owned(), "pull_request".to_owned()]);
-
-        assert!(trigger.is_multiple());
-        assert!(trigger.has_event("push"));
-        assert!(trigger.has_event("pull_request"));
-        assert_eq!(trigger.event_names(), vec!["push", "pull_request"]);
-    }
-
-    #[test]
-    fn with_types_reports_every_configured_event() {
-        let trigger = events(&["push", "pull_request"]);
-
-        assert!(trigger.has_types());
-        assert!(trigger.has_event("push"));
-        assert!(trigger.has_event("pull_request"));
-        assert!(!trigger.has_event("schedule"));
-
-        let mut names = trigger.event_names();
-        names.sort_unstable();
-        assert_eq!(names, vec!["pull_request", "push"]);
-    }
-
-    #[test]
-    fn workflow_dispatch_inputs_are_exposed_when_configured() {
+    fn exposes_manual_inputs_without_vendor_event_names() {
         let inputs = HashMap::from([(
-            "name".to_owned(),
-            WorkflowDispatchInput::new(None, true, None, Some("string".to_owned()), Vec::new()),
+            "environment".into(),
+            TriggerInput::new(None, true, None, None, Vec::new()),
         )]);
-        let filter = TriggerFilter::new().with_inputs(inputs.clone());
-        let trigger = WorkflowTrigger::WithTypes(HashMap::from([(
-            "workflow_dispatch".to_owned(),
-            Some(filter),
-        )]));
+        let trigger = WorkflowTrigger::Manual {
+            inputs: inputs.clone(),
+        };
 
-        assert_eq!(trigger.workflow_dispatch_inputs(), Some(&inputs));
-    }
-
-    #[test]
-    fn workflow_dispatch_inputs_are_absent_without_the_event() {
-        assert_eq!(
-            WorkflowTrigger::Single("push".to_owned()).workflow_dispatch_inputs(),
-            None
-        );
-        assert_eq!(
-            events(&["workflow_dispatch"]).workflow_dispatch_inputs(),
-            None
-        );
-    }
-
-    #[test]
-    fn default_is_single_push() {
-        assert_eq!(
-            WorkflowTrigger::default(),
-            WorkflowTrigger::Single("push".to_owned())
-        );
+        assert_eq!(trigger.inputs(), Some(&inputs));
     }
 }

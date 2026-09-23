@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::domain::value_objects::WorkflowDispatchInput;
+use crate::domain::value_objects::TriggerInput;
 
 /// Input declaration of a `workflow_dispatch` trigger as authored in YAML.
 #[derive(Debug, Clone, Deserialize, PartialEq, Default)]
@@ -24,8 +24,8 @@ pub struct WorkflowDispatchInputYaml {
 impl WorkflowDispatchInputYaml {
     /// Builds the domain dispatch input this YAML describes.
     #[must_use]
-    pub fn into_domain(self) -> WorkflowDispatchInput {
-        WorkflowDispatchInput::new(
+    pub fn into_domain(self) -> TriggerInput {
+        TriggerInput::new(
             self.description,
             self.required,
             self.default,
