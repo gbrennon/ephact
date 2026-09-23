@@ -1,17 +1,38 @@
 #[cfg(test)]
 mod tests {
 
-    use std::time::Duration;
+    use std::{fs, sync::Arc, time::Duration};
 
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ephact::{
-        application::dtos::responses::{
-            RunInputDeclarationResponse, RunInputSourceResponse, RunSummaryResponse,
-            WorkflowListItemResponse,
+        application::{
+            dtos::responses::{
+                RunInputDeclarationResponse, RunInputSourceResponse, RunSummaryResponse,
+                WorkflowListItemResponse,
+            },
+            ports::outbound::SettingsStorePort,
         },
+        infrastructure::TomlSettingsStore,
         presentation::tui::{ScreenManager, TuiApp, TuiScreen},
     };
     use ratatui::{Terminal, backend::TestBackend};
+
+    fn rendered_app_lines(app: &TuiApp) -> Vec<String> {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).expect("test terminal");
+
+        terminal
+            .draw(|frame| app.render(frame))
+            .expect("render app");
+
+        terminal
+            .backend()
+            .buffer()
+            .content()
+            .chunks(80)
+            .map(|line| line.iter().map(|cell| cell.symbol()).collect())
+            .collect()
+    }
 
     fn rendered_lines(screens: &ScreenManager, title: &str) -> Vec<String> {
         let backend = TestBackend::new(80, 24);
@@ -28,6 +49,20 @@ mod tests {
             .chunks(80)
             .map(|line| line.iter().map(|cell| cell.symbol()).collect())
             .collect()
+    }
+
+    #[test]
+    fn tui_app_renders_marker_loaded_from_toml_settings() {
+        let directory = tempfile::tempdir().expect("temporary directory");
+        let path = directory.path().join("config.toml");
+        fs::write(&path, "marker = \"❯\"\n").expect("write settings");
+        let store = Arc::new(TomlSettingsStore::new(path));
+        let settings = store.read_settings().expect("read settings");
+        let app = TuiApp::new(Vec::new()).with_settings(settings, Some(store));
+
+        let lines = rendered_app_lines(&app);
+
+        assert!(lines.iter().any(|line| line.contains("❯")));
     }
 
     #[test]
