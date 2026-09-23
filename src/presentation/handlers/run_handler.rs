@@ -74,7 +74,7 @@ impl RunHandler {
     /// Executes a single workflow programmatically (used by the TUI).
     ///
     /// Converts `repository_path` into a [`Repository`], builds a run request
-    /// with safe defaults for the optional `workflow`, and returns the run
+    /// with the optional `workflow`, and returns the run
     /// summary produced by the port.
     pub async fn handle(
         run_workflow_port: &dyn RunWorkflowPort,
@@ -85,7 +85,7 @@ impl RunHandler {
             run_workflow_port,
             repository_path,
             workflow,
-            Some("pull_request".to_string()),
+            None,
             Vec::new(),
         )
         .await

@@ -51,18 +51,12 @@ pub struct RunConfiguration {
 }
 
 impl RunConfiguration {
-    const DEFAULT_EVENT: &'static str = "pull_request";
     const EVENT_LABEL: &'static str = "Event: ";
     const INPUT_LABEL: &'static str = "Input: ";
     const ERROR_LABEL: &'static str = "Error: ";
     const REQUIRED_SUFFIX: &'static str = " (required)";
 
     pub fn new(events: Vec<String>, declarations: Vec<RunInputDeclarationResponse>) -> Self {
-        let events = if events.is_empty() {
-            vec![Self::DEFAULT_EVENT.to_string()]
-        } else {
-            events
-        };
         Self {
             events,
             selected_index: 0,
@@ -95,15 +89,16 @@ impl RunConfiguration {
         ConfigurationAction::Continue
     }
 
-    pub fn values(&self) -> RunConfigurationValues {
-        RunConfigurationValues {
-            event: self.events[self.selected_event].clone(),
+    pub fn values(&self) -> Option<RunConfigurationValues> {
+        let event = self.events.get(self.selected_event)?.clone();
+        Some(RunConfigurationValues {
+            event,
             inputs: self
                 .inputs
                 .iter()
                 .map(|input| (input.name.clone(), input.value.clone()))
                 .collect(),
-        }
+        })
     }
 
     pub fn render(&self, frame: &mut Frame<'_>, area: Rect) {
@@ -157,12 +152,19 @@ impl RunConfiguration {
     }
 
     fn start_editing(&mut self) {
-        if self.selected_index >= self.events.len() {
+        let input_count = self.inputs.len();
+        if self.selected_index >= self.events.len()
+            && self.selected_index < self.events.len() + input_count
+        {
             self.editing = true;
         }
     }
 
     fn submit(&mut self) -> ConfigurationAction {
+        if self.events.is_empty() {
+            self.error = Some("Error: Workflow declares no supported events".to_owned());
+            return ConfigurationAction::Continue;
+        }
         if let Some(input) = self
             .inputs
             .iter()
@@ -176,7 +178,11 @@ impl RunConfiguration {
     }
 
     fn select_next(&mut self) {
-        let last_index = self.events.len() + self.inputs.len() - 1;
+        let item_count = self.events.len() + self.inputs.len();
+        if item_count == 0 {
+            return;
+        }
+        let last_index = item_count - 1;
         self.selected_index = (self.selected_index + 1).min(last_index);
         if self.selected_index < self.events.len() {
             self.selected_event = self.selected_index;
@@ -214,5 +220,46 @@ impl RunConfiguration {
             required,
             input.value
         )))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+    use super::{ConfigurationAction, RunConfiguration};
+
+    #[test]
+    fn empty_event_configuration_cannot_submit() {
+        let mut configuration = RunConfiguration::new(Vec::new(), Vec::new());
+
+        let action =
+            configuration.handle_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE));
+
+        assert_eq!(action, ConfigurationAction::Continue);
+        assert_eq!(
+            configuration.error(),
+            Some("Error: Workflow declares no supported events")
+        );
+    }
+
+    #[test]
+    fn empty_event_configuration_has_no_values() {
+        let configuration = RunConfiguration::new(Vec::new(), Vec::new());
+
+        assert!(configuration.values().is_none());
+    }
+
+    #[test]
+    fn empty_event_configuration_does_not_enter_input_editing() {
+        let mut configuration = RunConfiguration::new(Vec::new(), Vec::new());
+
+        let action = configuration.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        let follow_up =
+            configuration.handle_key(KeyEvent::new(KeyCode::Char('x'), KeyModifiers::NONE));
+
+        assert_eq!(action, ConfigurationAction::Continue);
+        assert_eq!(follow_up, ConfigurationAction::Continue);
+        assert!(configuration.error().is_none());
     }
 }

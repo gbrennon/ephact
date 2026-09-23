@@ -113,7 +113,7 @@ impl TuiRunner {
         &self,
         workflow: Option<String>,
     ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
-        let event = Some("pull_request".to_string());
+        let event = None;
         RunHandler::handle_with_event_and_inputs(
             &*self.run_workflow_port,
             std::env::current_dir()?,
@@ -237,8 +237,13 @@ impl TuiRunner {
             return Ok(());
         }
         *input_configuration_pending = false;
-        let events = vec!["pull_request".to_string()];
-        app.begin_run_configuration(events, Vec::new());
+        let events = app.selected_workflow_events();
+        app.begin_run_configuration(events.clone(), Vec::new());
+        if events.is_empty() {
+            app.report_configuration_error(
+                "Error: Workflow declares no supported events".to_owned(),
+            );
+        }
         Ok(())
     }
 
