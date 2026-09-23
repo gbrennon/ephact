@@ -15,7 +15,6 @@ use crate::{
                 workflow_command_bus_port::WorkflowCommandBusPort,
             },
         },
-        services::pull_request_workflow::{PULL_REQUEST_EVENT_NAME, config_for_pull_request_event},
     },
     domain::{
         messages::{
@@ -88,12 +87,17 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
         );
         let run_id = config.run_id().to_string();
         let repository_path = repository.path().as_path().display().to_string();
+        let Some(event) = config.event() else {
+            return Err(RunAllWorkflowsError::Workflow(
+                "workflow event must be specified".to_owned(),
+            ));
+        };
         self.event_bus
             .publish(DomainEvent::RunStarted(RunStartedPayload::new(
                 run_id.clone(),
                 repository_path.clone(),
             )));
-        let executions = match self.execute_all_workflows(&repository, &config) {
+        let executions = match self.execute_all_workflows(&repository, &config, event.as_str()) {
             Ok(executions) => executions,
             Err(error) => {
                 let error = RunAllWorkflowsError::Workflow(error.to_string());
@@ -118,6 +122,7 @@ impl RunAllWorkflowsService {
         &self,
         repository: &crate::domain::Repository,
         config: &crate::domain::value_objects::ActRunConfig,
+        event: &str,
     ) -> Result<Vec<WorkflowExecutionResponse>, RunAllWorkflowsError> {
         let workflow_contents = self
             .workflow_source
@@ -125,15 +130,12 @@ impl RunAllWorkflowsService {
             .map_err(|error| RunAllWorkflowsError::Workflow(error.to_string()))?;
         workflow_contents
             .into_iter()
-            .filter(|content| {
-                self.trigger_detector
-                    .triggers_on_event(content, PULL_REQUEST_EVENT_NAME)
-            })
+            .filter(|content| self.trigger_detector.triggers_on_event(content, event))
             .map(|content| {
                 self.command_bus
                     .dispatch(ExecuteWorkflowCommand::new(
                         content,
-                        config_for_pull_request_event(config.clone()),
+                        config.clone(),
                         repository.clone(),
                         config.run_id().to_string(),
                         config.allow_repo_writes(),
