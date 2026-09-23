@@ -27,6 +27,7 @@ pub mod job_matrix;
 pub mod job_strategy;
 pub(crate) mod json_text_reader;
 pub mod logical_operator;
+pub mod marker;
 pub mod operation_mode;
 pub mod output_preferences;
 pub mod permissions;
@@ -75,6 +76,7 @@ pub use self::{
     job_matrix::JobMatrix,
     job_strategy::JobStrategy,
     logical_operator::LogicalOperator,
+    marker::{Marker, MarkerKind, MarkerPreset},
     operation_mode::OperationMode,
     output_preferences::OutputPreferences,
     permissions::Permissions,
