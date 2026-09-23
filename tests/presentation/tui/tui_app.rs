@@ -1,15 +1,19 @@
 #[cfg(test)]
 mod tests {
 
-    use std::time::Duration;
+    use std::{fs, sync::Arc, time::Duration};
 
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ephact::{
-        application::dtos::responses::{
-            RunInputDeclarationResponse, RunInputSourceResponse, RunSummaryResponse,
-            WorkflowListItemResponse,
+        application::{
+            dtos::responses::{
+                RunInputDeclarationResponse, RunInputSourceResponse, RunSummaryResponse,
+                WorkflowListItemResponse,
+            },
+            ports::outbound::SettingsStorePort,
         },
         domain::{Marker, Settings},
+        infrastructure::TomlSettingsStore,
         presentation::tui::{ScreenManager, TuiApp, TuiScreen},
     };
     use ratatui::{Terminal, backend::TestBackend};
@@ -46,6 +50,39 @@ mod tests {
             .chunks(80)
             .map(|line| line.iter().map(|cell| cell.symbol()).collect())
             .collect()
+    }
+
+    #[test]
+    fn persisted_marker_is_used_by_text_input_form() {
+        let directory = tempfile::tempdir().expect("temporary directory");
+        let path = directory.path().join("config.toml");
+        fs::write(&path, "marker = \"❯\"\n").expect("write settings");
+        let store = Arc::new(TomlSettingsStore::new(path));
+        let settings = store.read_settings().expect("read settings");
+        let mut app = TuiApp::new(vec![WorkflowListItemResponse::new(
+            Some("CI".to_string()),
+            None,
+            vec!["push".to_string()],
+        )])
+        .with_settings(settings, Some(store));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.begin_run_configuration(
+            vec!["push".to_string()],
+            vec![RunInputDeclarationResponse::new(
+                "rustc-version",
+                RunInputSourceResponse::Workflow,
+                None,
+                false,
+                Some("stable".to_string()),
+            )],
+        );
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        let lines = rendered_app_lines(&app);
+
+        assert!(lines.iter().any(|line| line.contains("stable❯")));
     }
 
     #[test]
