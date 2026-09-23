@@ -111,7 +111,12 @@ impl ScreenManager {
     pub fn render(&self, frame: &mut Frame<'_>, splash_quote: &str) {
         frame.render_widget(Block::default().style(Theme::window_style()), frame.area());
         if self.current_screen == TuiScreen::Splash {
-            SplashScreen::render(frame, splash_quote);
+            SplashScreen::render_with_marker(
+                frame,
+                crate::presentation::tui::components::ColorSupport::from_env(),
+                splash_quote,
+                self.settings.settings().marker(),
+            );
             return;
         }
         let content_area = ScreenFrame::render(frame, splash_quote);
@@ -210,6 +215,14 @@ impl ScreenManager {
     pub fn has_configuration_error(&self) -> bool {
         self.run_workflow.configuration_error().is_some()
             || self.run_workflow.configuration_footer().is_some()
+    }
+
+    pub fn is_configuration_editing(&self) -> bool {
+        self.run_workflow.configuration_is_editing()
+    }
+
+    pub fn is_settings_editing(&self) -> bool {
+        self.settings.is_editing()
     }
 
     pub fn is_showing_details(&self) -> bool {

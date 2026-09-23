@@ -44,8 +44,9 @@ impl RunWorkflowScreen {
     const RESULT_TITLE: &'static str = "Run Summary";
     const EMPTY_MESSAGE: &'static str = "No workflows found in repository";
     const UNNAMED_WORKFLOW: &'static str = "Unnamed workflow";
-    const PICKER_FOOTER: &'static str = "Enter: Run | Up/Down: Navigate | Esc: Back | q: Quit";
-    const RUNNING_FOOTER: &'static str = "Esc: Cancel";
+    const PICKER_FOOTER: &'static str =
+        "Up/Down/j/k: Move | Enter: Configure | Esc/Bksp: Back | q: Quit";
+    const RUNNING_FOOTER: &'static str = "Esc/Bksp: Cancel";
     const RESULT_NAME_PREFIX: &'static str = "Workflow: ";
     const RESULT_STATUS_PREFIX: &'static str = "Status: ";
     const JOB_STATUS_SEPARATOR: &'static str = ": ";
@@ -128,6 +129,13 @@ impl RunWorkflowScreen {
 
     pub fn configuration_footer(&self) -> Option<&'static str> {
         self.configuration.as_ref().map(RunConfiguration::footer)
+    }
+
+    pub fn configuration_is_editing(&self) -> bool {
+        self.configuration
+            .as_ref()
+            .map(RunConfiguration::is_editing)
+            .unwrap_or(false)
     }
 
     pub fn configuration_error(&self) -> Option<&str> {
@@ -440,9 +448,9 @@ impl RunWorkflowScreen {
         if self.running {
             Self::RUNNING_FOOTER
         } else if self.showing_details {
-            "Up/Down/j/k: Scroll | Enter/Space: Fold | Esc: Back | q: Quit"
+            "Up/Down/j/k: Scroll | Enter/Space: Fold | Esc/Bksp: Back | q: Quit"
         } else if self.outcome.is_some() {
-            "Up/Down: Scroll | Esc: Back | d: Details | q: Quit"
+            "Up/Down/j/k: Scroll | d: Details | Esc/Bksp: Back | q: Quit"
         } else {
             Self::PICKER_FOOTER
         }

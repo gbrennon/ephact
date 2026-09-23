@@ -29,7 +29,7 @@ impl ListWorkflowsScreen {
     const MISSING_FILE: &'static str = "-";
     const MISSING_EVENTS: &'static str = "-";
     const EVENT_SEPARATOR: &'static str = ", ";
-    const FOOTER: &'static str = "Up/Down: Navigate | Esc: Back | q: Quit";
+    const FOOTER: &'static str = "Up/Down/j/k: Move | Esc/Bksp: Back | q: Quit";
     const INITIAL_SELECTION: usize = 0;
     const SELECTION_STEP: usize = 1;
     const CONTENT_MIN_HEIGHT: u16 = 5;

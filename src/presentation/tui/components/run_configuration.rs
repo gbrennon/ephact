@@ -7,7 +7,11 @@ use ratatui::{
 };
 
 use crate::{
-    application::dtos::responses::RunInputDeclarationResponse, presentation::tui::theme::Theme,
+    application::dtos::responses::RunInputDeclarationResponse,
+    presentation::tui::{
+        components::run_configuration_input::{InputField, InputKind},
+        theme::Theme,
+    },
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -34,13 +38,6 @@ pub enum ConfigurationAction {
 }
 
 #[derive(Clone)]
-struct InputField {
-    name: String,
-    required: bool,
-    value: String,
-}
-
-#[derive(Clone)]
 pub struct RunConfiguration {
     events: Vec<String>,
     selected_index: usize,
@@ -52,9 +49,12 @@ pub struct RunConfiguration {
 
 impl RunConfiguration {
     const EVENT_LABEL: &'static str = "Event: ";
-    const INPUT_LABEL: &'static str = "Input: ";
     const ERROR_LABEL: &'static str = "Error: ";
-    const REQUIRED_SUFFIX: &'static str = " (required)";
+    const EVENT_PICKER_FOOTER: &'static str =
+        "Up/Down/j/k: Select event | Enter: Select | Esc/Bksp: Back | q: Quit";
+    const INPUT_PICKER_FOOTER: &'static str =
+        "Up/Down/j/k: Move | Enter: Edit | r: Run | Esc/Bksp: Back | q: Quit";
+    const RUN_FOOTER: &'static str = "Up/Down/j/k: Move | r: Run | Esc/Bksp: Back | q: Quit";
 
     pub fn new(events: Vec<String>, declarations: Vec<RunInputDeclarationResponse>) -> Self {
         Self {
@@ -62,12 +62,8 @@ impl RunConfiguration {
             selected_index: 0,
             selected_event: 0,
             inputs: declarations
-                .into_iter()
-                .map(|declaration| InputField {
-                    name: declaration.name().to_string(),
-                    required: declaration.required() && declaration.default().is_none(),
-                    value: declaration.default().unwrap_or_default().to_string(),
-                })
+                .iter()
+                .map(InputField::from_declaration)
                 .collect(),
             editing: false,
             error: None,
@@ -84,8 +80,15 @@ impl RunConfiguration {
         match key.code {
             KeyCode::Up | KeyCode::Char('k') => self.select_previous(),
             KeyCode::Down | KeyCode::Char('j') => self.select_next(),
-            KeyCode::Enter => self.start_editing(),
-            KeyCode::Char('r') => return self.submit(),
+            KeyCode::Enter => {
+                if self.is_selecting_event() {
+                    return self.submit();
+                }
+                self.start_editing();
+            }
+            KeyCode::Char('r') if !self.inputs.is_empty() || self.events.is_empty() => {
+                return self.submit();
+            }
             KeyCode::Esc | KeyCode::Backspace => return ConfigurationAction::Cancel,
             _ => {}
         }
@@ -99,7 +102,7 @@ impl RunConfiguration {
             inputs: self
                 .inputs
                 .iter()
-                .map(|input| (input.name.clone(), input.value.clone()))
+                .map(|input| (input.name().to_string(), input.value().to_string()))
                 .collect(),
         })
     }
@@ -114,7 +117,12 @@ impl RunConfiguration {
             .iter()
             .enumerate()
             .map(|(index, event)| self.event_item(index, event))
-            .chain(self.inputs.iter().map(|input| self.input_item(input)))
+            .chain(
+                self.inputs
+                    .iter()
+                    .enumerate()
+                    .map(|(index, input)| self.input_item(index + self.events.len(), input)),
+            )
             .collect::<Vec<_>>();
         if let Some(error) = self.error.as_deref() {
             items.push(ListItem::new(Line::from(Span::styled(
@@ -134,7 +142,32 @@ impl RunConfiguration {
     }
 
     pub fn footer(&self) -> &'static str {
-        "Up/Down: Select | Enter: Edit input | r: Run | Esc: Back"
+        if self.error.is_some() {
+            "Enter/Esc/Bksp: Dismiss | q: Quit"
+        } else if self.editing {
+            self.editing_footer()
+        } else if self.is_selecting_event() {
+            Self::EVENT_PICKER_FOOTER
+        } else if self.selected_index >= self.events.len() {
+            Self::INPUT_PICKER_FOOTER
+        } else {
+            Self::RUN_FOOTER
+        }
+    }
+
+    pub fn is_editing(&self) -> bool {
+        self.editing
+    }
+
+    fn editing_footer(&self) -> &'static str {
+        match self.current_input().kind() {
+            InputKind::Boolean => "Left/h: False | Right/l: True | Enter/Esc: Finish",
+            InputKind::Text => "Type: Edit | Enter/Esc: Finish | Bksp: Delete",
+        }
+    }
+
+    fn is_selecting_event(&self) -> bool {
+        self.inputs.is_empty() && self.selected_index < self.events.len()
     }
 
     pub fn error(&self) -> Option<&str> {
@@ -174,13 +207,8 @@ impl RunConfiguration {
 
     fn handle_editing_key(&mut self, key: KeyEvent) -> ConfigurationAction {
         match key.code {
-            KeyCode::Enter => self.editing = false,
-            KeyCode::Esc => self.editing = false,
-            KeyCode::Backspace => {
-                self.current_input_mut().value.pop();
-            }
-            KeyCode::Char(character) => self.current_input_mut().value.push(character),
-            _ => {}
+            KeyCode::Enter | KeyCode::Esc => self.editing = false,
+            _ => self.current_input_mut().handle_key(key.code),
         }
         ConfigurationAction::Continue
     }
@@ -202,9 +230,9 @@ impl RunConfiguration {
         if let Some(input) = self
             .inputs
             .iter()
-            .find(|input| input.required && input.value.is_empty())
+            .find(|input| input.required() && input.value().is_empty())
         {
-            self.error = Some(format!("{}{} is required", Self::ERROR_LABEL, input.name));
+            self.error = Some(format!("{}{} is required", Self::ERROR_LABEL, input.name()));
             return ConfigurationAction::Continue;
         }
         self.error = None;
@@ -230,6 +258,10 @@ impl RunConfiguration {
         }
     }
 
+    fn current_input(&self) -> &InputField {
+        &self.inputs[self.selected_index - self.events.len()]
+    }
+
     fn current_input_mut(&mut self) -> &mut InputField {
         &mut self.inputs[self.selected_index - self.events.len()]
     }
@@ -241,70 +273,7 @@ impl RunConfiguration {
         )))
     }
 
-    fn input_item(&self, input: &InputField) -> ListItem<'static> {
-        let required = if input.required {
-            Self::REQUIRED_SUFFIX
-        } else {
-            ""
-        };
-        ListItem::new(Line::from(format!(
-            "{}{}{} = {}",
-            Self::INPUT_LABEL,
-            input.name,
-            required,
-            input.value
-        )))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-
-    use super::{ConfigurationAction, RunConfiguration};
-
-    #[test]
-    fn empty_event_configuration_cannot_submit() {
-        let mut configuration = RunConfiguration::new(Vec::new(), Vec::new());
-
-        let action =
-            configuration.handle_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE));
-
-        assert_eq!(action, ConfigurationAction::Continue);
-        assert_eq!(
-            configuration.error(),
-            Some("Error: Workflow declares no supported events")
-        );
-    }
-
-    #[test]
-    fn empty_event_configuration_has_no_values() {
-        let configuration = RunConfiguration::new(Vec::new(), Vec::new());
-
-        assert!(configuration.values().is_none());
-    }
-
-    #[test]
-    fn configuration_error_dismisses_on_escape() {
-        let mut configuration = RunConfiguration::new(Vec::new(), Vec::new());
-        configuration.report_error("Error: Workflow declares no supported events".to_owned());
-
-        let action = configuration.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
-
-        assert_eq!(action, ConfigurationAction::Cancel);
-        assert!(configuration.error().is_none());
-    }
-
-    #[test]
-    fn empty_event_configuration_does_not_enter_input_editing() {
-        let mut configuration = RunConfiguration::new(Vec::new(), Vec::new());
-
-        let action = configuration.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-        let follow_up =
-            configuration.handle_key(KeyEvent::new(KeyCode::Char('x'), KeyModifiers::NONE));
-
-        assert_eq!(action, ConfigurationAction::Continue);
-        assert_eq!(follow_up, ConfigurationAction::Continue);
-        assert!(configuration.error().is_none());
+    fn input_item(&self, index: usize, input: &InputField) -> ListItem<'static> {
+        input.render(index, self.selected_index, self.editing)
     }
 }

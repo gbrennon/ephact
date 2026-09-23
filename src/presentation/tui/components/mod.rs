@@ -1,6 +1,7 @@
 pub mod color_support;
 pub mod emblem;
 pub mod run_configuration;
+mod run_configuration_input;
 pub mod run_details_view;
 pub mod screen_frame;
 pub mod splash_quotes;
