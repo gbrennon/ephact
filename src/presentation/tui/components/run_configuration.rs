@@ -1,9 +1,9 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     Frame,
-    layout::Rect,
+    layout::{Alignment, Rect},
     text::{Line, Span},
-    widgets::{List, ListItem, ListState},
+    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph},
 };
 
 use crate::{
@@ -75,6 +75,9 @@ impl RunConfiguration {
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) -> ConfigurationAction {
+        if self.error.is_some() {
+            return self.handle_error_key(key);
+        }
         if self.editing {
             return self.handle_editing_key(key);
         }
@@ -102,6 +105,10 @@ impl RunConfiguration {
     }
 
     pub fn render(&self, frame: &mut Frame<'_>, area: Rect) {
+        if let Some(error) = self.error.as_deref() {
+            self.render_error_modal(frame, area, error);
+            return;
+        }
         let mut items = self
             .events
             .iter()
@@ -136,6 +143,33 @@ impl RunConfiguration {
 
     pub fn report_error(&mut self, error: String) {
         self.error = Some(error);
+    }
+
+    fn handle_error_key(&mut self, key: KeyEvent) -> ConfigurationAction {
+        if matches!(key.code, KeyCode::Enter | KeyCode::Esc | KeyCode::Backspace) {
+            self.error = None;
+            return ConfigurationAction::Cancel;
+        }
+        ConfigurationAction::Continue
+    }
+
+    fn render_error_modal(&self, frame: &mut Frame<'_>, area: Rect, error: &str) {
+        let width = area.width.min(60);
+        let height = area.height.min(5);
+        let x = area.x + area.width.saturating_sub(width) / 2;
+        let y = area.y + area.height.saturating_sub(height) / 2;
+        let modal = Rect::new(x, y, width, height);
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .border_style(Theme::critical_style())
+            .title(Span::styled("Cannot Run", Theme::title_style()));
+        frame.render_widget(Clear, modal);
+        frame.render_widget(
+            Paragraph::new(error)
+                .alignment(Alignment::Center)
+                .block(block),
+            modal,
+        );
     }
 
     fn handle_editing_key(&mut self, key: KeyEvent) -> ConfigurationAction {
@@ -248,6 +282,17 @@ mod tests {
         let configuration = RunConfiguration::new(Vec::new(), Vec::new());
 
         assert!(configuration.values().is_none());
+    }
+
+    #[test]
+    fn configuration_error_dismisses_on_escape() {
+        let mut configuration = RunConfiguration::new(Vec::new(), Vec::new());
+        configuration.report_error("Error: Workflow declares no supported events".to_owned());
+
+        let action = configuration.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+
+        assert_eq!(action, ConfigurationAction::Cancel);
+        assert!(configuration.error().is_none());
     }
 
     #[test]
