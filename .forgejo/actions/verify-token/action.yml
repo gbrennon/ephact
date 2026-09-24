@@ -1,0 +1,85 @@
+name: Verify token
+description: Verify a secret is configured and authenticates against its API
+inputs:
+  token:
+    description: >-
+      Authentication token or secret string to test (such as a crates.io API
+      token, GitHub Personal Access Token, or Forgejo Actions runner token)
+      used to authenticate against the target service endpoint
+    required: true
+  secret-name:
+    description: >-
+      Human-readable name of the secret or token (such as CARGO_REGISTRY_TOKEN)
+      used to identify the failed credential in diagnostic and error messages
+    required: true
+  validate-url:
+    description: >-
+      Full HTTP URL endpoint of the target service (such as
+      https://crates.io/api/v1/me) queried via GET request to verify that the
+      credentials return an HTTP 2xx response
+    required: true
+  auth-scheme:
+    description: >-
+      Authorization header scheme prefix (bearer for 'Bearer <token>' or
+      token for 'token <token>') matching the target service authentication
+      requirements
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Verify token
+      shell: bash
+      env:
+        TOKEN: ${{ inputs.token }}
+        SECRET_NAME: ${{ inputs.secret-name }}
+        VALIDATE_URL: ${{ inputs.validate-url }}
+        AUTH_SCHEME: ${{ inputs.auth-scheme }}
+      run: |
+        set -euo pipefail
+
+        if [[ -z "$TOKEN" ]]; then
+          printf '%s is not configured in the repository secrets\n' \
+            "$SECRET_NAME" >&2
+          exit 1
+        fi
+
+        case "$AUTH_SCHEME" in
+          bearer) authorization="Bearer $TOKEN" ;;
+          token) authorization="token $TOKEN" ;;
+          *)
+            printf 'Unsupported auth scheme: %s\n' "$AUTH_SCHEME" >&2
+            exit 1
+            ;;
+        esac
+
+        response_file="$(mktemp)"
+        trap 'rm -f "$response_file"' EXIT
+
+        http_status="$(
+          curl --silent --show-error --output "$response_file" \
+            --write-out '%{http_code}' \
+            --header "Authorization: $authorization" \
+            --header 'Accept: application/json' \
+            --header 'User-Agent: ephact-ci' \
+            "$VALIDATE_URL"
+        )"
+
+        if (( http_status >= 200 && http_status < 300 )); then
+          printf '%s verified (HTTP %s)\n' "$SECRET_NAME" "$http_status"
+          exit 0
+        fi
+
+        crates_cookie_msg="this action can only be performed on the crates.io website"
+        crates_scope_msg="this token does not have the required permissions"
+        if [[ "$http_status" -eq 403 ]] && \
+          (grep -q "$crates_cookie_msg" "$response_file" || \
+           grep -q "$crates_scope_msg" "$response_file"); then
+          printf '%s verified against crates.io (HTTP %s)\n' \
+            "$SECRET_NAME" "$http_status"
+          exit 0
+        fi
+        printf '%s failed validation against %s (HTTP %s)\n' \
+          "$SECRET_NAME" "$VALIDATE_URL" "$http_status" >&2
+        cat "$response_file" >&2
+        printf '\n' >&2
+        exit 1

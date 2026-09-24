@@ -3,14 +3,20 @@ description: Cache Cargo registry, git checkouts, and build artifacts
 
 inputs:
   cache-key-prefix:
-    description: Prefix for the cache key
+    description: >-
+      Base identifier prefix (such as ephact or ephact-release) prepended
+      to the runner cache key to isolate dependency caches
     required: true
   rustc-version:
-    description: Rust compiler version for cache invalidation
+    description: >-
+      Installed Rust compiler version used as a cache key component so
+      toolchain updates invalidate stale build caches
     required: false
     default: stable
   include-sysroot:
-    description: Whether to include the sysroot in the cache
+    description: >-
+      Flag indicating whether Rust standard library sysroot artifacts
+      should be retained across cached workflow runs
     required: false
     default: "false"
 

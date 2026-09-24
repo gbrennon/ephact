@@ -1,0 +1,41 @@
+name: Publish crate to production
+description: Publish the crate to crates.io
+inputs:
+  token:
+    description: >-
+      API token with publish permissions for production crates.io, used to
+      authenticate the cargo publish command
+    required: true
+  version:
+    description: >-
+      Target release tag (such as v0.2.0) used to verify that the Cargo.toml
+      manifest version matches the release before publishing to production crates.io
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Publish to crates.io
+      shell: bash
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ inputs.token }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+
+        if [[ -z "$CARGO_REGISTRY_TOKEN" ]]; then
+          printf 'CARGO_REGISTRY_TOKEN is not configured\n' >&2
+          exit 1
+        fi
+
+        expected_version="${VERSION#v}"
+        manifest_version="$(
+          cargo metadata --no-deps --format-version 1 \
+            | jq -r '.packages[0].version'
+        )"
+        if [[ "$manifest_version" != "$expected_version" ]]; then
+          printf 'Cargo.toml version %s does not match release %s\n' \
+            "$manifest_version" "$expected_version" >&2
+          exit 1
+        fi
+
+        cargo publish --locked

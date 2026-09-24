@@ -2,16 +2,24 @@ name: Create Codeberg release
 description: Publish a release through the Codeberg API
 inputs:
   api-url:
-    description: Codeberg API base URL
+    description: >-
+      Codeberg or Forgejo instance API base URL (for example
+      https://codeberg.org/api/v1) used for release API calls
     required: true
   repository:
-    description: Codeberg repository identifier
+    description: >-
+      Target Codeberg repository in owner/repo format (for example
+      gbrennon/ephact) where the release will be published
     required: true
   token:
-    description: Codeberg API token
+    description: >-
+      Codeberg API token or built-in Forgejo Actions runner token used to
+      authenticate the release creation request
     required: true
   version:
-    description: Release version
+    description: >-
+      Release tag name (for example v0.2.0) used as the release title, Git
+      tag reference, and changelog heading identifier
     required: true
 runs:
   using: composite

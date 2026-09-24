@@ -89,6 +89,24 @@ requests targeting `main`, and manual dispatch:
 1. **Test** runs `just test`, covering default-feature test targets with the 80%
    aggregate line threshold while excluding feature-gated container integration.
 1. **Lint** runs `cargo clippy --all-targets --locked -- -D warnings`.
+1. **Verify secrets** verifies repository secrets for same-repository runs.
 
 Workflow linting is available locally through `just lint-workflows`, but it is
 not currently a CI step.
+
+### Repository Secrets
+
+Configure the following secrets in Codeberg repository settings under
+**Settings > Actions > Secrets**:
+
+| Secret | Purpose | Source / Value |
+| ------ | ------- | -------------- |
+| `CARGO_REGISTRY_TOKEN` | Crates.io production publishing | crates.io API token |
+| `CARGO_REGISTRIES_STAGING_TOKEN` | Staging registry publishing | staging.crates.io API token |
+| `GH_RELEASE_TOKEN` | GitHub mirror release publishing | GitHub personal access token |
+
+#### Built-in Tokens
+
+`FORGEJO_TOKEN` is automatically created and injected by Forgejo Actions for each
+workflow run. Never add `FORGEJO_TOKEN` to repository secrets; use the built-in
+`forgejo.token` context instead.
