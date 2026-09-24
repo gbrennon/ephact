@@ -5,7 +5,7 @@ mod tests {
             dtos::responses::ShowProjectBrandingInfoResponse, errors::ShowProjectBrandingInfoError,
             ports::inbound::ShowProjectBrandingInfoPort,
         },
-        presentation::cli::cli::CliDependencies,
+        presentation::cli::CliDependencies,
     };
 
     use crate::{

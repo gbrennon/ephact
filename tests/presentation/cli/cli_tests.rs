@@ -7,7 +7,7 @@ mod tests {
             ports::inbound::ShowProjectBrandingInfoPort,
         },
         presentation::{
-            cli::{Cli, cli::CliDependencies},
+            cli::{Cli, CliDependencies},
             components::terminal::Terminal,
         },
     };

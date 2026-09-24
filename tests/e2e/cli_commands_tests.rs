@@ -23,7 +23,7 @@ mod tests {
         },
         domain::value_objects::StepType,
         presentation::{
-            cli::{Cli, cli::CliDependencies},
+            cli::{Cli, CliDependencies},
             components::terminal::Terminal,
         },
     };
