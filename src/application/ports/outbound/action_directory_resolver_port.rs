@@ -5,10 +5,10 @@ use crate::{
     domain::errors::StepError,
 };
 
-/// Inbound port for deciding where the action a step references lives.
-pub trait ResolveActionDirectoryPort: Send + Sync {
+/// Resolves an action reference to its directory.
+pub trait ActionDirectoryResolverPort: Send + Sync {
     /// Classifies the reference and resolves it to a directory.
-    fn execute(
+    fn resolve(
         &self,
         request: ResolveActionDirectoryRequest,
     ) -> Result<ResolvedActionDirectoryResponse, StepError>;

@@ -17,7 +17,7 @@ mod tests {
             errors::DiscoverRunInputsError,
             ports::{
                 inbound::{ListWorkflowsPort, RunAllWorkflowsPort, RunWorkflowPort},
-                outbound::DiscoverRunInputsPort,
+                outbound::RunInputsDiscovererPort,
             },
         },
         presentation::{
@@ -117,8 +117,8 @@ mod tests {
         declarations: Vec<RunInputDeclarationResponse>,
     }
 
-    impl DiscoverRunInputsPort for DiscoverInputsFake {
-        fn execute(
+    impl RunInputsDiscovererPort for DiscoverInputsFake {
+        fn discover(
             &self,
             _request: DiscoverRunInputsRequest,
         ) -> Result<Vec<RunInputDeclarationResponse>, DiscoverRunInputsError> {

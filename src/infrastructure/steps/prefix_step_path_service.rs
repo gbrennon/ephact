@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::application::{
     dtos::requests::PrefixStepPathRequest,
-    ports::outbound::prefix_step_path_port::PrefixStepPathPort,
+    ports::outbound::step_path_prefixer_port::StepPathPrefixerPort,
 };
 
 /// Service that prefixes a step's `PATH` with the directories earlier steps
@@ -21,8 +21,8 @@ impl Default for PrefixStepPathService {
     }
 }
 
-impl PrefixStepPathPort for PrefixStepPathService {
-    fn execute(&self, request: PrefixStepPathRequest) -> HashMap<String, String> {
+impl StepPathPrefixerPort for PrefixStepPathService {
+    fn prefix(&self, request: PrefixStepPathRequest) -> HashMap<String, String> {
         let base = request.env().get("PATH").cloned().unwrap_or_default();
         let path = if request.path_additions().is_empty() {
             base

@@ -10,7 +10,7 @@ use crate::{
             responses::PreparedJobContainerResponse,
         },
         errors::PrepareJobContainerError,
-        ports::outbound::prepare_job_container_port::PrepareJobContainerPort,
+        ports::outbound::job_container_preparer_port::JobContainerPreparerPort,
     },
     infrastructure::containers::{
         copy_repository_to_container_port::CopyRepositoryToContainerPort,
@@ -38,8 +38,8 @@ impl PrepareJobContainerService {
     }
 }
 
-impl PrepareJobContainerPort for PrepareJobContainerService {
-    fn execute(
+impl JobContainerPreparerPort for PrepareJobContainerService {
+    fn prepare(
         &self,
         request: PrepareJobContainerRequest,
     ) -> Result<PreparedJobContainerResponse, PrepareJobContainerError> {

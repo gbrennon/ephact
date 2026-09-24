@@ -11,7 +11,7 @@ use crate::{
             inbound::execute_workflow_port::ExecuteWorkflowPort,
             outbound::{
                 domain_event_bus_port::DomainEventBusPort, job_command_bus_port::JobCommandBusPort,
-                load_workflow_port::LoadWorkflowPort,
+                workflow_loader_port::WorkflowLoaderPort,
             },
         },
     },
@@ -34,7 +34,7 @@ use crate::{
 /// service never depends on the job entrypoint itself. Progress facts are
 /// announced as domain events on the outbound [`DomainEventBusPort`].
 pub struct ExecuteWorkflowService {
-    workflow_loader: Box<dyn LoadWorkflowPort>,
+    workflow_loader: Box<dyn WorkflowLoaderPort>,
     command_bus: Box<dyn JobCommandBusPort>,
     event_bus: Box<dyn DomainEventBusPort>,
 }
@@ -70,7 +70,7 @@ impl<'a> JobExecutionInput<'a> {
 
 impl ExecuteWorkflowService {
     pub fn new(
-        workflow_loader: Box<dyn LoadWorkflowPort>,
+        workflow_loader: Box<dyn WorkflowLoaderPort>,
         command_bus: Box<dyn JobCommandBusPort>,
         event_bus: Box<dyn DomainEventBusPort>,
     ) -> Self {
@@ -91,7 +91,7 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
             .map_err(|error| ExecuteWorkflowError::Workflow(format!("{error:?}")))?;
         let workflow = self
             .workflow_loader
-            .execute(LoadWorkflowRequest::new(
+            .load(LoadWorkflowRequest::new(
                 request.workflow_content().to_string(),
             ))
             .map_err(|error| ExecuteWorkflowError::Workflow(error.to_string()))?;

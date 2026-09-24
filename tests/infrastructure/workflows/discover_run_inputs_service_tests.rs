@@ -5,7 +5,7 @@ mod tests {
     use ephact::{
         application::{
             dtos::{requests::DiscoverRunInputsRequest, responses::RunInputDeclarationResponse},
-            ports::outbound::DiscoverRunInputsPort,
+            ports::outbound::RunInputsDiscovererPort,
         },
         domain::{RepoPath, Repository, RepositoryName, value_objects::ActRunConfig},
         infrastructure::workflows::{FilesystemRunInputDiscoveryService, FilesystemWorkflowSource},
@@ -39,7 +39,7 @@ mod tests {
             ])));
 
         let declarations = service
-            .execute(DiscoverRunInputsRequest::new(
+            .discover(DiscoverRunInputsRequest::new(
                 ActRunConfig::new(),
                 repository,
             ))

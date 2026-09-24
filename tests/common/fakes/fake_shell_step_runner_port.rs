@@ -4,7 +4,7 @@ use std::{collections::HashMap, sync::Arc};
 use ephact::{
     application::{
         dtos::{requests::RunShellStepRequest, responses::ExecResultResponse},
-        ports::outbound::run_shell_step_port::RunShellStepPort,
+        ports::outbound::shell_step_runner_port::ShellStepRunnerPort,
     },
     domain::{entities::Step, errors::StepError},
 };
@@ -13,13 +13,13 @@ use parking_lot::Mutex;
 /// Answers every shell step with a prepared result, recording the steps and
 /// environments it received. Shares its recordings across clones.
 #[derive(Clone)]
-pub struct FakeRunShellStepPort {
+pub struct FakeShellStepRunnerPort {
     result: Result<ExecResultResponse, (String, String, String)>,
     steps: Arc<Mutex<Vec<Step>>>,
     environments: Arc<Mutex<Vec<HashMap<String, String>>>>,
 }
 
-impl FakeRunShellStepPort {
+impl FakeShellStepRunnerPort {
     pub fn returning(result: ExecResultResponse) -> Self {
         Self {
             result: Ok(result),
@@ -49,8 +49,8 @@ impl FakeRunShellStepPort {
     }
 }
 
-impl RunShellStepPort for FakeRunShellStepPort {
-    fn execute(&self, request: RunShellStepRequest<'_>) -> Result<ExecResultResponse, StepError> {
+impl ShellStepRunnerPort for FakeShellStepRunnerPort {
+    fn run(&self, request: RunShellStepRequest<'_>) -> Result<ExecResultResponse, StepError> {
         self.steps.lock().push(request.step().clone());
         self.environments.lock().push(request.env().clone());
         match &self.result {

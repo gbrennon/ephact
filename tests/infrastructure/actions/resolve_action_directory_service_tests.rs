@@ -7,7 +7,7 @@ mod tests {
             dtos::{
                 requests::ResolveActionDirectoryRequest, responses::ResolvedActionDirectoryResponse,
             },
-            ports::outbound::resolve_action_directory_port::ResolveActionDirectoryPort,
+            ports::outbound::action_directory_resolver_port::ActionDirectoryResolverPort,
         },
         infrastructure::actions::resolve_action_directory_service::ResolveActionDirectoryService,
     };
@@ -30,7 +30,7 @@ mod tests {
         let resolved = service(FakeFetchRemoteActionPort::returning(PathBuf::from(
             "/cache",
         )))
-        .execute(ResolveActionDirectoryRequest::new(
+        .resolve(ResolveActionDirectoryRequest::new(
             "./actions/greet".to_string(),
             Path::new("/repo").to_path_buf(),
         ))
@@ -44,7 +44,7 @@ mod tests {
         let resolved = service(FakeFetchRemoteActionPort::returning(PathBuf::from(
             "/cache",
         )))
-        .execute(ResolveActionDirectoryRequest::new(
+        .resolve(ResolveActionDirectoryRequest::new(
             "actions/checkout@v4".to_string(),
             Path::new("/repo").to_path_buf(),
         ))
@@ -70,7 +70,7 @@ mod tests {
         let error = service(FakeFetchRemoteActionPort::returning(PathBuf::from(
             "/cache",
         )))
-        .execute(ResolveActionDirectoryRequest::new(
+        .resolve(ResolveActionDirectoryRequest::new(
             "docker://node:20".to_string(),
             Path::new("/repo").to_path_buf(),
         ))
@@ -88,7 +88,7 @@ mod tests {
         let fetcher = FakeFetchRemoteActionPort::returning(PathBuf::from("/cache/cache-v4"));
 
         let resolved = service(fetcher.clone())
-            .execute(ResolveActionDirectoryRequest::new(
+            .resolve(ResolveActionDirectoryRequest::new(
                 "https://data.forgejo.org/actions/cache@v4".to_string(),
                 Path::new("/repo").to_path_buf(),
             ))
@@ -102,7 +102,7 @@ mod tests {
     #[test]
     fn execute_surfaces_a_fetch_failure_as_a_step_error() {
         let error = service(FakeFetchRemoteActionPort::failing("network down"))
-            .execute(ResolveActionDirectoryRequest::new(
+            .resolve(ResolveActionDirectoryRequest::new(
                 "https://data.forgejo.org/actions/cache@v4".to_string(),
                 Path::new("/repo").to_path_buf(),
             ))
@@ -120,7 +120,7 @@ mod tests {
         let error = service(FakeFetchRemoteActionPort::returning(PathBuf::from(
             "/cache",
         )))
-        .execute(ResolveActionDirectoryRequest::new(
+        .resolve(ResolveActionDirectoryRequest::new(
             "".to_string(),
             Path::new("/repo").to_path_buf(),
         ))

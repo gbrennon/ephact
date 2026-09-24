@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-/// Request DTO for the
-/// [`PrefixStepPathPort`](crate::application::ports::inbound::prefix_step_path_port::PrefixStepPathPort)
-/// inbound port.
+/// Request data for prefixing an environment `PATH`.
 pub struct PrefixStepPathRequest {
     /// Environment whose `PATH` is prefixed.
     env: HashMap<String, String>,

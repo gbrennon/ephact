@@ -6,7 +6,7 @@ use crate::application::{
             SummarizedStepResponse,
         },
     },
-    ports::outbound::summarize_step_port::SummarizeStepPort,
+    ports::outbound::step_summarizer_port::StepSummarizerPort,
 };
 
 /// Service that turns a step's outcome into its run-summary entry, deciding
@@ -24,8 +24,8 @@ impl Default for SummarizeStepService {
     }
 }
 
-impl SummarizeStepPort for SummarizeStepService {
-    fn execute(&self, request: SummarizeStepRequest<'_>) -> SummarizedStepResponse {
+impl StepSummarizerPort for SummarizeStepService {
+    fn summarize(&self, request: SummarizeStepRequest<'_>) -> SummarizedStepResponse {
         let step_type = request.step().step_type();
         let continue_on_error = request.step().continues_on_error();
 

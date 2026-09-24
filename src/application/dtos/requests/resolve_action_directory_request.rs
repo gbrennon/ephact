@@ -1,8 +1,6 @@
 use std::path::{Path, PathBuf};
 
-/// Request DTO for the
-/// [`ResolveActionDirectoryPort`](crate::application::ports::inbound::resolve_action_directory_port::ResolveActionDirectoryPort)
-/// inbound port.
+/// Request data for resolving an action reference.
 pub struct ResolveActionDirectoryRequest {
     /// The `uses:` value naming the action.
     action_ref: String,

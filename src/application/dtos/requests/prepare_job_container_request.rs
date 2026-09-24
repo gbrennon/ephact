@@ -1,8 +1,6 @@
 use std::path::{Path, PathBuf};
 
-/// Request DTO for the
-/// [`PrepareJobContainerPort`](crate::application::ports::inbound::prepare_job_container_port::PrepareJobContainerPort)
-/// inbound port.
+/// Request data for preparing a job container.
 pub struct PrepareJobContainerRequest {
     job_id: String,
     runs_on: Option<String>,

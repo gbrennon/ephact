@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-/// Response DTO for the
-/// [`BuildJobEnvironmentPort`](crate::application::ports::outbound::build_job_environment_port::BuildJobEnvironmentPort)
-/// outbound port.
+/// Result of building a job environment.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BuildJobEnvironmentResponse {
     env: HashMap<String, String>,

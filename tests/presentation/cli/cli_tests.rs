@@ -19,7 +19,7 @@ mod tests {
             fake_run_all_workflows_port::FakeRunAllWorkflowsPort,
             fake_run_workflow_port::FakeRunWorkflowPort,
         },
-        fakes::fake_discover_run_inputs_port::FakeDiscoverRunInputsPort,
+        fakes::fake_run_inputs_discoverer_port::FakeRunInputsDiscovererPort,
     };
 
     struct FakeShowProjectBrandingInfoPort;
@@ -60,7 +60,7 @@ mod tests {
             (
                 Box::new(FakeRunWorkflowPort::new(true)),
                 Box::new(FakeRunAllWorkflowsPort::new(true)),
-                Box::new(FakeDiscoverRunInputsPort::new()),
+                Box::new(FakeRunInputsDiscovererPort::new()),
             ),
             (
                 Box::new(FakeListWorkflowsPort::new()),
@@ -107,7 +107,7 @@ mod tests {
             (
                 Box::new(FakeRunWorkflowPort::new(false)),
                 Box::new(FakeRunAllWorkflowsPort::new(false)),
-                Box::new(FakeDiscoverRunInputsPort::new()),
+                Box::new(FakeRunInputsDiscovererPort::new()),
             ),
             (
                 Box::new(FakeListWorkflowsPort::new()),

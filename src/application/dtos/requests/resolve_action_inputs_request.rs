@@ -1,8 +1,6 @@
 use crate::domain::{entities::Step, value_objects::ActionDefinition};
 
-/// Request DTO for the
-/// [`ResolveActionInputsPort`](crate::application::ports::inbound::resolve_action_inputs_port::ResolveActionInputsPort)
-/// inbound port.
+/// Request data for resolving action inputs.
 pub struct ResolveActionInputsRequest {
     definition: ActionDefinition,
     step: Step,
