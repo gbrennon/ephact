@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use ephact::application::{
     dtos::{requests::ListActionsRequest, responses::ListActionsResponse},
     errors::ListActionsError,
@@ -31,6 +30,12 @@ impl FakeListActionsPort {
             actions: vec![],
             error_message: Some(message.to_string()),
         }
+    }
+}
+
+impl Default for FakeListActionsPort {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
