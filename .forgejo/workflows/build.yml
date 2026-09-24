@@ -62,3 +62,4 @@ jobs:
         with:
           token: ${{ secrets.CARGO_REGISTRIES_STAGING_TOKEN }}
           short-sha: ${{ github.event.pull_request.merge_commit_sha }}
+          pr-number: ${{ github.event.pull_request.number }}
