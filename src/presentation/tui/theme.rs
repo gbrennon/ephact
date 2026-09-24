@@ -52,12 +52,6 @@ impl Theme {
             .add_modifier(Modifier::BOLD)
     }
 
-    /// Style for section headers grouping related content.
-    pub fn section_header_style() -> Style {
-        Style::default()
-            .fg(Self::ACTIVE_ACCENT)
-            .add_modifier(Modifier::BOLD)
-    }
 
     /// Style for the currently selected list row or menu item.
     ///
