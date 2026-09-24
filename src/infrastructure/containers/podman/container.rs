@@ -14,7 +14,7 @@ use crate::{
 };
 
 /// A running Podman container, created by [`PodmanRuntime`].
-pub struct PodmanContainer {
+pub(super) struct PodmanContainer {
     client: Client,
     container_id: String,
     runtime: tokio::runtime::Handle,
@@ -22,7 +22,7 @@ pub struct PodmanContainer {
 }
 
 impl PodmanContainer {
-    pub fn new(
+    pub(super) fn new(
         client: Client,
         container_id: String,
         runtime: tokio::runtime::Handle,

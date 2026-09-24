@@ -14,7 +14,7 @@ use crate::{
 };
 
 /// A running Docker container, created by [`DockerRuntime`].
-pub struct DockerContainer {
+pub(super) struct DockerContainer {
     docker: Client,
     container_id: String,
     runtime: tokio::runtime::Handle,
@@ -22,7 +22,7 @@ pub struct DockerContainer {
 }
 
 impl DockerContainer {
-    pub fn new(
+    pub(super) fn new(
         docker: Client,
         container_id: String,
         runtime: tokio::runtime::Handle,
