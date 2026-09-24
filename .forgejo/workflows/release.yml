@@ -63,9 +63,9 @@ jobs:
       - name: Create Codeberg release
         uses: ./.forgejo/actions/create-codeberg-release
         with:
-          api-url: ${{ forgejo.api_url }}
-          repository: ${{ forgejo.repository }}
-          token: ${{ forgejo.token }}
+          api-url: ${{ github.api_url }}
+          repository: ${{ github.repository }}
+          token: ${{ github.token }}
           version: ${{ steps.release.outputs.version }}
       - name: Create GitHub release
         uses: ./.forgejo/actions/create-github-release
@@ -73,5 +73,5 @@ jobs:
           api-url: https://api.github.com
           repository: gbrennon/ephact
           token: ${{ secrets.GH_RELEASE_TOKEN }}
-          merge-commit-sha: ${{ forgejo.event.pull_request.merge_commit_sha }}
+          merge-commit-sha: ${{ github.event.pull_request.merge_commit_sha }}
           version: ${{ steps.release.outputs.version }}
