@@ -1,0 +1,41 @@
+name: Publish crate to staging
+description: Publish the crate to the crates.io staging registry with a unique version
+inputs:
+  token:
+    description: >-
+      API token with publish permissions for staging.crates.io, used to
+      authenticate the cargo publish command against the staging registry
+    required: true
+  short-sha:
+    description: >-
+      Git commit SHA used to derive a unique pre-release version suffix
+      (such as 0.2.0-staging-abc1234) ensuring duplicate versions are not published
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Publish to staging registry
+      shell: bash
+      env:
+        CARGO_REGISTRIES_STAGING_INDEX: sparse+https://index.staging.crates.io/
+        CARGO_REGISTRIES_STAGING_TOKEN: ${{ inputs.token }}
+        SHA: ${{ inputs.short-sha }}
+      run: |
+        set -euo pipefail
+
+        if [[ -z "$CARGO_REGISTRIES_STAGING_TOKEN" ]]; then
+          printf 'CARGO_REGISTRIES_STAGING_TOKEN is not configured\n' >&2
+          exit 1
+        fi
+
+        short_sha="${SHA:0:7}"
+        base_version="$(
+          cargo metadata --no-deps --format-version 1 \
+            | jq -r '.packages[0].version'
+        )"
+        staging_version="${base_version}-staging-${short_sha}"
+        sed -i -E \
+          "0,/^version = \"[^\"]*\"/s//version = \"${staging_version}\"/" \
+          Cargo.toml
+
+        cargo publish --registry staging --allow-dirty
