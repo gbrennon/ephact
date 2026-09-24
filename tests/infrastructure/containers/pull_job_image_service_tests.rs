@@ -4,9 +4,7 @@ mod tests {
 
     use ephact::{
         application::dtos::requests::PullJobImageRequest,
-        infrastructure::containers::{
-            pull_job_image_port::PullJobImagePort, pull_job_image_service::PullJobImageService,
-        },
+        infrastructure::containers::{PullJobImagePort, PullJobImageService},
     };
 
     use crate::common::fakes::{
