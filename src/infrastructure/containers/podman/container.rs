@@ -1,10 +1,13 @@
 use std::collections::HashMap;
 
-use super::super::bollard_wrapper::{Client, types::RemoveContainerOptions};
-use super::super::runtime::block_on_runtime::RuntimeBlocker;
-use super::super::streaming::exec_streaming_support::ExecStreamingSupport;
-use super::super::streaming::runner_context_env::RunnerContextEnv;
-use super::super::streaming::tar_transfer::TarTransfer;
+use super::super::{
+    bollard_wrapper::{Client, types::RemoveContainerOptions},
+    runtime::block_on_runtime::RuntimeBlocker,
+    streaming::{
+        exec_streaming_support::ExecStreamingSupport, runner_context_env::RunnerContextEnv,
+        tar_transfer::TarTransfer,
+    },
+};
 use crate::{
     application::{
         dtos::responses::{ExecResultResponse, RunnerContextResponse},
@@ -99,8 +102,10 @@ impl ContainerPort for PodmanContainer {
                 .config
                 .and_then(|config| config.env)
                 .unwrap_or_default();
-            Ok(RunnerContextEnv::new(self.runner_context.clone())
-                .with_container_env(container_env))
+            Ok(
+                RunnerContextEnv::new(self.runner_context.clone())
+                    .with_container_env(container_env),
+            )
         })
     }
 }

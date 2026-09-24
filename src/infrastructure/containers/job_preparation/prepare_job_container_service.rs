@@ -2,8 +2,7 @@ use std::{process, time::SystemTime};
 
 use super::{
     copy_repository_to_container_port::CopyRepositoryToContainerPort,
-    create_job_container_port::CreateJobContainerPort,
-    pull_job_image_port::PullJobImagePort,
+    create_job_container_port::CreateJobContainerPort, pull_job_image_port::PullJobImagePort,
 };
 use crate::application::{
     dtos::{

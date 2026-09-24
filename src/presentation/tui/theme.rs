@@ -52,7 +52,6 @@ impl Theme {
             .add_modifier(Modifier::BOLD)
     }
 
-
     /// Style for the currently selected list row or menu item.
     ///
     /// Fills the focused row with the signal accent so it separates sharply

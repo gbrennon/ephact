@@ -1,16 +1,20 @@
 use futures_util::StreamExt;
 use tokio::runtime::Runtime;
 
-use super::super::bollard_wrapper::{
-    API_DEFAULT_VERSION, AuthCredentials, Client,
-    types::{
-        ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder, HostConfig,
-        InspectContainerOptions, KillContainerOptions, RemoveContainerOptions,
-        StartContainerOptions,
+use super::{
+    super::{
+        bollard_wrapper::{
+            API_DEFAULT_VERSION, AuthCredentials, Client,
+            types::{
+                ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
+                HostConfig, InspectContainerOptions, KillContainerOptions, RemoveContainerOptions,
+                StartContainerOptions,
+            },
+        },
+        runtime::block_on_runtime::RuntimeBlocker,
     },
+    container::PodmanContainer,
 };
-use super::super::runtime::block_on_runtime::RuntimeBlocker;
-use super::container::PodmanContainer;
 use crate::{
     application::{
         dtos::responses::{ContainerConfigResponse, HostInfoResponse},

@@ -1,7 +1,8 @@
 use std::{collections::HashMap, error::Error, sync::Arc};
 
-use super::create_job_container_port::CreateJobContainerPort;
-use super::super::workspace::CONTAINER_WORKSPACE;
+use super::{
+    super::workspace::CONTAINER_WORKSPACE, create_job_container_port::CreateJobContainerPort,
+};
 use crate::application::{
     dtos::{
         requests::CreateJobContainerRequest,
