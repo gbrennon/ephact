@@ -2,7 +2,10 @@ name: Validate release
 description: Validate the release branch and ensure its tag is unused
 inputs:
   head-ref:
-    description: Release pull request head reference
+    description: >-
+      Release pull request head reference branch name (must match pattern
+      release/vX.Y.Z) checked to extract the version and ensure the tag does
+      not already exist on the remote
     required: true
 outputs:
   version:
