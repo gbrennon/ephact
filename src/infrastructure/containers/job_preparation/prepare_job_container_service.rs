@@ -1,21 +1,20 @@
 use std::{process, time::SystemTime};
 
-use crate::{
-    application::{
-        dtos::{
-            requests::{
-                CopyRepositoryToContainerRequest, CreateJobContainerRequest,
-                PrepareJobContainerRequest, PullJobImageRequest,
-            },
-            responses::PreparedJobContainerResponse,
+use super::{
+    copy_repository_to_container_port::CopyRepositoryToContainerPort,
+    create_job_container_port::CreateJobContainerPort,
+    pull_job_image_port::PullJobImagePort,
+};
+use crate::application::{
+    dtos::{
+        requests::{
+            CopyRepositoryToContainerRequest, CreateJobContainerRequest,
+            PrepareJobContainerRequest, PullJobImageRequest,
         },
-        errors::PrepareJobContainerError,
-        ports::outbound::job_container_preparer_port::JobContainerPreparerPort,
+        responses::PreparedJobContainerResponse,
     },
-    infrastructure::containers::{
-        copy_repository_to_container_port::CopyRepositoryToContainerPort,
-        create_job_container_port::CreateJobContainerPort, pull_job_image_port::PullJobImagePort,
-    },
+    errors::PrepareJobContainerError,
+    ports::outbound::job_container_preparer_port::JobContainerPreparerPort,
 };
 
 pub struct PrepareJobContainerService {
