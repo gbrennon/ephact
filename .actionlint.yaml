@@ -9,4 +9,3 @@ paths:
     ignore:
       - 'specifying action "https://'
       - 'label "codeberg-tiny"'
-      - 'undefined variable "forgejo"'
