@@ -33,29 +33,7 @@ mod tests {
     }
 
     fn primitive_request(config: ActRunConfig, repository: Repository) -> RunAllWorkflowsRequest {
-        RunAllWorkflowsRequest::new(
-            repository.path().as_path().to_path_buf(),
-            repository.name().as_str().to_string(),
-            config.workflow().map(|value| value.as_str().to_string()),
-            config.job().map(|value| value.as_str().to_string()),
-            config.event().map(|value| value.as_str().to_string()),
-            config
-                .inputs()
-                .iter()
-                .map(|input| (input.key().to_string(), input.value().to_string()))
-                .collect(),
-            config
-                .secrets()
-                .iter()
-                .map(|secret| (secret.name().to_string(), secret.value().to_string()))
-                .collect(),
-            config.all_workflows(),
-            config.allow_repo_writes(),
-            config.allow_real_container(),
-            config.allow_real_fetcher(),
-            config.allow_network(),
-            config.run_id().to_string(),
-        )
+        RunAllWorkflowsRequest::from_domain(&repository, &config)
     }
 
     #[test]
