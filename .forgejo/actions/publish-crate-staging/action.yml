@@ -9,7 +9,13 @@ inputs:
   short-sha:
     description: >-
       Git commit SHA used to derive a unique pre-release version suffix
-      (such as 0.2.0-staging-abc1234) ensuring duplicate versions are not published
+      (such as 0.2.0-staging-pr42-abc1234) ensuring duplicate versions are not
+      published
+    required: true
+  pr-number:
+    description: >-
+      Pull request number (for example 42) used to identify the originating
+      pull request in the staging pre-release version
     required: true
 runs:
   using: composite
@@ -20,6 +26,7 @@ runs:
         CARGO_REGISTRIES_STAGING_INDEX: sparse+https://index.staging.crates.io/
         CARGO_REGISTRIES_STAGING_TOKEN: ${{ inputs.token }}
         SHA: ${{ inputs.short-sha }}
+        PR_NUMBER: ${{ inputs.pr-number }}
       run: |
         set -euo pipefail
 
@@ -33,7 +40,7 @@ runs:
           cargo metadata --no-deps --format-version 1 \
             | jq -r '.packages[0].version'
         )"
-        staging_version="${base_version}-staging-${short_sha}"
+        staging_version="${base_version}-staging-pr${PR_NUMBER}-${short_sha}"
         sed -i -E \
           "0,/^version = \"[^\"]*\"/s//version = \"${staging_version}\"/" \
           Cargo.toml
