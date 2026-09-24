@@ -1,17 +1,16 @@
 use futures_util::StreamExt;
-use tokio::runtime::{Handle, Runtime};
+use tokio::runtime::Runtime;
 
-use super::{
-    bollard_wrapper::{
-        AuthCredentials, Client,
-        types::{
-            ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
-            HostConfig, InspectContainerOptions, KillContainerOptions, RemoveContainerOptions,
-            StartContainerOptions,
-        },
+use super::super::bollard_wrapper::{
+    AuthCredentials, Client,
+    types::{
+        ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder, HostConfig,
+        InspectContainerOptions, KillContainerOptions, RemoveContainerOptions,
+        StartContainerOptions,
     },
-    docker_container::DockerContainer,
 };
+use super::super::runtime::block_on_runtime::RuntimeBlocker;
+use super::container::DockerContainer;
 use crate::{
     application::{
         dtos::responses::{ContainerConfigResponse, HostInfoResponse},
@@ -37,37 +36,27 @@ impl DockerRuntime {
         let runtime = Runtime::new().map_err(|e| ContainerError::Internal(e.to_string()))?;
         Ok(Self { docker, runtime })
     }
-}
 
-pub(super) fn block_on_runtime<F, T>(runtime: &Handle, future: F) -> T
-where
-    F: std::future::Future<Output = T>,
-{
-    if Handle::try_current().is_ok() {
-        tokio::task::block_in_place(|| runtime.block_on(future))
-    } else {
-        runtime.block_on(future)
-    }
-}
-fn build_container_config(config: &ContainerConfigResponse) -> ContainerCreateBody {
-    let env_list = config
-        .env()
-        .iter()
-        .map(|(key, value)| format!("{}={}", key, value))
-        .collect();
-    let host_config = HostConfig {
-        binds: Some(config.binds().to_vec()),
-        network_mode: config.network().map(str::to_string),
-        ..Default::default()
-    };
-    ContainerCreateBody {
-        image: Some(config.image().to_string()),
-        env: Some(env_list),
-        cmd: config.cmd().map(<[String]>::to_vec),
-        entrypoint: config.entrypoint().map(<[String]>::to_vec),
-        working_dir: config.workdir().map(str::to_string),
-        host_config: Some(host_config),
-        ..Default::default()
+    fn build_container_config(&self, config: &ContainerConfigResponse) -> ContainerCreateBody {
+        let env_list = config
+            .env()
+            .iter()
+            .map(|(key, value)| format!("{}={}", key, value))
+            .collect();
+        let host_config = HostConfig {
+            binds: Some(config.binds().to_vec()),
+            network_mode: config.network().map(str::to_string),
+            ..Default::default()
+        };
+        ContainerCreateBody {
+            image: Some(config.image().to_string()),
+            env: Some(env_list),
+            cmd: config.cmd().map(<[String]>::to_vec),
+            entrypoint: config.entrypoint().map(<[String]>::to_vec),
+            working_dir: config.workdir().map(str::to_string),
+            host_config: Some(host_config),
+            ..Default::default()
+        }
     }
 }
 
@@ -78,7 +67,7 @@ impl ContainerRuntimePort for DockerRuntime {
             options_builder = options_builder.platform(p);
         }
         let options = options_builder.build();
-        block_on_runtime(self.runtime.handle(), async {
+        RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             let mut stream = self
                 .docker
                 .create_image(Some(options), None, None::<AuthCredentials>);
@@ -106,9 +95,9 @@ impl ContainerRuntimePort for DockerRuntime {
             .name(config.name().unwrap_or(""))
             .platform(config.platform().unwrap_or(""))
             .build();
-        let container_config = build_container_config(config);
+        let container_config = self.build_container_config(config);
 
-        let container = block_on_runtime(self.runtime.handle(), async {
+        let container = RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             self.docker
                 .create_container(Some(create_options), container_config)
                 .await
@@ -120,7 +109,7 @@ impl ContainerRuntimePort for DockerRuntime {
                 })
         })?;
 
-        block_on_runtime(self.runtime.handle(), async {
+        RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             self.docker
                 .start_container(&container.id, None::<StartContainerOptions>)
                 .await
@@ -141,7 +130,7 @@ impl ContainerRuntimePort for DockerRuntime {
     }
 
     fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
-        block_on_runtime(self.runtime.handle(), async {
+        RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             let force = match self
                 .docker
                 .inspect_container(name, None::<InspectContainerOptions>)
@@ -164,7 +153,7 @@ impl ContainerRuntimePort for DockerRuntime {
     }
 
     fn stop_container(&self, name: &str) -> Result<(), ContainerError> {
-        block_on_runtime(self.runtime.handle(), async {
+        RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             if let Ok(inspect) = self
                 .docker
                 .inspect_container(name, None::<InspectContainerOptions>)
@@ -181,7 +170,7 @@ impl ContainerRuntimePort for DockerRuntime {
     }
 
     fn kill_container(&self, name: &str) -> Result<(), ContainerError> {
-        block_on_runtime(self.runtime.handle(), async {
+        RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             match self
                 .docker
                 .inspect_container(name, None::<InspectContainerOptions>)
@@ -198,7 +187,7 @@ impl ContainerRuntimePort for DockerRuntime {
     }
 
     fn get_host_info(&self) -> Result<HostInfoResponse, ContainerError> {
-        block_on_runtime(self.runtime.handle(), async {
+        RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             let info = self
                 .docker
                 .version()
@@ -211,20 +200,5 @@ impl ContainerRuntimePort for DockerRuntime {
                 info.version.unwrap_or_else(|| "unknown".to_string()),
             ))
         })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn block_on_runtime_allows_nested_runtime_calls() {
-        let result = tokio::task::block_in_place(|| {
-            let runtime = Runtime::new().expect("runtime");
-            block_on_runtime(runtime.handle(), async { 7 })
-        });
-
-        assert_eq!(result, 7);
     }
 }

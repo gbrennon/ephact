@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use super::{
-    bollard_wrapper::{Client, types::RemoveContainerOptions},
-    exec_streaming_support::{exec_options, run_streaming_exec, runner_context_with_container_env},
-    tar_transfer::{download_archive, pack_entries, unpack_entries, upload_archive},
-};
+use super::super::bollard_wrapper::{Client, types::RemoveContainerOptions};
+use super::super::runtime::block_on_runtime::RuntimeBlocker;
+use super::super::streaming::exec_streaming_support::ExecStreamingSupport;
+use super::super::streaming::runner_context_env::RunnerContextEnv;
+use super::super::streaming::tar_transfer::TarTransfer;
 use crate::{
     application::{
         dtos::responses::{ExecResultResponse, RunnerContextResponse},
@@ -14,7 +14,7 @@ use crate::{
 };
 
 /// A running Docker container, created by [`DockerRuntime`].
-pub(super) struct DockerContainer {
+pub struct DockerContainer {
     docker: Client,
     container_id: String,
     runtime: tokio::runtime::Handle,
@@ -22,7 +22,7 @@ pub(super) struct DockerContainer {
 }
 
 impl DockerContainer {
-    pub(super) fn new(
+    pub fn new(
         docker: Client,
         container_id: String,
         runtime: tokio::runtime::Handle,
@@ -52,31 +52,26 @@ impl ContainerPort for DockerContainer {
         options: ExecOptions<'_>,
         on_output: &mut dyn FnMut(OutputStream, &str),
     ) -> Result<ExecResultResponse, ContainerError> {
-        let exec_options = exec_options(options.cmd(), options.workdir(), options.env());
-        super::docker_runtime::block_on_runtime(
-            &self.runtime,
-            run_streaming_exec(&self.docker, &self.container_id, exec_options, on_output),
-        )
+        let exec = ExecStreamingSupport::new(self.docker.clone(), self.container_id.clone());
+        RuntimeBlocker::new(&self.runtime).block_on(exec.run(options, on_output))
     }
 
     fn copy_to(&self, container_path: &str, entries: &[FileEntry]) -> Result<(), ContainerError> {
-        let archive = pack_entries(entries, &self.container_id)?;
-        super::docker_runtime::block_on_runtime(
-            &self.runtime,
-            upload_archive(&self.docker, &self.container_id, container_path, archive),
-        )
+        let transfer = TarTransfer::new(self.docker.clone(), self.container_id.clone());
+        let archive = transfer.pack(entries)?;
+        RuntimeBlocker::new(&self.runtime).block_on(transfer.upload(container_path, archive))
     }
 
     fn copy_from(&self, container_path: &str) -> Result<Vec<FileEntry>, ContainerError> {
-        super::docker_runtime::block_on_runtime(&self.runtime, async {
-            let archive =
-                download_archive(&self.docker, &self.container_id, container_path).await?;
-            unpack_entries(&archive, &self.container_id)
+        let transfer = TarTransfer::new(self.docker.clone(), self.container_id.clone());
+        RuntimeBlocker::new(&self.runtime).block_on(async {
+            let archive = transfer.download(container_path).await?;
+            transfer.unpack(&archive)
         })
     }
 
     fn remove(&self) -> Result<(), ContainerError> {
-        super::docker_runtime::block_on_runtime(&self.runtime, async {
+        RuntimeBlocker::new(&self.runtime).block_on(async {
             self.docker
                 .remove_container(
                     &self.container_id,
@@ -91,8 +86,9 @@ impl ContainerPort for DockerContainer {
                 })
         })
     }
+
     fn get_runner_context(&self) -> Result<RunnerContextResponse, ContainerError> {
-        super::docker_runtime::block_on_runtime(&self.runtime, async {
+        RuntimeBlocker::new(&self.runtime).block_on(async {
             let info = self
                 .docker
                 .inspect_container(&self.container_id, None)
@@ -103,10 +99,8 @@ impl ContainerPort for DockerContainer {
                 .config
                 .and_then(|config| config.env)
                 .unwrap_or_default();
-            Ok(runner_context_with_container_env(
-                &self.runner_context,
-                container_env,
-            ))
+            Ok(RunnerContextEnv::new(self.runner_context.clone())
+                .with_container_env(container_env))
         })
     }
 }
