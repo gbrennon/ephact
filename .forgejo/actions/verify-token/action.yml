@@ -52,17 +52,32 @@ runs:
             ;;
         esac
 
+        response_file="$(mktemp)"
+        trap 'rm -f "$response_file"' EXIT
+
         http_status="$(
-          curl --silent --show-error --output /dev/null \
+          curl --silent --show-error --output "$response_file" \
             --write-out '%{http_code}' \
             --header "Authorization: $authorization" \
             --header 'Accept: application/json' \
             --header 'User-Agent: ephact-ci' \
             "$VALIDATE_URL"
         )"
-        if (( http_status < 200 || http_status >= 300 )); then
-          printf '%s failed validation against %s (HTTP %s)\n' \
-            "$SECRET_NAME" "$VALIDATE_URL" "$http_status" >&2
-          exit 1
+
+        scoped_permission_error='this token does not have the required permissions'
+        if (( http_status >= 200 && http_status < 300 )); then
+          printf '%s verified (HTTP %s)\n' "$SECRET_NAME" "$http_status"
+          exit 0
         fi
-        printf '%s verified (HTTP %s)\n' "$SECRET_NAME" "$http_status"
+
+        if [[ "$http_status" -eq 403 ]] \
+          && grep -q "$scoped_permission_error" "$response_file"; then
+          printf '%s verified (scoped token, HTTP %s)\n' "$SECRET_NAME" "$http_status"
+          exit 0
+        fi
+
+        printf '%s failed validation against %s (HTTP %s)\n' \
+          "$SECRET_NAME" "$VALIDATE_URL" "$http_status" >&2
+        cat "$response_file" >&2
+        printf '\n' >&2
+        exit 1
