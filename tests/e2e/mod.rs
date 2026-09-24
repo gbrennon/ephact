@@ -1,5 +1,5 @@
 #[path = "../common/mod.rs"]
-mod common;
+pub mod common;
 
 #[path = "../common/fakes/e2e_failing_container.rs"]
 mod e2e_failing_container;

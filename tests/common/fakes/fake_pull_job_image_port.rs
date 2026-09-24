@@ -1,7 +1,5 @@
-#![allow(dead_code)]
 use ephact::{
-    application::dtos::requests::PullJobImageRequest,
-    infrastructure::containers::pull_job_image_port::PullJobImagePort,
+    application::dtos::requests::PullJobImageRequest, infrastructure::containers::PullJobImagePort,
 };
 use parking_lot::Mutex;
 

@@ -16,10 +16,8 @@ use crate::{
     infrastructure::{
         actions::{ActionCommandHandler, ActionFetcherPort},
         containers::{
-            create_job_container_service::CreateJobContainerService,
-            prepare_job_container_service::PrepareJobContainerService,
-            pull_job_image_service::PullJobImageService,
-            repository_container_copy_adapter::RepositoryContainerCopyAdapter,
+            CreateJobContainerService, PrepareJobContainerService, PullJobImageService,
+            RepositoryContainerCopyAdapter,
         },
         di::action_execution_wiring::ActionExecutionWiring,
         images::ImageMapperPort,

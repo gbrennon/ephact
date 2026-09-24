@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use ephact::application::{
     dtos::{requests::RunWorkflowRequest, responses::RunSummaryResponse},
     ports::inbound::run_workflow_port::RunWorkflowPort,

@@ -5,8 +5,7 @@ mod tests {
     use ephact::{
         application::dtos::requests::CopyRepositoryToContainerRequest,
         infrastructure::containers::{
-            copy_repository_to_container_port::CopyRepositoryToContainerPort,
-            repository_container_copy_adapter::RepositoryContainerCopyAdapter,
+            CopyRepositoryToContainerPort, RepositoryContainerCopyAdapter,
         },
     };
     use tempfile::tempdir;

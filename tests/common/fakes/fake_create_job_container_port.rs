@@ -1,11 +1,10 @@
-#![allow(dead_code)]
 use std::{error::Error, sync::Arc};
 
 use ephact::{
     application::{
         dtos::requests::CreateJobContainerRequest, ports::outbound::container_port::ContainerPort,
     },
-    infrastructure::containers::create_job_container_port::CreateJobContainerPort,
+    infrastructure::containers::CreateJobContainerPort,
 };
 use parking_lot::Mutex;
 

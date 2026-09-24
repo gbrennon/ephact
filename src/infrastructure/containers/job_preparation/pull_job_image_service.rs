@@ -1,8 +1,9 @@
 use std::{error::Error, sync::Arc};
 
-use super::{super::images::ImageMapperPort, pull_job_image_port::PullJobImagePort};
-use crate::application::{
-    dtos::requests::PullJobImageRequest, ports::outbound::ContainerRuntimePort,
+use super::pull_job_image_port::PullJobImagePort;
+use crate::{
+    application::{dtos::requests::PullJobImageRequest, ports::outbound::ContainerRuntimePort},
+    infrastructure::images::ImageMapperPort,
 };
 
 /// Runner label assumed when a job declares none.

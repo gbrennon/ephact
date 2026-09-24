@@ -7,7 +7,7 @@ mod tests {
             dtos::requests::PrepareJobContainerRequest,
             ports::outbound::job_container_preparer_port::JobContainerPreparerPort,
         },
-        infrastructure::containers::prepare_job_container_service::PrepareJobContainerService,
+        infrastructure::containers::PrepareJobContainerService,
     };
 
     use crate::common::fakes::{

@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use ephact::application::ports::outbound::DetectWorkflowTriggerPort;
 
 /// Detector whose answer is fixed when the instance is built.

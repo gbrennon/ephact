@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use ephact::{
     application::dtos::requests::ResolveNodeBinaryRequest,
     infrastructure::actions::resolve_node_binary_port::ResolveNodeBinaryPort,

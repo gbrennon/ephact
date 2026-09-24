@@ -172,9 +172,6 @@ impl FailureLogHandler {
             FailureLogPathStore::new(),
         )
     }
-    pub fn new_with_temp_root(temp_root: impl Into<PathBuf>) -> Self {
-        Self::with_temp_root(temp_root)
-    }
 
     /// Creates a handler with caller-owned status stores for composition-root wiring.
     pub fn with_temp_root_and_stores(
