@@ -53,6 +53,11 @@ jobs:
         uses: ./.forgejo/actions/push-release-tag
         with:
           version: ${{ steps.release.outputs.version }}
+      - name: Publish to crates.io
+        uses: ./.forgejo/actions/publish-crate-production
+        with:
+          token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          version: ${{ steps.release.outputs.version }}
       - name: Generate release notes
         uses: ./.forgejo/actions/generate-release-notes
       - name: Create Codeberg release
@@ -67,6 +72,6 @@ jobs:
         with:
           api-url: https://api.github.com
           repository: gbrennon/ephact
-          token: ${{ secrets.GITHUB_RELEASE_TOKEN }}
+          token: ${{ secrets.GH_RELEASE_TOKEN }}
           merge-commit-sha: ${{ forgejo.event.pull_request.merge_commit_sha }}
           version: ${{ steps.release.outputs.version }}
