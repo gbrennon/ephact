@@ -1,17 +1,16 @@
 use futures_util::StreamExt;
 use tokio::runtime::Runtime;
 
-use super::{
-    bollard_wrapper::{
-        API_DEFAULT_VERSION, AuthCredentials, Client,
-        types::{
-            ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
-            HostConfig, InspectContainerOptions, KillContainerOptions, RemoveContainerOptions,
-            StartContainerOptions,
-        },
+use super::super::bollard_wrapper::{
+    API_DEFAULT_VERSION, AuthCredentials, Client,
+    types::{
+        ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder, HostConfig,
+        InspectContainerOptions, KillContainerOptions, RemoveContainerOptions,
+        StartContainerOptions,
     },
-    podman_container::PodmanContainer,
 };
+use super::super::runtime::block_on_runtime::RuntimeBlocker;
+use super::container::PodmanContainer;
 use crate::{
     application::{
         dtos::responses::{ContainerConfigResponse, HostInfoResponse},
@@ -48,26 +47,27 @@ impl PodmanRuntime {
 
         Ok(Self { client, runtime })
     }
-}
-fn build_container_config(config: &ContainerConfigResponse) -> ContainerCreateBody {
-    let env_list = config
-        .env()
-        .iter()
-        .map(|(key, value)| format!("{}={}", key, value))
-        .collect();
-    let host_config = HostConfig {
-        binds: Some(config.binds().to_vec()),
-        network_mode: config.network().map(str::to_string),
-        ..Default::default()
-    };
-    ContainerCreateBody {
-        image: Some(config.image().to_string()),
-        env: Some(env_list),
-        cmd: config.cmd().map(<[String]>::to_vec),
-        entrypoint: config.entrypoint().map(<[String]>::to_vec),
-        working_dir: config.workdir().map(str::to_string),
-        host_config: Some(host_config),
-        ..Default::default()
+
+    fn build_container_config(&self, config: &ContainerConfigResponse) -> ContainerCreateBody {
+        let env_list = config
+            .env()
+            .iter()
+            .map(|(key, value)| format!("{}={}", key, value))
+            .collect();
+        let host_config = HostConfig {
+            binds: Some(config.binds().to_vec()),
+            network_mode: config.network().map(str::to_string),
+            ..Default::default()
+        };
+        ContainerCreateBody {
+            image: Some(config.image().to_string()),
+            env: Some(env_list),
+            cmd: config.cmd().map(<[String]>::to_vec),
+            entrypoint: config.entrypoint().map(<[String]>::to_vec),
+            working_dir: config.workdir().map(str::to_string),
+            host_config: Some(host_config),
+            ..Default::default()
+        }
     }
 }
 
@@ -79,7 +79,7 @@ impl ContainerRuntimePort for PodmanRuntime {
         }
         let options = options_builder.build();
 
-        super::docker_runtime::block_on_runtime(self.runtime.handle(), async {
+        RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             let mut stream = self
                 .client
                 .create_image(Some(options), None, None::<AuthCredentials>);
@@ -107,9 +107,9 @@ impl ContainerRuntimePort for PodmanRuntime {
             .name(config.name().unwrap_or(""))
             .platform(config.platform().unwrap_or(""))
             .build();
-        let container_config = build_container_config(config);
+        let container_config = self.build_container_config(config);
 
-        let container = super::docker_runtime::block_on_runtime(self.runtime.handle(), async {
+        let container = RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             self.client
                 .create_container(Some(create_options), container_config)
                 .await
@@ -121,7 +121,7 @@ impl ContainerRuntimePort for PodmanRuntime {
                 })
         })?;
 
-        super::docker_runtime::block_on_runtime(self.runtime.handle(), async {
+        RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             self.client
                 .start_container(&container.id, None::<StartContainerOptions>)
                 .await
@@ -142,7 +142,7 @@ impl ContainerRuntimePort for PodmanRuntime {
     }
 
     fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
-        super::docker_runtime::block_on_runtime(self.runtime.handle(), async {
+        RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             let force = match self
                 .client
                 .inspect_container(name, None::<InspectContainerOptions>)
@@ -165,7 +165,7 @@ impl ContainerRuntimePort for PodmanRuntime {
     }
 
     fn stop_container(&self, name: &str) -> Result<(), ContainerError> {
-        super::docker_runtime::block_on_runtime(self.runtime.handle(), async {
+        RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             if let Ok(inspect) = self
                 .client
                 .inspect_container(name, None::<InspectContainerOptions>)
@@ -182,7 +182,7 @@ impl ContainerRuntimePort for PodmanRuntime {
     }
 
     fn kill_container(&self, name: &str) -> Result<(), ContainerError> {
-        super::docker_runtime::block_on_runtime(self.runtime.handle(), async {
+        RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             match self
                 .client
                 .inspect_container(name, None::<InspectContainerOptions>)
@@ -199,7 +199,7 @@ impl ContainerRuntimePort for PodmanRuntime {
     }
 
     fn get_host_info(&self) -> Result<HostInfoResponse, ContainerError> {
-        super::docker_runtime::block_on_runtime(self.runtime.handle(), async {
+        RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             let info = self
                 .client
                 .version()
