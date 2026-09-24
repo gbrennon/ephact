@@ -8,6 +8,8 @@ pub struct RunInputDeclarationResponse {
     description: Option<String>,
     required: bool,
     default: Option<String>,
+    input_type: Option<String>,
+    options: Vec<String>,
     resolved: bool,
 }
 
@@ -26,8 +28,32 @@ impl RunInputDeclarationResponse {
             description,
             required,
             default,
+            input_type: None,
+            options: Vec::new(),
             resolved: false,
         }
+    }
+
+    /// Returns a response with the declared input type.
+    pub fn with_type(mut self, input_type: Option<String>) -> Self {
+        self.input_type = input_type;
+        self
+    }
+
+    /// Returns a response with the declared selectable options.
+    pub fn with_options(mut self, options: Vec<String>) -> Self {
+        self.options = options;
+        self
+    }
+
+    /// Returns the declared input type.
+    pub fn input_type(&self) -> Option<&str> {
+        self.input_type.as_deref()
+    }
+
+    /// Returns the declared selectable options.
+    pub fn options(&self) -> &[String] {
+        &self.options
     }
 
     /// Returns a response with the resolved flag updated.

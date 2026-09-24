@@ -82,7 +82,9 @@ impl FilesystemRunInputDiscoveryService {
                         input.description().map(str::to_owned),
                         input.required(),
                         input.default_value().map(str::to_owned),
-                    ),
+                    )
+                    .with_type(input.value_type().map(str::to_owned))
+                    .with_options(input.options().to_vec()),
                 );
             }
         }
@@ -262,52 +264,5 @@ impl DiscoverRunInputsPort for FilesystemRunInputDiscoveryService {
         let repo_path = request.repository().path().as_path();
         let (declarations, provided) = Self::process_workflows(&contents, repo_path)?;
         Ok(Self::resolve_declarations(declarations, supplied, provided))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::fs;
-
-    use super::*;
-    use crate::domain::{RepoPath, Repository, RepositoryName, value_objects::ActRunConfig};
-
-    #[test]
-    fn discovers_required_workflow_and_local_action_inputs() {
-        let temporary = tempfile::tempdir().unwrap();
-        fs::create_dir(temporary.path().join(".git")).unwrap();
-        let workflow_dir = temporary.path().join(".forgejo/workflows");
-        let action_dir = temporary.path().join(".forgejo/actions/check");
-        fs::create_dir_all(&workflow_dir).unwrap();
-        fs::create_dir_all(&action_dir).unwrap();
-        fs::write(
-            workflow_dir.join("ci.yml"),
-            "name: CI\non:\n  workflow_dispatch:\n    inputs:\n      workflow_name:\n        required: true\n      optional:\n        required: false\n        default: default-value\njobs:\n  test:\n    steps:\n      - uses: ./.forgejo/actions/check\n",
-        )
-        .unwrap();
-        fs::write(
-            action_dir.join("action.yml"),
-            "name: Check\ninputs:\n  action_name:\n    required: true\nruns:\n  using: composite\n  steps:\n    - run: echo check\n",
-        )
-        .unwrap();
-        let repository = Repository::new(
-            RepoPath::new(temporary.path().to_path_buf()).unwrap(),
-            RepositoryName::new("test".to_string()).unwrap(),
-        );
-        let service = FilesystemRunInputDiscoveryService::new(Box::new(
-            super::super::FilesystemWorkflowSource::new(&[".forgejo/workflows"]),
-        ));
-        let declarations = service
-            .execute(DiscoverRunInputsRequest::new(
-                ActRunConfig::new(),
-                repository,
-            ))
-            .unwrap();
-        let mut names = declarations
-            .iter()
-            .map(RunInputDeclarationResponse::name)
-            .collect::<Vec<_>>();
-        names.sort_unstable();
-        assert_eq!(names, vec!["action_name", "optional", "workflow_name"]);
     }
 }

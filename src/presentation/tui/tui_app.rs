@@ -143,7 +143,11 @@ impl TuiApp {
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) {
-        if key.code == KeyCode::Char(Self::QUIT_KEY) && !self.screens.is_workflow_running() {
+        if key.code == KeyCode::Char(Self::QUIT_KEY)
+            && !self.screens.is_workflow_running()
+            && !self.screens.is_configuration_editing()
+            && !self.screens.is_settings_editing()
+        {
             self.screens = self.screens.transition_to(TuiScreen::Exit);
             return;
         }
@@ -277,8 +281,14 @@ impl TuiApp {
     }
 
     fn handle_workflow_picker_key(&mut self, key: KeyEvent) {
-        if self.screens.has_run_outcome() && self.handle_summary_key(key) {
-            return;
+        if self.screens.has_run_outcome() {
+            if key.code == KeyCode::Char(Self::DETAILS_KEY) {
+                self.screens = self.screens.open_details();
+                return;
+            }
+            if self.handle_summary_key(key) {
+                return;
+            }
         }
         self.screens = match key.code {
             KeyCode::Up | KeyCode::Char(Self::PREVIOUS_KEY) => {
@@ -291,7 +301,6 @@ impl TuiApp {
                 self.request_run();
                 self.screens.clone()
             }
-            KeyCode::Char(Self::DETAILS_KEY) => self.screens.open_details(),
             KeyCode::Esc | KeyCode::Backspace => self.screens.transition_to(TuiScreen::Home),
             _ => self.screens.clone(),
         };

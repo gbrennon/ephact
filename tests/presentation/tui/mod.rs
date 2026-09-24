@@ -1,7 +1,7 @@
+mod components;
 mod event_reader;
 mod screens;
-mod settings_tests;
-mod tui_app;
+mod tui_app_tests;
 mod tui_runner;
 
 use std::{env, time::Duration};
