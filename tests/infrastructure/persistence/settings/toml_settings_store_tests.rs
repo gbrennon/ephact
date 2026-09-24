@@ -2,7 +2,10 @@
 mod tests {
     use ephact::{
         application::ports::outbound::SettingsStorePort,
-        domain::{InterfaceMode, Settings},
+        domain::{
+            InterfaceMode, Settings,
+            value_objects::{Marker, MarkerPreset},
+        },
         infrastructure::TomlSettingsStore,
     };
     use tempfile::TempDir;
@@ -21,13 +24,16 @@ mod tests {
     fn settings_round_trip_through_toml() {
         let directory = TempDir::new().expect("temporary directory");
         let store = TomlSettingsStore::new(directory.path().join("nested/config.toml"));
-        let settings = Settings::default().with_allow_network(true);
+        let settings = Settings::default()
+            .with_allow_network(true)
+            .with_marker(Marker::preset(MarkerPreset::Chevron));
 
         store.write_settings(&settings).expect("settings write");
         let contents = std::fs::read_to_string(store.path()).expect("settings file");
         let reloaded = store.read_settings().expect("settings read");
 
         assert!(contents.contains("allow_network = true"));
+        assert!(contents.contains("marker = \"❯\""));
         assert!(!contents.contains("allow_repo_writes"));
         assert_eq!(reloaded, settings);
     }
@@ -72,6 +78,33 @@ mod tests {
         assert!(settings.allow_network());
         assert_eq!(settings.default_interface(), InterfaceMode::Tui);
         assert!(!settings.allow_repo_writes());
+        assert_eq!(settings.marker(), &Marker::default());
+    }
+
+    #[test]
+    fn custom_and_graphical_markers_round_trip_through_toml() {
+        let directory = TempDir::new().expect("temporary directory");
+        let store = TomlSettingsStore::new(directory.path().join("config.toml"));
+        let settings = Settings::default().with_marker(Marker::custom_text("🚀"));
+
+        store.write_settings(&settings).expect("settings write");
+        let contents = std::fs::read_to_string(store.path()).expect("settings file");
+        assert!(contents.contains("marker = \"text:🚀\""));
+        assert_eq!(store.read_settings().expect("settings read"), settings);
+
+        for (marker, encoded) in [
+            (
+                Marker::image_path("/tmp/marker.png"),
+                "image:/tmp/marker.png",
+            ),
+            (Marker::gif_path("/tmp/marker.gif"), "gif:/tmp/marker.gif"),
+        ] {
+            let settings = Settings::default().with_marker(marker);
+            store.write_settings(&settings).expect("settings write");
+            let contents = std::fs::read_to_string(store.path()).expect("settings file");
+            assert!(contents.contains(&format!("marker = \"{encoded}\"")));
+            assert_eq!(store.read_settings().expect("settings read"), settings);
+        }
     }
 
     #[test]

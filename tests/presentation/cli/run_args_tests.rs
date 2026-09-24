@@ -27,11 +27,11 @@ mod tests {
     }
 
     #[test]
-    fn to_domain_defaults_event_to_pull_request() {
+    fn to_domain_leaves_event_unspecified_without_an_explicit_value() {
         let args = parse_run_test_args(&[]);
         let (config, _repo) = args.to_domain().unwrap();
 
-        assert_eq!(config.event().unwrap().as_str(), "pull_request");
+        assert!(config.event().is_none());
     }
 
     #[test]

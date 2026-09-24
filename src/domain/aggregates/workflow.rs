@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use crate::domain::{
     entities::Job,
-    value_objects::{ConcurrencyGroup, ExecutionDefaults, TokenPermissions, WorkflowTrigger},
+    value_objects::{
+        ConcurrencyGroup, ExecutionDefaults, TokenPermissions, TriggerKind, WorkflowTrigger,
+    },
 };
 
 /// Represents a parsed workflow file.
@@ -16,17 +18,20 @@ use crate::domain::{
 /// ```
 /// use std::collections::HashMap;
 ///
-/// use ephact::domain::{aggregates::Workflow, value_objects::WorkflowTrigger};
+/// use ephact::domain::{
+///     aggregates::Workflow,
+///     value_objects::{TriggerKind, WorkflowTrigger},
+/// };
 ///
 /// let workflow = Workflow::new(
 ///     Some("CI".to_owned()),
-///     WorkflowTrigger::Single("push".to_owned()),
+///     vec![WorkflowTrigger::Push(None)],
 ///     HashMap::new(),
 ///     HashMap::new(),
 /// );
 ///
 /// assert_eq!(workflow.name(), Some("CI"));
-/// assert!(workflow.trigger().has_event("push"));
+/// assert!(workflow.triggers_on(TriggerKind::Push));
 /// ```
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Workflow {
@@ -36,8 +41,8 @@ pub struct Workflow {
     /// The name of the workflow file (set after parsing, not from YAML).
     file: Option<String>,
 
-    /// The event(s) that trigger this workflow.
-    trigger: WorkflowTrigger,
+    /// The triggers that activate this workflow.
+    trigger: Vec<WorkflowTrigger>,
 
     /// Environment variables available to all jobs and steps.
     env: HashMap<String, String>,
@@ -58,7 +63,7 @@ pub struct Workflow {
 impl Workflow {
     pub fn new(
         name: Option<String>,
-        trigger: WorkflowTrigger,
+        trigger: Vec<WorkflowTrigger>,
         env: HashMap<String, String>,
         jobs: HashMap<String, Job>,
     ) -> Self {
@@ -102,7 +107,7 @@ impl Workflow {
         self
     }
 
-    pub fn trigger(&self) -> &WorkflowTrigger {
+    pub fn trigger(&self) -> &[WorkflowTrigger] {
         &self.trigger
     }
 
@@ -126,8 +131,8 @@ impl Workflow {
         self.concurrency.as_ref()
     }
     /// Returns whether this workflow declares the given trigger event.
-    pub fn triggers_on(&self, event_name: &str) -> bool {
-        self.trigger.has_event(event_name)
+    pub fn triggers_on(&self, kind: TriggerKind) -> bool {
+        self.trigger.iter().any(|trigger| trigger.kind() == kind)
     }
 
     /// Returns the job identified by `job_id`.
@@ -143,7 +148,7 @@ mod tests {
     fn new_and_with_file_preserve_fields() {
         let workflow = Workflow::new(
             Some("CI".into()),
-            WorkflowTrigger::default(),
+            vec![WorkflowTrigger::Push(None)],
             HashMap::from([("KEY".into(), "value".into())]),
             HashMap::new(),
         )
@@ -154,7 +159,7 @@ mod tests {
         assert_eq!(workflow.env()["KEY"], "value");
         assert!(workflow.jobs().is_empty());
         assert!(workflow.defaults().is_none());
-        assert_eq!(workflow.trigger(), &WorkflowTrigger::default());
+        assert_eq!(workflow.trigger(), &[WorkflowTrigger::Push(None)]);
         assert!(workflow.permissions().is_none());
         assert!(workflow.concurrency().is_none());
     }
@@ -163,13 +168,13 @@ mod tests {
         let job = Job::default();
         let workflow = Workflow::new(
             Some("CI".into()),
-            WorkflowTrigger::Single("push".into()),
+            vec![WorkflowTrigger::Push(None)],
             HashMap::new(),
             HashMap::from([("build".into(), job)]),
         );
 
-        assert!(workflow.triggers_on("push"));
-        assert!(!workflow.triggers_on("pull_request"));
+        assert!(workflow.triggers_on(TriggerKind::Push));
+        assert!(!workflow.triggers_on(TriggerKind::PullRequest));
         assert!(workflow.job_named("build").is_some());
         assert!(workflow.job_named("missing").is_none());
     }

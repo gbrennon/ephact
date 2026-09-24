@@ -1,14 +1,39 @@
 #[cfg(test)]
 mod tests {
 
-    use std::time::Duration;
+    use std::{fs, sync::Arc, time::Duration};
 
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ephact::{
-        application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse},
+        application::{
+            dtos::responses::{
+                RunInputDeclarationResponse, RunInputSourceResponse, RunSummaryResponse,
+                WorkflowListItemResponse,
+            },
+            ports::outbound::SettingsStorePort,
+        },
+        domain::{Marker, Settings},
+        infrastructure::TomlSettingsStore,
         presentation::tui::{ScreenManager, TuiApp, TuiScreen},
     };
     use ratatui::{Terminal, backend::TestBackend};
+
+    fn rendered_app_lines(app: &TuiApp) -> Vec<String> {
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).expect("test terminal");
+
+        terminal
+            .draw(|frame| app.render(frame))
+            .expect("render app");
+
+        terminal
+            .backend()
+            .buffer()
+            .content()
+            .chunks(80)
+            .map(|line| line.iter().map(|cell| cell.symbol()).collect())
+            .collect()
+    }
 
     fn rendered_lines(screens: &ScreenManager, title: &str) -> Vec<String> {
         let backend = TestBackend::new(80, 24);
@@ -25,6 +50,39 @@ mod tests {
             .chunks(80)
             .map(|line| line.iter().map(|cell| cell.symbol()).collect())
             .collect()
+    }
+
+    #[test]
+    fn persisted_marker_is_used_by_text_input_form() {
+        let directory = tempfile::tempdir().expect("temporary directory");
+        let path = directory.path().join("config.toml");
+        fs::write(&path, "marker = \"❯\"\n").expect("write settings");
+        let store = Arc::new(TomlSettingsStore::new(path));
+        let settings = store.read_settings().expect("read settings");
+        let mut app = TuiApp::new(vec![WorkflowListItemResponse::new(
+            Some("CI".to_string()),
+            None,
+            vec!["push".to_string()],
+        )])
+        .with_settings(settings, Some(store));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.begin_run_configuration(
+            vec!["push".to_string()],
+            vec![RunInputDeclarationResponse::new(
+                "rustc-version",
+                RunInputSourceResponse::Workflow,
+                None,
+                false,
+                Some("stable".to_string()),
+            )],
+        );
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        let lines = rendered_app_lines(&app);
+
+        assert!(lines.iter().any(|line| line.contains("stable❯")));
     }
 
     #[test]
@@ -101,6 +159,88 @@ mod tests {
     }
 
     #[test]
+    fn configured_marker_is_used_by_text_input_form() {
+        let settings = Settings::default().with_marker(Marker::custom_text("❯"));
+        let mut app = TuiApp::new(vec![WorkflowListItemResponse::new(
+            Some("CI".to_string()),
+            None,
+            vec!["push".to_string()],
+        )])
+        .with_settings(settings, None);
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.begin_run_configuration(
+            vec!["push".to_string()],
+            vec![RunInputDeclarationResponse::new(
+                "rustc-version",
+                RunInputSourceResponse::Workflow,
+                None,
+                false,
+                Some("stable".to_string()),
+            )],
+        );
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        let lines = rendered_app_lines(&app);
+
+        assert!(lines.iter().any(|line| line.contains("stable❯")));
+    }
+
+    #[test]
+    fn boolean_input_editing_works_through_tui_app() {
+        let mut app = TuiApp::new(vec![WorkflowListItemResponse::new(
+            Some("CI".to_string()),
+            None,
+            vec!["push".to_string()],
+        )]);
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.begin_run_configuration(
+            vec!["push".to_string()],
+            vec![RunInputDeclarationResponse::new(
+                "include-sysroot",
+                RunInputSourceResponse::Workflow,
+                None,
+                false,
+                Some("false".to_string()),
+            )],
+        );
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Char('l'), KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE));
+
+        let configuration = app
+            .take_configured_run_request()
+            .expect("boolean input configuration");
+        assert_eq!(
+            configuration.inputs(),
+            &[("include-sysroot".into(), "true".into())]
+        );
+    }
+
+    #[test]
+    fn run_picker_configures_on_enter_and_ignores_details_key() {
+        let mut app = TuiApp::new(vec![WorkflowListItemResponse::new(
+            Some("CI".to_string()),
+            None,
+            vec!["push".to_string()],
+        )]);
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        app.handle_key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE));
+        assert!(!app.is_showing_details());
+
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        assert!(app.take_run_request());
+        assert_eq!(app.screen(), TuiScreen::RunWorkflow);
+    }
+
+    #[test]
     fn cancel_key_requests_cancellation_without_leaving_run_screen() {
         let mut app = TuiApp::new(vec![
             ephact::application::dtos::responses::WorkflowListItemResponse::new(
@@ -148,7 +288,7 @@ mod tests {
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.begin_run_configuration(vec!["push".to_string(), "schedule".to_string()], vec![]);
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
         let configuration = app
             .take_configured_run_request()

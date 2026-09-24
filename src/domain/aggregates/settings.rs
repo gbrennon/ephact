@@ -1,4 +1,6 @@
-use crate::domain::value_objects::{InterfaceMode, OperationMode, OutputPreferences, Permissions};
+use crate::domain::value_objects::{
+    InterfaceMode, Marker, OperationMode, OutputPreferences, Permissions,
+};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Settings {
@@ -6,6 +8,7 @@ pub struct Settings {
     permissions: Permissions,
     operation_mode: OperationMode,
     output_preferences: OutputPreferences,
+    marker: Marker,
 }
 
 impl Settings {
@@ -23,6 +26,10 @@ impl Settings {
 
     pub fn output_preferences(&self) -> &OutputPreferences {
         &self.output_preferences
+    }
+
+    pub fn marker(&self) -> &Marker {
+        &self.marker
     }
 
     pub fn allow_repo_writes(&self) -> bool {
@@ -74,6 +81,11 @@ impl Settings {
 
     pub fn with_output_preferences(mut self, value: OutputPreferences) -> Self {
         self.output_preferences = value;
+        self
+    }
+
+    pub fn with_marker(mut self, value: Marker) -> Self {
+        self.marker = value;
         self
     }
 

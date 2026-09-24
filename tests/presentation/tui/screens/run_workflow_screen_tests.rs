@@ -81,11 +81,23 @@ mod tests {
     fn picker_footer_is_inside_the_screen_border() {
         let screen = RunWorkflowScreen::new(workflows());
 
-        let line = rendered_line_containing(&screen, "Enter: Run");
-        let footer_start = line.find("Enter: Run").expect("footer text");
+        let line = rendered_line_containing(&screen, "Up/Down/j/k: Move");
+        let footer_start = line.find("Up/Down/j/k: Move").expect("footer text");
 
         assert!(line[..footer_start].ends_with("│ "));
         assert!(line[footer_start..].contains('│'));
+    }
+
+    #[test]
+    fn picker_renders_all_picker_keybinds() {
+        let screen = RunWorkflowScreen::new(workflows());
+        let text = rendered_text(&screen);
+
+        assert!(text.contains("Up/Down/j/k: Move"));
+        assert!(text.contains("Enter: Configure"));
+        assert!(!text.contains("d: Details"));
+        assert!(text.contains("Esc/Bksp: Back"));
+        assert!(text.contains("q: Quit"));
     }
 
     #[test]
@@ -207,6 +219,28 @@ mod tests {
     }
 
     #[test]
+    fn summary_and_details_render_their_keybinds() {
+        let mut screen = RunWorkflowScreen::new(workflows());
+        screen.record_outcome(RunSummaryResponse::new(
+            "CI",
+            vec![],
+            true,
+            Duration::from_secs(1),
+        ));
+
+        let summary = rendered_text(&screen);
+        assert!(summary.contains("Up/Down/j/k: Scroll"));
+        assert!(summary.contains("d: Details"));
+        assert!(summary.contains("Esc/Bksp: Back"));
+        assert!(summary.contains("q: Quit"));
+
+        screen.open_details();
+
+        let details = rendered_text(&screen);
+        assert!(details.contains("Enter/Space: Fold"));
+    }
+
+    #[test]
     fn successful_summary_opens_details() {
         let mut screen = RunWorkflowScreen::new(workflows());
         screen.record_outcome(RunSummaryResponse::new(
@@ -218,6 +252,145 @@ mod tests {
 
         assert!(screen.open_details());
         assert!(screen.showing_details());
+    }
+
+    #[test]
+    fn event_configuration_selects_event_before_input_configuration() {
+        let mut screen = RunWorkflowScreen::new(workflows());
+        screen.begin_configuration(vec!["push".to_string(), "schedule".to_string()], vec![]);
+
+        let picker = rendered_text(&screen);
+        assert!(picker.contains("Select event"));
+        assert!(picker.contains("Enter: Select"));
+        assert!(!picker.contains("r: Run"));
+
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        let action =
+            screen.handle_configuration_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        assert_eq!(
+            action,
+            ephact::presentation::tui::components::ConfigurationAction::Submit
+        );
+        assert_eq!(
+            screen.take_configuration().expect("selected event").event(),
+            "schedule"
+        );
+    }
+
+    #[test]
+    fn configuration_renders_keybinds_for_each_state() {
+        let mut screen = RunWorkflowScreen::new(workflows());
+        screen.begin_configuration(
+            vec!["push".to_string()],
+            vec![RunInputDeclarationResponse::new(
+                "environment",
+                RunInputSourceResponse::Workflow,
+                None,
+                true,
+                None,
+            )],
+        );
+
+        let picker = rendered_text(&screen);
+        assert!(picker.contains("Up/Down/j/k: Move"));
+        assert!(!picker.contains("Enter: Edit"));
+        assert!(picker.contains("r: Run"));
+        assert!(picker.contains("Esc/Bksp: Back"));
+
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        let input_picker = rendered_text(&screen);
+        assert!(input_picker.contains("Enter: Edit"));
+
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        let editing = rendered_text(&screen);
+        assert!(editing.contains("Type: Edit"));
+        assert!(editing.contains("Input: environment (required) = _"));
+        assert!(editing.contains("Enter/Esc: Finish"));
+        assert!(editing.contains("Bksp: Delete"));
+
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE));
+        let error = rendered_text(&screen);
+        assert!(error.contains("Enter/Esc/Bksp: Dismiss"));
+    }
+
+    #[test]
+    fn text_input_cursor_is_after_existing_value() {
+        let mut screen = RunWorkflowScreen::new(workflows());
+        screen.begin_configuration(
+            vec!["push".to_string()],
+            vec![RunInputDeclarationResponse::new(
+                "rustc-version",
+                RunInputSourceResponse::Workflow,
+                None,
+                false,
+                Some("stable".to_string()),
+            )],
+        );
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        assert!(rendered_text(&screen).contains("Input: rustc-version = stable_"));
+    }
+
+    #[test]
+    fn text_input_uses_the_selected_custom_marker() {
+        let mut screen = RunWorkflowScreen::new(workflows());
+        screen.begin_configuration_with_marker(
+            vec!["push".to_string()],
+            vec![RunInputDeclarationResponse::new(
+                "rustc-version",
+                RunInputSourceResponse::Workflow,
+                None,
+                false,
+                Some("stable".to_string()),
+            )],
+            &ephact::domain::value_objects::Marker::custom_text("❯"),
+        );
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        assert!(rendered_text(&screen).contains("Input: rustc-version = stable❯"));
+    }
+
+    #[test]
+    fn boolean_inputs_render_and_toggle_boolean_alternatives() {
+        let mut screen = RunWorkflowScreen::new(workflows());
+        screen.begin_configuration(
+            vec!["push".to_string()],
+            vec![
+                RunInputDeclarationResponse::new(
+                    "include-sysroot",
+                    RunInputSourceResponse::Workflow,
+                    None,
+                    false,
+                    Some("false".to_string()),
+                )
+                .with_type(None),
+            ],
+        );
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        let editing = rendered_text(&screen);
+        assert!(editing.contains("[false] true"));
+        assert!(editing.contains("Left/h: False"));
+        assert!(editing.contains("Right/l: True"));
+
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Char('l'), KeyModifiers::NONE));
+        assert!(rendered_text(&screen).contains("false [true]"));
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Char('h'), KeyModifiers::NONE));
+        assert!(rendered_text(&screen).contains("[false] true"));
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Char('l'), KeyModifiers::NONE));
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+        screen.handle_configuration_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE));
+
+        let values = screen.take_configuration().expect("boolean configuration");
+        assert_eq!(
+            values.inputs(),
+            &[("include-sysroot".to_string(), "true".to_string())]
+        );
     }
 
     #[test]
@@ -277,6 +450,16 @@ mod tests {
     }
 
     #[test]
+    fn running_state_renders_only_cancellation_keybinds() {
+        let mut screen = RunWorkflowScreen::new(workflows());
+        screen.start_run();
+
+        let text = rendered_text(&screen);
+        assert!(text.contains("Esc/Bksp: Cancel"));
+        assert!(!text.contains("q: Quit"));
+    }
+
+    #[test]
     fn failure_details_scroll_in_both_directions() {
         let mut screen = RunWorkflowScreen::new(workflows());
         screen.record_outcome(failed_summary());
@@ -314,6 +497,6 @@ mod tests {
         let text = rendered_text(&screen);
         assert!(screen.is_running());
         assert!(text.contains("Workflow is running..."));
-        assert!(text.contains("Esc: Cancel"));
+        assert!(text.contains("Esc/Bksp: Cancel"));
     }
 }

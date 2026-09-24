@@ -66,6 +66,8 @@ impl EveryWorkflowRun {
                 "ephact",
                 "run",
                 &repository.path_argument(),
+                "--event",
+                "pull_request",
                 "--all-workflows",
             ])
             .map_err(|error| error.to_string());

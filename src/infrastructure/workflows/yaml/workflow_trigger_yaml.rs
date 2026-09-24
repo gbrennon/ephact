@@ -2,19 +2,13 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Deserializer};
 
-use crate::{
-    domain::value_objects::WorkflowTrigger,
-    infrastructure::workflows::yaml::{TriggerFilterYaml, WorkflowTriggerVisitor},
-};
+use super::{TriggerFilterYaml, WorkflowTriggerVisitor};
+use crate::domain::value_objects::WorkflowTrigger;
 
-/// The `on:` entry of a workflow file, in any of its three YAML spellings.
 #[derive(Debug, Clone, PartialEq)]
 pub enum WorkflowTriggerYaml {
-    /// A single event name, as in `on: push`.
     Single(String),
-    /// A sequence of event names, as in `on: [push, pull_request]`.
     Multiple(Vec<String>),
-    /// A mapping of event names to their optional filters.
     WithTypes(HashMap<String, Option<TriggerFilterYaml>>),
 }
 
@@ -25,18 +19,41 @@ impl Default for WorkflowTriggerYaml {
 }
 
 impl WorkflowTriggerYaml {
-    /// Builds the domain trigger this YAML describes.
-    #[must_use]
-    pub fn into_domain(self) -> WorkflowTrigger {
+    pub fn into_domain(self) -> Vec<WorkflowTrigger> {
         match self {
-            Self::Single(event) => WorkflowTrigger::Single(event),
-            Self::Multiple(events) => WorkflowTrigger::Multiple(events),
-            Self::WithTypes(events) => WorkflowTrigger::WithTypes(
-                events
-                    .into_iter()
-                    .map(|(event, filter)| (event, filter.map(TriggerFilterYaml::into_domain)))
-                    .collect(),
-            ),
+            Self::Single(event) => Self::trigger_for_event(event, None),
+            Self::Multiple(events) => events
+                .into_iter()
+                .flat_map(|event| Self::trigger_for_event(event, None))
+                .collect(),
+            Self::WithTypes(events) => events
+                .into_iter()
+                .flat_map(|(event, filter)| Self::trigger_for_event(event, filter))
+                .collect(),
+        }
+    }
+
+    fn trigger_for_event(event: String, filter: Option<TriggerFilterYaml>) -> Vec<WorkflowTrigger> {
+        match event.as_str() {
+            "push" => vec![WorkflowTrigger::Push(
+                filter.map(TriggerFilterYaml::into_domain),
+            )],
+            "pull_request" => vec![WorkflowTrigger::PullRequest(
+                filter.map(TriggerFilterYaml::into_domain),
+            )],
+            "workflow_dispatch" => {
+                let inputs = filter
+                    .map(TriggerFilterYaml::into_inputs)
+                    .unwrap_or_default();
+                vec![WorkflowTrigger::Manual { inputs }]
+            }
+            "schedule" => {
+                let expressions = filter
+                    .map(TriggerFilterYaml::into_cron_expressions)
+                    .unwrap_or_default();
+                vec![WorkflowTrigger::Schedule { expressions }]
+            }
+            _ => Vec::new(),
         }
     }
 }

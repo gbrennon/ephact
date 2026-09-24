@@ -2,63 +2,79 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
-use crate::{
-    domain::value_objects::TriggerFilter,
-    infrastructure::workflows::yaml::WorkflowDispatchInputYaml,
-};
+use super::WorkflowDispatchInputYaml;
+use crate::domain::value_objects::{RefPattern, TriggerFilter, TriggerInput};
 
-/// Filters attached to one event of a workflow's `on:` mapping.
 #[derive(Debug, Clone, Deserialize, PartialEq, Default)]
 pub struct TriggerFilterYaml {
     #[serde(default)]
     branches: Vec<String>,
-
     #[serde(rename = "branches-ignore")]
     #[serde(default)]
     branches_ignore: Vec<String>,
-
     #[serde(default)]
     tags: Vec<String>,
-
     #[serde(rename = "tags-ignore")]
     #[serde(default)]
     tags_ignore: Vec<String>,
-
     #[serde(default)]
     paths: Vec<String>,
-
     #[serde(rename = "paths-ignore")]
     #[serde(default)]
     paths_ignore: Vec<String>,
-
     #[serde(default)]
     types: Vec<String>,
-
     #[serde(default)]
     inputs: HashMap<String, WorkflowDispatchInputYaml>,
-
     #[serde(default)]
     cron: Vec<String>,
 }
 
 impl TriggerFilterYaml {
-    /// Builds the domain trigger filter this YAML describes.
-    #[must_use]
     pub fn into_domain(self) -> TriggerFilter {
-        let inputs = self
-            .inputs
+        let included_refs = self
+            .branches
+            .into_iter()
+            .map(RefPattern::branch)
+            .chain(self.tags.into_iter().map(RefPattern::tag))
+            .chain(self.paths.into_iter().map(RefPattern::path));
+        let excluded_refs = self
+            .branches_ignore
+            .into_iter()
+            .map(RefPattern::branch)
+            .chain(self.tags_ignore.into_iter().map(RefPattern::tag))
+            .chain(self.paths_ignore.into_iter().map(RefPattern::path));
+        let filter = TriggerFilter::new().with_event_types(self.types);
+        let filter = Self::add_included_refs(filter, included_refs);
+        Self::add_excluded_refs(filter, excluded_refs)
+    }
+
+    fn add_included_refs<I>(filter: TriggerFilter, refs: I) -> TriggerFilter
+    where
+        I: IntoIterator<Item = RefPattern>,
+    {
+        refs.into_iter().fold(filter, |filter, reference| {
+            filter.with_included_ref(reference)
+        })
+    }
+
+    fn add_excluded_refs<I>(filter: TriggerFilter, refs: I) -> TriggerFilter
+    where
+        I: IntoIterator<Item = RefPattern>,
+    {
+        refs.into_iter().fold(filter, |filter, reference| {
+            filter.with_excluded_ref(reference)
+        })
+    }
+
+    pub fn into_inputs(self) -> HashMap<String, TriggerInput> {
+        self.inputs
             .into_iter()
             .map(|(name, input)| (name, input.into_domain()))
-            .collect();
-        TriggerFilter::new()
-            .with_branches(self.branches)
-            .with_branches_ignore(self.branches_ignore)
-            .with_tags(self.tags)
-            .with_tags_ignore(self.tags_ignore)
-            .with_paths(self.paths)
-            .with_paths_ignore(self.paths_ignore)
-            .with_types(self.types)
-            .with_inputs(inputs)
-            .with_cron(self.cron)
+            .collect()
+    }
+
+    pub fn into_cron_expressions(self) -> Vec<String> {
+        self.cron
     }
 }

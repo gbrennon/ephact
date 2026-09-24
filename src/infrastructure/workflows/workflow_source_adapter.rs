@@ -3,7 +3,7 @@ use std::{collections::BTreeSet, fs};
 use super::workflow_directories::WORKFLOW_DIRECTORIES;
 use crate::{
     application::{errors::WorkflowSourceError, ports::outbound::WorkflowSourcePort},
-    domain::entities::repository::Repository,
+    domain::{entities::repository::Repository, value_objects::TriggerKind},
     infrastructure::workflows::yaml::WorkflowYaml,
 };
 
@@ -86,9 +86,14 @@ impl FilesystemWorkflowSource {
         let workflow = parsed.into_domain();
         workflow
             .trigger()
-            .event_names()
             .iter()
-            .map(|event| (*event).to_string())
+            .map(|trigger| match trigger.kind() {
+                TriggerKind::Push => "push",
+                TriggerKind::PullRequest => "pull_request",
+                TriggerKind::Manual => "workflow_dispatch",
+                TriggerKind::Schedule => "schedule",
+            })
+            .map(str::to_owned)
             .collect()
     }
 
