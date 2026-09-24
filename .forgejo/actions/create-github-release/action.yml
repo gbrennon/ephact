@@ -2,19 +2,29 @@ name: Create GitHub release
 description: Publish a release through the GitHub API
 inputs:
   api-url:
-    description: GitHub API base URL
+    description: >-
+      GitHub API base URL (for example https://api.github.com) used for
+      GitHub REST API requests
     required: true
   repository:
-    description: GitHub repository identifier
+    description: >-
+      Target GitHub repository in owner/repo format (for example
+      gbrennon/ephact) to mirror the release to
     required: true
   token:
-    description: GitHub release token
+    description: >-
+      GitHub Personal Access Token with release and contents write permissions
+      used to authenticate API calls to GitHub
     required: true
   merge-commit-sha:
-    description: Merged pull request commit SHA
+    description: >-
+      Full Git commit SHA of the merged pull request used as the release
+      commit targetish
     required: true
   version:
-    description: Release version
+    description: >-
+      Release tag name (for example v0.2.0) used for the release name, Git
+      tag, and release notes header
     required: true
 runs:
   using: composite
@@ -24,15 +34,15 @@ runs:
       env:
         GITHUB_API_URL: ${{ inputs.api-url }}
         GITHUB_REPOSITORY: ${{ inputs.repository }}
-        GITHUB_RELEASE_TOKEN: ${{ inputs.token }}
+        GH_RELEASE_TOKEN: ${{ inputs.token }}
         MERGE_COMMIT_SHA: ${{ inputs.merge-commit-sha }}
         VERSION: ${{ inputs.version }}
       run: |
         set -euo pipefail
 
-        if [[ -z "$GITHUB_RELEASE_TOKEN" ]]; then
+        if [[ -z "$GH_RELEASE_TOKEN" ]]; then
           printf \
-            'GITHUB_RELEASE_TOKEN secret is not configured in the Codeberg repository\n' \
+            'GH_RELEASE_TOKEN secret is not configured in the Codeberg repository\n' \
             >&2
           exit 1
         fi
@@ -58,7 +68,7 @@ runs:
           curl --fail-with-body --silent --show-error \
             --request POST \
             --url "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/releases" \
-            --header "Authorization: Bearer ${GITHUB_RELEASE_TOKEN}" \
+            --header "Authorization: Bearer ${GH_RELEASE_TOKEN}" \
             --header 'Accept: application/vnd.github+json' \
             --header 'X-GitHub-Api-Version: 2026-03-10' \
             --header 'Content-Type: application/json' \
