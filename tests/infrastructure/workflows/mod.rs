@@ -1,4 +1,5 @@
 mod detect_workflow_file_service_tests;
+mod discover_run_inputs_service_tests;
 mod filesystem_workflow_source_tests;
 mod list_all_workflow_files_service_tests;
 mod list_workflow_directory_service_tests;

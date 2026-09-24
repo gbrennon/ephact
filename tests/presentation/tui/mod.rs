@@ -1,7 +1,7 @@
+mod components;
 mod event_reader;
 mod screens;
-mod settings_tests;
-mod tui_app;
+mod tui_app_tests;
 mod tui_runner;
 
 use std::{env, time::Duration};
@@ -124,28 +124,6 @@ fn home_menu_item_matches_other_inner_frame_padding() {
     let actions_column = TuiRenderAssertions::label_start_column(&actions, "build", 6);
 
     assert_eq!(home_column, actions_column);
-}
-
-#[test]
-fn home_renders_keybind_footer() {
-    let home = TuiRenderAssertions::rendered_screen(|frame, area| {
-        HomeScreen::render(frame, area, 0);
-    });
-
-    let text = TuiRenderAssertions::buffer_text(&home);
-    assert!(text.contains("Up/Down/j/k: Move"));
-    assert!(text.contains("Enter: Select"));
-    assert!(text.contains("q: Quit"));
-}
-
-#[test]
-fn splash_renders_its_keybind_hint() {
-    let splash = TuiRenderAssertions::rendered_buffer(|frame| {
-        SplashScreen::render_with(frame, ColorSupport::Basic, SplashQuotes::select(0));
-    });
-
-    let text = TuiRenderAssertions::buffer_text(&splash);
-    assert!(text.contains("press any key to continue"));
 }
 
 #[test]
