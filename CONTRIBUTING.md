@@ -95,7 +95,7 @@ requests targeting `main`, and manual dispatch:
 1. **Test** runs `just test`, covering default-feature test targets with the 80%
    aggregate line threshold while excluding feature-gated container integration.
 1. **Lint** runs `cargo clippy --all-targets --locked -- -D warnings`.
-
+1. **Verify secrets** verifies repository secrets for same-repository runs.
 Workflow linting is available locally through `just lint-workflows`, but it is
 not currently a CI step.
 
