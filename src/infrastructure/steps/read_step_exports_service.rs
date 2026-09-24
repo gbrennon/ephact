@@ -6,7 +6,7 @@ use crate::{
             },
             responses::StepExportsResponse,
         },
-        ports::outbound::read_step_exports_port::ReadStepExportsPort,
+        ports::outbound::step_exports_reader_port::StepExportsReaderPort,
     },
     infrastructure::steps::{
         read_step_env_exports_port::ReadStepEnvExportsPort,
@@ -32,8 +32,8 @@ impl ReadStepExportsService {
     }
 }
 
-impl ReadStepExportsPort for ReadStepExportsService {
-    fn execute(
+impl StepExportsReaderPort for ReadStepExportsService {
+    fn read(
         &self,
         _request: ReadStepExportsRequest,
         container: &dyn crate::application::ports::outbound::container_port::ContainerPort,

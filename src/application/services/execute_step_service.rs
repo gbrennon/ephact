@@ -11,7 +11,7 @@ use crate::{
             inbound::execute_step_port::ExecuteStepPort,
             outbound::{
                 ContainerPort, action_command_bus_port::ActionCommandBusPort,
-                run_shell_step_port::RunShellStepPort,
+                shell_step_runner_port::ShellStepRunnerPort,
             },
         },
     },
@@ -27,14 +27,14 @@ use crate::{
 
 pub struct ExecuteStepService {
     container: Arc<dyn ContainerPort>,
-    shell_runner: Arc<dyn RunShellStepPort>,
+    shell_runner: Arc<dyn ShellStepRunnerPort>,
     command_bus: Arc<dyn ActionCommandBusPort>,
 }
 
 impl ExecuteStepService {
     pub fn new(
         container: Arc<dyn ContainerPort>,
-        shell_runner: Arc<dyn RunShellStepPort>,
+        shell_runner: Arc<dyn ShellStepRunnerPort>,
         command_bus: Arc<dyn ActionCommandBusPort>,
     ) -> Self {
         Self {
@@ -63,7 +63,7 @@ impl ExecuteStepService {
             );
         }
 
-        let result = self.shell_runner.execute(RunShellStepRequest::new(
+        let result = self.shell_runner.run(RunShellStepRequest::new(
             step,
             self.container.as_ref(),
             request.env(),

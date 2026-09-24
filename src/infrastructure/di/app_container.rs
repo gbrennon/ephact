@@ -8,7 +8,7 @@ use crate::{
                 run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
                 show_project_branding_info_port::ShowProjectBrandingInfoPort,
             },
-            outbound::DiscoverRunInputsPort,
+            outbound::RunInputsDiscovererPort,
         },
     },
     infrastructure::{
@@ -22,7 +22,7 @@ pub struct AppContainer {
     run_all_workflows_port: Box<dyn RunAllWorkflowsPort>,
     run_workflow_port: Box<dyn RunWorkflowPort>,
     run_action_factory: RunActionFactory,
-    discover_run_inputs_port: Box<dyn DiscoverRunInputsPort>,
+    discover_run_inputs_port: Box<dyn RunInputsDiscovererPort>,
     list_workflows_port: Box<dyn ListWorkflowsPort>,
     list_actions_port: Box<dyn ListActionsPort>,
     failure_log_error_store: FailureLogErrorStore,
@@ -34,7 +34,7 @@ pub type AppContainerParts = (
     Box<dyn RunAllWorkflowsPort>,
     Box<dyn RunWorkflowPort>,
     RunActionFactory,
-    Box<dyn DiscoverRunInputsPort>,
+    Box<dyn RunInputsDiscovererPort>,
     Box<dyn ListWorkflowsPort>,
     Box<dyn ListActionsPort>,
 );
@@ -49,8 +49,8 @@ pub type AppContainerRequiredParts = (
 
 struct EmptyRunInputDiscovery;
 
-impl DiscoverRunInputsPort for EmptyRunInputDiscovery {
-    fn execute(
+impl RunInputsDiscovererPort for EmptyRunInputDiscovery {
+    fn discover(
         &self,
         _request: DiscoverRunInputsRequest,
     ) -> Result<Vec<RunInputDeclarationResponse>, DiscoverRunInputsError> {

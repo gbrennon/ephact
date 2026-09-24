@@ -8,7 +8,7 @@ use crate::{
         },
         ports::outbound::{
             action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
-            run_shell_step_port::RunShellStepPort,
+            shell_step_runner_port::ShellStepRunnerPort,
         },
     },
     domain::{errors::StepError, messages::commands::ExecuteActionCommand},
@@ -19,13 +19,13 @@ use crate::{
 /// runner, while steps referencing another action are published as an
 /// [`ExecuteActionCommand`] so the action command handler executes them.
 pub struct RunCompositeStepService {
-    shell_runner: Box<dyn RunShellStepPort>,
+    shell_runner: Box<dyn ShellStepRunnerPort>,
     command_bus: Box<dyn ActionCommandBusPort>,
 }
 
 impl RunCompositeStepService {
     pub fn new(
-        shell_runner: Box<dyn RunShellStepPort>,
+        shell_runner: Box<dyn ShellStepRunnerPort>,
         command_bus: Box<dyn ActionCommandBusPort>,
     ) -> Self {
         Self {
@@ -68,7 +68,7 @@ impl RunCompositeStepPort for RunCompositeStepService {
                     "GITHUB_ACTION_PATH".into(),
                     request.action_dir().display().to_string(),
                 );
-                self.shell_runner.execute(RunShellStepRequest::new(
+                self.shell_runner.run(RunShellStepRequest::new(
                     request.step(),
                     container.as_ref(),
                     &action_env,

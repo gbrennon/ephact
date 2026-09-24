@@ -1,7 +1,0 @@
-use crate::application::dtos::{requests::SummarizeStepRequest, responses::SummarizedStepResponse};
-
-/// Inbound port for turning a step's outcome into its run-summary entry.
-pub trait SummarizeStepPort: Send + Sync {
-    /// Summarises the step and reports whether it fails the job.
-    fn execute(&self, request: SummarizeStepRequest<'_>) -> SummarizedStepResponse;
-}

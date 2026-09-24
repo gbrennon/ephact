@@ -16,7 +16,8 @@ mod tests {
                 responses::ExecResultResponse,
             },
             ports::outbound::{
-                container_port::ContainerPort, run_composite_action_port::RunCompositeActionPort,
+                composite_action_runner_port::CompositeActionRunnerPort,
+                container_port::ContainerPort,
             },
         },
         domain::{
@@ -70,7 +71,7 @@ mod tests {
         let request_owner = action_request(&container);
 
         let response = service
-            .execute(
+            .run(
                 RunCompositeActionRequest::new(
                     &steps("- run: one\n- run: two\n"),
                     &HashMap::new(),
@@ -94,7 +95,7 @@ mod tests {
         let request_owner = action_request(&container);
 
         let response = service
-            .execute(
+            .run(
                 RunCompositeActionRequest::new(
                     &steps("- run: one\n- run: two\n"),
                     &HashMap::new(),
@@ -122,7 +123,7 @@ mod tests {
         let request_owner = action_request(&container);
 
         let error = service
-            .execute(
+            .run(
                 RunCompositeActionRequest::new(
                     &steps("- run: one\n"),
                     &HashMap::new(),
@@ -148,7 +149,7 @@ mod tests {
         inputs.insert("mode".to_string(), "staging".to_string());
 
         service
-            .execute(
+            .run(
                 RunCompositeActionRequest::new(
                     &steps("- run: deploy ${{ inputs.mode }}\n"),
                     &inputs,

@@ -3,7 +3,7 @@ use crate::{
         dtos::{requests::RunShellStepRequest, responses::ExecResultResponse},
         ports::outbound::{
             container_port::ExecOptions, domain_event_bus_port::DomainEventBusPort,
-            run_shell_step_port::RunShellStepPort,
+            shell_step_runner_port::ShellStepRunnerPort,
         },
     },
     domain::{
@@ -35,8 +35,8 @@ impl RunShellStepService {
     }
 }
 
-impl RunShellStepPort for RunShellStepService {
-    fn execute(&self, request: RunShellStepRequest<'_>) -> Result<ExecResultResponse, StepError> {
+impl ShellStepRunnerPort for RunShellStepService {
+    fn run(&self, request: RunShellStepRequest<'_>) -> Result<ExecResultResponse, StepError> {
         let command = ShellCommand::for_step(request.step(), request.env())
             .ok_or_else(|| StepError::new("step has neither `run` nor `uses` defined"))?;
         let step_name = request.step().display_name();

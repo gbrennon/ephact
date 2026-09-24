@@ -5,7 +5,7 @@ mod tests {
     use ephact::{
         application::{
             dtos::requests::RunNodeActionRequest,
-            ports::outbound::run_node_action_port::RunNodeActionPort,
+            ports::outbound::node_action_runner_port::NodeActionRunnerPort,
         },
         infrastructure::actions::run_node_action_service::RunNodeActionService,
     };
@@ -39,7 +39,7 @@ mod tests {
         service(FakeCopyActionToContainerPort::returning(
             "/tmp/actions/cache",
         ))
-        .execute(
+        .run(
             RunNodeActionRequest::new(
                 Path::new("/repo/actions/cache"),
                 "dist/index.js",
@@ -66,7 +66,7 @@ mod tests {
         service(FakeCopyActionToContainerPort::returning(
             "/tmp/actions/cache",
         ))
-        .execute(
+        .run(
             RunNodeActionRequest::new(
                 Path::new("/repo/actions/cache"),
                 "dist/index.js",
@@ -91,7 +91,7 @@ mod tests {
         let error = service(FakeCopyActionToContainerPort::failing(
             "failed to copy action files",
         ))
-        .execute(
+        .run(
             RunNodeActionRequest::new(
                 Path::new("/repo/actions/cache"),
                 "dist/index.js",
@@ -110,7 +110,7 @@ mod tests {
         let error = service(FakeCopyActionToContainerPort::returning(
             "/tmp/actions/cache",
         ))
-        .execute(
+        .run(
             RunNodeActionRequest::new(
                 Path::new("/repo/actions/cache"),
                 "dist/index.js",

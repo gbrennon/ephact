@@ -1,18 +1,18 @@
 use ephact::application::{
     dtos::{requests::DiscoverRunInputsRequest, responses::RunInputDeclarationResponse},
     errors::DiscoverRunInputsError,
-    ports::outbound::DiscoverRunInputsPort,
+    ports::outbound::RunInputsDiscovererPort,
 };
-pub struct FakeDiscoverRunInputsPort;
+pub struct FakeRunInputsDiscovererPort;
 
-impl FakeDiscoverRunInputsPort {
+impl FakeRunInputsDiscovererPort {
     pub fn new() -> Self {
         Self
     }
 }
 
-impl DiscoverRunInputsPort for FakeDiscoverRunInputsPort {
-    fn execute(
+impl RunInputsDiscovererPort for FakeRunInputsDiscovererPort {
+    fn discover(
         &self,
         _request: DiscoverRunInputsRequest,
     ) -> Result<Vec<RunInputDeclarationResponse>, DiscoverRunInputsError> {

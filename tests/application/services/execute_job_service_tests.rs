@@ -26,8 +26,8 @@ mod tests {
 
     use crate::common::fakes::{
         fake_command_bus::FakeCommandBus, fake_event_bus::FakeEventBus,
-        fake_prepare_job_container_port::FakePrepareJobContainerPort,
-        fake_read_step_exports_port::FakeReadStepExportsPort,
+        fake_job_container_preparer_port::FakeJobContainerPreparerPort,
+        fake_step_exports_reader_port::FakeStepExportsReaderPort,
     };
 
     fn workflow(yaml: &str) -> Workflow {
@@ -37,17 +37,17 @@ mod tests {
     }
 
     fn service(
-        preparer: FakePrepareJobContainerPort,
+        preparer: FakeJobContainerPreparerPort,
         command_bus: FakeCommandBus,
-        exports: FakeReadStepExportsPort,
+        exports: FakeStepExportsReaderPort,
     ) -> ExecuteJobService {
         service_with_event_bus(preparer, command_bus, exports, FakeEventBus::new())
     }
 
     fn service_with_event_bus(
-        preparer: FakePrepareJobContainerPort,
+        preparer: FakeJobContainerPreparerPort,
         command_bus: FakeCommandBus,
-        exports: FakeReadStepExportsPort,
+        exports: FakeStepExportsReaderPort,
         event_bus: FakeEventBus,
     ) -> ExecuteJobService {
         ExecuteJobService::new(ExecuteJobDependencies::new(
@@ -76,9 +76,9 @@ mod tests {
         let run = &plan.stages()[0].runs()[0];
 
         let execution = service(
-            FakePrepareJobContainerPort::named("job-container"),
+            FakeJobContainerPreparerPort::named("job-container"),
             FakeCommandBus::new(),
-            FakeReadStepExportsPort::new(),
+            FakeStepExportsReaderPort::new(),
         )
         .execute(
             ExecuteJobRequest::new(
@@ -105,9 +105,9 @@ mod tests {
         let command_bus = FakeCommandBus::new();
 
         let execution = service(
-            FakePrepareJobContainerPort::named("job-container"),
+            FakeJobContainerPreparerPort::named("job-container"),
             command_bus.clone(),
-            FakeReadStepExportsPort::new(),
+            FakeStepExportsReaderPort::new(),
         )
         .execute(
             ExecuteJobRequest::new(
@@ -139,9 +139,9 @@ mod tests {
         let command_bus = FakeCommandBus::new();
 
         let execution = service(
-            FakePrepareJobContainerPort::named("job-container"),
+            FakeJobContainerPreparerPort::named("job-container"),
             command_bus.clone(),
-            FakeReadStepExportsPort::new(),
+            FakeStepExportsReaderPort::new(),
         )
         .execute(
             ExecuteJobRequest::new(
@@ -168,9 +168,9 @@ mod tests {
         let command_bus = FakeCommandBus::new();
 
         let execution = service(
-            FakePrepareJobContainerPort::named("job-container"),
+            FakeJobContainerPreparerPort::named("job-container"),
             command_bus.clone(),
-            FakeReadStepExportsPort::new(),
+            FakeStepExportsReaderPort::new(),
         )
         .execute(
             ExecuteJobRequest::new(
@@ -196,9 +196,9 @@ mod tests {
         let command_bus = FakeCommandBus::new();
 
         let execution = service(
-            FakePrepareJobContainerPort::named("job-container"),
+            FakeJobContainerPreparerPort::named("job-container"),
             command_bus.clone(),
-            FakeReadStepExportsPort::new(),
+            FakeStepExportsReaderPort::new(),
         )
         .execute(
             ExecuteJobRequest::new(
@@ -230,9 +230,9 @@ mod tests {
         let command_bus = FakeCommandBus::new();
 
         service(
-            FakePrepareJobContainerPort::named("job-container"),
+            FakeJobContainerPreparerPort::named("job-container"),
             command_bus.clone(),
-            FakeReadStepExportsPort::new(),
+            FakeStepExportsReaderPort::new(),
         )
         .execute(
             ExecuteJobRequest::new(
@@ -259,9 +259,9 @@ mod tests {
         let command_bus = FakeCommandBus::new().queueing_step_exit_codes(vec![1, 0]);
 
         let execution = service(
-            FakePrepareJobContainerPort::named("job-container"),
+            FakeJobContainerPreparerPort::named("job-container"),
             command_bus.clone(),
-            FakeReadStepExportsPort::new(),
+            FakeStepExportsReaderPort::new(),
         )
         .execute(
             ExecuteJobRequest::new(
@@ -290,9 +290,9 @@ mod tests {
         let command_bus = FakeCommandBus::new();
 
         service(
-            FakePrepareJobContainerPort::named("job-container"),
+            FakeJobContainerPreparerPort::named("job-container"),
             command_bus.clone(),
-            FakeReadStepExportsPort::new(),
+            FakeStepExportsReaderPort::new(),
         )
         .execute(
             ExecuteJobRequest::new(
@@ -321,10 +321,10 @@ mod tests {
         let wf = single_job_workflow("      - run: one\n      - run: two\n");
         let plan = ExecutionPlanner.plan(&wf).unwrap();
         let run = &plan.stages()[0].runs()[0];
-        let exports = FakeReadStepExportsPort::new();
+        let exports = FakeStepExportsReaderPort::new();
 
         service(
-            FakePrepareJobContainerPort::named("job-container"),
+            FakeJobContainerPreparerPort::named("job-container"),
             FakeCommandBus::new(),
             exports.clone(),
         )
@@ -351,11 +351,11 @@ mod tests {
         let mut exported_env = HashMap::new();
         exported_env.insert("EXPORTED".to_string(), "yes".to_string());
         let exports =
-            FakeReadStepExportsPort::queueing(vec![(vec!["/opt/bin".to_string()], exported_env)]);
+            FakeStepExportsReaderPort::queueing(vec![(vec!["/opt/bin".to_string()], exported_env)]);
         let command_bus = FakeCommandBus::new();
 
         service(
-            FakePrepareJobContainerPort::named("job-container"),
+            FakeJobContainerPreparerPort::named("job-container"),
             command_bus.clone(),
             exports,
         )
@@ -388,9 +388,9 @@ mod tests {
         let run = &plan.stages()[0].runs()[0];
 
         let Err(error) = service(
-            FakePrepareJobContainerPort::failing("no runtime"),
+            FakeJobContainerPreparerPort::failing("no runtime"),
             FakeCommandBus::new(),
-            FakeReadStepExportsPort::new(),
+            FakeStepExportsReaderPort::new(),
         )
         .execute(
             ExecuteJobRequest::new(
@@ -416,9 +416,9 @@ mod tests {
         let event_bus = FakeEventBus::new();
 
         let execution = service_with_event_bus(
-            FakePrepareJobContainerPort::named("job-container"),
+            FakeJobContainerPreparerPort::named("job-container"),
             FakeCommandBus::new(),
-            FakeReadStepExportsPort::new(),
+            FakeStepExportsReaderPort::new(),
             event_bus.clone(),
         )
         .execute(
@@ -458,9 +458,9 @@ mod tests {
         let event_bus = FakeEventBus::new();
 
         service_with_event_bus(
-            FakePrepareJobContainerPort::named("job-container"),
+            FakeJobContainerPreparerPort::named("job-container"),
             FakeCommandBus::new(),
-            FakeReadStepExportsPort::new(),
+            FakeStepExportsReaderPort::new(),
             event_bus.clone(),
         )
         .execute(

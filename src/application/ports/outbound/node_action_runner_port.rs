@@ -8,9 +8,9 @@ use crate::{
     domain::errors::StepError,
 };
 
-/// Inbound port for running a JavaScript action inside the job's container.
-pub trait RunNodeActionPort: Send + Sync {
-    fn execute(
+/// Runs a JavaScript action and returns its process result.
+pub trait NodeActionRunnerPort: Send + Sync {
+    fn run(
         &self,
         request: RunNodeActionRequest,
         container: Arc<dyn ContainerPort>,

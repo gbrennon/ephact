@@ -7,9 +7,9 @@ use crate::{
     },
     domain::errors::StepError,
 };
-/// Inbound port for running a composite action's steps.
-pub trait RunCompositeActionPort: Send + Sync {
-    fn execute(
+/// Runs the steps that define a composite action.
+pub trait CompositeActionRunnerPort: Send + Sync {
+    fn run(
         &self,
         request: RunCompositeActionRequest<'_>,
         container: Arc<dyn ContainerPort>,

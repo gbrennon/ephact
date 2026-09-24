@@ -6,10 +6,7 @@ use crate::{
     domain::errors::ContainerError,
 };
 
-/// Outbound port for managing a container runtime.
-///
-/// The application layer owns this contract; infrastructure supplies adapters
-/// that implement it.
+/// Manages container lifecycle operations and host information.
 pub trait ContainerRuntimePort: Send + Sync {
     /// Pulls a container image from a registry.
     fn pull_image(&self, image: &str, platform: Option<&str>) -> Result<(), ContainerError>;

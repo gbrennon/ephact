@@ -5,7 +5,7 @@ mod tests {
     use ephact::{
         application::{
             dtos::requests::PrepareJobContainerRequest,
-            ports::outbound::prepare_job_container_port::PrepareJobContainerPort,
+            ports::outbound::job_container_preparer_port::JobContainerPreparerPort,
         },
         infrastructure::containers::prepare_job_container_service::PrepareJobContainerService,
     };
@@ -42,7 +42,7 @@ mod tests {
             Box::new(FakeCopyRepositoryToContainerPort::new()),
         );
 
-        let prepared = service.execute(request(Path::new("/repo"))).unwrap();
+        let prepared = service.prepare(request(Path::new("/repo"))).unwrap();
 
         let name = prepared.container_name();
         let pid = std::process::id();
@@ -63,7 +63,7 @@ mod tests {
             Box::new(FakeCopyRepositoryToContainerPort::new()),
         );
 
-        service.execute(request(Path::new("/repo"))).unwrap();
+        service.prepare(request(Path::new("/repo"))).unwrap();
 
         let legacy_names = creator.legacy_container_names();
         assert_eq!(legacy_names.len(), 1);
@@ -90,7 +90,7 @@ mod tests {
             Box::new(FakeCopyRepositoryToContainerPort::new()),
         );
 
-        service.execute(request(Path::new("/repo"))).unwrap();
+        service.prepare(request(Path::new("/repo"))).unwrap();
 
         assert_eq!(creator.images(), vec!["mapped:image".to_string()]);
     }
@@ -104,7 +104,7 @@ mod tests {
             Box::new(FakeCopyRepositoryToContainerPort::new()),
         );
 
-        let Err(error) = service.execute(request(Path::new("/repo"))) else {
+        let Err(error) = service.prepare(request(Path::new("/repo"))) else {
             panic!("a failing image pull should fail the preparation");
         };
         let error = error.to_string();
@@ -122,7 +122,7 @@ mod tests {
             Box::new(copier.clone()),
         );
 
-        service.execute(request(Path::new("/repo"))).unwrap();
+        service.prepare(request(Path::new("/repo"))).unwrap();
 
         let requests = copier.requests();
         assert_eq!(requests.len(), 1);
@@ -140,7 +140,7 @@ mod tests {
         );
 
         service
-            .execute(request_with_writes(Path::new("/repo")))
+            .prepare(request_with_writes(Path::new("/repo")))
             .unwrap();
 
         assert_eq!(copier.requests().len(), 0);
@@ -154,7 +154,7 @@ mod tests {
             Box::new(FakeCopyRepositoryToContainerPort::failing("copy failed")),
         );
 
-        let result = service.execute(request(Path::new("/repo")));
+        let result = service.prepare(request(Path::new("/repo")));
 
         assert!(result.is_err());
         if let Err(e) = result {

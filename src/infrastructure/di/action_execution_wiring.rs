@@ -3,9 +3,9 @@ use std::sync::Arc;
 use crate::{
     application::{
         ports::outbound::{
-            ActionCommandBusPort, DomainEventBusPort, LoadActionDefinitionPort,
-            ResolveActionDirectoryPort, ResolveActionInputsPort, RunCompositeActionPort,
-            RunNodeActionPort,
+            ActionCommandBusPort, ActionDefinitionLoaderPort, ActionDirectoryResolverPort,
+            ActionInputsResolverPort, CompositeActionRunnerPort, DomainEventBusPort,
+            NodeActionRunnerPort,
         },
         services::execute_action_service::ExecuteActionService,
     },
@@ -28,20 +28,20 @@ impl ActionExecutionWiring {
         command_bus: Box<dyn ActionCommandBusPort>,
         event_bus: Box<dyn DomainEventBusPort>,
     ) -> ExecuteActionFactory {
-        let directory_resolver: Arc<dyn ResolveActionDirectoryPort> = Arc::new(
+        let directory_resolver: Arc<dyn ActionDirectoryResolverPort> = Arc::new(
             ResolveActionDirectoryService::new(Box::new(FetchRemoteActionService::new(fetcher))),
         );
-        let definition_loader: Arc<dyn LoadActionDefinitionPort> =
+        let definition_loader: Arc<dyn ActionDefinitionLoaderPort> =
             Arc::new(LoadActionDefinitionService::new());
-        let input_resolver: Arc<dyn ResolveActionInputsPort> =
+        let input_resolver: Arc<dyn ActionInputsResolverPort> =
             Arc::new(ResolveActionInputsService::new());
-        let composite_runner: Arc<dyn RunCompositeActionPort> = Arc::new(
+        let composite_runner: Arc<dyn CompositeActionRunnerPort> = Arc::new(
             RunCompositeActionService::new(Box::new(RunCompositeStepService::new(
                 Box::new(RunShellStepService::new(event_bus)),
                 command_bus,
             ))),
         );
-        let node_runner: Arc<dyn RunNodeActionPort> = Arc::new(RunNodeActionService::new(
+        let node_runner: Arc<dyn NodeActionRunnerPort> = Arc::new(RunNodeActionService::new(
             Box::new(CopyActionToContainerService::new(Box::new(
                 CollectActionFilesService::new(),
             ))),

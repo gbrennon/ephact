@@ -10,7 +10,7 @@ mod tests {
             },
             ports::outbound::{
                 ContainerRuntimePort, container_port::ContainerPort,
-                run_shell_step_port::RunShellStepPort,
+                shell_step_runner_port::ShellStepRunnerPort,
             },
         },
         domain::entities::Step,
@@ -50,7 +50,7 @@ mod tests {
         let step = step_from("run: echo hi\n");
 
         let result = RunShellStepService::new(Box::new(FakeEventBus::new()))
-            .execute(RunShellStepRequest::new(
+            .run(RunShellStepRequest::new(
                 &step,
                 container.as_ref(),
                 &HashMap::new(),
@@ -71,7 +71,7 @@ mod tests {
         env.insert("MODE".to_string(), "job".to_string());
 
         RunShellStepService::new(Box::new(FakeEventBus::new()))
-            .execute(RunShellStepRequest::new(&step, container.as_ref(), &env))
+            .run(RunShellStepRequest::new(&step, container.as_ref(), &env))
             .unwrap();
 
         let environments = runtime.exec_environments.lock();
@@ -88,7 +88,7 @@ mod tests {
         let step = step_from("name: nothing to run\n");
 
         let error = RunShellStepService::new(Box::new(FakeEventBus::new()))
-            .execute(RunShellStepRequest::new(
+            .run(RunShellStepRequest::new(
                 &step,
                 container.as_ref(),
                 &HashMap::new(),
@@ -104,7 +104,7 @@ mod tests {
         let container = StubFailingContainer;
 
         let error = RunShellStepService::new(Box::new(FakeEventBus::new()))
-            .execute(RunShellStepRequest::new(&step, &container, &HashMap::new()))
+            .run(RunShellStepRequest::new(&step, &container, &HashMap::new()))
             .unwrap_err();
 
         assert!(error.message().contains("exec refused"));

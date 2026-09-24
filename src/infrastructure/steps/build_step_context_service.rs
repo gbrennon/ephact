@@ -1,7 +1,7 @@
 use crate::{
     application::{
         dtos::requests::BuildStepContextRequest,
-        ports::outbound::build_step_context_port::BuildStepContextPort,
+        ports::outbound::step_context_builder_port::StepContextBuilderPort,
     },
     domain::{
         services::evaluation_context_mapper::EvaluationContextMapper,
@@ -24,8 +24,8 @@ impl Default for BuildStepContextService {
     }
 }
 
-impl BuildStepContextPort for BuildStepContextService {
-    fn execute(&self, request: BuildStepContextRequest) -> EvaluationContext {
+impl StepContextBuilderPort for BuildStepContextService {
+    fn build(&self, request: BuildStepContextRequest) -> EvaluationContext {
         let context =
             EvaluationContextMapper::from_parts(request.context().to_vec()).unwrap_or_default();
         let env = ContextValue::mapping(

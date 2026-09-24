@@ -1,7 +1,7 @@
 use crate::{
     application::{
         dtos::requests::LoadWorkflowRequest, errors::LoadWorkflowError,
-        ports::outbound::load_workflow_port::LoadWorkflowPort,
+        ports::outbound::workflow_loader_port::WorkflowLoaderPort,
     },
     domain::aggregates::Workflow,
     infrastructure::workflows::yaml::WorkflowYaml,
@@ -21,8 +21,8 @@ impl Default for LoadWorkflowService {
     }
 }
 
-impl LoadWorkflowPort for LoadWorkflowService {
-    fn execute(&self, request: LoadWorkflowRequest) -> Result<Workflow, LoadWorkflowError> {
+impl WorkflowLoaderPort for LoadWorkflowService {
+    fn load(&self, request: LoadWorkflowRequest) -> Result<Workflow, LoadWorkflowError> {
         let parsed: WorkflowYaml =
             serde_yaml::from_str(request.workflow_content()).map_err(LoadWorkflowError::Parse)?;
         Ok(parsed.into_domain())

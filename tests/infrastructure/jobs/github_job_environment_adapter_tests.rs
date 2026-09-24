@@ -5,7 +5,7 @@ mod tests {
     use ephact::{
         application::{
             dtos::requests::BuildJobEnvironmentRequest,
-            ports::outbound::build_job_environment_port::BuildJobEnvironmentPort,
+            ports::outbound::job_environment_builder_port::JobEnvironmentBuilderPort,
         },
         domain::aggregates::Workflow,
         infrastructure::{jobs::RunnerEnvironmentAdapter, workflows::yaml::WorkflowYaml},
@@ -30,7 +30,7 @@ mod tests {
     fn execute_lets_the_job_environment_override_the_workflow_one() {
         let workflow = workflow("name: Ci\non: push\nenv:\n  MODE: workflow\njobs: {}\n");
 
-        let response = RunnerEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest::new(
+        let response = RunnerEnvironmentAdapter::new().build(BuildJobEnvironmentRequest::new(
             workflow.clone(),
             job_env(&[("MODE", "job")]),
         ));
@@ -42,7 +42,7 @@ mod tests {
     fn execute_sets_the_runners_own_variables() {
         let workflow = workflow("name: Ci\non: push\njobs: {}\n");
 
-        let response = RunnerEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest::new(
+        let response = RunnerEnvironmentAdapter::new().build(BuildJobEnvironmentRequest::new(
             workflow.clone(),
             HashMap::new(),
         ));
@@ -65,7 +65,7 @@ mod tests {
     fn execute_defaults_the_path_when_neither_workflow_nor_job_declares_one() {
         let workflow = workflow("name: Ci\non: push\njobs: {}\n");
 
-        let response = RunnerEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest::new(
+        let response = RunnerEnvironmentAdapter::new().build(BuildJobEnvironmentRequest::new(
             workflow.clone(),
             HashMap::new(),
         ));
@@ -80,7 +80,7 @@ mod tests {
     fn execute_keeps_a_declared_path() {
         let workflow = workflow("name: Ci\non: push\nenv:\n  PATH: /custom/bin\njobs: {}\n");
 
-        let response = RunnerEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest::new(
+        let response = RunnerEnvironmentAdapter::new().build(BuildJobEnvironmentRequest::new(
             workflow.clone(),
             HashMap::new(),
         ));
@@ -95,7 +95,7 @@ mod tests {
     fn execute_keeps_a_job_declared_path() {
         let workflow = workflow("name: Ci\non: push\njobs: {}\n");
 
-        let response = RunnerEnvironmentAdapter::new().execute(BuildJobEnvironmentRequest::new(
+        let response = RunnerEnvironmentAdapter::new().build(BuildJobEnvironmentRequest::new(
             workflow.clone(),
             job_env(&[("PATH", "/job/bin")]),
         ));
