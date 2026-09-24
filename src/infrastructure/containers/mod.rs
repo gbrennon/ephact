@@ -1,35 +1,18 @@
 pub mod bollard_wrapper;
-pub mod boxed_container_runtime;
-pub mod build_run_context_port;
-pub mod build_run_context_service;
 pub mod container_cleanup_handler;
-pub mod container_runtime_adapter;
-pub mod container_streaming;
-pub mod copy_repository_to_container_port;
-pub mod create_job_container_port;
-pub mod create_job_container_service;
-pub mod docker_container;
-pub mod docker_runtime;
-pub mod exec_streaming_support;
-pub mod podman_container;
-pub mod podman_runtime;
-pub mod prepare_job_container_service;
-pub mod pull_job_image_port;
-pub mod pull_job_image_service;
-pub mod repository_container_copy_adapter;
-pub mod tar_transfer;
+pub mod docker;
+pub mod job_preparation;
+pub mod podman;
+pub mod runtime;
+pub mod streaming;
 pub mod workspace;
 
-pub use build_run_context_port::BuildRunContextPort;
-pub use build_run_context_service::BuildRunContextService;
 pub use container_cleanup_handler::ContainerCleanupHandler;
-pub use container_runtime_adapter::ContainerRuntimeAdapter;
-pub use copy_repository_to_container_port::CopyRepositoryToContainerPort;
-pub use create_job_container_port::CreateJobContainerPort;
-pub use create_job_container_service::CreateJobContainerService;
-pub use docker_runtime::DockerRuntime;
-pub use podman_runtime::PodmanRuntime;
-pub use prepare_job_container_service::PrepareJobContainerService;
-pub use pull_job_image_port::PullJobImagePort;
-pub use pull_job_image_service::PullJobImageService;
-pub use repository_container_copy_adapter::RepositoryContainerCopyAdapter;
+pub use docker::DockerRuntime;
+pub use job_preparation::{
+    BuildRunContextPort, BuildRunContextService, CopyRepositoryToContainerPort,
+    CreateJobContainerPort, CreateJobContainerService, PrepareJobContainerService,
+    PullJobImagePort, PullJobImageService, RepositoryContainerCopyAdapter,
+};
+pub use podman::PodmanRuntime;
+pub use runtime::ContainerRuntimeAdapter;

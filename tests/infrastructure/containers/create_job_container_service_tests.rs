@@ -4,10 +4,7 @@ mod tests {
 
     use ephact::{
         application::dtos::requests::CreateJobContainerRequest,
-        infrastructure::containers::{
-            create_job_container_port::CreateJobContainerPort,
-            create_job_container_service::CreateJobContainerService,
-        },
+        infrastructure::containers::{CreateJobContainerPort, CreateJobContainerService},
     };
 
     use crate::common::fakes::{

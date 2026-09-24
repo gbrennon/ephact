@@ -8,10 +8,7 @@ mod tests {
             ActRunConfig, RepoPath, Repository, RepositoryName,
             value_objects::{ActEvent, ActInput, ContextValue, Secret},
         },
-        infrastructure::containers::{
-            build_run_context_port::BuildRunContextPort,
-            build_run_context_service::BuildRunContextService,
-        },
+        infrastructure::containers::{BuildRunContextPort, BuildRunContextService},
     };
 
     fn repository(path: &Path) -> Repository {

@@ -103,38 +103,6 @@ impl Cli {
         cli
     }
 
-    pub fn new_with_failure_stores_and_tui(
-        dependencies: CliDependencies,
-        failure_log_stores: crate::infrastructure::logging::FailureLogStores,
-        tui_runner: TuiRunner,
-    ) -> Self {
-        let (
-            run_workflow_port,
-            run_all_workflows_port,
-            discover_run_inputs_port,
-            list_workflows_port,
-            list_actions_port,
-            show_project_branding_info_port,
-        ) = dependencies.into_parts();
-        let run_workflow_port: Arc<dyn RunWorkflowPort> = Arc::from(run_workflow_port);
-        let discover_run_inputs_port: Arc<dyn RunInputsDiscovererPort> =
-            Arc::from(discover_run_inputs_port);
-        let list_workflows_port: Arc<dyn ListWorkflowsPort> = Arc::from(list_workflows_port);
-        let list_actions_port: Arc<dyn ListActionsPort> = Arc::from(list_actions_port);
-        Self {
-            run_workflow_port,
-            run_all_workflows_port,
-            discover_run_inputs_port,
-            list_workflows_port,
-            list_actions_port,
-            show_project_branding_info_port,
-            failure_log_error_store: failure_log_stores.error_store(),
-            failure_log_path_store: failure_log_stores.path_store(),
-            tui_runner,
-            settings: Settings::default(),
-            settings_store: None,
-        }
-    }
     pub fn with_settings(
         mut self,
         settings: Settings,

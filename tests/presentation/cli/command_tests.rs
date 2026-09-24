@@ -9,7 +9,7 @@ mod tests {
         },
         domain::{InterfaceMode, Settings},
         presentation::{
-            cli::{Cli, cli::CliDependencies},
+            cli::{Cli, CliDependencies},
             components::terminal::SystemTerminal,
         },
     };

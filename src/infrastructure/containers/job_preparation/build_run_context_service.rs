@@ -1,11 +1,9 @@
 use std::collections::BTreeMap;
 
+use super::{super::workspace::CONTAINER_WORKSPACE, build_run_context_port::BuildRunContextPort};
 use crate::{
     application::dtos::{requests::BuildRunContextRequest, responses::BuildRunContextResponse},
     domain::value_objects::{ContextValue, EvaluationContext},
-    infrastructure::containers::{
-        build_run_context_port::BuildRunContextPort, workspace::CONTAINER_WORKSPACE,
-    },
 };
 
 pub struct BuildRunContextService;
@@ -13,6 +11,15 @@ pub struct BuildRunContextService;
 impl BuildRunContextService {
     pub fn new() -> Self {
         Self
+    }
+
+    /// Returns the runner facts every job sees in the `runner` context.
+    fn runner_context(&self) -> ContextValue {
+        ContextValue::mapping([
+            ("os".to_owned(), ContextValue::text("Linux")),
+            ("arch".to_owned(), ContextValue::text("X64")),
+            ("temp".to_owned(), ContextValue::text("/tmp")),
+        ])
     }
 }
 
@@ -61,16 +68,7 @@ impl BuildRunContextPort for BuildRunContextService {
             .with_secrets(secrets)
             .with_inputs(ContextValue::Mapping(inputs))
             .with_github(github)
-            .with_runner(runner_context());
+            .with_runner(self.runner_context());
         BuildRunContextResponse::new(context)
     }
-}
-
-/// Returns the runner facts every job sees in the `runner` context.
-fn runner_context() -> ContextValue {
-    ContextValue::mapping([
-        ("os".to_owned(), ContextValue::text("Linux")),
-        ("arch".to_owned(), ContextValue::text("X64")),
-        ("temp".to_owned(), ContextValue::text("/tmp")),
-    ])
 }

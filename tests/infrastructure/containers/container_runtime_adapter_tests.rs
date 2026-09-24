@@ -6,7 +6,7 @@ mod tests {
             dtos::responses::{ContainerConfigOptions, ContainerConfigResponse},
             ports::outbound::ContainerRuntimePort,
         },
-        infrastructure::containers::container_runtime_adapter::ContainerRuntimeAdapter,
+        infrastructure::containers::ContainerRuntimeAdapter,
     };
 
     use crate::common::fakes::{
@@ -25,7 +25,7 @@ mod tests {
     #[test]
     fn pull_image_delegates_to_the_injected_runtime() {
         let spy = SpyContainerRuntime::new();
-        let adapter = ContainerRuntimeAdapter::new(spy.clone(), "Docker");
+        let adapter = ContainerRuntimeAdapter::new(Box::new(spy.clone()), "Docker".to_string());
 
         adapter.pull_image("alpine:latest", None).unwrap();
 
@@ -35,7 +35,7 @@ mod tests {
     #[test]
     fn create_container_delegates_to_the_injected_runtime() {
         let spy = SpyContainerRuntime::new();
-        let adapter = ContainerRuntimeAdapter::new(spy.clone(), "Docker");
+        let adapter = ContainerRuntimeAdapter::new(Box::new(spy.clone()), "Docker".to_string());
 
         adapter.create_container(&make_config("job-1")).unwrap();
 
@@ -45,7 +45,7 @@ mod tests {
     #[test]
     fn stop_container_delegates_to_the_injected_runtime() {
         let spy = SpyContainerRuntime::new();
-        let adapter = ContainerRuntimeAdapter::new(spy.clone(), "Docker");
+        let adapter = ContainerRuntimeAdapter::new(Box::new(spy.clone()), "Docker".to_string());
 
         adapter.stop_container("job-1").unwrap();
 
@@ -55,7 +55,7 @@ mod tests {
     #[test]
     fn kill_container_delegates_to_the_injected_runtime() {
         let spy = SpyContainerRuntime::new();
-        let adapter = ContainerRuntimeAdapter::new(spy.clone(), "Docker");
+        let adapter = ContainerRuntimeAdapter::new(Box::new(spy.clone()), "Docker".to_string());
 
         adapter.kill_container("job-1").unwrap();
 
@@ -65,7 +65,7 @@ mod tests {
     #[test]
     fn remove_container_delegates_to_the_injected_runtime() {
         let spy = SpyContainerRuntime::new();
-        let adapter = ContainerRuntimeAdapter::new(spy.clone(), "Docker");
+        let adapter = ContainerRuntimeAdapter::new(Box::new(spy.clone()), "Docker".to_string());
 
         adapter.remove_container("job-1").unwrap();
 
@@ -75,7 +75,7 @@ mod tests {
     #[test]
     fn get_host_info_delegates_to_the_injected_runtime() {
         let spy = SpyContainerRuntime::new();
-        let adapter = ContainerRuntimeAdapter::new(spy, "Docker");
+        let adapter = ContainerRuntimeAdapter::new(Box::new(spy), "Docker".to_string());
 
         let info = adapter.get_host_info().unwrap();
 
@@ -85,7 +85,8 @@ mod tests {
 
     #[test]
     fn docker_named_adapter_leaves_the_error_untouched() {
-        let adapter = ContainerRuntimeAdapter::new(StubDockerErroringRuntime, "Docker");
+        let adapter =
+            ContainerRuntimeAdapter::new(Box::new(StubDockerErroringRuntime), "Docker".to_string());
 
         let err = adapter.pull_image("alpine:latest", None).unwrap_err();
 
@@ -98,7 +99,8 @@ mod tests {
 
     #[test]
     fn podman_named_adapter_rewrites_docker_to_podman_in_errors() {
-        let adapter = ContainerRuntimeAdapter::new(StubDockerErroringRuntime, "Podman");
+        let adapter =
+            ContainerRuntimeAdapter::new(Box::new(StubDockerErroringRuntime), "Podman".to_string());
 
         let err = adapter.pull_image("alpine:latest", None).unwrap_err();
 
@@ -115,7 +117,8 @@ mod tests {
 
     #[test]
     fn podman_named_adapter_rewrites_errors_for_every_operation() {
-        let adapter = ContainerRuntimeAdapter::new(StubDockerErroringRuntime, "Podman");
+        let adapter =
+            ContainerRuntimeAdapter::new(Box::new(StubDockerErroringRuntime), "Podman".to_string());
 
         let create_err = match adapter.create_container(&make_config("x")) {
             Ok(_) => panic!("expected create_container to fail"),
@@ -138,7 +141,10 @@ mod tests {
 
     #[test]
     fn runtime_name_reports_the_injected_label() {
-        let adapter = ContainerRuntimeAdapter::new(SpyContainerRuntime::new(), "Podman");
+        let adapter = ContainerRuntimeAdapter::new(
+            Box::new(SpyContainerRuntime::new()),
+            "Podman".to_string(),
+        );
 
         assert_eq!(adapter.runtime_name(), "Podman");
     }

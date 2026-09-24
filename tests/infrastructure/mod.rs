@@ -1,5 +1,5 @@
 #[path = "../common/mod.rs"]
-mod common;
+pub mod common;
 
 mod actions;
 mod containers;

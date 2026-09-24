@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use ephact::application::{
     dtos::{
         requests::ListWorkflowsRequest,
@@ -34,6 +32,12 @@ impl FakeListWorkflowsPort {
             workflows: vec![],
             error_message: Some(message.to_string()),
         }
+    }
+}
+
+impl Default for FakeListWorkflowsPort {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -1,7 +1,7 @@
 use super::application::Application;
 use crate::{
     infrastructure::di::AppContainer,
-    presentation::cli::{Cli, cli::CliDependencies},
+    presentation::cli::{Cli, CliDependencies},
 };
 
 pub struct CompositionRoot;
@@ -11,12 +11,6 @@ impl CompositionRoot {
         Self::compose_internal(container, None)
     }
 
-    pub fn compose_with_tui_progress(
-        container: AppContainer,
-        progress_stream: crate::presentation::cli::TuiProgressStream,
-    ) -> Application {
-        Self::compose_internal(container, Some(progress_stream))
-    }
     pub fn compose_with_tui_progress_and_settings(
         container: AppContainer,
         progress_stream: crate::presentation::cli::TuiProgressStream,

@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use std::{collections::HashMap, sync::Arc};
 
 use ephact::{
@@ -49,6 +48,12 @@ impl FakeRuntime {
             .filter(|command| command.len() == 3 && command[1] == "-c")
             .map(|command| command[2].clone())
             .collect()
+    }
+}
+
+impl Default for FakeRuntime {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

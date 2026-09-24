@@ -1,16 +1,19 @@
 use futures_util::StreamExt;
-use tokio::runtime::{Handle, Runtime};
+use tokio::runtime::Runtime;
 
 use super::{
-    bollard_wrapper::{
-        AuthCredentials, Client,
-        types::{
-            ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
-            HostConfig, InspectContainerOptions, KillContainerOptions, RemoveContainerOptions,
-            StartContainerOptions,
+    super::{
+        bollard_wrapper::{
+            API_DEFAULT_VERSION, AuthCredentials, Client,
+            types::{
+                ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
+                HostConfig, InspectContainerOptions, KillContainerOptions, RemoveContainerOptions,
+                StartContainerOptions,
+            },
         },
+        runtime::block_on_runtime::RuntimeBlocker,
     },
-    docker_container::DockerContainer,
+    container::PodmanContainer,
 };
 use crate::{
     application::{
@@ -20,67 +23,69 @@ use crate::{
     domain::errors::ContainerError,
 };
 
-/// Docker-based container runtime adapter using the bollard crate.
+/// Podman-based container runtime adapter using the bollard crate.
 ///
-/// Connects to the Docker daemon via the default Unix socket
-/// (`/var/run/docker.sock`).
-pub struct DockerRuntime {
-    docker: Client,
+/// Podman exposes a Docker-compatible API. This adapter connects via the
+/// Podman socket, trying rootless first (`/run/user/$UID/podman/podman.sock`)
+/// then falling back to the root socket (`/run/podman/podman.sock`).
+pub struct PodmanRuntime {
+    client: Client,
     runtime: Runtime,
 }
 
-impl DockerRuntime {
-    /// Create a new Docker runtime adapter connected to the local Docker daemon.
+impl PodmanRuntime {
+    /// Create a new Podman runtime adapter.
+    ///
+    /// Probes the rootless socket first, then the root socket. Returns
+    /// `ContainerError::NotAvailable` if neither is reachable.
     pub fn new() -> Result<Self, ContainerError> {
-        let docker =
-            Client::connect_with_local_defaults().map_err(|_e| ContainerError::NotAvailable)?;
         let runtime = Runtime::new().map_err(|e| ContainerError::Internal(e.to_string()))?;
-        Ok(Self { docker, runtime })
+
+        let uid = unsafe { libc::getuid() };
+        let rootless_socket = format!("unix:///run/user/{}/podman/podman.sock", uid);
+        let root_socket = "unix:///run/podman/podman.sock";
+
+        let client = Client::connect_with_unix(&rootless_socket, 120, API_DEFAULT_VERSION)
+            .or_else(|_| Client::connect_with_unix(root_socket, 120, API_DEFAULT_VERSION))
+            .map_err(|_| ContainerError::NotAvailable)?;
+
+        Ok(Self { client, runtime })
+    }
+
+    fn build_container_config(&self, config: &ContainerConfigResponse) -> ContainerCreateBody {
+        let env_list = config
+            .env()
+            .iter()
+            .map(|(key, value)| format!("{}={}", key, value))
+            .collect();
+        let host_config = HostConfig {
+            binds: Some(config.binds().to_vec()),
+            network_mode: config.network().map(str::to_string),
+            ..Default::default()
+        };
+        ContainerCreateBody {
+            image: Some(config.image().to_string()),
+            env: Some(env_list),
+            cmd: config.cmd().map(<[String]>::to_vec),
+            entrypoint: config.entrypoint().map(<[String]>::to_vec),
+            working_dir: config.workdir().map(str::to_string),
+            host_config: Some(host_config),
+            ..Default::default()
+        }
     }
 }
 
-pub(super) fn block_on_runtime<F, T>(runtime: &Handle, future: F) -> T
-where
-    F: std::future::Future<Output = T>,
-{
-    if Handle::try_current().is_ok() {
-        tokio::task::block_in_place(|| runtime.block_on(future))
-    } else {
-        runtime.block_on(future)
-    }
-}
-fn build_container_config(config: &ContainerConfigResponse) -> ContainerCreateBody {
-    let env_list = config
-        .env()
-        .iter()
-        .map(|(key, value)| format!("{}={}", key, value))
-        .collect();
-    let host_config = HostConfig {
-        binds: Some(config.binds().to_vec()),
-        network_mode: config.network().map(str::to_string),
-        ..Default::default()
-    };
-    ContainerCreateBody {
-        image: Some(config.image().to_string()),
-        env: Some(env_list),
-        cmd: config.cmd().map(<[String]>::to_vec),
-        entrypoint: config.entrypoint().map(<[String]>::to_vec),
-        working_dir: config.workdir().map(str::to_string),
-        host_config: Some(host_config),
-        ..Default::default()
-    }
-}
-
-impl ContainerRuntimePort for DockerRuntime {
+impl ContainerRuntimePort for PodmanRuntime {
     fn pull_image(&self, image: &str, platform: Option<&str>) -> Result<(), ContainerError> {
         let mut options_builder = CreateImageOptionsBuilder::new().from_image(image);
         if let Some(p) = platform {
             options_builder = options_builder.platform(p);
         }
         let options = options_builder.build();
-        block_on_runtime(self.runtime.handle(), async {
+
+        RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             let mut stream = self
-                .docker
+                .client
                 .create_image(Some(options), None, None::<AuthCredentials>);
 
             while let Some(result) = stream.next().await {
@@ -106,10 +111,10 @@ impl ContainerRuntimePort for DockerRuntime {
             .name(config.name().unwrap_or(""))
             .platform(config.platform().unwrap_or(""))
             .build();
-        let container_config = build_container_config(config);
+        let container_config = self.build_container_config(config);
 
-        let container = block_on_runtime(self.runtime.handle(), async {
-            self.docker
+        let container = RuntimeBlocker::new(self.runtime.handle()).block_on(async {
+            self.client
                 .create_container(Some(create_options), container_config)
                 .await
                 .map_err(|e| {
@@ -120,8 +125,8 @@ impl ContainerRuntimePort for DockerRuntime {
                 })
         })?;
 
-        block_on_runtime(self.runtime.handle(), async {
-            self.docker
+        RuntimeBlocker::new(self.runtime.handle()).block_on(async {
+            self.client
                 .start_container(&container.id, None::<StartContainerOptions>)
                 .await
                 .map_err(|e| {
@@ -132,8 +137,8 @@ impl ContainerRuntimePort for DockerRuntime {
                 })
         })?;
 
-        Ok(Box::new(DockerContainer::new(
-            self.docker.clone(),
+        Ok(Box::new(PodmanContainer::new(
+            self.client.clone(),
             container.id,
             self.runtime.handle().clone(),
             config.runner_context().clone(),
@@ -141,16 +146,16 @@ impl ContainerRuntimePort for DockerRuntime {
     }
 
     fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
-        block_on_runtime(self.runtime.handle(), async {
+        RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             let force = match self
-                .docker
+                .client
                 .inspect_container(name, None::<InspectContainerOptions>)
                 .await
             {
                 Ok(inspect) => inspect.state.and_then(|s| s.running).unwrap_or(false),
                 Err(_) => return Ok(()),
             };
-            self.docker
+            self.client
                 .remove_container(
                     name,
                     Some(RemoveContainerOptions {
@@ -164,16 +169,16 @@ impl ContainerRuntimePort for DockerRuntime {
     }
 
     fn stop_container(&self, name: &str) -> Result<(), ContainerError> {
-        block_on_runtime(self.runtime.handle(), async {
+        RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             if let Ok(inspect) = self
-                .docker
+                .client
                 .inspect_container(name, None::<InspectContainerOptions>)
                 .await
                 && !inspect.state.and_then(|s| s.running).unwrap_or(false)
             {
                 return Ok(());
             }
-            self.docker
+            self.client
                 .stop_container(name, None)
                 .await
                 .map_err(|e| ContainerError::RemovalFailed(name.to_string(), e.to_string()))
@@ -181,16 +186,16 @@ impl ContainerRuntimePort for DockerRuntime {
     }
 
     fn kill_container(&self, name: &str) -> Result<(), ContainerError> {
-        block_on_runtime(self.runtime.handle(), async {
+        RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             match self
-                .docker
+                .client
                 .inspect_container(name, None::<InspectContainerOptions>)
                 .await
             {
                 Ok(inspect) if inspect.state.as_ref().and_then(|s| s.running) == Some(true) => {}
                 _ => return Ok(()),
             }
-            self.docker
+            self.client
                 .kill_container(name, None::<KillContainerOptions>)
                 .await
                 .map_err(|e| ContainerError::KillFailed(name.to_string(), e.to_string()))
@@ -198,12 +203,12 @@ impl ContainerRuntimePort for DockerRuntime {
     }
 
     fn get_host_info(&self) -> Result<HostInfoResponse, ContainerError> {
-        block_on_runtime(self.runtime.handle(), async {
+        RuntimeBlocker::new(self.runtime.handle()).block_on(async {
             let info = self
-                .docker
+                .client
                 .version()
                 .await
-                .map_err(|_e| ContainerError::NotAvailable)?;
+                .map_err(|_| ContainerError::NotAvailable)?;
 
             Ok(HostInfoResponse::new(
                 info.os.unwrap_or_else(|| "linux".to_string()),
@@ -211,20 +216,5 @@ impl ContainerRuntimePort for DockerRuntime {
                 info.version.unwrap_or_else(|| "unknown".to_string()),
             ))
         })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn block_on_runtime_allows_nested_runtime_calls() {
-        let result = tokio::task::block_in_place(|| {
-            let runtime = Runtime::new().expect("runtime");
-            block_on_runtime(runtime.handle(), async { 7 })
-        });
-
-        assert_eq!(result, 7);
     }
 }

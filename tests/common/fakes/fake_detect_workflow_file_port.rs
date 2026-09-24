@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use std::{
     path::PathBuf,
     sync::atomic::{AtomicBool, Ordering},

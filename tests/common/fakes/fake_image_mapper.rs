@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use ephact::infrastructure::images::ImageMapperPort;
 
 pub struct FakeImageMapper;
