@@ -23,7 +23,7 @@ mod tests {
     };
 
     use crate::common::fakes::{
-        fake_command_bus::FakeCommandBus, fake_run_shell_step_port::FakeRunShellStepPort,
+        fake_command_bus::FakeCommandBus, fake_shell_step_runner_port::FakeShellStepRunnerPort,
         stub_container::StubContainer,
     };
 
@@ -41,14 +41,14 @@ mod tests {
         ExecuteActionResponse::new(0, "action\n".to_string(), String::new())
     }
 
-    fn service(shell: FakeRunShellStepPort, command_bus: FakeCommandBus) -> ExecuteStepService {
+    fn service(shell: FakeShellStepRunnerPort, command_bus: FakeCommandBus) -> ExecuteStepService {
         let container = Arc::new(StubContainer);
         ExecuteStepService::new(container, Arc::new(shell), Arc::new(command_bus))
     }
 
     #[test]
     fn execute_runs_a_run_step_through_the_shell_runner() {
-        let shell = FakeRunShellStepPort::returning(ExecResultResponse::new(
+        let shell = FakeShellStepRunnerPort::returning(ExecResultResponse::new(
             3,
             "out".to_string(),
             "err".to_string(),
@@ -74,7 +74,7 @@ mod tests {
     fn execute_publishes_an_action_command_for_a_uses_step() {
         let command_bus = FakeCommandBus::new().with_action_result(action_response());
         let service = service(
-            FakeRunShellStepPort::returning(shell_result("")),
+            FakeShellStepRunnerPort::returning(shell_result("")),
             command_bus.clone(),
         );
         let step = step_from("uses: ./actions/greet\n");
@@ -101,7 +101,7 @@ mod tests {
     fn execute_does_not_publish_an_action_command_for_a_run_step() {
         let command_bus = FakeCommandBus::new();
         let service = service(
-            FakeRunShellStepPort::returning(shell_result("")),
+            FakeShellStepRunnerPort::returning(shell_result("")),
             command_bus.clone(),
         );
         let step = step_from("run: echo hi\n");
@@ -119,7 +119,7 @@ mod tests {
 
     #[test]
     fn execute_resolves_expressions_before_running_the_step() {
-        let shell = FakeRunShellStepPort::returning(shell_result(""));
+        let shell = FakeShellStepRunnerPort::returning(shell_result(""));
         let service = service(shell.clone(), FakeCommandBus::new());
         let step = step_from("run: deploy ${{ inputs.mode }}\n");
         let inputs = ContextValue::mapping([("mode".to_string(), ContextValue::text("staging"))]);
@@ -139,7 +139,7 @@ mod tests {
     #[test]
     fn execute_reports_an_interpolation_failure() {
         let service = service(
-            FakeRunShellStepPort::returning(shell_result("")),
+            FakeShellStepRunnerPort::returning(shell_result("")),
             FakeCommandBus::new(),
         );
         let step = step_from("run: deploy ${{ }}\n");
@@ -164,7 +164,7 @@ mod tests {
     #[test]
     fn execute_propagates_a_collaborator_error_unchanged() {
         let service = service(
-            FakeRunShellStepPort::failing(
+            FakeShellStepRunnerPort::failing(
                 StepError::new("boom")
                     .with_stdout("partial")
                     .with_stderr("bad"),

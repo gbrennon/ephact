@@ -4,7 +4,7 @@ use std::sync::Arc;
 use ephact::application::{
     dtos::{requests::PrepareJobContainerRequest, responses::PreparedJobContainerResponse},
     errors::PrepareJobContainerError,
-    ports::outbound::prepare_job_container_port::PrepareJobContainerPort,
+    ports::outbound::job_container_preparer_port::JobContainerPreparerPort,
 };
 use parking_lot::Mutex;
 
@@ -12,13 +12,13 @@ use super::stub_container::StubContainer;
 
 /// Prepares a stub container under a prepared name, or fails as configured.
 #[derive(Clone)]
-pub struct FakePrepareJobContainerPort {
+pub struct FakeJobContainerPreparerPort {
     container_name: String,
     failure: Option<String>,
     job_ids: Arc<Mutex<Vec<String>>>,
 }
 
-impl FakePrepareJobContainerPort {
+impl FakeJobContainerPreparerPort {
     pub fn named(container_name: &str) -> Self {
         Self {
             container_name: container_name.to_string(),
@@ -40,8 +40,8 @@ impl FakePrepareJobContainerPort {
     }
 }
 
-impl PrepareJobContainerPort for FakePrepareJobContainerPort {
-    fn execute(
+impl JobContainerPreparerPort for FakeJobContainerPreparerPort {
+    fn prepare(
         &self,
         request: PrepareJobContainerRequest,
     ) -> Result<PreparedJobContainerResponse, PrepareJobContainerError> {

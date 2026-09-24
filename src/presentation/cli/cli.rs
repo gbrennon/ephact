@@ -19,7 +19,7 @@ use crate::{
             run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
             show_project_branding_info_port::ShowProjectBrandingInfoPort,
         },
-        outbound::{DiscoverRunInputsPort, SettingsStorePort},
+        outbound::{RunInputsDiscovererPort, SettingsStorePort},
     },
     domain::{InterfaceMode, Settings},
     presentation::{
@@ -33,7 +33,7 @@ use crate::{
 pub struct Cli {
     run_workflow_port: Arc<dyn RunWorkflowPort>,
     run_all_workflows_port: Box<dyn RunAllWorkflowsPort>,
-    discover_run_inputs_port: Arc<dyn DiscoverRunInputsPort>,
+    discover_run_inputs_port: Arc<dyn RunInputsDiscovererPort>,
     list_workflows_port: Arc<dyn ListWorkflowsPort>,
     list_actions_port: Arc<dyn ListActionsPort>,
     show_project_branding_info_port: Box<dyn ShowProjectBrandingInfoPort>,
@@ -68,7 +68,7 @@ impl Cli {
             show_project_branding_info_port,
         ) = dependencies.into_parts();
         let run_workflow_port: Arc<dyn RunWorkflowPort> = Arc::from(run_workflow_port);
-        let discover_run_inputs_port: Arc<dyn DiscoverRunInputsPort> =
+        let discover_run_inputs_port: Arc<dyn RunInputsDiscovererPort> =
             Arc::from(discover_run_inputs_port);
         let list_workflows_port: Arc<dyn ListWorkflowsPort> = Arc::from(list_workflows_port);
         let list_actions_port: Arc<dyn ListActionsPort> = Arc::from(list_actions_port);
@@ -117,7 +117,7 @@ impl Cli {
             show_project_branding_info_port,
         ) = dependencies.into_parts();
         let run_workflow_port: Arc<dyn RunWorkflowPort> = Arc::from(run_workflow_port);
-        let discover_run_inputs_port: Arc<dyn DiscoverRunInputsPort> =
+        let discover_run_inputs_port: Arc<dyn RunInputsDiscovererPort> =
             Arc::from(discover_run_inputs_port);
         let list_workflows_port: Arc<dyn ListWorkflowsPort> = Arc::from(list_workflows_port);
         let list_actions_port: Arc<dyn ListActionsPort> = Arc::from(list_actions_port);

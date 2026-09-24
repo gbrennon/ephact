@@ -2,9 +2,7 @@ use std::collections::HashMap;
 
 use crate::domain::aggregates::Workflow;
 
-/// Request DTO for the
-/// [`BuildJobEnvironmentPort`](crate::application::ports::outbound::build_job_environment_port::BuildJobEnvironmentPort)
-/// outbound port.
+/// Request data for building a job environment.
 pub struct BuildJobEnvironmentRequest {
     workflow: Workflow,
     job_env: HashMap<String, String>,

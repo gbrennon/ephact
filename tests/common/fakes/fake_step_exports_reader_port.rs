@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use ephact::application::{
     dtos::{requests::ReadStepExportsRequest, responses::StepExportsResponse},
-    ports::outbound::read_step_exports_port::ReadStepExportsPort,
+    ports::outbound::step_exports_reader_port::StepExportsReaderPort,
 };
 use parking_lot::Mutex;
 
@@ -11,12 +11,12 @@ type QueuedStepExports = (Vec<String>, HashMap<String, String>);
 
 /// Hands out the next queued set of exports, or nothing once drained.
 #[derive(Clone, Default)]
-pub struct FakeReadStepExportsPort {
+pub struct FakeStepExportsReaderPort {
     queued: Arc<Mutex<Vec<QueuedStepExports>>>,
     calls: Arc<Mutex<usize>>,
 }
 
-impl FakeReadStepExportsPort {
+impl FakeStepExportsReaderPort {
     pub fn new() -> Self {
         Self::default()
     }
@@ -33,8 +33,8 @@ impl FakeReadStepExportsPort {
     }
 }
 
-impl ReadStepExportsPort for FakeReadStepExportsPort {
-    fn execute(
+impl StepExportsReaderPort for FakeStepExportsReaderPort {
+    fn read(
         &self,
         _request: ReadStepExportsRequest,
         _container: &dyn ephact::application::ports::outbound::ContainerPort,

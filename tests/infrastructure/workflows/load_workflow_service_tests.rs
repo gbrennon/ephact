@@ -3,7 +3,7 @@ mod tests {
     use ephact::{
         application::{
             dtos::requests::LoadWorkflowRequest,
-            ports::outbound::load_workflow_port::LoadWorkflowPort,
+            ports::outbound::workflow_loader_port::WorkflowLoaderPort,
         },
         infrastructure::workflows::load_workflow_service::LoadWorkflowService,
     };
@@ -11,9 +11,9 @@ mod tests {
     const VALID_WORKFLOW: &str = "name: Ci\non: push\nenv:\n  MODE: staging\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n";
 
     #[test]
-    fn execute_parses_valid_workflow_content() {
+    fn load_parses_valid_workflow_content() {
         let workflow = LoadWorkflowService::new()
-            .execute(LoadWorkflowRequest::new(VALID_WORKFLOW.to_string()))
+            .load(LoadWorkflowRequest::new(VALID_WORKFLOW.to_string()))
             .unwrap();
 
         assert_eq!(workflow.name(), Some("Ci"));
@@ -25,8 +25,8 @@ mod tests {
     }
 
     #[test]
-    fn execute_errors_for_content_that_is_not_a_workflow_document() {
-        let result = LoadWorkflowService::new().execute(LoadWorkflowRequest::new(
+    fn load_errors_for_content_that_is_not_a_workflow_document() {
+        let result = LoadWorkflowService::new().load(LoadWorkflowRequest::new(
             "- push\n- pull_request\n".to_string(),
         ));
 
@@ -34,8 +34,8 @@ mod tests {
     }
 
     #[test]
-    fn execute_errors_for_malformed_yaml() {
-        let result = LoadWorkflowService::new().execute(LoadWorkflowRequest::new(
+    fn load_errors_for_malformed_yaml() {
+        let result = LoadWorkflowService::new().load(LoadWorkflowRequest::new(
             "name: [unterminated\n".to_string(),
         ));
 

@@ -15,7 +15,7 @@ use crate::{
         },
         ports::{
             inbound::{ListWorkflowsPort, RunAllWorkflowsPort, RunWorkflowPort},
-            outbound::DiscoverRunInputsPort,
+            outbound::RunInputsDiscovererPort,
         },
     },
     domain::{
@@ -34,14 +34,14 @@ use crate::{
 pub struct RunHandler;
 
 pub struct PreflightPorts<'a> {
-    discover_run_inputs_port: &'a dyn DiscoverRunInputsPort,
+    discover_run_inputs_port: &'a dyn RunInputsDiscovererPort,
     list_workflows_port: &'a dyn ListWorkflowsPort,
     terminal: &'a dyn Terminal,
 }
 
 impl<'a> PreflightPorts<'a> {
     pub fn new(
-        discover_run_inputs_port: &'a dyn DiscoverRunInputsPort,
+        discover_run_inputs_port: &'a dyn RunInputsDiscovererPort,
         list_workflows_port: &'a dyn ListWorkflowsPort,
         terminal: &'a dyn Terminal,
     ) -> Self {
@@ -105,7 +105,7 @@ impl RunHandler {
     }
 
     pub fn discover_inputs(
-        discover_run_inputs_port: &dyn DiscoverRunInputsPort,
+        discover_run_inputs_port: &dyn RunInputsDiscovererPort,
         repository_path: PathBuf,
         workflow: Option<String>,
         event: Option<String>,
@@ -115,7 +115,7 @@ impl RunHandler {
     > {
         let repository = Self::build_repository(repository_path)?;
         let config = Self::single_workflow_config(workflow, event, Vec::new());
-        Ok(discover_run_inputs_port.execute(DiscoverRunInputsRequest::new(config, repository))?)
+        Ok(discover_run_inputs_port.discover(DiscoverRunInputsRequest::new(config, repository))?)
     }
 
     fn build_repository(
@@ -263,7 +263,7 @@ impl RunHandler {
     }
     fn prepare_preflight_config(
         args: RunArgs,
-        discover_run_inputs_port: &dyn DiscoverRunInputsPort,
+        discover_run_inputs_port: &dyn RunInputsDiscovererPort,
         list_workflows_port: &dyn ListWorkflowsPort,
         terminal: &dyn Terminal,
     ) -> Result<(ActRunConfig, crate::domain::Repository), Box<dyn std::error::Error>> {
@@ -407,12 +407,12 @@ impl RunHandler {
     fn preflight_inputs(
         mut config: ActRunConfig,
         repository: crate::domain::Repository,
-        discover_run_inputs_port: &dyn DiscoverRunInputsPort,
+        discover_run_inputs_port: &dyn RunInputsDiscovererPort,
         terminal: &dyn Terminal,
         interactive: bool,
     ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
         let declarations = discover_run_inputs_port
-            .execute(DiscoverRunInputsRequest::new(config.clone(), repository))?;
+            .discover(DiscoverRunInputsRequest::new(config.clone(), repository))?;
         if Self::can_skip_prompting(&declarations, interactive) {
             return Ok(config);
         }

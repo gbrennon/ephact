@@ -22,7 +22,7 @@ mod tests {
             fake_run_workflow_port::FakeRunWorkflowPort,
         },
         fakes::{
-            fake_discover_run_inputs_port::FakeDiscoverRunInputsPort,
+            fake_run_inputs_discoverer_port::FakeRunInputsDiscovererPort,
             fake_settings_store::FakeSettingsStore,
         },
     };
@@ -50,7 +50,7 @@ mod tests {
             (
                 Box::new(FakeRunWorkflowPort::new(true)),
                 Box::new(FakeRunAllWorkflowsPort::new(true)),
-                Box::new(FakeDiscoverRunInputsPort::new()),
+                Box::new(FakeRunInputsDiscovererPort::new()),
             ),
             (
                 Box::new(FakeListWorkflowsPort::new()),

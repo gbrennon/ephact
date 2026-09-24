@@ -8,7 +8,7 @@ use crate::{
             responses::ExecuteActionResponse,
         },
         ports::outbound::{
-            container_port::ContainerPort, run_composite_action_port::RunCompositeActionPort,
+            composite_action_runner_port::CompositeActionRunnerPort, container_port::ContainerPort,
         },
     },
     domain::{
@@ -101,8 +101,8 @@ impl RunCompositeActionService {
     }
 }
 
-impl RunCompositeActionPort for RunCompositeActionService {
-    fn execute(
+impl CompositeActionRunnerPort for RunCompositeActionService {
+    fn run(
         &self,
         request: RunCompositeActionRequest<'_>,
         container: Arc<dyn ContainerPort>,

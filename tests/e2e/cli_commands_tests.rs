@@ -103,8 +103,8 @@ mod tests {
 
     struct InputDiscoveryFake;
 
-    impl ephact::application::ports::outbound::DiscoverRunInputsPort for InputDiscoveryFake {
-        fn execute(
+    impl ephact::application::ports::outbound::RunInputsDiscovererPort for InputDiscoveryFake {
+        fn discover(
             &self,
             _request: ephact::application::dtos::requests::DiscoverRunInputsRequest,
         ) -> Result<

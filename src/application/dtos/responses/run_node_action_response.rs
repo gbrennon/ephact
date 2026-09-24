@@ -1,6 +1,4 @@
-/// Response DTO for the
-/// [`RunNodeActionPort`](crate::application::ports::inbound::run_node_action_port::RunNodeActionPort)
-/// outbound port.
+/// Result of running a JavaScript action.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RunNodeActionResponse {
     /// Process exit code.

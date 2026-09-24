@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::{
     application::{
         dtos::requests::ResolveActionInputsRequest,
-        ports::outbound::resolve_action_inputs_port::ResolveActionInputsPort,
+        ports::outbound::action_inputs_resolver_port::ActionInputsResolverPort,
     },
     domain::errors::StepError,
 };
@@ -24,8 +24,8 @@ impl Default for ResolveActionInputsService {
     }
 }
 
-impl ResolveActionInputsPort for ResolveActionInputsService {
-    fn execute(
+impl ActionInputsResolverPort for ResolveActionInputsService {
+    fn resolve(
         &self,
         request: ResolveActionInputsRequest,
     ) -> Result<HashMap<String, String>, StepError> {

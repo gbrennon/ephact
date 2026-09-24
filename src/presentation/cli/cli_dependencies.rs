@@ -4,13 +4,13 @@ use crate::application::ports::{
         run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
         show_project_branding_info_port::ShowProjectBrandingInfoPort,
     },
-    outbound::DiscoverRunInputsPort,
+    outbound::RunInputsDiscovererPort,
 };
 
 pub type CliRunDependencies = (
     Box<dyn RunWorkflowPort>,
     Box<dyn RunAllWorkflowsPort>,
-    Box<dyn DiscoverRunInputsPort>,
+    Box<dyn RunInputsDiscovererPort>,
 );
 pub type CliListDependencies = (
     Box<dyn ListWorkflowsPort>,
@@ -20,7 +20,7 @@ pub type CliListDependencies = (
 pub type CliParts = (
     Box<dyn RunWorkflowPort>,
     Box<dyn RunAllWorkflowsPort>,
-    Box<dyn DiscoverRunInputsPort>,
+    Box<dyn RunInputsDiscovererPort>,
     Box<dyn ListWorkflowsPort>,
     Box<dyn ListActionsPort>,
     Box<dyn ShowProjectBrandingInfoPort>,

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-pub use super::exec_options::ExecOptions;
+pub use crate::application::dtos::requests::ExecOptions;
 use crate::{
     application::dtos::responses::{ExecResultResponse, RunnerContextResponse},
     domain::{entities::FileEntry, errors::ContainerError, messages::events::OutputStream},

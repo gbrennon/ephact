@@ -9,7 +9,9 @@ use crate::{
             },
             responses::RunNodeActionResponse,
         },
-        ports::outbound::{container_port::ContainerPort, run_node_action_port::RunNodeActionPort},
+        ports::outbound::{
+            container_port::ContainerPort, node_action_runner_port::NodeActionRunnerPort,
+        },
     },
     domain::{errors::StepError, value_objects::ShellCommand},
     infrastructure::{
@@ -44,8 +46,8 @@ impl RunNodeActionService {
     }
 }
 
-impl RunNodeActionPort for RunNodeActionService {
-    fn execute(
+impl NodeActionRunnerPort for RunNodeActionService {
+    fn run(
         &self,
         request: RunNodeActionRequest,
         container: Arc<dyn ContainerPort>,

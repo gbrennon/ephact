@@ -13,12 +13,11 @@ use crate::{
         ports::{
             inbound::execute_action_port::ExecuteActionPort,
             outbound::{
-                container_port::ContainerPort,
-                load_action_definition_port::LoadActionDefinitionPort,
-                resolve_action_directory_port::ResolveActionDirectoryPort,
-                resolve_action_inputs_port::ResolveActionInputsPort,
-                run_composite_action_port::RunCompositeActionPort,
-                run_node_action_port::RunNodeActionPort,
+                action_definition_loader_port::ActionDefinitionLoaderPort,
+                action_directory_resolver_port::ActionDirectoryResolverPort,
+                action_inputs_resolver_port::ActionInputsResolverPort,
+                composite_action_runner_port::CompositeActionRunnerPort,
+                container_port::ContainerPort, node_action_runner_port::NodeActionRunnerPort,
             },
         },
     },
@@ -38,11 +37,11 @@ use crate::{
 /// silently skipped.
 pub struct ExecuteActionService {
     container: Arc<dyn ContainerPort>,
-    directory_resolver: Arc<dyn ResolveActionDirectoryPort>,
-    definition_loader: Arc<dyn LoadActionDefinitionPort>,
-    input_resolver: Arc<dyn ResolveActionInputsPort>,
-    composite_runner: Arc<dyn RunCompositeActionPort>,
-    node_runner: Arc<dyn RunNodeActionPort>,
+    directory_resolver: Arc<dyn ActionDirectoryResolverPort>,
+    definition_loader: Arc<dyn ActionDefinitionLoaderPort>,
+    input_resolver: Arc<dyn ActionInputsResolverPort>,
+    composite_runner: Arc<dyn CompositeActionRunnerPort>,
+    node_runner: Arc<dyn NodeActionRunnerPort>,
 }
 
 enum ActionDirectoryResolution {
@@ -53,11 +52,11 @@ enum ActionDirectoryResolution {
 impl ExecuteActionService {
     pub fn new(
         container: Arc<dyn ContainerPort>,
-        directory_resolver: Arc<dyn ResolveActionDirectoryPort>,
-        definition_loader: Arc<dyn LoadActionDefinitionPort>,
-        input_resolver: Arc<dyn ResolveActionInputsPort>,
-        composite_runner: Arc<dyn RunCompositeActionPort>,
-        node_runner: Arc<dyn RunNodeActionPort>,
+        directory_resolver: Arc<dyn ActionDirectoryResolverPort>,
+        definition_loader: Arc<dyn ActionDefinitionLoaderPort>,
+        input_resolver: Arc<dyn ActionInputsResolverPort>,
+        composite_runner: Arc<dyn CompositeActionRunnerPort>,
+        node_runner: Arc<dyn NodeActionRunnerPort>,
     ) -> Self {
         Self {
             container,
@@ -89,7 +88,7 @@ impl ExecuteActionService {
     ) -> Result<ActionDirectoryResolution, StepError> {
         match self
             .directory_resolver
-            .execute(ResolveActionDirectoryRequest::new(
+            .resolve(ResolveActionDirectoryRequest::new(
                 request.action_ref().to_string(),
                 request.repo_path().to_path_buf(),
             ))? {
@@ -108,7 +107,7 @@ impl ExecuteActionService {
         action_dir: &std::path::Path,
     ) -> Result<ActionDefinition, StepError> {
         self.definition_loader
-            .execute(LoadActionDefinitionRequest::new(action_dir.to_path_buf()))
+            .load(LoadActionDefinitionRequest::new(action_dir.to_path_buf()))
             .map_err(|error| {
                 StepError::new(format!(
                     "failed to load action '{}': {}",
@@ -125,7 +124,7 @@ impl ExecuteActionService {
     ) -> Result<HashMap<String, String>, StepError> {
         let step = StepFactory::from_text(request.step())?;
         self.input_resolver
-            .execute(ResolveActionInputsRequest::new(definition.clone(), step))
+            .resolve(ResolveActionInputsRequest::new(definition.clone(), step))
     }
 
     fn execute_loaded_action(
@@ -136,7 +135,7 @@ impl ExecuteActionService {
         action_dir: &std::path::Path,
     ) -> Result<ExecuteActionResponse, StepError> {
         match definition.runs() {
-            ActionRuntime::Composite { steps } => self.composite_runner.execute(
+            ActionRuntime::Composite { steps } => self.composite_runner.run(
                 RunCompositeActionRequest::new(steps.as_slice(), inputs, action_dir, request),
                 self.container.clone(),
             ),
@@ -144,7 +143,7 @@ impl ExecuteActionService {
             | ActionRuntime::Node16 { main }
             | ActionRuntime::Node20 { main } => self
                 .node_runner
-                .execute(
+                .run(
                     RunNodeActionRequest::new(
                         action_dir,
                         main.as_str(),

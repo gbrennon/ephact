@@ -17,13 +17,14 @@ use crate::{
         ports::{
             inbound::execute_job_port::ExecuteJobPort,
             outbound::{
-                build_job_environment_port::BuildJobEnvironmentPort,
-                build_step_context_port::BuildStepContextPort,
                 domain_event_bus_port::DomainEventBusPort,
-                prefix_step_path_port::PrefixStepPathPort,
-                prepare_job_container_port::PrepareJobContainerPort,
-                read_step_exports_port::ReadStepExportsPort,
-                step_command_bus_port::StepCommandBusPort, summarize_step_port::SummarizeStepPort,
+                job_container_preparer_port::JobContainerPreparerPort,
+                job_environment_builder_port::JobEnvironmentBuilderPort,
+                step_command_bus_port::StepCommandBusPort,
+                step_context_builder_port::StepContextBuilderPort,
+                step_exports_reader_port::StepExportsReaderPort,
+                step_path_prefixer_port::StepPathPrefixerPort,
+                step_summarizer_port::StepSummarizerPort,
             },
         },
     },
@@ -44,40 +45,40 @@ use crate::{
 /// Progress facts for every step are announced as domain events on the
 /// outbound [`DomainEventBusPort`].
 pub struct ExecuteJobService {
-    job_environment_builder: Box<dyn BuildJobEnvironmentPort>,
-    container_preparer: Box<dyn PrepareJobContainerPort>,
-    step_path_prefixer: Box<dyn PrefixStepPathPort>,
-    step_context_builder: Box<dyn BuildStepContextPort>,
-    step_summarizer: Box<dyn SummarizeStepPort>,
-    step_exports_reader: Box<dyn ReadStepExportsPort>,
+    job_environment_builder: Box<dyn JobEnvironmentBuilderPort>,
+    container_preparer: Box<dyn JobContainerPreparerPort>,
+    step_path_prefixer: Box<dyn StepPathPrefixerPort>,
+    step_context_builder: Box<dyn StepContextBuilderPort>,
+    step_summarizer: Box<dyn StepSummarizerPort>,
+    step_exports_reader: Box<dyn StepExportsReaderPort>,
     command_bus: Box<dyn StepCommandBusPort>,
     event_bus: Box<dyn DomainEventBusPort>,
 }
 
 pub type ExecuteJobStepDependencies = (
-    Box<dyn PrefixStepPathPort>,
-    Box<dyn BuildStepContextPort>,
-    Box<dyn SummarizeStepPort>,
-    Box<dyn ReadStepExportsPort>,
+    Box<dyn StepPathPrefixerPort>,
+    Box<dyn StepContextBuilderPort>,
+    Box<dyn StepSummarizerPort>,
+    Box<dyn StepExportsReaderPort>,
 );
 pub type ExecuteJobMessagingDependencies =
     (Box<dyn StepCommandBusPort>, Box<dyn DomainEventBusPort>);
 
 pub struct ExecuteJobDependencies {
-    job_environment_builder: Box<dyn BuildJobEnvironmentPort>,
-    container_preparer: Box<dyn PrepareJobContainerPort>,
-    step_path_prefixer: Box<dyn PrefixStepPathPort>,
-    step_context_builder: Box<dyn BuildStepContextPort>,
-    step_summarizer: Box<dyn SummarizeStepPort>,
-    step_exports_reader: Box<dyn ReadStepExportsPort>,
+    job_environment_builder: Box<dyn JobEnvironmentBuilderPort>,
+    container_preparer: Box<dyn JobContainerPreparerPort>,
+    step_path_prefixer: Box<dyn StepPathPrefixerPort>,
+    step_context_builder: Box<dyn StepContextBuilderPort>,
+    step_summarizer: Box<dyn StepSummarizerPort>,
+    step_exports_reader: Box<dyn StepExportsReaderPort>,
     command_bus: Box<dyn StepCommandBusPort>,
     event_bus: Box<dyn DomainEventBusPort>,
 }
 
 impl ExecuteJobDependencies {
     pub fn new(
-        job_environment_builder: Box<dyn BuildJobEnvironmentPort>,
-        container_preparer: Box<dyn PrepareJobContainerPort>,
+        job_environment_builder: Box<dyn JobEnvironmentBuilderPort>,
+        container_preparer: Box<dyn JobContainerPreparerPort>,
         step_dependencies: ExecuteJobStepDependencies,
         messaging_dependencies: ExecuteJobMessagingDependencies,
     ) -> Self {
@@ -159,14 +160,14 @@ impl ExecuteJobService {
     ) -> Result<JobExecutionState, Box<dyn Error>> {
         let step_env = self
             .job_environment_builder
-            .execute(BuildJobEnvironmentRequest::new(
+            .build(BuildJobEnvironmentRequest::new(
                 workflow.clone(),
                 run.job().env().clone(),
             ))
             .into_env();
         let prepared = self
             .container_preparer
-            .execute(PrepareJobContainerRequest::new(
+            .prepare(PrepareJobContainerRequest::new(
                 run.job_id().to_string(),
                 run.job().runs_on().map(str::to_string),
                 request.repo_path().to_path_buf(),
@@ -191,14 +192,14 @@ impl ExecuteJobService {
         step: &crate::domain::entities::Step,
         state: &mut JobExecutionState,
     ) {
-        state.step_env = self.step_path_prefixer.execute(PrefixStepPathRequest::new(
+        state.step_env = self.step_path_prefixer.prefix(PrefixStepPathRequest::new(
             state.step_env.clone(),
             state.extra_path.clone(),
         ));
         let started_at = Instant::now();
         let step_context = self
             .step_context_builder
-            .execute(BuildStepContextRequest::new(
+            .build(BuildStepContextRequest::new(
                 request.context().to_vec(),
                 state.step_env.clone(),
             ));
@@ -215,7 +216,7 @@ impl ExecuteJobService {
         state.steps.push(summarized.into_summary());
         let exports = self
             .step_exports_reader
-            .execute(ReadStepExportsRequest::new(), state.prepared.container());
+            .read(ReadStepExportsRequest::new(), state.prepared.container());
         let (path_additions, env) = exports.into_parts();
         state.extra_path.extend(path_additions);
         state.step_env.extend(env);
@@ -244,7 +245,7 @@ impl ExecuteJobService {
             state.prepared.container_handle(),
             request.repo_path().to_path_buf(),
         ));
-        self.step_summarizer.execute(SummarizeStepRequest::new(
+        self.step_summarizer.summarize(SummarizeStepRequest::new(
             step,
             outcome,
             started_at.elapsed(),

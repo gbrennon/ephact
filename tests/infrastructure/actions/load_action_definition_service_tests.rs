@@ -5,7 +5,7 @@ mod tests {
     use ephact::{
         application::{
             dtos::requests::LoadActionDefinitionRequest,
-            ports::outbound::load_action_definition_port::LoadActionDefinitionPort,
+            ports::outbound::action_definition_loader_port::ActionDefinitionLoaderPort,
         },
         domain::value_objects::ActionRuntime,
         infrastructure::actions::load_action_definition_service::LoadActionDefinitionService,
@@ -20,7 +20,7 @@ mod tests {
         fs::write(tmp.path().join("action.yml"), COMPOSITE).unwrap();
 
         let definition = LoadActionDefinitionService::new()
-            .execute(LoadActionDefinitionRequest::new(tmp.path().to_path_buf()))
+            .load(LoadActionDefinitionRequest::new(tmp.path().to_path_buf()))
             .unwrap();
 
         assert_eq!(definition.name(), "Greet");
@@ -33,7 +33,7 @@ mod tests {
         fs::write(tmp.path().join("action.yaml"), COMPOSITE).unwrap();
 
         let definition = LoadActionDefinitionService::new()
-            .execute(LoadActionDefinitionRequest::new(tmp.path().to_path_buf()))
+            .load(LoadActionDefinitionRequest::new(tmp.path().to_path_buf()))
             .unwrap();
 
         assert_eq!(definition.name(), "Greet");
@@ -44,7 +44,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
 
         let error = LoadActionDefinitionService::new()
-            .execute(LoadActionDefinitionRequest::new(tmp.path().to_path_buf()))
+            .load(LoadActionDefinitionRequest::new(tmp.path().to_path_buf()))
             .unwrap_err();
 
         assert_eq!(
@@ -59,7 +59,7 @@ mod tests {
         fs::write(tmp.path().join("action.yml"), "name: [unterminated\n").unwrap();
 
         let error = LoadActionDefinitionService::new()
-            .execute(LoadActionDefinitionRequest::new(tmp.path().to_path_buf()))
+            .load(LoadActionDefinitionRequest::new(tmp.path().to_path_buf()))
             .unwrap_err();
 
         assert!(

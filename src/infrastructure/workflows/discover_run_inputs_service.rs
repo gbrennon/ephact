@@ -11,7 +11,7 @@ use crate::{
             responses::{RunInputDeclarationResponse, RunInputSourceResponse},
         },
         errors::DiscoverRunInputsError,
-        ports::outbound::{DiscoverRunInputsPort, WorkflowSourcePort},
+        ports::outbound::{RunInputsDiscovererPort, WorkflowSourcePort},
     },
     domain::{
         aggregates::Workflow,
@@ -254,8 +254,8 @@ impl FilesystemRunInputDiscoveryService {
     }
 }
 
-impl DiscoverRunInputsPort for FilesystemRunInputDiscoveryService {
-    fn execute(
+impl RunInputsDiscovererPort for FilesystemRunInputDiscoveryService {
+    fn discover(
         &self,
         request: DiscoverRunInputsRequest,
     ) -> Result<Vec<RunInputDeclarationResponse>, DiscoverRunInputsError> {

@@ -1,7 +1,7 @@
 use crate::{
     application::{
         dtos::{requests::BuildJobEnvironmentRequest, responses::BuildJobEnvironmentResponse},
-        ports::outbound::build_job_environment_port::BuildJobEnvironmentPort,
+        ports::outbound::job_environment_builder_port::JobEnvironmentBuilderPort,
     },
     infrastructure::containers::workspace::{
         CONTAINER_WORKSPACE, RUNNER_ENV_FILE, RUNNER_PATH_FILE,
@@ -28,8 +28,8 @@ impl Default for RunnerEnvironmentAdapter {
     }
 }
 
-impl BuildJobEnvironmentPort for RunnerEnvironmentAdapter {
-    fn execute(&self, request: BuildJobEnvironmentRequest) -> BuildJobEnvironmentResponse {
+impl JobEnvironmentBuilderPort for RunnerEnvironmentAdapter {
+    fn build(&self, request: BuildJobEnvironmentRequest) -> BuildJobEnvironmentResponse {
         let mut env = request.workflow().env().clone();
         for (key, value) in request.job_env() {
             env.insert(key.clone(), value.clone());

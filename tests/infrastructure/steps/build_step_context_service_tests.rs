@@ -5,7 +5,7 @@ mod tests {
     use ephact::{
         application::{
             dtos::requests::BuildStepContextRequest,
-            ports::outbound::build_step_context_port::BuildStepContextPort,
+            ports::outbound::step_context_builder_port::StepContextBuilderPort,
         },
         domain::{
             services::evaluation_context_mapper::EvaluationContextMapper,
@@ -19,7 +19,7 @@ mod tests {
         let mut env = HashMap::new();
         env.insert("MODE".to_string(), "staging".to_string());
 
-        let context = BuildStepContextService::new().execute(BuildStepContextRequest::new(
+        let context = BuildStepContextService::new().build(BuildStepContextRequest::new(
             EvaluationContextMapper::to_parts(&EvaluationContext::new()),
             env.clone(),
         ));
@@ -38,7 +38,7 @@ mod tests {
             .with_runner(ContextValue::text("runner"))
             .with_inputs(ContextValue::text("inputs"));
 
-        let context = BuildStepContextService::new().execute(BuildStepContextRequest::new(
+        let context = BuildStepContextService::new().build(BuildStepContextRequest::new(
             EvaluationContextMapper::to_parts(&source),
             HashMap::new(),
         ));

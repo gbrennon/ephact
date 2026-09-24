@@ -4,7 +4,7 @@ use std::sync::Arc;
 use ephact::{
     application::{
         dtos::requests::LoadWorkflowRequest, errors::LoadWorkflowError,
-        ports::outbound::load_workflow_port::LoadWorkflowPort,
+        ports::outbound::workflow_loader_port::WorkflowLoaderPort,
     },
     domain::aggregates::Workflow,
     infrastructure::workflows::yaml::WorkflowYaml,
@@ -13,12 +13,12 @@ use parking_lot::Mutex;
 
 /// Parses a prepared YAML document instead of reading one from disk.
 #[derive(Clone)]
-pub struct FakeLoadWorkflowPort {
+pub struct FakeWorkflowLoaderPort {
     yaml: Result<String, String>,
     loaded_contents: Arc<Mutex<Vec<String>>>,
 }
 
-impl FakeLoadWorkflowPort {
+impl FakeWorkflowLoaderPort {
     pub fn holding(yaml: &str) -> Self {
         Self {
             yaml: Ok(yaml.to_string()),
@@ -38,8 +38,8 @@ impl FakeLoadWorkflowPort {
     }
 }
 
-impl LoadWorkflowPort for FakeLoadWorkflowPort {
-    fn execute(&self, request: LoadWorkflowRequest) -> Result<Workflow, LoadWorkflowError> {
+impl WorkflowLoaderPort for FakeWorkflowLoaderPort {
+    fn load(&self, request: LoadWorkflowRequest) -> Result<Workflow, LoadWorkflowError> {
         self.loaded_contents
             .lock()
             .push(request.workflow_content().to_string());

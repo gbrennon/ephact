@@ -8,7 +8,7 @@ mod tests {
                 requests::SummarizeStepRequest,
                 responses::{ExecuteActionResponse, ExecutedStepResponse},
             },
-            ports::outbound::summarize_step_port::SummarizeStepPort,
+            ports::outbound::step_summarizer_port::StepSummarizerPort,
         },
         domain::{entities::Step, errors::StepError},
         infrastructure::{
@@ -34,7 +34,7 @@ mod tests {
         let step = step_from("run: echo hi\n");
         let interpolated = step_from("name: greet\nrun: echo hi\n");
 
-        let summarized = SummarizeStepService::new().execute(SummarizeStepRequest::new(
+        let summarized = SummarizeStepService::new().summarize(SummarizeStepRequest::new(
             &step,
             Ok(executed(interpolated, 0)),
             Duration::from_secs(1),
@@ -49,7 +49,7 @@ mod tests {
     fn execute_reports_a_non_zero_exit_as_failing_the_job() {
         let step = step_from("run: exit 1\n");
 
-        let summarized = SummarizeStepService::new().execute(SummarizeStepRequest::new(
+        let summarized = SummarizeStepService::new().summarize(SummarizeStepRequest::new(
             &step,
             Ok(executed(step.clone(), 1)),
             Duration::from_secs(1),
@@ -63,7 +63,7 @@ mod tests {
     fn execute_keeps_the_job_passing_when_a_failing_step_continues_on_error() {
         let step = step_from("run: exit 1\ncontinue-on-error: true\n");
 
-        let summarized = SummarizeStepService::new().execute(SummarizeStepRequest::new(
+        let summarized = SummarizeStepService::new().summarize(SummarizeStepRequest::new(
             &step,
             Ok(executed(step.clone(), 1)),
             Duration::from_secs(1),
@@ -77,7 +77,7 @@ mod tests {
     fn execute_reports_a_step_error_with_no_exit_code_and_the_raw_steps_label() {
         let step = step_from("name: raw label\nrun: echo hi\n");
 
-        let summarized = SummarizeStepService::new().execute(SummarizeStepRequest::new(
+        let summarized = SummarizeStepService::new().summarize(SummarizeStepRequest::new(
             &step,
             Err(StepError::new("boom".to_string())
                 .with_stdout("out".to_string())
@@ -96,7 +96,7 @@ mod tests {
     fn execute_keeps_the_job_passing_when_an_erroring_step_continues_on_error() {
         let step = step_from("run: echo hi\ncontinue-on-error: true\n");
 
-        let summarized = SummarizeStepService::new().execute(SummarizeStepRequest::new(
+        let summarized = SummarizeStepService::new().summarize(SummarizeStepRequest::new(
             &step,
             Err(StepError::new("boom")),
             Duration::from_secs(1),
@@ -118,7 +118,7 @@ mod tests {
 
         for (yaml, expected) in cases {
             let step = step_from(yaml);
-            let summarized = service.execute(SummarizeStepRequest::new(
+            let summarized = service.summarize(SummarizeStepRequest::new(
                 &step,
                 Err(StepError::new("boom")),
                 Duration::from_secs(1),

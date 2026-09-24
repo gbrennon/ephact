@@ -3,7 +3,7 @@ mod tests {
     use ephact::{
         application::{
             dtos::requests::ResolveActionInputsRequest,
-            ports::outbound::resolve_action_inputs_port::ResolveActionInputsPort,
+            ports::outbound::action_inputs_resolver_port::ActionInputsResolverPort,
         },
         domain::{entities::Step, value_objects::ActionDefinition},
         infrastructure::{
@@ -29,7 +29,7 @@ mod tests {
     #[test]
     fn execute_returns_the_declared_defaults() {
         let inputs = ResolveActionInputsService::new()
-            .execute(ResolveActionInputsRequest::new(
+            .resolve(ResolveActionInputsRequest::new(
                 definition(),
                 step("uses: ./actions/deploy\n"),
             ))
@@ -41,7 +41,7 @@ mod tests {
     #[test]
     fn execute_lets_with_override_a_default() {
         let inputs = ResolveActionInputsService::new()
-            .execute(ResolveActionInputsRequest::new(
+            .resolve(ResolveActionInputsRequest::new(
                 definition(),
                 step("uses: ./actions/deploy\nwith:\n  mode: staging\n"),
             ))
@@ -53,7 +53,7 @@ mod tests {
     #[test]
     fn execute_omits_an_input_with_neither_default_nor_with() {
         let inputs = ResolveActionInputsService::new()
-            .execute(ResolveActionInputsRequest::new(
+            .resolve(ResolveActionInputsRequest::new(
                 definition(),
                 step("uses: ./actions/deploy\n"),
             ))
@@ -65,7 +65,7 @@ mod tests {
     #[test]
     fn execute_passes_undeclared_with_keys_through() {
         let inputs = ResolveActionInputsService::new()
-            .execute(ResolveActionInputsRequest::new(
+            .resolve(ResolveActionInputsRequest::new(
                 definition(),
                 step("uses: ./actions/deploy\nwith:\n  extra: value\n"),
             ))
@@ -83,7 +83,7 @@ mod tests {
         .into_domain();
 
         let error = ResolveActionInputsService::new()
-            .execute(ResolveActionInputsRequest::new(
+            .resolve(ResolveActionInputsRequest::new(
                 required_definition,
                 step("uses: ./actions/deploy\n"),
             ))

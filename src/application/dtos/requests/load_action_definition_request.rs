@@ -1,8 +1,6 @@
 use std::path::{Path, PathBuf};
 
-/// Request DTO for the
-/// [`LoadActionDefinitionPort`](crate::application::ports::inbound::load_action_definition_port::LoadActionDefinitionPort)
-/// inbound port.
+/// Request data for loading an action definition.
 pub struct LoadActionDefinitionRequest {
     /// Directory holding the action's `action.yml`.
     action_dir: PathBuf,

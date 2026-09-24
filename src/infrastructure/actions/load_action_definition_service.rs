@@ -3,7 +3,7 @@ use std::fs::read_to_string;
 use crate::{
     application::{
         dtos::requests::LoadActionDefinitionRequest,
-        ports::outbound::load_action_definition_port::LoadActionDefinitionPort,
+        ports::outbound::action_definition_loader_port::ActionDefinitionLoaderPort,
     },
     domain::{errors::StepError, value_objects::ActionDefinition},
     infrastructure::workflows::yaml::ActionDefinitionYaml,
@@ -24,8 +24,8 @@ impl Default for LoadActionDefinitionService {
     }
 }
 
-impl LoadActionDefinitionPort for LoadActionDefinitionService {
-    fn execute(&self, request: LoadActionDefinitionRequest) -> Result<ActionDefinition, StepError> {
+impl ActionDefinitionLoaderPort for LoadActionDefinitionService {
+    fn load(&self, request: LoadActionDefinitionRequest) -> Result<ActionDefinition, StepError> {
         let candidates = [
             request.action_dir().join("action.yml"),
             request.action_dir().join("action.yaml"),

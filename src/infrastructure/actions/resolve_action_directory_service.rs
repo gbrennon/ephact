@@ -4,7 +4,7 @@ use crate::{
             requests::{FetchRemoteActionRequest, ResolveActionDirectoryRequest},
             responses::{ExecuteActionResponse, ResolvedActionDirectoryResponse},
         },
-        ports::outbound::resolve_action_directory_port::ResolveActionDirectoryPort,
+        ports::outbound::action_directory_resolver_port::ActionDirectoryResolverPort,
     },
     domain::{
         errors::{ActionError, StepError},
@@ -35,8 +35,8 @@ impl ResolveActionDirectoryService {
     }
 }
 
-impl ResolveActionDirectoryPort for ResolveActionDirectoryService {
-    fn execute(
+impl ActionDirectoryResolverPort for ResolveActionDirectoryService {
+    fn resolve(
         &self,
         request: ResolveActionDirectoryRequest,
     ) -> Result<ResolvedActionDirectoryResponse, StepError> {

@@ -17,7 +17,7 @@ use crate::{
                 list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
                 run_workflow_port::RunWorkflowPort,
             },
-            outbound::{DiscoverRunInputsPort, SettingsStorePort},
+            outbound::{RunInputsDiscovererPort, SettingsStorePort},
         },
     },
     domain::Settings,
@@ -30,7 +30,7 @@ pub struct TuiRunner {
     list_actions_port: Arc<dyn ListActionsPort>,
     run_workflow_port: Arc<dyn RunWorkflowPort>,
     progress_stream: Option<TuiProgressStream>,
-    discover_run_inputs_port: Option<Arc<dyn DiscoverRunInputsPort>>,
+    discover_run_inputs_port: Option<Arc<dyn RunInputsDiscovererPort>>,
     settings: Settings,
     settings_store: Option<Arc<dyn SettingsStorePort>>,
 }
@@ -54,7 +54,7 @@ impl TuiRunner {
 
     pub fn with_input_discovery(
         mut self,
-        discover_run_inputs_port: Arc<dyn DiscoverRunInputsPort>,
+        discover_run_inputs_port: Arc<dyn RunInputsDiscovererPort>,
     ) -> Self {
         self.discover_run_inputs_port = Some(discover_run_inputs_port);
         self

@@ -5,9 +5,7 @@ use crate::{
     domain::{entities::Step, errors::StepError},
 };
 
-/// Request DTO for the
-/// [`SummarizeStepPort`](crate::application::ports::inbound::summarize_step_port::SummarizeStepPort)
-/// inbound port.
+/// Request data for summarizing a step outcome.
 pub struct SummarizeStepRequest<'a> {
     /// The step as declared, before its expressions were resolved.
     step: &'a Step,

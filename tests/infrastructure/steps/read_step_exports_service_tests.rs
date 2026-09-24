@@ -5,7 +5,7 @@ mod tests {
     use ephact::{
         application::{
             dtos::requests::ReadStepExportsRequest,
-            ports::outbound::read_step_exports_port::ReadStepExportsPort,
+            ports::outbound::step_exports_reader_port::StepExportsReaderPort,
         },
         infrastructure::steps::read_step_exports_service::ReadStepExportsService,
     };
@@ -28,7 +28,7 @@ mod tests {
         );
         let container = StubExportingContainer::empty();
 
-        let exports = service.execute(ReadStepExportsRequest::new(), &container);
+        let exports = service.read(ReadStepExportsRequest::new(), &container);
 
         assert_eq!(exports.path_additions(), vec!["/opt/bin".to_string()]);
         assert_eq!(exports.env().get("A").map(String::as_str), Some("1"));
