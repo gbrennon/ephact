@@ -64,18 +64,20 @@ runs:
             "$VALIDATE_URL"
         )"
 
-        scoped_permission_error='this token does not have the required permissions'
         if (( http_status >= 200 && http_status < 300 )); then
           printf '%s verified (HTTP %s)\n' "$SECRET_NAME" "$http_status"
           exit 0
         fi
 
-        if [[ "$http_status" -eq 403 ]] \
-          && grep -q "$scoped_permission_error" "$response_file"; then
-          printf '%s verified (scoped token, HTTP %s)\n' "$SECRET_NAME" "$http_status"
+        crates_cookie_msg="this action can only be performed on the crates.io website"
+        crates_scope_msg="this token does not have the required permissions"
+        if [[ "$http_status" -eq 403 ]] && \
+          (grep -q "$crates_cookie_msg" "$response_file" || \
+           grep -q "$crates_scope_msg" "$response_file"); then
+          printf '%s verified against crates.io (HTTP %s)\n' \
+            "$SECRET_NAME" "$http_status"
           exit 0
         fi
-
         printf '%s failed validation against %s (HTTP %s)\n' \
           "$SECRET_NAME" "$VALIDATE_URL" "$http_status" >&2
         cat "$response_file" >&2
