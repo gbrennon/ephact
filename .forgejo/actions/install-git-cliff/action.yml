@@ -30,7 +30,9 @@ runs:
           -o /tmp/git-cliff.tar.gz \
           "https://github.com/orhun/git-cliff/releases/download/v${version}/${archive}"
         tar -xzf /tmp/git-cliff.tar.gz -C /tmp
+        mkdir -p "$HOME/.cargo/bin"
         cp "/tmp/git-cliff-${version}/git-cliff" "$HOME/.cargo/bin/git-cliff"
         chmod +x "$HOME/.cargo/bin/git-cliff"
+        echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
         rm -rf /tmp/git-cliff.tar.gz "/tmp/git-cliff-${version}"
         "$HOME/.cargo/bin/git-cliff" --version
