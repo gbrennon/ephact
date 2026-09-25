@@ -16,7 +16,7 @@ jobs:
     if: >-
       github.event.pull_request.merged == true &&
       startsWith(github.event.pull_request.head.ref, 'release/v')
-    runs-on: workstation-pc
+    runs-on: codeberg-medium
     env:
       HEAD_REF: ${{ github.event.pull_request.head.ref }}
     steps:
