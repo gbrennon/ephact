@@ -1,0 +1,34 @@
+name: Prepare release
+on:
+  push:
+    branches:
+      - 'release/v*'
+    paths-ignore:
+      - 'CHANGELOG.md'
+permissions:
+  contents: write
+concurrency:
+  group: prepare-release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  changelog:
+    name: Update changelog
+    runs-on: codeberg-medium
+    steps:
+      - name: Check out release branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+      - name: Install git-cliff
+        uses: ./.forgejo/actions/install-git-cliff
+      - name: Validate release
+        id: release
+        uses: ./.forgejo/actions/validate-release
+        with:
+          head-ref: ${{ github.ref_name }}
+      - name: Update changelog
+        uses: ./.forgejo/actions/update-changelog
+        with:
+          version: ${{ steps.release.outputs.version }}
+          target-branch: ${{ github.ref_name }}
