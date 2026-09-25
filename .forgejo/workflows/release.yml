@@ -55,7 +55,7 @@ jobs:
       - name: Generate release notes
         uses: ./.forgejo/actions/generate-release-notes
       - name: Create Codeberg release
-        uses: ./.forgejo/actions/create-workstation-pc
+        uses: ./.forgejo/actions/create-codeberg-release
         with:
           api-url: ${{ github.api_url }}
           repository: ${{ github.repository }}

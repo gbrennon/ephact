@@ -3,6 +3,7 @@ self-hosted-runner:
     - codeberg-tiny
     - codeberg-small
     - codeberg-medium
+    - workstation-pc
 
 paths:
   ".forgejo/workflows/*.yml":
