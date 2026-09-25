@@ -19,7 +19,6 @@ jobs:
     runs-on: codeberg-medium
     env:
       HEAD_REF: ${{ github.event.pull_request.head.ref }}
-      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
     steps:
       - name: Check out merged pull request
         uses: actions/checkout@v6
@@ -44,11 +43,6 @@ jobs:
         uses: ./.forgejo/actions/validate-release
         with:
           head-ref: ${{ env.HEAD_REF }}
-      - name: Update changelog
-        uses: ./.forgejo/actions/update-changelog
-        with:
-          version: ${{ steps.release.outputs.version }}
-          default-branch: ${{ env.DEFAULT_BRANCH }}
       - name: Push release tag
         uses: ./.forgejo/actions/push-release-tag
         with:
