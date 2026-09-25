@@ -14,7 +14,7 @@ env:
 jobs:
   validate:
     name: Validate
-    runs-on: workstation-pc
+    runs-on: codeberg-tiny
     steps:
       - uses: actions/checkout@v6
       - uses: ./.forgejo/actions/install-dependencies
@@ -28,7 +28,7 @@ jobs:
 
   test:
     name: Test
-    runs-on: workstation-pc
+    runs-on: codeberg-medium
     needs: [validate]
     steps:
       - uses: actions/checkout@v6
@@ -42,7 +42,7 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: workstation-pc
+    runs-on: codeberg-medium
     needs: [validate]
     steps:
       - uses: actions/checkout@v6
@@ -57,7 +57,7 @@ jobs:
 
   verify-secrets:
     name: Verify secrets
-    runs-on: workstation-pc
+    runs-on: codeberg-tiny
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
