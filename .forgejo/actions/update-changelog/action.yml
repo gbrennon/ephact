@@ -2,10 +2,14 @@ name: Update changelog
 description: Generate and commit the release changelog
 inputs:
   version:
-    description: Release version
+    description: >-
+      Release tag name (for example v0.2.0) used by git-cliff to group
+      unreleased commits under the new version header
     required: true
   default-branch:
-    description: Default branch to update
+    description: >-
+      Target branch (such as main) to which the updated CHANGELOG.md commit
+      is pushed
     required: true
 runs:
   using: composite

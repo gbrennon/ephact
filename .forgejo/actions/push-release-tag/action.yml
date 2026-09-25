@@ -2,7 +2,9 @@ name: Push release tag
 description: Create and push the release tag
 inputs:
   version:
-    description: Release version
+    description: >-
+      Release tag name (for example v0.2.0) created and pushed to origin
+      remote refs/tags
     required: true
 runs:
   using: composite

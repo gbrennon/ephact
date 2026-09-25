@@ -38,3 +38,28 @@ jobs:
         run: |
           echo "Artifact created:"
           ls -la artifacts/ephact.tar.gz || echo "No artifact found"
+
+  publish-staging:
+    name: Publish staging
+    runs-on: codeberg-medium
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.merged == true &&
+      !startsWith(github.event.pull_request.head.ref, 'release/v')
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+      - uses: ./.forgejo/actions/install-dependencies
+      - uses: ./.forgejo/actions/cache-rust-deps
+        with:
+          cache-key-prefix: ephact-release
+          rustc-version: stable
+          include-sysroot: "false"
+      - name: Publish to crates.io staging
+        uses: ./.forgejo/actions/publish-crate-staging
+        with:
+          token: ${{ secrets.CARGO_REGISTRIES_STAGING_TOKEN }}
+          short-sha: ${{ github.event.pull_request.merge_commit_sha }}
+          pr-number: ${{ github.event.pull_request.number }}
