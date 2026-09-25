@@ -16,7 +16,7 @@ jobs:
     if: >-
       github.event.pull_request.merged == true &&
       startsWith(github.event.pull_request.head.ref, 'release/v')
-    runs-on: codeberg-medium
+    runs-on: workstation-pc
     env:
       HEAD_REF: ${{ github.event.pull_request.head.ref }}
     steps:
@@ -55,7 +55,7 @@ jobs:
       - name: Generate release notes
         uses: ./.forgejo/actions/generate-release-notes
       - name: Create Codeberg release
-        uses: ./.forgejo/actions/create-codeberg-release
+        uses: ./.forgejo/actions/create-workstation-pc
         with:
           api-url: ${{ github.api_url }}
           repository: ${{ github.repository }}

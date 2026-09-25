@@ -13,7 +13,7 @@ concurrency:
 jobs:
   changelog:
     name: Update changelog
-    runs-on: codeberg-medium
+    runs-on: workstation-pc
     steps:
       - name: Check out release branch
         uses: actions/checkout@v6
