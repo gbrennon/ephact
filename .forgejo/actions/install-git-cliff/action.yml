@@ -1,8 +1,38 @@
 name: Install git-cliff
-description: Install git-cliff for release generation
+description: Install the pinned git-cliff release
 
 runs:
   using: composite
+
   steps:
     - name: Install git-cliff
-      uses: taiki-e/install-action@git-cliff
+      shell: bash
+      run: |
+        export PATH="$HOME/.cargo/bin:$PATH"
+        if command -v git-cliff >/dev/null 2>&1; then
+          echo "git-cliff already installed: $(git-cliff --version)"
+          exit 0
+        fi
+
+        version="2.14.2"
+        arch=$(uname -m)
+        case "$arch" in
+          x86_64) target="x86_64-unknown-linux-gnu" ;;
+          aarch64) target="aarch64-unknown-linux-gnu" ;;
+          *)
+            echo "unsupported architecture: $arch" >&2
+            exit 1
+            ;;
+        esac
+
+        archive="git-cliff-${version}-${target}.tar.gz"
+        curl -fsSL --proto '=https' --tlsv1.2 \
+          -o /tmp/git-cliff.tar.gz \
+          "https://github.com/orhun/git-cliff/releases/download/v${version}/${archive}"
+        tar -xzf /tmp/git-cliff.tar.gz -C /tmp
+        mkdir -p "$HOME/.cargo/bin"
+        cp "/tmp/git-cliff-${version}/git-cliff" "$HOME/.cargo/bin/git-cliff"
+        chmod +x "$HOME/.cargo/bin/git-cliff"
+        echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+        rm -rf /tmp/git-cliff.tar.gz "/tmp/git-cliff-${version}"
+        "$HOME/.cargo/bin/git-cliff" --version
