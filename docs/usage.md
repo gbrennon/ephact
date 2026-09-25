@@ -15,6 +15,50 @@ Docker or Podman containers:
 An explicit subcommand takes precedence over the persisted default interface.
 Use `ephact tui` to open the TUI explicitly.
 
+## Terminal User Interface
+
+The TUI is the default interface and the primary way to use `ephact`. Launch it
+by running `ephact` with no subcommand, or `ephact tui` explicitly. A splash
+screen appears first; press any key to reach the home menu.
+
+### Home menu
+
+The home menu lists the available actions: **Run workflow**, **List workflows**,
+**List actions**, and **Settings**. Move the selection with `Up`/`Down` or
+`j`/`k`, open it with `Enter`, and quit with `q`.
+
+### Running a workflow
+
+Select **Run workflow** to open the workflow picker. Choose a workflow, then
+press `Enter` to configure it. `ephact` walks the inputs discovered from the
+workflow and its local actions. For each value, enter a literal value or
+`env:VARIABLE`; a blank keeps an existing or default value and is rejected for an
+unresolved required input.
+
+The workflow then runs in Docker or Podman containers with live progress in the
+run view. Press `Esc` or `Backspace` to cancel a run in progress. When it
+finishes, a run summary reports the workflow status and each job result; press
+`d` to open the step-by-step run details and scroll with the arrow keys. Only
+workflows declaring `pull_request` are eligible, and execution simulates that
+event.
+
+### Settings screen
+
+The settings screen edits persisted values in place. Move with `Up`/`Down` or
+`j`/`k`, press `Enter` to edit a value, `s` to save, and `Esc` or `Backspace` to
+go back.
+
+### Key reference
+
+| Screen         | Keys                                                  |
+| -------------- | ----------------------------------------------------- |
+| Splash         | any key to continue                                   |
+| Home           | `Up`/`Down`/`j`/`k` move, `Enter` select, `q` quit    |
+| List workflows | `Up`/`Down`/`j`/`k` move, `Esc`/`Bksp` back, `q` quit |
+| List actions   | `Up`/`Down`/`j`/`k` move, `Esc`/`Bksp` back, `q` quit |
+| Run workflow   | `Up`/`Down`/`j`/`k` move, `Enter` configure, `Esc`/`Bksp` back, `d` details, `q` quit |
+| Settings       | `Up`/`Down`/`j`/`k` move, `Enter` edit, `s` save, `Esc`/`Bksp` back |
+
 ## Settings (`ephact settings`)
 
 Settings are stored in `~/.config/ephact/config.toml`. Missing files use the
