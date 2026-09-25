@@ -6,10 +6,9 @@ inputs:
       Release tag name (for example v0.2.0) used by git-cliff to group
       unreleased commits under the new version header
     required: true
-  default-branch:
+  target-branch:
     description: >-
-      Target branch (such as main) to which the updated CHANGELOG.md commit
-      is pushed
+      Branch to which the updated CHANGELOG.md commit is pushed (the release branch)
     required: true
 runs:
   using: composite
@@ -18,9 +17,10 @@ runs:
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
-        DEFAULT_BRANCH: ${{ inputs.default-branch }}
+        TARGET_BRANCH: ${{ inputs.target-branch }}
       run: |
         set -euo pipefail
+        export PATH="$HOME/.cargo/bin:$PATH"
 
         git cliff --config cliff.toml --tag "$VERSION" \
           --no-exec --output CHANGELOG.md
@@ -39,4 +39,4 @@ runs:
 
         git add CHANGELOG.md
         git commit -m "chore(release): update changelog for $VERSION"
-        git push origin "HEAD:$DEFAULT_BRANCH"
+        git push origin "HEAD:$TARGET_BRANCH"
