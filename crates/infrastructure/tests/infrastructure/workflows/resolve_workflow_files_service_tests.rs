@@ -31,7 +31,7 @@ mod tests {
             ))),
             Box::new(detector),
         );
-        let config = ActRunConfig::new().with_all_workflows(true);
+        let config = ActRunConfig::new("test-run").with_all_workflows(true);
 
         let response = service
             .execute(ResolveWorkflowFilesRequest::new(
@@ -57,7 +57,7 @@ mod tests {
                 "detected.yml",
             ))),
         );
-        let config = ActRunConfig::new().with_workflow(ActWorkflow::new("ci.yml".into()));
+        let config = ActRunConfig::new("test-run").with_workflow(ActWorkflow::new("ci.yml".into()));
 
         let response = service
             .execute(ResolveWorkflowFilesRequest::new(
@@ -80,7 +80,7 @@ mod tests {
                 "detected.yml",
             ))),
         );
-        let config = ActRunConfig::new();
+        let config = ActRunConfig::new("test-run");
 
         let response = service
             .execute(ResolveWorkflowFilesRequest::new(
@@ -98,7 +98,7 @@ mod tests {
     #[test]
     fn execute_does_not_consult_the_detector_for_a_named_workflow() {
         let detector = FakeDetectWorkflowFilePort::returning(PathBuf::from("detected.yml"));
-        let config = ActRunConfig::new().with_workflow(ActWorkflow::new("ci.yml".into()));
+        let config = ActRunConfig::new("test-run").with_workflow(ActWorkflow::new("ci.yml".into()));
         let service = ResolveWorkflowFilesService::new(
             Box::new(FakeListAllWorkflowFilesPort::returning(vec![])),
             Box::new(FakeResolveNamedWorkflowFilePort::returning(PathBuf::from(
@@ -126,7 +126,7 @@ mod tests {
                 "detected.yml",
             ))),
         );
-        let config = ActRunConfig::new().with_workflow(ActWorkflow::new("ci.yml".into()));
+        let config = ActRunConfig::new("test-run").with_workflow(ActWorkflow::new("ci.yml".into()));
 
         let error = service
             .execute(ResolveWorkflowFilesRequest::new(

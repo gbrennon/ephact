@@ -52,7 +52,8 @@ mod tests {
                 true,
             ));
         let event_bus = FakeEventBus::new();
-        let config = ActRunConfig::new().with_event(ActEvent::new("pull_request".to_owned()));
+        let config =
+            ActRunConfig::new("test-run").with_event(ActEvent::new("pull_request".to_owned()));
         let run_id = config.run_id().to_string();
         let repository_path = temp.path().display().to_string();
         let service = RunAllWorkflowsService::new(
@@ -84,7 +85,7 @@ mod tests {
         );
 
         let error = service
-            .execute(primitive_request(ActRunConfig::new(), repo))
+            .execute(primitive_request(ActRunConfig::new("test-run"), repo))
             .unwrap_err();
 
         assert_eq!(error.to_string(), "workflow event must be specified");
@@ -124,7 +125,8 @@ mod tests {
         let repo = make_repo(temp.path());
         let source = FakeWorkflowSource::new().failing_read_all_workflows("cannot list workflows");
         let event_bus = FakeEventBus::new();
-        let config = ActRunConfig::new().with_event(ActEvent::new("pull_request".to_owned()));
+        let config =
+            ActRunConfig::new("test-run").with_event(ActEvent::new("pull_request".to_owned()));
         let run_id = config.run_id().to_string();
         let service = RunAllWorkflowsService::new(
             Box::new(source),
@@ -167,7 +169,7 @@ mod tests {
             )),
         );
         let request = primitive_request(
-            ActRunConfig::new().with_event(ActEvent::new("pull_request".to_owned())),
+            ActRunConfig::new("test-run").with_event(ActEvent::new("pull_request".to_owned())),
             repo,
         );
 

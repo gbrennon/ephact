@@ -11,7 +11,7 @@ use crate::{
         ports::outbound::{
             ActionCommandBusPort, ActionDefinitionLoaderPort, ActionDirectoryResolverPort,
             ActionInputsResolverPort, CompositeActionRunnerPort, DomainEventBusPort,
-            NodeActionRunnerPort,
+            NodeActionRunnerPort, StepTextCodecPort,
         },
         services::execute_action_service::ExecuteActionService,
     },
@@ -25,6 +25,7 @@ impl ActionExecutionWiring {
         fetcher: Box<dyn ActionFetcherPort>,
         command_bus: Box<dyn ActionCommandBusPort>,
         event_bus: Box<dyn DomainEventBusPort>,
+        step_codec: Arc<dyn StepTextCodecPort>,
     ) -> ExecuteActionFactory {
         let directory_resolver: Arc<dyn ActionDirectoryResolverPort> = Arc::new(
             ResolveActionDirectoryService::new(Box::new(FetchRemoteActionService::new(fetcher))),
@@ -55,6 +56,7 @@ impl ActionExecutionWiring {
                 input_resolver.clone(),
                 composite_runner.clone(),
                 node_runner.clone(),
+                step_codec.clone(),
             ))
         })
     }

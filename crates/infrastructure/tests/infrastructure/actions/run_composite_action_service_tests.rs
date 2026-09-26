@@ -16,17 +16,14 @@ mod tests {
                 responses::ExecResultResponse,
             },
             ports::outbound::{
-                composite_action_runner_port::CompositeActionRunnerPort,
+                StepTextCodecPort, composite_action_runner_port::CompositeActionRunnerPort,
                 container_port::ContainerPort,
             },
         },
-        domain::{
-            entities::Step, errors::StepError, services::step_factory::StepFactory,
-            value_objects::EvaluationContext,
-        },
+        domain::{entities::Step, errors::StepError, value_objects::EvaluationContext},
         infrastructure::{
             actions::run_composite_action_service::RunCompositeActionService,
-            workflows::yaml::StepYaml,
+            steps::JsonStepTextCodec, workflows::yaml::StepYaml,
         },
     };
 
@@ -45,12 +42,13 @@ mod tests {
     fn action_request(_container: &dyn ContainerPort) -> ExecuteActionRequest {
         ExecuteActionRequest::new(ExecuteActionRequestInput::new(
             "./actions/outer",
-            StepFactory::to_text(
-                &serde_yaml::from_str::<StepYaml>("uses: ./actions/outer\n")
-                    .unwrap()
-                    .into_domain(),
-            )
-            .unwrap(),
+            JsonStepTextCodec
+                .encode(
+                    &serde_yaml::from_str::<StepYaml>("uses: ./actions/outer\n")
+                        .unwrap()
+                        .into_domain(),
+                )
+                .unwrap(),
             ExecuteActionExecutionInput::new(
                 PathBuf::from("/repo"),
                 HashMap::new(),

@@ -25,6 +25,7 @@ use crate::{
     logging::{FailureLogErrorStore, FailureLogHandler, FailureLogPathStore, FailureLogStores},
     messaging::{DomainEventHandler, InMemoryEventBus, SharedCommandBus, SharedEventBus},
     persistence::CargoProjectBrandingStore,
+    steps::JsonStepTextCodec,
     workflows::{
         DetectWorkflowTriggerService, FilesystemRunInputDiscoveryService, FilesystemWorkflowSource,
         SharedWorkflowSource,
@@ -142,6 +143,7 @@ impl Container {
             Box::new(RunActionService::new(
                 Box::new(command_bus.clone()),
                 container,
+                Arc::new(JsonStepTextCodec),
             ))
         });
         let show_project_branding_info_service =

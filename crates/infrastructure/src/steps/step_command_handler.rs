@@ -1,14 +1,13 @@
 use crate::{
     application::{
         dtos::{requests::ExecuteStepRequest, responses::ExecutedStepResponse},
-        ports::outbound::container_port::ContainerPort,
+        ports::outbound::{StepTextCodecPort, container_port::ContainerPort},
     },
     domain::{
-        errors::StepError,
-        messages::commands::ExecuteStepCommand,
-        services::{evaluation_context_mapper::EvaluationContextMapper, step_factory::StepFactory},
+        errors::StepError, messages::commands::ExecuteStepCommand,
+        services::evaluation_context_mapper::EvaluationContextMapper,
     },
-    steps::ExecuteStepFactory,
+    steps::{ExecuteStepFactory, JsonStepTextCodec},
 };
 
 /// Infrastructure command handler that processes `ExecuteStepCommand`.
@@ -27,7 +26,7 @@ impl StepCommandHandler {
     ) -> Result<ExecutedStepResponse, StepError> {
         let (step, env, context, container, repo_path) = cmd.into_parts();
         let req = ExecuteStepRequest::new(
-            StepFactory::to_text(&step)?,
+            JsonStepTextCodec.encode(&step)?,
             EvaluationContextMapper::to_parts(&context),
             repo_path,
             env,

@@ -18,7 +18,7 @@ use crate::{
             outbound::RunInputsDiscovererPort,
         },
     },
-    cli::run_args::RunArgs,
+    cli::run_args::{RunArgs, new_run_id},
     domain::{
         RepoPath, Repository, RepositoryName,
         value_objects::{ActEvent, ActInput, ActRunConfig, ActWorkflow},
@@ -132,8 +132,8 @@ impl RunHandler {
         inputs: Vec<(String, String)>,
     ) -> ActRunConfig {
         let config = event
-            .map(|name| ActRunConfig::new().with_event(ActEvent::new(name)))
-            .unwrap_or_default();
+            .map(|name| ActRunConfig::new(new_run_id()).with_event(ActEvent::new(name)))
+            .unwrap_or_else(|| ActRunConfig::new(new_run_id()));
         let config = match workflow {
             Some(name) => config.with_workflow(ActWorkflow::new(name)),
             None => config,
@@ -485,13 +485,7 @@ impl RunHandler {
         total: usize,
         terminal: &dyn Terminal,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        *config = Self::prompt_for_input(
-            std::mem::take(config),
-            declaration,
-            index + 1,
-            total,
-            terminal,
-        )?;
+        *config = Self::prompt_for_input(config.clone(), declaration, index + 1, total, terminal)?;
         Ok(())
     }
 

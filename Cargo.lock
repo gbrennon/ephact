@@ -567,13 +567,6 @@ dependencies = [
 [[package]]
 name = "ephact-domain"
 version = "0.3.0"
-dependencies = [
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.20",
- "uuid",
-]
 
 [[package]]
 name = "ephact-infrastructure"

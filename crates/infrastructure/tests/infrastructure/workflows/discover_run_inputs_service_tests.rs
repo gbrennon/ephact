@@ -40,7 +40,7 @@ mod tests {
 
         let declarations = service
             .discover(DiscoverRunInputsRequest::new(
-                ActRunConfig::new(),
+                ActRunConfig::new("test-run"),
                 repository,
             ))
             .unwrap();

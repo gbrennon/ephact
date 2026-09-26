@@ -1,5 +1,3 @@
-use uuid::Uuid;
-
 use crate::value_objects::{ActEvent, ActInput, ActJob, ActWorkflow, Secret};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -89,8 +87,8 @@ impl ActRunConfigParts {
 
 /// Constructors for [`ActRunConfig`].
 impl ActRunConfig {
-    /// Creates a new config with sensible defaults and a unique run identity.
-    pub fn new() -> Self {
+    /// Creates a new config with sensible defaults and the supplied run identity.
+    pub fn new(run_id: impl Into<String>) -> Self {
         Self {
             workflow: None,
             job: None,
@@ -102,14 +100,8 @@ impl ActRunConfig {
             allow_real_container: false,
             allow_real_fetcher: false,
             allow_network: false,
-            run_id: Uuid::new_v4().to_string(),
+            run_id: run_id.into(),
         }
-    }
-}
-
-impl Default for ActRunConfig {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -256,7 +248,7 @@ mod tests {
 
     #[test]
     fn new_config_starts_with_defaults() {
-        let config = ActRunConfig::new();
+        let config = ActRunConfig::new("test-run");
         assert!(config.workflow().is_none());
         assert!(config.job().is_none());
         assert!(config.event().is_none());
@@ -266,7 +258,7 @@ mod tests {
 
     #[test]
     fn builder_adds_workflow_job_and_event() {
-        let config = ActRunConfig::new()
+        let config = ActRunConfig::new("test-run")
             .with_workflow(ActWorkflow::new(".github/workflows/ci.yml".into()))
             .with_job(ActJob::new("test".into()))
             .with_event(ActEvent::new("push".into()));
@@ -281,8 +273,8 @@ mod tests {
 
     #[test]
     fn builder_adds_inputs() {
-        let config =
-            ActRunConfig::new().add_input(ActInput::new("environment".into(), "staging".into()));
+        let config = ActRunConfig::new("test-run")
+            .add_input(ActInput::new("environment".into(), "staging".into()));
 
         assert_eq!(config.inputs()[0].key(), "environment");
         assert_eq!(config.inputs()[0].value(), "staging");
@@ -290,7 +282,8 @@ mod tests {
 
     #[test]
     fn add_secret_keeps_name_and_value() {
-        let config = ActRunConfig::new().add_secret(Secret::new("KEY".into(), "value".into()));
+        let config =
+            ActRunConfig::new("test-run").add_secret(Secret::new("KEY".into(), "value".into()));
 
         assert_eq!(config.secrets().len(), 1);
         assert_eq!(config.secrets()[0].name(), "KEY");
@@ -299,19 +292,19 @@ mod tests {
 
     #[test]
     fn default_creates_empty_config() {
-        let config = ActRunConfig::default();
+        let config = ActRunConfig::new("test-run");
         assert!(config.workflow.is_none());
         assert!(config.job.is_none());
     }
 
     #[test]
     fn new_config_disables_all_workflows() {
-        assert!(!ActRunConfig::new().all_workflows());
+        assert!(!ActRunConfig::new("test-run").all_workflows());
     }
 
     #[test]
     fn new_config_disables_every_allow_flag() {
-        let config = ActRunConfig::new();
+        let config = ActRunConfig::new("test-run");
         assert!(!config.allow_real_container());
         assert!(!config.allow_real_fetcher());
         assert!(!config.allow_network());
@@ -320,7 +313,7 @@ mod tests {
     #[test]
     fn with_allow_real_container_opts_into_the_real_runtime() {
         assert!(
-            ActRunConfig::new()
+            ActRunConfig::new("test-run")
                 .with_allow_real_container(true)
                 .allow_real_container()
         );
@@ -329,7 +322,7 @@ mod tests {
     #[test]
     fn with_allow_real_fetcher_opts_into_the_real_fetcher() {
         assert!(
-            ActRunConfig::new()
+            ActRunConfig::new("test-run")
                 .with_allow_real_fetcher(true)
                 .allow_real_fetcher()
         );
@@ -337,11 +330,19 @@ mod tests {
 
     #[test]
     fn with_allow_network_permits_outbound_requests() {
-        assert!(ActRunConfig::new().with_allow_network(true).allow_network());
+        assert!(
+            ActRunConfig::new("test-run")
+                .with_allow_network(true)
+                .allow_network()
+        );
     }
 
     #[test]
     fn with_all_workflows_enables_running_every_workflow() {
-        assert!(ActRunConfig::new().with_all_workflows(true).all_workflows());
+        assert!(
+            ActRunConfig::new("test-run")
+                .with_all_workflows(true)
+                .all_workflows()
+        );
     }
 }

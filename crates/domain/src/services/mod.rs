@@ -7,7 +7,6 @@ pub mod expression_lexer;
 pub mod expression_parser;
 pub mod expression_resolver;
 pub mod repository_factory;
-pub mod step_factory;
 pub mod step_interpolator;
 
 pub use self::{

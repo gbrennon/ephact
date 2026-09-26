@@ -8,16 +8,14 @@ mod tests {
                 requests::{RunActionExecutionInput, RunActionRequest, RunActionRequestInput},
                 responses::ExecuteActionResponse,
             },
-            ports::inbound::RunActionPort,
+            ports::{inbound::RunActionPort, outbound::StepTextCodecPort},
             services::run_action_service::RunActionService,
         },
         domain::{
-            services::{
-                evaluation_context_mapper::EvaluationContextMapper, step_factory::StepFactory,
-            },
+            services::evaluation_context_mapper::EvaluationContextMapper,
             value_objects::EvaluationContext,
         },
-        infrastructure::workflows::yaml::StepYaml,
+        infrastructure::{steps::JsonStepTextCodec, workflows::yaml::StepYaml},
     };
 
     use crate::common::fakes::{fake_command_bus::FakeCommandBus, stub_container::StubContainer};
@@ -31,14 +29,18 @@ mod tests {
         ));
 
         let container = Arc::new(StubContainer);
-        let service = RunActionService::new(Box::new(command_bus.clone()), container);
+        let service = RunActionService::new(
+            Box::new(command_bus.clone()),
+            container,
+            Arc::new(JsonStepTextCodec),
+        );
         let step = serde_yaml::from_str::<StepYaml>("uses: actions/checkout@v4")
             .unwrap()
             .into_domain();
 
         let request = RunActionRequest::new(RunActionRequestInput::new(
             "actions/checkout@v4",
-            StepFactory::to_text(&step).unwrap(),
+            JsonStepTextCodec.encode(&step).unwrap(),
             RunActionExecutionInput::new(
                 PathBuf::from("/repo"),
                 HashMap::new(),

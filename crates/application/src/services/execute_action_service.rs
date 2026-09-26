@@ -3,7 +3,6 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc};
 use crate::{
     domain::{
         errors::{ActionError, StepError},
-        services::step_factory::StepFactory,
         value_objects::{ActionDefinition, ActionRuntime},
     },
     dtos::{
@@ -21,7 +20,7 @@ use crate::{
             action_directory_resolver_port::ActionDirectoryResolverPort,
             action_inputs_resolver_port::ActionInputsResolverPort,
             composite_action_runner_port::CompositeActionRunnerPort, container_port::ContainerPort,
-            node_action_runner_port::NodeActionRunnerPort,
+            node_action_runner_port::NodeActionRunnerPort, step_text_codec_port::StepTextCodecPort,
         },
     },
 };
@@ -40,6 +39,7 @@ pub struct ExecuteActionService {
     input_resolver: Arc<dyn ActionInputsResolverPort>,
     composite_runner: Arc<dyn CompositeActionRunnerPort>,
     node_runner: Arc<dyn NodeActionRunnerPort>,
+    step_codec: Arc<dyn StepTextCodecPort>,
 }
 
 enum ActionDirectoryResolution {
@@ -55,6 +55,7 @@ impl ExecuteActionService {
         input_resolver: Arc<dyn ActionInputsResolverPort>,
         composite_runner: Arc<dyn CompositeActionRunnerPort>,
         node_runner: Arc<dyn NodeActionRunnerPort>,
+        step_codec: Arc<dyn StepTextCodecPort>,
     ) -> Self {
         Self {
             container,
@@ -63,6 +64,7 @@ impl ExecuteActionService {
             input_resolver,
             composite_runner,
             node_runner,
+            step_codec,
         }
     }
 
@@ -120,7 +122,7 @@ impl ExecuteActionService {
         definition: &ActionDefinition,
         request: &ExecuteActionRequest,
     ) -> Result<HashMap<String, String>, StepError> {
-        let step = StepFactory::from_text(request.step())?;
+        let step = self.step_codec.decode(request.step())?;
         self.input_resolver
             .resolve(ResolveActionInputsRequest::new(definition.clone(), step))
     }
