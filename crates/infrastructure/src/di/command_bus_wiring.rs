@@ -6,7 +6,7 @@ use crate::{
         ports::outbound::{
             ContainerRuntimePort, action_command_bus_port::ActionCommandBusPort,
             domain_event_bus_port::DomainEventBusPort, job_command_bus_port::JobCommandBusPort,
-            step_command_bus_port::StepCommandBusPort,
+            step_command_bus_port::StepCommandBusPort, step_text_codec_port::StepTextCodecPort,
         },
         services::{
             execute_job_service::{ExecuteJobDependencies, ExecuteJobService},
@@ -23,7 +23,7 @@ use crate::{
     jobs::{JobCommandHandler, RunnerEnvironmentAdapter},
     messaging::{DeferredCommandBus, InMemoryCommandBus, SharedCommandBus, SharedEventBus},
     steps::{
-        ExecuteStepFactory, StepCommandHandler,
+        ExecuteStepFactory, JsonStepTextCodec, StepCommandHandler,
         build_step_context_service::BuildStepContextService,
         prefix_step_path_service::PrefixStepPathService,
         read_step_env_exports_service::ReadStepEnvExportsService,
@@ -69,15 +69,18 @@ impl CommandBusWiring {
             Box::new(event_bus.clone()) as Box<dyn DomainEventBusPort>,
         )));
 
+        let step_codec: Arc<dyn StepTextCodecPort> = Arc::new(JsonStepTextCodec);
         let shell_runner = Arc::new(RunShellStepService::new(
             Box::new(event_bus.clone()) as Box<dyn DomainEventBusPort>
         ));
         let action_command_bus = Arc::new(shared_bus.clone()) as Arc<dyn ActionCommandBusPort>;
+        let step_codec_for_factory = step_codec.clone();
         let step_factory: ExecuteStepFactory = Box::new(move |container| {
             Box::new(ExecuteStepService::new(
                 container,
                 shell_runner.clone(),
                 action_command_bus.clone(),
+                step_codec_for_factory.clone(),
             ))
         });
         let step_handler = StepCommandHandler::new(step_factory);
@@ -86,6 +89,7 @@ impl CommandBusWiring {
             action_fetcher,
             Box::new(shared_bus.clone()) as Box<dyn ActionCommandBusPort>,
             Box::new(event_bus) as Box<dyn DomainEventBusPort>,
+            step_codec,
         );
         let action_handler = ActionCommandHandler::new(action_factory);
 

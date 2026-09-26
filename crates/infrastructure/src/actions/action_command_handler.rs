@@ -7,13 +7,13 @@ use crate::{
             },
             responses::ExecuteActionResponse,
         },
-        ports::outbound::container_port::ContainerPort,
+        ports::outbound::{StepTextCodecPort, container_port::ContainerPort},
     },
     domain::{
-        errors::StepError,
-        messages::commands::ExecuteActionCommand,
-        services::{evaluation_context_mapper::EvaluationContextMapper, step_factory::StepFactory},
+        errors::StepError, messages::commands::ExecuteActionCommand,
+        services::evaluation_context_mapper::EvaluationContextMapper,
     },
+    steps::JsonStepTextCodec,
 };
 
 /// Infrastructure command handler that processes `ExecuteActionCommand`.
@@ -33,7 +33,7 @@ impl ActionCommandHandler {
         let (action_ref, step, repo_path, env, context, container) = cmd.into_parts();
         let req = ExecuteActionRequest::new(ExecuteActionRequestInput::new(
             action_ref,
-            StepFactory::to_text(&step)?,
+            JsonStepTextCodec.encode(&step)?,
             ExecuteActionExecutionInput::new(
                 repo_path,
                 env,

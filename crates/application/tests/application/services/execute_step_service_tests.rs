@@ -8,18 +8,16 @@ mod tests {
                 requests::ExecuteStepRequest,
                 responses::{ExecResultResponse, ExecuteActionResponse},
             },
-            ports::inbound::execute_step_port::ExecuteStepPort,
+            ports::{inbound::execute_step_port::ExecuteStepPort, outbound::StepTextCodecPort},
             services::execute_step_service::ExecuteStepService,
         },
         domain::{
             entities::Step,
             errors::StepError,
-            services::{
-                evaluation_context_mapper::EvaluationContextMapper, step_factory::StepFactory,
-            },
+            services::evaluation_context_mapper::EvaluationContextMapper,
             value_objects::{ContextValue, EvaluationContext},
         },
-        infrastructure::workflows::yaml::StepYaml,
+        infrastructure::{steps::JsonStepTextCodec, workflows::yaml::StepYaml},
     };
 
     use crate::common::fakes::{
@@ -43,7 +41,12 @@ mod tests {
 
     fn service(shell: FakeShellStepRunnerPort, command_bus: FakeCommandBus) -> ExecuteStepService {
         let container = Arc::new(StubContainer);
-        ExecuteStepService::new(container, Arc::new(shell), Arc::new(command_bus))
+        ExecuteStepService::new(
+            container,
+            Arc::new(shell),
+            Arc::new(command_bus),
+            Arc::new(JsonStepTextCodec),
+        )
     }
 
     #[test]
@@ -57,7 +60,7 @@ mod tests {
         let step = step_from("run: echo hi\n");
         let executed = service
             .execute(ExecuteStepRequest::new(
-                StepFactory::to_text(&step).unwrap(),
+                JsonStepTextCodec.encode(&step).unwrap(),
                 EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 Path::new("/repo"),
                 HashMap::new(),
@@ -82,7 +85,7 @@ mod tests {
         env.insert("MODE".to_string(), "staging".to_string());
         let executed = service
             .execute(ExecuteStepRequest::new(
-                StepFactory::to_text(&step).unwrap(),
+                JsonStepTextCodec.encode(&step).unwrap(),
                 EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 Path::new("/repo"),
                 env.clone(),
@@ -107,7 +110,7 @@ mod tests {
         let step = step_from("run: echo hi\n");
         service
             .execute(ExecuteStepRequest::new(
-                StepFactory::to_text(&step).unwrap(),
+                JsonStepTextCodec.encode(&step).unwrap(),
                 EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 Path::new("/repo"),
                 HashMap::new(),
@@ -126,7 +129,7 @@ mod tests {
         let context = EvaluationContext::new().with_inputs(inputs);
         service
             .execute(ExecuteStepRequest::new(
-                StepFactory::to_text(&step).unwrap(),
+                JsonStepTextCodec.encode(&step).unwrap(),
                 EvaluationContextMapper::to_parts(&context),
                 Path::new("/repo"),
                 HashMap::new(),
@@ -145,7 +148,7 @@ mod tests {
         let step = step_from("run: deploy ${{ }}\n");
         let error = service
             .execute(ExecuteStepRequest::new(
-                StepFactory::to_text(&step).unwrap(),
+                JsonStepTextCodec.encode(&step).unwrap(),
                 EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 Path::new("/repo"),
                 HashMap::new(),
@@ -174,7 +177,7 @@ mod tests {
         let step = step_from("run: echo hi\n");
         let error = service
             .execute(ExecuteStepRequest::new(
-                StepFactory::to_text(&step).unwrap(),
+                JsonStepTextCodec.encode(&step).unwrap(),
                 EvaluationContextMapper::to_parts(&EvaluationContext::new()),
                 Path::new("/repo"),
                 HashMap::new(),

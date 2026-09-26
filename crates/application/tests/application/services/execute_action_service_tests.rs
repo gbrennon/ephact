@@ -10,7 +10,9 @@ mod tests {
                 },
                 responses::{ContainerConfigOptions, ContainerConfigResponse, ExecResultResponse},
             },
-            ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
+            ports::outbound::{
+                ContainerRuntimePort, StepTextCodecPort, container_port::ContainerPort,
+            },
         },
         domain::{
             entities::Step,
@@ -19,6 +21,7 @@ mod tests {
         infrastructure::{
             actions::{ActionFetcherPort, ExecuteActionFactory},
             di::ActionExecutionWiring,
+            steps::JsonStepTextCodec,
             workflows::yaml::StepYaml,
         },
     };
@@ -35,6 +38,7 @@ mod tests {
             fetcher,
             Box::new(FakeCommandBus::new()),
             Box::new(FakeEventBus::new()),
+            Arc::new(JsonStepTextCodec),
         )
     }
 
@@ -63,7 +67,7 @@ mod tests {
     ) -> ExecuteActionRequest {
         ExecuteActionRequest::new(ExecuteActionRequestInput::new(
             action_ref,
-            step,
+            JsonStepTextCodec.encode(&step).unwrap(),
             ExecuteActionExecutionInput::new(repo_path.to_path_buf(), HashMap::new(), context),
         ))
     }
@@ -458,6 +462,7 @@ mod tests {
             Box::new(FakeActionFetcher::returning(repo.path().into())),
             Box::new(command_bus.clone()),
             Box::new(FakeEventBus::new()),
+            Arc::new(JsonStepTextCodec),
         ));
         command_bus.bind(service.clone());
         let container = container(&runtime);

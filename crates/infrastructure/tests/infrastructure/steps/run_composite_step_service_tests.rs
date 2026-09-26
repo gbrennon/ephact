@@ -7,17 +7,20 @@ mod tests {
     };
 
     use ephact::{
-        application::dtos::{
-            requests::{
-                ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
-                RunCompositeStepRequest,
+        application::{
+            dtos::{
+                requests::{
+                    ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
+                    RunCompositeStepRequest,
+                },
+                responses::ExecuteActionResponse,
             },
-            responses::ExecuteActionResponse,
+            ports::outbound::StepTextCodecPort,
         },
         domain::{entities::Step, value_objects::EvaluationContext},
         infrastructure::{
             steps::{
-                run_composite_step_port::RunCompositeStepPort,
+                JsonStepTextCodec, run_composite_step_port::RunCompositeStepPort,
                 run_composite_step_service::RunCompositeStepService,
                 run_shell_step_service::RunShellStepService,
             },
@@ -42,7 +45,9 @@ mod tests {
     ) -> ExecuteActionRequest {
         ExecuteActionRequest::new(ExecuteActionRequestInput::new(
             "./actions/outer",
-            step_from("uses: ./actions/outer\n"),
+            JsonStepTextCodec
+                .encode(&step_from("uses: ./actions/outer\n"))
+                .unwrap(),
             ExecuteActionExecutionInput::new(
                 PathBuf::from("/repo"),
                 HashMap::new(),

@@ -1,4 +1,7 @@
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use clap::Args;
 
@@ -18,6 +21,14 @@ use crate::{
 /// etc.) and maps them into the domain model via
 /// [`to_domain`](Self::to_domain). The container runtime is auto-detected
 /// (Docker or Podman) at execution time.
+/// Creates a unique identifier for one CLI run.
+pub(crate) fn new_run_id() -> String {
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |duration| duration.as_nanos());
+    format!("run-{}-{timestamp}", std::process::id())
+}
+
 #[derive(Args)]
 pub struct RunArgs {
     /// Path to the repository (defaults to the current directory).
@@ -97,7 +108,7 @@ impl RunArgs {
     }
 
     fn build_config(&self) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
-        let config = ActRunConfig::new();
+        let config = ActRunConfig::new(new_run_id());
         let config = self.apply_targets(config);
         let config = config
             .with_all_workflows(self.all_workflows || self.workflow.is_none())

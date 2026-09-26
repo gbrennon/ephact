@@ -17,8 +17,8 @@ mod tests {
                     execute_step_port::ExecuteStepPort, execute_workflow_port::ExecuteWorkflowPort,
                 },
                 outbound::{
-                    action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
-                    job_command_bus_port::JobCommandBusPort,
+                    StepTextCodecPort, action_command_bus_port::ActionCommandBusPort,
+                    container_port::ContainerPort, job_command_bus_port::JobCommandBusPort,
                     step_command_bus_port::StepCommandBusPort,
                     workflow_command_bus_port::WorkflowCommandBusPort,
                 },
@@ -31,14 +31,13 @@ mod tests {
             messages::commands::{
                 ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
             },
-            services::step_factory::StepFactory,
             value_objects::{EvaluationContext, WorkflowTrigger},
         },
         infrastructure::{
             actions::ActionCommandHandler,
             jobs::JobCommandHandler,
             messaging::InMemoryCommandBus,
-            steps::StepCommandHandler,
+            steps::{JsonStepTextCodec, StepCommandHandler},
             workflows::{WorkflowCommandHandler, yaml::StepYaml},
         },
     };
@@ -88,7 +87,7 @@ mod tests {
             request: ephact::application::dtos::requests::ExecuteStepRequest,
         ) -> Result<ExecutedStepResponse, ephact::application::errors::ExecuteStepError> {
             Ok(ExecutedStepResponse::new(
-                StepFactory::from_text(request.step()).unwrap(),
+                JsonStepTextCodec.decode(request.step()).unwrap(),
                 ExecuteActionResponse::new(0, "step out".to_string(), String::new()),
             ))
         }
@@ -131,7 +130,7 @@ mod tests {
 
         let cmd = ExecuteWorkflowCommand::new(
             "name: CI\non: [push]\n".to_string(),
-            ActRunConfig::new(),
+            ActRunConfig::new("test-run"),
             repository,
             "test-run".to_string(),
             false,
@@ -201,7 +200,7 @@ mod tests {
             request: ephact::application::dtos::requests::ExecuteStepRequest,
         ) -> Result<ExecutedStepResponse, ephact::application::errors::ExecuteStepError> {
             Ok(ExecutedStepResponse::new(
-                StepFactory::from_text(request.step()).unwrap(),
+                JsonStepTextCodec.decode(request.step()).unwrap(),
                 ExecuteActionResponse::new(
                     0,
                     request.env().get("MARKER").cloned().unwrap_or_default(),

@@ -9,11 +9,12 @@ use ephact::{
             responses::ExecuteActionResponse,
         },
         ports::outbound::{
-            action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
+            StepTextCodecPort, action_command_bus_port::ActionCommandBusPort,
+            container_port::ContainerPort,
         },
     },
     domain::{errors::StepError, messages::commands::ExecuteActionCommand},
-    infrastructure::actions::ExecuteActionFactory,
+    infrastructure::{actions::ExecuteActionFactory, steps::JsonStepTextCodec},
 };
 
 #[derive(Clone, Default)]
@@ -49,7 +50,7 @@ impl ActionCommandBusPort for FakeActionRoutingCommandBus {
         executor
             .execute(ExecuteActionRequest::new(ExecuteActionRequestInput::new(
                 action_ref,
-                step,
+                JsonStepTextCodec.encode(&step).unwrap(),
                 ExecuteActionExecutionInput::new(repo_path, env, context),
             )))
             .map_err(|error| StepError::new(error.to_string()))

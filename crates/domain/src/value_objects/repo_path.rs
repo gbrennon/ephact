@@ -80,7 +80,11 @@ impl RepoPath {
 
 #[cfg(test)]
 mod tests {
-    use std::{env, path::PathBuf};
+    use std::{
+        env,
+        path::PathBuf,
+        time::{SystemTime, UNIX_EPOCH},
+    };
 
     use super::*;
 
@@ -144,9 +148,17 @@ mod tests {
 
     #[test]
     fn is_worktree_returns_false_for_regular_repo() {
-        let tmp = tempfile::tempdir().unwrap();
-        std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
-        let path = RepoPath::new(tmp.path().to_path_buf()).unwrap();
-        assert!(!path.is_worktree());
+        let path = env::temp_dir().join(format!(
+            "ephact-domain-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
+        ));
+        std::fs::create_dir_all(path.join(".git")).unwrap();
+        let repo_path = RepoPath::new(path.clone()).unwrap();
+        assert!(!repo_path.is_worktree());
+        std::fs::remove_dir_all(path).unwrap();
     }
 }
