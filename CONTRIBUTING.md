@@ -44,6 +44,7 @@ All common contributor tasks are automated via `just`. Run `just` or
 | `just list-workflows`          | List workflows discovered in the repository                                                                                        | `cargo run -- list-workflows`                                                          |
 | `just list-actions`            | List actions referenced across workflows                                                                                           | `cargo run -- list-actions`                                                            |
 | `just test`                    | Run all default-feature test targets with aggregate line-coverage enforcement at 80%; excludes feature-gated container integration | `COVERAGE_THRESHOLD=80 ./scripts/check_coverage.sh`                                    |
+| `just test --crate domain`     | Run coverage for one crate; supported names are `root`, `domain`, `application`, `infrastructure`, and `presentation` | `COVERAGE_THRESHOLD=80 ./scripts/check_coverage.sh --crate domain` |
 | `just test-local`              | Run all default-feature test targets without coverage; excludes feature-gated container integration                                | `cargo test`                                                                           |
 | `just lint`                    | Run Clippy and deny warnings                                                                                                       | `cargo clippy -- -D warnings`                                                          |
 | `just lint-fix *args`          | Apply Clippy fixes; optional values are cargo-clippy arguments, not source-file filters                                            | `cargo clippy --fix --allow-dirty --allow-staged {{files}}`                            |
@@ -68,6 +69,15 @@ Run all default-feature test targets with aggregate line coverage enforced at
 ```sh
 just test
 ```
+
+Run coverage for one crate with the explicit `--crate` option:
+
+```sh
+just test --crate domain
+```
+
+Supported crate names are `root`, `domain`, `application`, `infrastructure`, and
+`presentation`.
 
 Run the same default-feature scope without calculating coverage:
 

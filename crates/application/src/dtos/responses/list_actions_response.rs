@@ -1,0 +1,30 @@
+/// Response DTO for the
+/// [`ListActionsPort`](crate::ports::inbound::list_actions_port::ListActionsPort)
+/// inbound port.
+///
+/// Carries the action references (`uses:`) collected from the steps of every
+/// workflow found in the repository.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ListActionsResponse {
+    /// The action references (`uses:`) used across the workflows, e.g.
+    /// `actions/checkout@v4`, `./.forgejo/actions/my-action`, or
+    /// `docker://node:20`.
+    actions: Vec<String>,
+}
+
+impl ListActionsResponse {
+    /// Creates a new list-actions response.
+    pub fn new(actions: Vec<String>) -> Self {
+        Self { actions }
+    }
+
+    /// The action references (`uses:`) used across the workflows.
+    pub fn actions(&self) -> &[String] {
+        &self.actions
+    }
+
+    /// Consumes the response and returns the actions.
+    pub fn into_actions(self) -> Vec<String> {
+        self.actions
+    }
+}

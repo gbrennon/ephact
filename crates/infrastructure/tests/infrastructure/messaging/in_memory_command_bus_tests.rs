@@ -1,0 +1,282 @@
+#[cfg(test)]
+mod tests {
+    use std::{collections::HashMap, path::PathBuf, sync::Arc};
+
+    use ephact::{
+        application::{
+            dtos::{
+                requests::ExecuteActionRequest,
+                responses::{
+                    ExecuteActionResponse, ExecutedStepResponse, JobExecutionResponse,
+                    JobSummaryResponse, WorkflowExecutionResponse,
+                },
+            },
+            ports::{
+                inbound::{
+                    execute_action_port::ExecuteActionPort, execute_job_port::ExecuteJobPort,
+                    execute_step_port::ExecuteStepPort, execute_workflow_port::ExecuteWorkflowPort,
+                },
+                outbound::{
+                    StepTextCodecPort, action_command_bus_port::ActionCommandBusPort,
+                    container_port::ContainerPort, job_command_bus_port::JobCommandBusPort,
+                    step_command_bus_port::StepCommandBusPort,
+                    workflow_command_bus_port::WorkflowCommandBusPort,
+                },
+            },
+        },
+        domain::{
+            RepoPath, Repository, RepositoryName, WorkflowRunConfig,
+            aggregates::Workflow,
+            entities::Job,
+            messages::commands::{
+                ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
+            },
+            value_objects::{EvaluationContext, WorkflowTrigger},
+        },
+        infrastructure::{
+            actions::ActionCommandHandler,
+            jobs::JobCommandHandler,
+            messaging::InMemoryCommandBus,
+            steps::{JsonStepTextCodec, StepCommandHandler},
+            workflows::{WorkflowCommandHandler, yaml::StepYaml},
+        },
+    };
+
+    use crate::common::fakes::stub_container::StubContainer;
+
+    struct StubWorkflowPort;
+    impl ExecuteWorkflowPort for StubWorkflowPort {
+        fn execute(
+            &self,
+            _request: ephact::application::dtos::requests::ExecuteWorkflowRequest,
+        ) -> Result<WorkflowExecutionResponse, ephact::application::errors::ExecuteWorkflowError>
+        {
+            Ok(WorkflowExecutionResponse::new(
+                "dispatched-wf".to_string(),
+                Vec::new(),
+                vec!["c1".to_string()],
+                true,
+            ))
+        }
+    }
+
+    struct StubJobPort;
+    impl ExecuteJobPort for StubJobPort {
+        fn execute(
+            &self,
+            _request: ephact::application::dtos::requests::ExecuteJobRequest,
+            _run: &ephact::domain::entities::JobRun,
+            _workflow: &ephact::domain::aggregates::Workflow,
+        ) -> Result<JobExecutionResponse, ephact::application::errors::ExecuteJobError> {
+            Ok(JobExecutionResponse::new(
+                JobSummaryResponse::new(
+                    "j1".to_string(),
+                    Some("job 1".to_string()),
+                    Vec::new(),
+                    true,
+                ),
+                "c1".to_string(),
+            ))
+        }
+    }
+
+    struct StubStepPort;
+    impl ExecuteStepPort for StubStepPort {
+        fn execute(
+            &self,
+            request: ephact::application::dtos::requests::ExecuteStepRequest,
+        ) -> Result<ExecutedStepResponse, ephact::application::errors::ExecuteStepError> {
+            Ok(ExecutedStepResponse::new(
+                JsonStepTextCodec.decode(request.step()).unwrap(),
+                ExecuteActionResponse::new(0, "step out".to_string(), String::new()),
+            ))
+        }
+    }
+
+    struct StubActionPort;
+    impl ExecuteActionPort for StubActionPort {
+        fn execute(
+            &self,
+            _request: ExecuteActionRequest,
+        ) -> Result<ExecuteActionResponse, ephact::application::errors::ExecuteActionError>
+        {
+            Ok(ExecuteActionResponse::new(
+                0,
+                "action out".to_string(),
+                String::new(),
+            ))
+        }
+    }
+
+    #[test]
+    fn command_bus_dispatches_workflow_to_workflow_handler() {
+        let bus = InMemoryCommandBus::new(
+            Box::new(WorkflowCommandHandler::new(Box::new(StubWorkflowPort))),
+            Box::new(JobCommandHandler::new(Box::new(StubJobPort))),
+            Box::new(StepCommandHandler::new(Box::new(|_| {
+                Box::new(StubStepPort)
+            }))),
+            Box::new(ActionCommandHandler::new(Box::new(|_| {
+                Box::new(StubActionPort)
+            }))),
+        );
+
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
+        let repository = Repository::new(
+            RepoPath::new(tmp.path().to_path_buf()).unwrap(),
+            RepositoryName::new("test-repo".into()).unwrap(),
+        );
+
+        let cmd = ExecuteWorkflowCommand::new(
+            "name: CI\non: [push]\n".to_string(),
+            WorkflowRunConfig::new("test-run"),
+            repository,
+            "test-run".to_string(),
+            false,
+        );
+
+        let result = WorkflowCommandBusPort::dispatch(&bus, cmd).unwrap();
+        assert_eq!(result.workflow_name(), "dispatched-wf");
+    }
+
+    #[test]
+    fn command_bus_dispatches_action_to_action_handler() {
+        let bus = InMemoryCommandBus::new(
+            Box::new(WorkflowCommandHandler::new(Box::new(StubWorkflowPort))),
+            Box::new(JobCommandHandler::new(Box::new(StubJobPort))),
+            Box::new(StepCommandHandler::new(Box::new(|_| {
+                Box::new(StubStepPort)
+            }))),
+            Box::new(ActionCommandHandler::new(Box::new(|_| {
+                Box::new(StubActionPort)
+            }))),
+        );
+
+        let step = serde_yaml::from_str::<StepYaml>("uses: actions/checkout@v4")
+            .unwrap()
+            .into_domain();
+        let container: Arc<dyn ContainerPort> = Arc::new(StubContainer);
+        let cmd = ExecuteActionCommand::new(
+            "actions/checkout@v4".into(),
+            step,
+            PathBuf::from("/repo"),
+            HashMap::new(),
+            container.clone(),
+        )
+        .with_context(EvaluationContext::new());
+
+        let result = ActionCommandBusPort::dispatch(&bus, cmd).unwrap();
+        assert_eq!(result.stdout(), "action out");
+        assert_eq!(result.exit_code(), 0);
+    }
+
+    struct EchoJobPort;
+
+    impl ExecuteJobPort for EchoJobPort {
+        fn execute(
+            &self,
+            request: ephact::application::dtos::requests::ExecuteJobRequest,
+            run: &ephact::domain::entities::JobRun,
+            _workflow: &ephact::domain::aggregates::Workflow,
+        ) -> Result<JobExecutionResponse, ephact::application::errors::ExecuteJobError> {
+            Ok(JobExecutionResponse::new(
+                JobSummaryResponse::new(
+                    run.job_id().to_string(),
+                    run.workflow_name().map(str::to_string),
+                    Vec::new(),
+                    true,
+                ),
+                request.repo_path().display().to_string(),
+            ))
+        }
+    }
+
+    struct EchoStepPort;
+
+    impl ExecuteStepPort for EchoStepPort {
+        fn execute(
+            &self,
+            request: ephact::application::dtos::requests::ExecuteStepRequest,
+        ) -> Result<ExecutedStepResponse, ephact::application::errors::ExecuteStepError> {
+            Ok(ExecutedStepResponse::new(
+                JsonStepTextCodec.decode(request.step()).unwrap(),
+                ExecuteActionResponse::new(
+                    0,
+                    request.env().get("MARKER").cloned().unwrap_or_default(),
+                    request.repo_path().display().to_string(),
+                ),
+            ))
+        }
+    }
+
+    fn workflow_named(name: &str) -> Workflow {
+        Workflow::new(
+            Some(name.to_string()),
+            vec![WorkflowTrigger::PullRequest(None)],
+            HashMap::new(),
+            HashMap::new(),
+        )
+    }
+
+    #[test]
+    fn command_bus_dispatches_job_to_job_handler_with_command_payload() {
+        let bus = InMemoryCommandBus::new(
+            Box::new(WorkflowCommandHandler::new(Box::new(StubWorkflowPort))),
+            Box::new(JobCommandHandler::new(Box::new(EchoJobPort))),
+            Box::new(StepCommandHandler::new(Box::new(|_| {
+                Box::new(StubStepPort)
+            }))),
+            Box::new(ActionCommandHandler::new(Box::new(|_| {
+                Box::new(StubActionPort)
+            }))),
+        );
+        let repo_path = PathBuf::from("/repo/job");
+        let command = ExecuteJobCommand::new(
+            Job::default(),
+            "build-job".to_string(),
+            workflow_named("Build"),
+            repo_path.clone(),
+            EvaluationContext::new(),
+        )
+        .with_run_id("test-run".to_string())
+        .with_allow_repo_writes(false);
+
+        let result = JobCommandBusPort::dispatch(&bus, command).unwrap();
+
+        assert_eq!(result.job_summary().job_id(), "build-job");
+        assert_eq!(result.job_summary().name(), Some("Build"));
+        assert_eq!(result.container_name(), repo_path.display().to_string());
+    }
+
+    #[test]
+    fn command_bus_dispatches_step_to_step_handler_with_command_payload() {
+        let bus = InMemoryCommandBus::new(
+            Box::new(WorkflowCommandHandler::new(Box::new(StubWorkflowPort))),
+            Box::new(JobCommandHandler::new(Box::new(StubJobPort))),
+            Box::new(StepCommandHandler::new(Box::new(|_| {
+                Box::new(EchoStepPort)
+            }))),
+            Box::new(ActionCommandHandler::new(Box::new(|_| {
+                Box::new(StubActionPort)
+            }))),
+        );
+        let step = serde_yaml::from_str::<StepYaml>("run: echo hello")
+            .unwrap()
+            .into_domain();
+        let container: Arc<dyn ContainerPort> = Arc::new(StubContainer);
+        let command = ExecuteStepCommand::new(
+            step,
+            HashMap::from([("MARKER".to_string(), "step-marker".to_string())]),
+            EvaluationContext::new(),
+            container,
+            PathBuf::from("/repo/step"),
+        );
+
+        let result = StepCommandBusPort::dispatch(&bus, command).unwrap();
+
+        assert_eq!(result.step().run(), Some("echo hello"));
+        assert_eq!(result.response().stdout(), "step-marker");
+        assert_eq!(result.response().stderr(), "/repo/step");
+    }
+}

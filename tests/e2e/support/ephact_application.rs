@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use ephact::{
     application::ports::outbound::{ContainerRuntimePort, WorkflowSourcePort},
-    infrastructure::{actions::ActionFetcherPort, di::Container},
+    infrastructure::{
+        actions::ActionFetcherPort, di::Container, persistence::CargoProjectBrandingStore,
+    },
     presentation::composition_root::{Application, CompositionRoot},
 };
 
@@ -16,12 +18,18 @@ impl EphactApplication {
         fetcher: Box<dyn ActionFetcherPort>,
         workflow_source: Arc<dyn WorkflowSourcePort>,
     ) -> Application {
-        let container = Container::with_collaborators(
+        let branding_store = CargoProjectBrandingStore::from_metadata(
+            env!("CARGO_PKG_NAME"),
+            env!("CARGO_PKG_DESCRIPTION"),
+            env!("CARGO_PKG_VERSION"),
+        );
+        let container = Container::with_collaborators_and_branding(
             runtime,
             Box::new(FixedImageMapper),
             fetcher,
             workflow_source,
             None,
+            Box::new(branding_store),
         );
 
         CompositionRoot::compose(container)

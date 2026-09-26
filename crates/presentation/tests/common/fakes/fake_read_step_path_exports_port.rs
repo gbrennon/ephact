@@ -1,0 +1,40 @@
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
+
+use ephact::{
+    application::dtos::requests::ReadStepPathExportsRequest,
+    infrastructure::steps::read_step_path_exports_port::ReadStepPathExportsPort,
+};
+
+/// Returns prepared path additions, recording that it was consulted.
+#[derive(Clone)]
+pub struct FakeReadStepPathExportsPort {
+    additions: Vec<String>,
+    called: Arc<AtomicBool>,
+}
+
+impl FakeReadStepPathExportsPort {
+    pub fn returning(additions: Vec<String>) -> Self {
+        Self {
+            additions,
+            called: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    pub fn was_called(&self) -> bool {
+        self.called.load(Ordering::SeqCst)
+    }
+}
+
+impl ReadStepPathExportsPort for FakeReadStepPathExportsPort {
+    fn execute(
+        &self,
+        _request: ReadStepPathExportsRequest,
+        _container: &dyn ephact::application::ports::outbound::ContainerPort,
+    ) -> Vec<String> {
+        self.called.store(true, Ordering::SeqCst);
+        self.additions.clone()
+    }
+}

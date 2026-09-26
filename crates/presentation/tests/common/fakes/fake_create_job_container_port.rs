@@ -1,0 +1,56 @@
+use std::{error::Error, sync::Arc};
+
+use ephact::{
+    application::{
+        dtos::requests::CreateJobContainerRequest, ports::outbound::container_port::ContainerPort,
+    },
+    infrastructure::containers::CreateJobContainerPort,
+};
+use parking_lot::Mutex;
+
+use super::stub_container::StubContainer;
+
+/// Records the creation requests it receives and hands back a stub container.
+///
+/// Shares its recordings across clones, so a test can keep inspecting it after
+/// injecting it into a service.
+#[derive(Clone, Default)]
+pub struct FakeCreateJobContainerPort {
+    images: Arc<Mutex<Vec<String>>>,
+    container_names: Arc<Mutex<Vec<String>>>,
+    legacy_container_names: Arc<Mutex<Vec<String>>>,
+}
+
+impl FakeCreateJobContainerPort {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn images(&self) -> Vec<String> {
+        self.images.lock().clone()
+    }
+
+    pub fn container_names(&self) -> Vec<String> {
+        self.container_names.lock().clone()
+    }
+
+    pub fn legacy_container_names(&self) -> Vec<String> {
+        self.legacy_container_names.lock().clone()
+    }
+}
+
+impl CreateJobContainerPort for FakeCreateJobContainerPort {
+    fn execute(
+        &self,
+        request: CreateJobContainerRequest,
+    ) -> Result<Box<dyn ContainerPort>, Box<dyn Error>> {
+        self.images.lock().push(request.image().to_string());
+        self.container_names
+            .lock()
+            .push(request.container_name().to_string());
+        self.legacy_container_names
+            .lock()
+            .push(request.legacy_container_name().to_string());
+        Ok(Box::new(StubContainer))
+    }
+}

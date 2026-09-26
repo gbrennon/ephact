@@ -1,0 +1,17 @@
+# Generated files
+.DS_Store
+*.log
+*.tmp
+*.swp
+*~
+
+# IDE files
+.idea/
+.vscode/
+
+# Cargo
+/target/
+/cargo
+
+# Test artifacts
+/coverage/
