@@ -1,0 +1,26 @@
+use crate::{domain::entities::Step, dtos::responses::ExecuteActionResponse};
+
+/// Outcome of executing one step, with the step its expressions resolved to.
+#[derive(Debug)]
+pub struct ExecutedStepResponse {
+    step: Step,
+    response: ExecuteActionResponse,
+}
+
+impl ExecutedStepResponse {
+    pub fn new(step: Step, response: ExecuteActionResponse) -> Self {
+        Self { step, response }
+    }
+
+    pub fn step(&self) -> &Step {
+        &self.step
+    }
+
+    pub fn response(&self) -> &ExecuteActionResponse {
+        &self.response
+    }
+
+    pub fn into_parts(self) -> (Step, ExecuteActionResponse) {
+        (self.step, self.response)
+    }
+}

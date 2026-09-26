@@ -31,10 +31,10 @@ install-dev:
 install:
 	cargo install --path .
 
-# Run all tests with coverage
+# Run all tests with coverage, or select one crate with --crate <name>
 # Optional: set COVERAGE_THRESHOLD env var (default: 80)
-test:
-	COVERAGE_THRESHOLD=80 ./scripts/check_coverage.sh
+test *args:
+	COVERAGE_THRESHOLD=80 ./scripts/check_coverage.sh {{args}}
 
 # Run tests without coverage (faster, for local development)
 test-local:

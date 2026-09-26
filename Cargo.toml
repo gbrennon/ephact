@@ -6,44 +6,35 @@ description = "Runs actions and workflows locally in ephemeral repositories, iso
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-thiserror = "2.0.18"
-uuid = { version = "1.23.4", features = ["v4"] }
-clap = { version = "4", features = ["derive"] }
-toml = "0.8"
-serde = { version = "1", features = ["derive"] }
-serde_yaml = "0.9"
-serde_json = "1"
-bollard = "0.21.0"
-tokio = { version = "1.53.1", features = ["full"] }
-tar = "0.4.46"
-futures-util = "0.3.33"
-libc = "0.2.189"
-bytes = "1"
-figlet-rs = "1.0.0"
-crossterm = { version = "0.29.0", default-features = false, features = ["events", "libc", "serde", "windows"] }
-ratatui = "0.29"
-ratatui-image = { version = "8", default-features = false, features = ["image-defaults"] }
-image = { version = "0.25.6", default-features = false, features = ["gif", "png", "jpeg", "webp"] }
-unicode-width = "0.2"
+ephact-domain = { path = "crates/domain", version = "0.3.0" }
+ephact-application = { path = "crates/application", version = "0.3.0" }
+ephact-infrastructure = { path = "crates/infrastructure", version = "0.3.0" }
+ephact-presentation = { path = "crates/presentation", version = "0.3.0" }
 
 [features]
 container-integration = []
 
 [dev-dependencies]
+crossterm = { version = "0.29.0", default-features = false, features = ["events", "libc", "serde", "windows"] }
+image = { version = "0.25.6", default-features = false, features = ["gif", "png", "jpeg", "webp"] }
 parking_lot = "0.12"
+ratatui = "0.29"
+serde_yaml = "0.9"
 tempfile = "3"
+tokio = { version = "1.53.1", features = ["full"] }
+unicode-width = "0.2"
 
 [[test]]
 name = "application"
-path = "tests/application/mod.rs"
+path = "crates/application/tests/application/mod.rs"
 
 [[test]]
 name = "infrastructure"
-path = "tests/infrastructure/mod.rs"
+path = "crates/infrastructure/tests/infrastructure/mod.rs"
 
 [[test]]
 name = "presentation"
-path = "tests/presentation/mod.rs"
+path = "crates/presentation/tests/presentation/mod.rs"
 
 [[test]]
 name = "e2e"
@@ -51,5 +42,13 @@ path = "tests/e2e/mod.rs"
 
 [[test]]
 name = "container_integration"
-path = "tests/container_integration/mod.rs"
+path = "crates/infrastructure/tests/container_integration/mod.rs"
 required-features = ["container-integration"]
+
+[workspace]
+members = [
+    "crates/domain",
+    "crates/application",
+    "crates/infrastructure",
+    "crates/presentation",
+]

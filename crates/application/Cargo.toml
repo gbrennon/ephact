@@ -1,0 +1,15 @@
+[package]
+name = "ephact-application"
+version = "0.3.0"
+edition = "2024"
+
+[dependencies]
+thiserror = "2.0.18"
+serde_yaml = "0.9"
+
+# Dependencies on the domain layer
+ephact-domain = { path = "../domain", version = "0.3.0" }
+
+
+[features]
+container-integration = []
