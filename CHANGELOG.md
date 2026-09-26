@@ -1,4 +1,4 @@
-## [0.2.0] - 2026-09-16
+## [0.3.1] - 2026-09-25
 
 ### Breaking Changes
 
@@ -180,6 +180,68 @@
 - **events**: Export ContainerStarted payload
 - **cleanup**: Tear down a run's containers on completion or failure
 - **jobs**: Announce the prepared container as started
+- Add initial tui screens
+- **tui**: Add ListActionsHandler to execute list actions port
+- **tui**: Register list_actions_handler in handlers module
+- **tui**: Add ListActionsScreen for browsing repository actions
+- **tui**: Add LIST_ACTIONS_INDEX constant to HomeScreen
+- **tui**: Export ListActionsScreen in screens module
+- **tui**: Wire ListActions navigation and rendering in TuiApp
+- **tui**: Re-export ListActionsHandler in presentation tui module
+- **tui**: Add RunHandler to execute run workflow port
+- **tui**: Register run_handler in tui handlers module
+- **tui**: Re-export RunHandler in presentation tui module
+- **cli**: Wire TUI progress streaming
+- **cli**: Stream progress into TUI
+- **tui**: Add home workflow execution
+- **tui**: Render live workflow progress
+- **tui**: Stream workflow progress in runner
+- **tui**: Add workflow run screen
+- **tui**: Expose theme modules
+- **tui**: Apply home screen branding
+- **tui**: Expose screen modules
+- **tui**: Add scrollable failure details
+- **tui**: Redesign splash screen
+- **tui**: Improve workflow navigation
+- **tui**: Add color support
+- **tui**: Add project emblem rendering
+- **tui**: Add centralized theme
+- **handler**: Accept tui run configuration
+- **tui**: Expose run configuration screen
+- **tui**: Add run configuration form
+- **tui**: Handle run configuration input
+- **tui**: Run workflows interactively
+- **tui**: Handle input discovery safely
+- **tui**: Add splash quote catalog
+- **tui**: Integrate foldable workflow details
+- **domain**: Add settings aggregate
+- **domain**: Add expression literal value object
+- **domain**: Add interface mode value object
+- **domain**: Add operation mode value object
+- **domain**: Add output preferences value object
+- **domain**: Add permissions value object
+- **application**: Add settings store error
+- **application**: Add settings store port
+- **application**: Extend execute job request
+- **application**: Extend execute workflow request
+- **application**: Add step skip summary
+- **application**: Export settings store error
+- **application**: Export settings store port
+- **application**: Support network step skipping
+- **application**: Propagate network permission
+- **infrastructure**: Forward network permission to jobs
+- **infrastructure**: Persist settings in TOML
+- **infrastructure**: Register settings store adapter
+- **infrastructure**: Forward network permission to workflows
+- **presentation**: Integrate persistent settings dispatch
+- **domain**: Impl FileEntry
+- **main**: Wire settings store into production entrypoint
+- **inputs**: Add input declaration metadata
+- **domain**: Add marker value object
+- **domain**: Export marker types
+- **settings**: Add configurable marker value
+- **settings**: Persist marker configuration
+- **tui**: Add configurable markers and key hints
 
 ### Bug Fixes
 
@@ -227,6 +289,34 @@
 - **containers**: Restore container cleanup after workflow completion
 - **tests**: Update container naming assertions to accept timestamp
 - **tests**: Update container naming assertions to accept timestamp
+- **containers**: Exclude metadata worktrees from copies
+- **cli**: Share ports with tui runner
+- **dto**: Update workflow request contract
+- **container**: Avoid nested runtime creation
+- **runtime**: Support execution inside Tokio runtime
+- **container**: Avoid nested runtime creation
+- **runtime**: Support execution inside Tokio runtime
+- **tui**: Poll input without blocking progress
+- **cli**: Remove progress output indentation
+- **handlers**: Use pull request workflow events
+- **tui**: Show details for every run
+- **tui**: Report configuration errors
+- **tui**: Expose configuration errors
+- **tui**: Report setup failures
+- **tui**: Scroll completed summaries
+- **tui**: Route summary scrolling
+- **hooks**: Isolate staged lint fixes
+- **build**: Route lint fixes through staged wrapper
+- **hooks**: Restage formatted Rust files
+- **domain**: Classify remote mutations precisely
+- **application**: Enforce remote mutation policy
+- **infrastructure**: Preserve git metadata in copies
+- **application**: Require explicit event for all workflows
+- **application**: Reject runs without an event
+- **tui**: Block runs without declared events
+- **tui**: Show unsupported-event error modal
+- **tui**: Use marker for text input cursors
+- **tui**: Make graphical marker tests protocol-independent
 
 ### Refactor
 
@@ -682,6 +772,98 @@
 - **steps**: Share composite step containers
 - **steps**: Update step command handler ownership
 - **domain**: Add Send to generic
+- Place tui under presentation
+- **cli**: Bind helper functions to Cli
+- **tui**: Export runner struct
+- **tui**: Bind runner operations to Tui
+- **tui**: Bind screen rendering to types
+- **tui**: Bind event reading to EventReader
+- **tui**: Bind home rendering to HomeScreen
+- **tui**: Bind splash rendering to SplashScreen
+- **cli**: Wire TuiRunner into CLI
+- **cli**: Register dependency module
+- **cli**: Extract CliDependencies
+- **tui**: Rename TUI module root
+- **tui**: Rename app state module
+- **tui**: Rename TUI runner module
+- **tui**: Rename event reader module
+- **tui**: Organize handler modules
+- **tui**: Move workflow handler
+- **tui**: Organize screen modules
+- **tui**: Move home screen
+- **tui**: Move workflow list screen
+- **tui**: Move splash screen
+- **tui**: Isolate terminal guard
+- **tui**: Remove obsolete app path
+- **tui**: Remove obsolete event path
+- **tui**: Remove obsolete home path
+- **tui**: Remove obsolete screen module
+- **tui**: Remove obsolete splash path
+- **tui**: Remove obsolete runner path
+- **tui**: Order public methods before private helpers in TuiApp
+- **tui**: Order public methods before private helpers in TuiRunner
+- **presentation**: Add shared handler module
+- **cli**: Route commands through shared handlers
+- **port**: Update workflow execution contract
+- **service**: Align all-workflow execution
+- **service**: Align workflow execution
+- **cli**: Use shared presentation handlers
+- **cli**: Export shared presentation handlers
+- **composition**: Wire shared presentation handlers
+- **handler**: Share workflow execution handler
+- **tui**: Remove duplicate actions handler
+- **tui**: Remove duplicate workflows handler
+- **tui**: Remove duplicate handler module
+- **tui**: Remove duplicate run handler
+- **tui**: Export shared presentation handlers
+- **tui**: Use shared actions handler
+- **tui**: Use shared workflow handler
+- **tui**: Export workflow screen
+- **test**: Remove duplicate actions handler tests
+- **test**: Remove duplicate workflows handler tests
+- **test**: Remove TUI handler test module
+- **test**: Remove duplicate run handler tests
+- **test**: Export workflow screen tests
+- **tui**: Reduce runner complexity
+- **tui**: Simplify workflow key handling
+- **cli**: Share input discovery with tui
+- **tui**: Separate input discovery
+- **tui**: Add screen manager
+- **tui**: Register screen manager
+- **tui**: Delegate screen state
+- **tui**: Remove redundant run finish
+- **hooks**: Extract changed file listing
+- **tui**: Align theme and emblem rendering
+- **domain**: Align literal value object
+- **domain**: Complete settings exports
+- **tui**: Reorganize screens and reusable components
+- **dto**: Add file entry boundary conversions
+- **container**: Complete neutral file entry boundary
+- **infrastructure**: Relocate settings store under persistence namespace
+- **infrastructure**: Add cargo project branding store adapter
+- **infrastructure**: Expose persistence project branding module
+- **infrastructure**: Re-export cargo project branding store from persistence
+- **infrastructure**: Wire persistence cargo project branding store in container
+- **infrastructure**: Re-export cargo project branding store from infrastructure root
+- **infrastructure**: Remove obsolete flat project branding store
+- **infrastructure**: Encapsulate serialization skip predicates in toml settings
+- **workflows**: Model declared trigger inputs
+- **yaml**: Reduce trigger filter complexity
+- **workflows**: Preserve input discovery metadata
+- **input**: Simplify editing line rendering
+- **settings**: Simplify marker handling and rendering
+- **tests**: Relocate branch-scoped integration tests
+- **ports**: Clean outbound application contracts
+- **containers**: Create docker submodule
+- **containers**: Create podman submodule
+- **containers**: Create job_preparation submodule
+- **containers**: Create runtime submodule and remove generics
+- **containers**: Create streaming submodule
+- **containers**: Update containers/mod.rs declarations and wiring
+- **cleanup**: Remove dead files, fixtures, and unused methods
+- **presentation**: Eliminate module inceptions and dead constructors
+- **application**: Construct RunAllWorkflowsRequest from domain config
+- **containers**: Encapsulate DockerContainer and PodmanContainer visibility
 
 ### Documentation
 
@@ -737,6 +919,16 @@
 - **application**: Align bus port docstrings with contract style
 - **ports**: Document action bus type erasure
 - **ports**: Document step bus type erasure
+- Specify first tui screen
+- Plan first tui screen
+- Remove outdated docs
+- **readme**: Document settings and default interface
+- **usage**: Document settings commands and startup behavior
+- **workflows**: Explain execution naming
+- Add verify-secrets step to contributing CI pipeline
+- Document CI secrets and Forgejo token conventions
+- **readme**: Focus on TUI as the default interface
+- **usage**: Add terminal user interface walkthrough
 
 ### Testing
 
@@ -946,6 +1138,81 @@
 - **jobs**: Update environment ownership cases
 - **messaging**: Update command bus ownership cases
 - **steps**: Update composite step ownership cases
+- **tui**: Use screen renderer types
+- **tui**: Update workflow port fake
+- **cli**: Register dependency tests
+- **cli**: Cover CliDependencies
+- **tui**: Organize TUI test modules
+- **tui**: Cover TuiApp
+- **tui**: Cover EventReader
+- **tui**: Cover TerminalGuard
+- **tui**: Organize handler tests
+- **tui**: Cover workflow handler
+- **tui**: Organize screen tests
+- **tui**: Cover workflow list screen
+- **tui**: Remove obsolete test module
+- **fakes**: Support action lists and error injection in FakeListActionsPort
+- **tui**: Add unit tests for ListActionsHandler
+- **tui**: Register list_actions_handler test module
+- **tui**: Add unit tests for ListActionsScreen
+- **tui**: Register list_actions screen test module
+- **tui**: Add selecting_list_actions_enters_actions_screen test in TuiApp
+- **tui**: Add integration tests for list actions screen and navigation
+- **tui**: Add recording run workflow port fake
+- **tui**: Register recording run workflow port fake
+- **tui**: Add integration tests for TUI run handler
+- **tui**: Register run_handler test module
+- **presentation**: Cover shared handlers
+- **cli**: Update handler integration tests
+- **service**: Update workflow service coverage
+- **fake**: Update fake workflow port
+- **fake**: Update stub workflow port
+- **e2e**: Update CLI command expectations
+- **cli**: Update parser expectations
+- **cli**: Update run handler coverage
+- **fake**: Record workflow execution requests
+- **handler**: Cover shared run handler
+- **tui**: Use shared handler tests
+- **tui**: Verify action screen factory
+- **tui**: Verify workflow screen handlers
+- **tui**: Verify progress application state
+- **tui**: Cover workflow run screen
+- **tui**: Cover TUI runner
+- **handlers**: Cover pull request execution
+- **tui**: Cover color support and emblem rendering
+- **tui**: Cover workflow details behavior
+- **tui**: Cover details navigation
+- **handler**: Cover tui run options
+- **tui**: Cover run configuration
+- **tui**: Cover event selection
+- **tui**: Cover screen manager delegation
+- **tui**: Cover summary scrolling
+- **tui**: Cover summary navigation
+- **tui**: Update splash render coverage
+- **tui**: Cover bounded detail navigation
+- **application**: Cover network permission
+- **application**: Cover network policy execution
+- **infrastructure**: Preserve git metadata in copies
+- **infrastructure**: Register settings store tests
+- **infrastructure**: Cover TOML settings persistence
+- **presentation**: Cover persistent settings and screen reorganization
+- **container**: Update neutral file entry coverage
+- **infrastructure**: Relocate settings store unit tests to persistence hierarchy
+- **presentation**: Verify composition root settings wiring
+- **presentation**: Cover cli and tui settings modification scenarios
+- **infrastructure**: Add relocated cargo project branding store unit test
+- **infrastructure**: Declare persistence project branding test module
+- **infrastructure**: Register project branding module in persistence tests
+- **infrastructure**: Remove obsolete flat project branding store test
+- **infrastructure**: Update infrastructure test module declarations
+- **workflows**: Cover explicit event execution
+- **e2e**: Require explicit workflow events
+- **tui**: Cover markers and screen behavior
+- **tui**: Verify persisted marker rendering
+- **tui**: Verify persisted input marker
+- **tui**: Verify selected marker input flow
+- **containers**: Update test imports and fakes for modularized layout
+- **common**: Remove dead code suppression by exporting test fakes
 
 ### Continuous Integration
 
@@ -961,6 +1228,35 @@
 - Run locked clippy before push
 - Isolate coverage tool installation
 - Install coverage tool for tests
+- **actions**: Add verify-token composite action
+- **actions**: Add publish-crate-staging composite action
+- **actions**: Add publish-crate-production composite action
+- **actions**: Clarify cache-rust-deps input descriptions
+- **actions**: Clarify create-codeberg-release input descriptions
+- **actions**: Rename token secret to GH_RELEASE_TOKEN
+- **actions**: Clarify push-release-tag input descriptions
+- **actions**: Clarify update-changelog input descriptions
+- **actions**: Clarify validate-release input descriptions
+- **workflows**: Add verify-secrets job to CI workflow
+- **workflows**: Add publish-staging job to build workflow
+- **workflows**: Wire production crates.io publish into release job
+- **actions**: Include PR number in staging pre-release version
+- **workflows**: Pass PR number to staging publish step
+- **workflows**: Use github context for Codeberg token verification
+- **workflows**: Use github context for Codeberg release step
+- Remove forgejo context suppression from actionlint config
+- **actions**: Accept scoped crates.io tokens and log response on error
+- **actions**: Accept authenticated crates.io cookie-only response
+- **actions**: Install git-cliff directly from github releases
+- **actions**: Add cargo bin to path in install-git-cliff
+- **actions**: Retarget update-changelog to target branch
+- **workflows**: Add prepare-release workflow for changelog
+- **workflows**: Remove changelog push to main in release
+- **actionlint**: Remove legacy workstation runner
+- **workflows**: Assign native runners to builds
+- **workflows**: Assign native runners to CI jobs
+- **workflows**: Assign native runner to release preparation
+- **workflows**: Assign native runner to releases
 
 ### Miscellaneous Tasks
 
@@ -1001,3 +1297,5 @@
 - Check_coverage script fix for local env
 - **deps**: Remove unused chrono dependency
 - **deps**: Refresh lockfile after dependency removal
+- Include workstation-pc
+- Cargo bump
