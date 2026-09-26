@@ -1,4 +1,3 @@
-pub mod act_run_config_factory;
 pub mod evaluation_context_mapper;
 pub mod execution_planner;
 pub mod expression_evaluator;
@@ -8,6 +7,7 @@ pub mod expression_parser;
 pub mod expression_resolver;
 pub mod repository_factory;
 pub mod step_interpolator;
+pub mod workflow_run_config_factory;
 
 pub use self::{
     execution_planner::ExecutionPlanner, expression_evaluator::ExpressionEvaluator,

@@ -8,7 +8,7 @@ use clap::Args;
 use crate::{
     application::dtos::responses::WorkflowInputSourceResponse,
     domain::{
-        ActRunConfig, Repository,
+        Repository, WorkflowRunConfig,
         value_objects::{
             ActEvent, ActInput, ActJob, ActWorkflow, RepoPath, RepositoryName, Secret,
         },
@@ -89,13 +89,13 @@ pub struct RunArgs {
 }
 
 impl RunArgs {
-    /// Converts CLI arguments into the domain model: an [`ActRunConfig`] and a
+    /// Converts CLI arguments into the domain model: an [`WorkflowRunConfig`] and a
     /// [`Repository`].
     ///
     /// # Errors
     ///
     /// Returns an error if the repository path is not a valid git repository.
-    pub fn to_domain(&self) -> Result<(ActRunConfig, Repository), Box<dyn std::error::Error>> {
+    pub fn to_domain(&self) -> Result<(WorkflowRunConfig, Repository), Box<dyn std::error::Error>> {
         let repository = self.build_repository()?;
         let config = self.build_config()?;
         Ok((config, repository))
@@ -107,8 +107,8 @@ impl RunArgs {
         Ok(Repository::new(repo_path, repo_name))
     }
 
-    fn build_config(&self) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
-        let config = ActRunConfig::new(new_run_id());
+    fn build_config(&self) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
+        let config = WorkflowRunConfig::new(new_run_id());
         let config = self.apply_targets(config);
         let config = config
             .with_all_workflows(self.all_workflows || self.workflow.is_none())
@@ -120,7 +120,7 @@ impl RunArgs {
         self.apply_secrets(config)
     }
 
-    fn apply_targets(&self, mut config: ActRunConfig) -> ActRunConfig {
+    fn apply_targets(&self, mut config: WorkflowRunConfig) -> WorkflowRunConfig {
         if let Some(wf) = &self.workflow {
             config = config.with_workflow(ActWorkflow::new(wf.clone()));
         }
@@ -136,8 +136,8 @@ impl RunArgs {
 
     fn apply_inputs(
         &self,
-        mut config: ActRunConfig,
-    ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
+        mut config: WorkflowRunConfig,
+    ) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
         for input_str in &self.inputs {
             let (k, v) = Self::parse_key_value(input_str)?;
             config = config.add_input(ActInput::new(k, v));
@@ -147,8 +147,8 @@ impl RunArgs {
 
     fn apply_secrets(
         &self,
-        mut config: ActRunConfig,
-    ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
+        mut config: WorkflowRunConfig,
+    ) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
         for secret_str in &self.secrets {
             let (name, value) = Self::parse_secret(secret_str)?;
             config = config.add_secret(Secret::new(name, value));

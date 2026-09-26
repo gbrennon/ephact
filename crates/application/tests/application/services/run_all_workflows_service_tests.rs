@@ -11,7 +11,7 @@ mod tests {
             },
         },
         domain::{
-            ActRunConfig, RepoPath, Repository, RepositoryName, messages::events::DomainEvent,
+            RepoPath, Repository, RepositoryName, WorkflowRunConfig, messages::events::DomainEvent,
             value_objects::ActEvent,
         },
     };
@@ -32,7 +32,10 @@ mod tests {
         Repository::new(repo_path, name)
     }
 
-    fn primitive_request(config: ActRunConfig, repository: Repository) -> RunAllWorkflowsRequest {
+    fn primitive_request(
+        config: WorkflowRunConfig,
+        repository: Repository,
+    ) -> RunAllWorkflowsRequest {
         RunAllWorkflowsRequest::from_domain(&repository, &config)
     }
 
@@ -53,7 +56,7 @@ mod tests {
             ));
         let event_bus = FakeEventBus::new();
         let config =
-            ActRunConfig::new("test-run").with_event(ActEvent::new("pull_request".to_owned()));
+            WorkflowRunConfig::new("test-run").with_event(ActEvent::new("pull_request".to_owned()));
         let run_id = config.run_id().to_string();
         let repository_path = temp.path().display().to_string();
         let service = RunAllWorkflowsService::new(
@@ -85,7 +88,7 @@ mod tests {
         );
 
         let error = service
-            .execute(primitive_request(ActRunConfig::new("test-run"), repo))
+            .execute(primitive_request(WorkflowRunConfig::new("test-run"), repo))
             .unwrap_err();
 
         assert_eq!(error.to_string(), "workflow event must be specified");
@@ -126,7 +129,7 @@ mod tests {
         let source = FakeWorkflowSource::new().failing_read_all_workflows("cannot list workflows");
         let event_bus = FakeEventBus::new();
         let config =
-            ActRunConfig::new("test-run").with_event(ActEvent::new("pull_request".to_owned()));
+            WorkflowRunConfig::new("test-run").with_event(ActEvent::new("pull_request".to_owned()));
         let run_id = config.run_id().to_string();
         let service = RunAllWorkflowsService::new(
             Box::new(source),
@@ -169,7 +172,7 @@ mod tests {
             )),
         );
         let request = primitive_request(
-            ActRunConfig::new("test-run").with_event(ActEvent::new("pull_request".to_owned())),
+            WorkflowRunConfig::new("test-run").with_event(ActEvent::new("pull_request".to_owned())),
             repo,
         );
 

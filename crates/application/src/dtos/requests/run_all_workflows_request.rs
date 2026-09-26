@@ -22,7 +22,7 @@ impl RunAllWorkflowsRequest {
     /// Creates a primitive request from the domain run configuration.
     pub fn from_domain(
         repository: &crate::domain::Repository,
-        config: &crate::domain::ActRunConfig,
+        config: &crate::domain::WorkflowRunConfig,
     ) -> Self {
         Self {
             repository_path: repository.path().as_path().to_path_buf(),
