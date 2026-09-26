@@ -25,6 +25,10 @@ ratatui = "0.29"
 ratatui-image = { version = "8", default-features = false, features = ["image-defaults"] }
 image = { version = "0.25.6", default-features = false, features = ["gif", "png", "jpeg", "webp"] }
 unicode-width = "0.2"
+ephact-domain = { path = "crates/domain", version = "0.3.0" }
+ephact-application = { path = "crates/application", version = "0.3.0" }
+ephact-infrastructure = { path = "crates/infrastructure", version = "0.3.0" }
+ephact-presentation = { path = "crates/presentation", version = "0.3.0" }
 
 [features]
 container-integration = []
@@ -35,15 +39,15 @@ tempfile = "3"
 
 [[test]]
 name = "application"
-path = "tests/application/mod.rs"
+path = "crates/application/tests/application/mod.rs"
 
 [[test]]
 name = "infrastructure"
-path = "tests/infrastructure/mod.rs"
+path = "crates/infrastructure/tests/infrastructure/mod.rs"
 
 [[test]]
 name = "presentation"
-path = "tests/presentation/mod.rs"
+path = "crates/presentation/tests/presentation/mod.rs"
 
 [[test]]
 name = "e2e"
@@ -51,5 +55,13 @@ path = "tests/e2e/mod.rs"
 
 [[test]]
 name = "container_integration"
-path = "tests/container_integration/mod.rs"
+path = "crates/infrastructure/tests/container_integration/mod.rs"
 required-features = ["container-integration"]
+
+[workspace]
+members = [
+    "crates/domain",
+    "crates/application",
+    "crates/infrastructure",
+    "crates/presentation",
+]

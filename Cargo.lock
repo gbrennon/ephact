@@ -545,6 +545,10 @@ dependencies = [
  "bytes",
  "clap",
  "crossterm 0.29.0",
+ "ephact-application",
+ "ephact-domain",
+ "ephact-infrastructure",
+ "ephact-presentation",
  "figlet-rs",
  "futures-util",
  "image",
@@ -562,6 +566,69 @@ dependencies = [
  "toml",
  "unicode-width 0.2.0",
  "uuid",
+]
+
+[[package]]
+name = "ephact-application"
+version = "0.3.0"
+dependencies = [
+ "ephact-domain",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "ephact-domain"
+version = "0.3.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.20",
+ "uuid",
+]
+
+[[package]]
+name = "ephact-infrastructure"
+version = "0.3.0"
+dependencies = [
+ "bollard",
+ "bytes",
+ "ephact-application",
+ "ephact-domain",
+ "futures-util",
+ "libc",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "tar",
+ "tempfile",
+ "thiserror 2.0.20",
+ "tokio",
+ "toml",
+ "uuid",
+]
+
+[[package]]
+name = "ephact-presentation"
+version = "0.3.0"
+dependencies = [
+ "clap",
+ "crossterm 0.29.0",
+ "ephact-application",
+ "ephact-domain",
+ "ephact-infrastructure",
+ "figlet-rs",
+ "image",
+ "ratatui",
+ "ratatui-image",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+ "tokio",
+ "unicode-width 0.2.0",
 ]
 
 [[package]]

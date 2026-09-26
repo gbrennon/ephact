@@ -1,0 +1,32 @@
+use std::time::Duration;
+
+use ephact::application::{
+    dtos::{requests::RunAllWorkflowsRequest, responses::RunSummaryResponse},
+    ports::inbound::run_all_workflows_port::RunAllWorkflowsPort,
+};
+
+pub struct FakeRunAllWorkflowsPort {
+    pub result: RunSummaryResponse,
+}
+
+impl FakeRunAllWorkflowsPort {
+    pub fn new(success: bool) -> Self {
+        Self {
+            result: RunSummaryResponse::new(
+                "All Workflows".to_string(),
+                vec![],
+                success,
+                Duration::ZERO,
+            ),
+        }
+    }
+}
+
+impl RunAllWorkflowsPort for FakeRunAllWorkflowsPort {
+    fn execute(
+        &self,
+        _request: RunAllWorkflowsRequest,
+    ) -> Result<RunSummaryResponse, ephact::application::errors::RunAllWorkflowsError> {
+        Ok(self.result.clone())
+    }
+}
