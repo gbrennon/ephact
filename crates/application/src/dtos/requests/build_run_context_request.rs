@@ -1,19 +1,19 @@
-use crate::domain::{ActRunConfig, Repository};
+use crate::domain::{Repository, WorkflowRunConfig};
 
 /// Request DTO for the
 /// [`BuildRunContextPort`](crate::ports::inbound::build_run_context_port::BuildRunContextPort)
 /// outbound port.
 pub struct BuildRunContextRequest {
-    config: ActRunConfig,
+    config: WorkflowRunConfig,
     repository: Repository,
 }
 
 impl BuildRunContextRequest {
-    pub fn new(config: ActRunConfig, repository: Repository) -> Self {
+    pub fn new(config: WorkflowRunConfig, repository: Repository) -> Self {
         Self { config, repository }
     }
 
-    pub fn config(&self) -> &ActRunConfig {
+    pub fn config(&self) -> &WorkflowRunConfig {
         &self.config
     }
 

@@ -1,6 +1,6 @@
 use crate::{
     entities::repository::Repository, messages::commands::command::Command,
-    value_objects::act_run_config::ActRunConfig,
+    value_objects::workflow_run_config::WorkflowRunConfig,
 };
 
 /// Command representing the intention to execute a workflow.
@@ -10,7 +10,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecuteWorkflowCommand {
     workflow_content: String,
-    config: ActRunConfig,
+    config: WorkflowRunConfig,
     repository: Repository,
     run_id: String,
     allow_repo_writes: bool,
@@ -19,7 +19,7 @@ pub struct ExecuteWorkflowCommand {
 impl ExecuteWorkflowCommand {
     pub fn new(
         workflow_content: String,
-        config: ActRunConfig,
+        config: WorkflowRunConfig,
         repository: Repository,
         run_id: String,
         allow_repo_writes: bool,
@@ -37,7 +37,7 @@ impl ExecuteWorkflowCommand {
         &self.workflow_content
     }
 
-    pub fn config(&self) -> &ActRunConfig {
+    pub fn config(&self) -> &WorkflowRunConfig {
         &self.config
     }
 
@@ -53,7 +53,7 @@ impl ExecuteWorkflowCommand {
         self.allow_repo_writes
     }
 
-    pub fn into_parts(self) -> (String, ActRunConfig, Repository, String, bool) {
+    pub fn into_parts(self) -> (String, WorkflowRunConfig, Repository, String, bool) {
         (
             self.workflow_content,
             self.config,

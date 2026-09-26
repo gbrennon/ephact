@@ -16,7 +16,7 @@ use crate::{
     domain::{
         aggregates::Workflow,
         entities::Step,
-        value_objects::{ActRunConfig, ActionDefinition, ActionInput, ActionRuntime},
+        value_objects::{ActionDefinition, ActionInput, ActionRuntime, WorkflowRunConfig},
     },
     workflows::yaml::{ActionDefinitionYaml, WorkflowYaml},
 };
@@ -214,7 +214,7 @@ impl FilesystemRunInputDiscoveryService {
         std::env::var(variable.trim()).is_ok()
     }
 
-    fn collect_supplied_inputs(config: &ActRunConfig) -> HashMap<&str, &str> {
+    fn collect_supplied_inputs(config: &WorkflowRunConfig) -> HashMap<&str, &str> {
         config
             .inputs()
             .iter()

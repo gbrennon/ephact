@@ -1,7 +1,6 @@
 pub mod act_event;
 pub mod act_input;
 pub mod act_job;
-pub mod act_run_config;
 pub mod act_workflow;
 pub mod action_definition;
 pub mod action_input;
@@ -45,13 +44,13 @@ pub mod step_type;
 pub mod token_permissions;
 pub mod trigger_filter;
 pub mod trigger_input;
+pub mod workflow_run_config;
 pub mod workflow_trigger;
 
 pub use self::{
     act_event::ActEvent,
     act_input::ActInput,
     act_job::ActJob,
-    act_run_config::ActRunConfig,
     act_workflow::ActWorkflow,
     action_definition::ActionDefinition,
     action_input::ActionInput,
@@ -94,5 +93,6 @@ pub use self::{
     token_permissions::TokenPermissions,
     trigger_filter::{RefPattern, TriggerFilter},
     trigger_input::TriggerInput,
+    workflow_run_config::WorkflowRunConfig,
     workflow_trigger::{TriggerKind, WorkflowTrigger},
 };

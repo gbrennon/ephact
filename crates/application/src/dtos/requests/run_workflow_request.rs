@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::domain::{ActRunConfig, Repository};
+use crate::domain::{Repository, WorkflowRunConfig};
 
 /// Primitive request for executing one workflow selection.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,7 +22,7 @@ pub struct RunWorkflowRequest {
 
 impl RunWorkflowRequest {
     /// Creates a primitive request from the domain run configuration.
-    pub fn from_domain(repository: &Repository, config: &ActRunConfig) -> Self {
+    pub fn from_domain(repository: &Repository, config: &WorkflowRunConfig) -> Self {
         Self {
             repository_path: repository.path().as_path().to_path_buf(),
             repository_name: repository.name().as_str().to_string(),

@@ -7,7 +7,7 @@ mod tests {
             dtos::{requests::DiscoverRunInputsRequest, responses::RunInputDeclarationResponse},
             ports::outbound::RunInputsDiscovererPort,
         },
-        domain::{RepoPath, Repository, RepositoryName, value_objects::ActRunConfig},
+        domain::{RepoPath, Repository, RepositoryName, value_objects::WorkflowRunConfig},
         infrastructure::workflows::{FilesystemRunInputDiscoveryService, FilesystemWorkflowSource},
     };
 
@@ -40,7 +40,7 @@ mod tests {
 
         let declarations = service
             .discover(DiscoverRunInputsRequest::new(
-                ActRunConfig::new("test-run"),
+                WorkflowRunConfig::new("test-run"),
                 repository,
             ))
             .unwrap();

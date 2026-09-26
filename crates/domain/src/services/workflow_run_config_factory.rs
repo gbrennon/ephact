@@ -1,10 +1,10 @@
 use crate::value_objects::{
-    ActEvent, ActInput, ActJob, ActRunConfig, ActWorkflow, Secret,
-    act_run_config::ActRunConfigParts,
+    ActEvent, ActInput, ActJob, ActWorkflow, Secret, WorkflowRunConfig,
+    workflow_run_config::WorkflowRunConfigParts,
 };
 
 #[derive(Default)]
-pub struct ActRunConfigInput {
+pub struct WorkflowRunConfigInput {
     workflow: Option<String>,
     job: Option<String>,
     event: Option<String>,
@@ -18,7 +18,7 @@ pub struct ActRunConfigInput {
     run_id: String,
 }
 
-impl ActRunConfigInput {
+impl WorkflowRunConfigInput {
     pub fn with_workflow(mut self, workflow: Option<String>) -> Self {
         self.workflow = workflow;
         self
@@ -75,12 +75,12 @@ impl ActRunConfigInput {
     }
 }
 
-pub struct ActRunConfigFactory;
+pub struct WorkflowRunConfigFactory;
 
-impl ActRunConfigFactory {
-    pub fn create(input: ActRunConfigInput) -> ActRunConfig {
-        ActRunConfig::from_parts(
-            ActRunConfigParts::default()
+impl WorkflowRunConfigFactory {
+    pub fn create(input: WorkflowRunConfigInput) -> WorkflowRunConfig {
+        WorkflowRunConfig::from_parts(
+            WorkflowRunConfigParts::default()
                 .with_workflow(input.workflow.map(ActWorkflow::new))
                 .with_job(input.job.map(ActJob::new))
                 .with_event(input.event.map(ActEvent::new))

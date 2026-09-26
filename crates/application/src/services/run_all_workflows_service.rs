@@ -7,8 +7,8 @@ use crate::{
             events::{ActRunCompletedPayload, DomainEvent, RunFailedPayload, RunStartedPayload},
         },
         services::{
-            act_run_config_factory::{ActRunConfigFactory, ActRunConfigInput},
             repository_factory::RepositoryFactory,
+            workflow_run_config_factory::{WorkflowRunConfigFactory, WorkflowRunConfigInput},
         },
     },
     dtos::{
@@ -69,8 +69,8 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
             request.repository_name().to_string(),
         )
         .map_err(|error| RunAllWorkflowsError::Workflow(format!("{error:?}")))?;
-        let config = ActRunConfigFactory::create(
-            ActRunConfigInput::default()
+        let config = WorkflowRunConfigFactory::create(
+            WorkflowRunConfigInput::default()
                 .with_workflow(request.workflow().map(str::to_string))
                 .with_job(request.job().map(str::to_string))
                 .with_event(request.event().map(str::to_string))
@@ -119,7 +119,7 @@ impl RunAllWorkflowsService {
     fn execute_all_workflows(
         &self,
         repository: &crate::domain::Repository,
-        config: &crate::domain::value_objects::ActRunConfig,
+        config: &crate::domain::value_objects::WorkflowRunConfig,
         event: &str,
     ) -> Result<Vec<WorkflowExecutionResponse>, RunAllWorkflowsError> {
         let workflow_contents = self

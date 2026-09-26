@@ -8,10 +8,10 @@ use crate::{
             events::{ActRunCompletedPayload, DomainEvent, RunFailedPayload, RunStartedPayload},
         },
         services::{
-            act_run_config_factory::{ActRunConfigFactory, ActRunConfigInput},
             repository_factory::RepositoryFactory,
+            workflow_run_config_factory::{WorkflowRunConfigFactory, WorkflowRunConfigInput},
         },
-        value_objects::act_run_config::ActRunConfig,
+        value_objects::workflow_run_config::WorkflowRunConfig,
     },
     dtos::{
         requests::RunWorkflowRequest,
@@ -43,7 +43,7 @@ pub struct RunWorkflowService {
 struct RunExecutionContext {
     repository: Repository,
     repository_path: String,
-    config: ActRunConfig,
+    config: WorkflowRunConfig,
     run_id: String,
     workflow_name: Option<String>,
     started_at: Instant,
@@ -57,8 +57,8 @@ impl RunExecutionContext {
         )
         .map_err(|error| format!("{error:?}"))?;
         let repository_path = repository.path().as_path().display().to_string();
-        let config = ActRunConfigFactory::create(
-            ActRunConfigInput::default()
+        let config = WorkflowRunConfigFactory::create(
+            WorkflowRunConfigInput::default()
                 .with_workflow(request.workflow().map(str::to_string))
                 .with_job(request.job().map(str::to_string))
                 .with_event(request.event().map(str::to_string))

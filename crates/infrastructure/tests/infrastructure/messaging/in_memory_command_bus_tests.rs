@@ -25,7 +25,7 @@ mod tests {
             },
         },
         domain::{
-            ActRunConfig, RepoPath, Repository, RepositoryName,
+            RepoPath, Repository, RepositoryName, WorkflowRunConfig,
             aggregates::Workflow,
             entities::Job,
             messages::commands::{
@@ -130,7 +130,7 @@ mod tests {
 
         let cmd = ExecuteWorkflowCommand::new(
             "name: CI\non: [push]\n".to_string(),
-            ActRunConfig::new("test-run"),
+            WorkflowRunConfig::new("test-run"),
             repository,
             "test-run".to_string(),
             false,

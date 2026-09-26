@@ -13,9 +13,9 @@ pub use self::{
     },
     errors::{core_error::CoreError, project_branding_error::ProjectBrandingError},
     value_objects::{
-        ActEvent, ActInput, ActJob, ActRunConfig, ActWorkflow, ActionReference, CleanupPolicy,
-        ContainerEngine, GitDirKind, InterfaceMode, Marker, MarkerKind, MarkerPreset,
-        OperationMode, OutputPreferences, Permissions, ProjectDescription, ProjectEmblem,
-        ProjectName, ProjectVersion, RemoteActionReference, RepoPath, RepositoryName, Secret,
+        ActEvent, ActInput, ActJob, ActWorkflow, ActionReference, CleanupPolicy, ContainerEngine,
+        GitDirKind, InterfaceMode, Marker, MarkerKind, MarkerPreset, OperationMode,
+        OutputPreferences, Permissions, ProjectDescription, ProjectEmblem, ProjectName,
+        ProjectVersion, RemoteActionReference, RepoPath, RepositoryName, Secret, WorkflowRunConfig,
     },
 };

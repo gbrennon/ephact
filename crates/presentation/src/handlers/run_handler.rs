@@ -21,7 +21,7 @@ use crate::{
     cli::run_args::{RunArgs, new_run_id},
     domain::{
         RepoPath, Repository, RepositoryName,
-        value_objects::{ActEvent, ActInput, ActRunConfig, ActWorkflow},
+        value_objects::{ActEvent, ActInput, ActWorkflow, WorkflowRunConfig},
     },
 };
 
@@ -130,10 +130,10 @@ impl RunHandler {
         workflow: Option<String>,
         event: Option<String>,
         inputs: Vec<(String, String)>,
-    ) -> ActRunConfig {
+    ) -> WorkflowRunConfig {
         let config = event
-            .map(|name| ActRunConfig::new(new_run_id()).with_event(ActEvent::new(name)))
-            .unwrap_or_else(|| ActRunConfig::new(new_run_id()));
+            .map(|name| WorkflowRunConfig::new(new_run_id()).with_event(ActEvent::new(name)))
+            .unwrap_or_else(|| WorkflowRunConfig::new(new_run_id()));
         let config = match workflow {
             Some(name) => config.with_workflow(ActWorkflow::new(name)),
             None => config,
@@ -266,7 +266,7 @@ impl RunHandler {
         discover_run_inputs_port: &dyn RunInputsDiscovererPort,
         list_workflows_port: &dyn ListWorkflowsPort,
         terminal: &dyn Terminal,
-    ) -> Result<(ActRunConfig, crate::domain::Repository), Box<dyn std::error::Error>> {
+    ) -> Result<(WorkflowRunConfig, crate::domain::Repository), Box<dyn std::error::Error>> {
         let interactive = args.interactive();
         let (config, repository) = args.to_domain()?;
         let config = if interactive {
@@ -299,12 +299,12 @@ impl RunHandler {
     }
 
     fn prepare_interactive_config(
-        mut config: ActRunConfig,
+        mut config: WorkflowRunConfig,
         repository: &crate::domain::Repository,
         list_workflows_port: &dyn ListWorkflowsPort,
         terminal: &dyn Terminal,
         collect_inputs: bool,
-    ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
+    ) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
         let response = list_workflows_port.execute(ListWorkflowsRequest::new(
             repository.path().as_path().to_path_buf(),
             repository.name().as_str().to_string(),
@@ -378,9 +378,9 @@ impl RunHandler {
     }
 
     fn collect_interactive_inputs(
-        mut config: ActRunConfig,
+        mut config: WorkflowRunConfig,
         terminal: &dyn Terminal,
-    ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
+    ) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
         terminal.write_text(
             "\nAdditional inputs (optional)\nEnter KEY=VALUE, KEY=env:VARIABLE, or a blank line to continue.\nInput: ",
         )?;
@@ -405,12 +405,12 @@ impl RunHandler {
     }
 
     fn preflight_inputs(
-        mut config: ActRunConfig,
+        mut config: WorkflowRunConfig,
         repository: crate::domain::Repository,
         discover_run_inputs_port: &dyn RunInputsDiscovererPort,
         terminal: &dyn Terminal,
         interactive: bool,
-    ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
+    ) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
         let declarations = discover_run_inputs_port
             .discover(DiscoverRunInputsRequest::new(config.clone(), repository))?;
         if Self::can_skip_prompting(&declarations, interactive) {
@@ -443,7 +443,7 @@ impl RunHandler {
     }
 
     fn prompt_or_describe_inputs(
-        config: &mut ActRunConfig,
+        config: &mut WorkflowRunConfig,
         declarations: &[crate::application::dtos::responses::RunInputDeclarationResponse],
         interactive: bool,
         terminal: &dyn Terminal,
@@ -453,7 +453,7 @@ impl RunHandler {
     }
 
     fn prompt_or_describe_all(
-        config: &mut ActRunConfig,
+        config: &mut WorkflowRunConfig,
         declarations: &[crate::application::dtos::responses::RunInputDeclarationResponse],
         interactive: bool,
         terminal: &dyn Terminal,
@@ -463,7 +463,7 @@ impl RunHandler {
     }
 
     fn prompt_or_describe_each(
-        config: &mut ActRunConfig,
+        config: &mut WorkflowRunConfig,
         declarations: &[crate::application::dtos::responses::RunInputDeclarationResponse],
         interactive: bool,
         terminal: &dyn Terminal,
@@ -479,7 +479,7 @@ impl RunHandler {
     }
 
     fn prompt_and_apply(
-        config: &mut ActRunConfig,
+        config: &mut WorkflowRunConfig,
         declaration: &crate::application::dtos::responses::RunInputDeclarationResponse,
         index: usize,
         total: usize,
@@ -547,12 +547,12 @@ impl RunHandler {
     }
 
     fn prompt_for_input(
-        config: ActRunConfig,
+        config: WorkflowRunConfig,
         declaration: &crate::application::dtos::responses::RunInputDeclarationResponse,
         index: usize,
         total: usize,
         terminal: &dyn Terminal,
-    ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
+    ) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
         Self::describe_input(declaration, index, total, terminal)?;
         let value = Self::read_input_value(declaration, terminal)?;
         Self::apply_input_value(config, declaration, value)
@@ -613,10 +613,10 @@ impl RunHandler {
     }
 
     fn apply_input_value(
-        mut config: ActRunConfig,
+        mut config: WorkflowRunConfig,
         declaration: &crate::application::dtos::responses::RunInputDeclarationResponse,
         value: String,
-    ) -> Result<ActRunConfig, Box<dyn std::error::Error>> {
+    ) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
         if !value.is_empty() {
             let (_, source) = crate::cli::RunArgs::parse_input_source(&format!(
                 "{}={value}",
@@ -631,7 +631,7 @@ impl RunHandler {
     }
 
     async fn execute_async(
-        config: ActRunConfig,
+        config: WorkflowRunConfig,
         repository: crate::domain::Repository,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
@@ -646,14 +646,14 @@ impl RunHandler {
     }
 
     fn build_run_all_request(
-        config: &ActRunConfig,
+        config: &WorkflowRunConfig,
         repository: &crate::domain::Repository,
     ) -> RunAllWorkflowsRequest {
         RunAllWorkflowsRequest::from_domain(repository, config)
     }
 
     fn build_run_workflow_request(
-        config: &ActRunConfig,
+        config: &WorkflowRunConfig,
         repository: &crate::domain::Repository,
     ) -> RunWorkflowRequest {
         RunWorkflowRequest::from_domain(repository, config)
