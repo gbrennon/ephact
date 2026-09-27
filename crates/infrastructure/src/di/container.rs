@@ -24,7 +24,6 @@ use crate::{
     images::{ImageMapperPort, PlatformImageMapper},
     logging::{FailureLogErrorStore, FailureLogHandler, FailureLogPathStore, FailureLogStores},
     messaging::{DomainEventHandler, InMemoryEventBus, SharedCommandBus, SharedEventBus},
-    persistence::CargoProjectBrandingStore,
     steps::JsonStepTextCodec,
     workflows::{
         DetectWorkflowTriggerService, FilesystemRunInputDiscoveryService, FilesystemWorkflowSource,
@@ -35,14 +34,6 @@ use crate::{
 pub struct Container {}
 
 impl Container {
-    pub fn build(progress_reporter: Option<Box<dyn DomainEventHandler>>) -> AppContainer {
-        let runtime: Arc<dyn ContainerRuntimePort> = Arc::new(
-            ContainerRuntimeAdapter::detect()
-                .expect("no container runtime available (Docker or Podman required)"),
-        );
-        Self::with_runtime(runtime, progress_reporter)
-    }
-
     pub fn build_with_branding(
         progress_reporter: Option<Box<dyn DomainEventHandler>>,
         branding_store: Box<dyn ProjectBrandingStorePort>,
@@ -58,19 +49,6 @@ impl Container {
             Arc::new(FilesystemWorkflowSource::default()),
             progress_reporter,
             branding_store,
-        )
-    }
-
-    pub fn with_runtime(
-        runtime: Arc<dyn ContainerRuntimePort>,
-        progress_reporter: Option<Box<dyn DomainEventHandler>>,
-    ) -> AppContainer {
-        Self::with_collaborators(
-            runtime,
-            Box::new(PlatformImageMapper),
-            Box::new(GitActionFetcher::with_default_cache_root()),
-            Arc::new(FilesystemWorkflowSource::default()),
-            progress_reporter,
         )
     }
 
@@ -98,23 +76,6 @@ impl Container {
             branding_store,
         );
         AppContainer::new_with_discovery_and_failure_stores(parts, failure_log_stores)
-    }
-
-    pub fn with_collaborators(
-        runtime: Arc<dyn ContainerRuntimePort>,
-        image_mapper: Box<dyn ImageMapperPort>,
-        action_fetcher: Box<dyn ActionFetcherPort>,
-        workflow_source: Arc<dyn WorkflowSourcePort>,
-        progress_reporter: Option<Box<dyn DomainEventHandler>>,
-    ) -> AppContainer {
-        Self::with_collaborators_and_branding(
-            runtime,
-            image_mapper,
-            action_fetcher,
-            workflow_source,
-            progress_reporter,
-            Box::new(CargoProjectBrandingStore::new()),
-        )
     }
 
     fn build_app_parts(

@@ -13,36 +13,14 @@ pub struct CargoProjectBrandingStore {
     emblem: String,
 }
 
-impl Default for CargoProjectBrandingStore {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl CargoProjectBrandingStore {
-    /// Creates a new instance using the package metadata of the infrastructure crate.
     #[must_use]
-    pub fn new() -> Self {
-        Self::from_metadata(
-            env!("CARGO_PKG_NAME"),
-            env!("CARGO_PKG_DESCRIPTION"),
-            env!("CARGO_PKG_VERSION"),
-        )
-    }
-
-    /// Creates a branding store from the metadata of the executable package.
-    #[must_use]
-    pub fn from_metadata(name: &str, description: &str, version: &str) -> Self {
+    pub fn from_metadata(name: &str, description: &str, version: &str, emblem: &str) -> Self {
         Self {
             name: name.to_string(),
             description: description.to_string(),
             version: version.to_string(),
-            emblem: include_str!(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/../../assets/project_emblem.txt"
-            ))
-            .trim_end()
-            .to_string(),
+            emblem: emblem.trim_end().to_string(),
         }
     }
 }

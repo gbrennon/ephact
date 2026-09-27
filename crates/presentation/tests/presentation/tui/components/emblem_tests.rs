@@ -10,9 +10,13 @@ mod tests {
     use ratatui::{Terminal, backend::TestBackend, layout::Rect};
     use tempfile::tempdir;
 
+    fn emblem() -> Emblem<'static> {
+        Emblem::new(ephact::PROJECT_EMBLEM)
+    }
+
     #[test]
     fn lines_for_basic_uses_fallback_art() {
-        let lines = Emblem::lines_for(ColorSupport::Basic, &Marker::default());
+        let lines = emblem().lines_for(ColorSupport::Basic, &Marker::default());
 
         let text: String = lines
             .iter()
@@ -26,7 +30,7 @@ mod tests {
     fn lines_for_true_color_uses_rgb_styles() {
         use ratatui::style::Color;
 
-        let lines = Emblem::lines_for(ColorSupport::TrueColor, &Marker::default());
+        let lines = emblem().lines_for(ColorSupport::TrueColor, &Marker::default());
 
         let uses_rgb = lines
             .iter()
@@ -38,7 +42,7 @@ mod tests {
 
     #[test]
     fn fancy_lines_render_canonical_emblem_art() {
-        let lines = Emblem::fancy_lines(&Marker::default());
+        let lines = emblem().fancy_lines(&Marker::default());
 
         let text: String = lines
             .iter()
@@ -51,8 +55,8 @@ mod tests {
 
     #[test]
     fn marker_replaces_prompt_without_changing_line_count_or_slot_width() {
-        let default_lines = Emblem::fallback_lines(&Marker::default());
-        let custom_lines = Emblem::fallback_lines(&Marker::custom_text("🚀"));
+        let default_lines = emblem().fallback_lines(&Marker::default());
+        let custom_lines = emblem().fallback_lines(&Marker::custom_text("🚀"));
 
         assert_eq!(default_lines.len(), custom_lines.len());
         let default_text = default_lines[2]
@@ -75,7 +79,7 @@ mod tests {
 
     #[test]
     fn graphical_markers_fall_back_to_the_default_prompt_on_basic_terminals() {
-        let lines = Emblem::lines_for(ColorSupport::Basic, &Marker::image_path("marker.png"));
+        let lines = emblem().lines_for(ColorSupport::Basic, &Marker::image_path("marker.png"));
         let text = lines[2]
             .spans
             .iter()
@@ -100,7 +104,7 @@ mod tests {
         let area = Rect::new(0, 0, 10, 5);
         terminal
             .draw(|frame| {
-                assert!(Emblem::render_graphical_marker(
+                assert!(emblem().render_graphical_marker(
                     frame,
                     area,
                     &marker,
@@ -134,7 +138,7 @@ mod tests {
         let area = Rect::new(0, 0, 10, 5);
         terminal
             .draw(|frame| {
-                assert!(Emblem::render_graphical_marker(
+                assert!(emblem().render_graphical_marker(
                     frame,
                     area,
                     &marker,
@@ -156,7 +160,7 @@ mod tests {
 
         terminal
             .draw(|frame| {
-                assert!(!Emblem::render_graphical_marker(
+                assert!(!emblem().render_graphical_marker(
                     frame,
                     Rect::new(0, 0, 10, 5),
                     &marker,
