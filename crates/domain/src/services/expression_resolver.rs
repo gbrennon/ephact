@@ -77,14 +77,16 @@ impl ExpressionResolver {
 mod tests {
     use super::*;
 
-    fn context_with_secret(name: &str, value: &str) -> EvaluationContext {
-        let secrets = ContextValue::mapping([(name.to_owned(), ContextValue::text(value))]);
-        EvaluationContext::new().with_secrets(secrets)
+    impl ExpressionResolver {
+        fn context_with_secret_for_test(name: &str, value: &str) -> EvaluationContext {
+            let secrets = ContextValue::mapping([(name.to_owned(), ContextValue::text(value))]);
+            EvaluationContext::new().with_secrets(secrets)
+        }
     }
 
     #[test]
     fn resolve_text_substitutes_secret_value() {
-        let context = context_with_secret("TOKEN", "staging-token");
+        let context = ExpressionResolver::context_with_secret_for_test("TOKEN", "staging-token");
 
         let resolved =
             ExpressionResolver::resolve_text("publish --token ${{ secrets.TOKEN }}", &context)
@@ -96,7 +98,8 @@ mod tests {
     #[test]
     fn resolve_text_substitutes_multiple_expressions() {
         let inputs = ContextValue::mapping([("mode".to_owned(), ContextValue::text("staging"))]);
-        let context = context_with_secret("TOKEN", "abc").with_inputs(inputs);
+        let context =
+            ExpressionResolver::context_with_secret_for_test("TOKEN", "abc").with_inputs(inputs);
 
         let resolved = ExpressionResolver::resolve_text(
             "${{ inputs.mode }}:${{ secrets.TOKEN }}:${{ inputs.mode }}",
