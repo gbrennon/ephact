@@ -1,11 +1,8 @@
+pub mod remote_reference_parts;
+
+use remote_reference_parts::RemoteReferenceParts;
+
 use crate::{errors::ActionError, value_objects::RemoteActionReference};
-
-/// Host assumed when a reference omits scheme and host, matching the shorthand
-/// `owner/repo@ref` form used by workflows.
-const DEFAULT_HOST: &str = "github.com";
-
-/// Revision used when a reference carries no `@ref` suffix.
-const DEFAULT_GIT_REF: &str = "main";
 
 /// A parsed `uses:` value, classified by how the action must be resolved.
 ///
@@ -35,14 +32,6 @@ pub enum ActionReference {
     /// An action delivered as a container image (`docker://image:tag`).
     Docker(String),
 }
-struct RemoteReferenceParts<'a> {
-    scheme: String,
-    host: String,
-    owner: &'a str,
-    repo: &'a str,
-    git_ref: &'a str,
-    directory: Vec<&'a str>,
-}
 
 impl ActionReference {
     /// Classifies a raw `uses:` value.
@@ -66,83 +55,23 @@ impl ActionReference {
     }
 
     fn parse_remote(reference: &str, raw: &str) -> Result<Self, ActionError> {
-        let invalid = || ActionError::InvalidReference(raw.to_string());
-        let (location, git_ref) = Self::split_git_ref(reference).ok_or_else(invalid)?;
-        let (scheme, host, path) = Self::parse_scheme_host_path(location).ok_or_else(invalid)?;
-        let (owner, repo, directory) = Self::parse_segments(path).ok_or_else(invalid)?;
-        Ok(Self::Remote(Self::build_remote(RemoteReferenceParts {
-            scheme,
-            host,
-            owner,
-            repo,
-            git_ref,
-            directory,
-        })))
-    }
-
-    fn build_remote(parts: RemoteReferenceParts<'_>) -> RemoteActionReference {
-        let RemoteReferenceParts {
-            scheme,
-            host,
-            owner,
-            repo,
-            git_ref,
-            directory,
-        } = parts;
-        let remote = RemoteActionReference::new(
-            scheme,
-            host,
-            owner.to_string(),
-            repo.to_string(),
-            git_ref.to_string(),
-        );
-        if directory.is_empty() {
-            remote
-        } else {
-            remote.with_directory(Some(directory.join("/")))
-        }
-    }
-
-    fn split_git_ref(reference: &str) -> Option<(&str, &str)> {
-        match reference.rsplit_once('@') {
-            Some((location, git_ref)) if !location.is_empty() && !git_ref.is_empty() => {
-                Some((location, git_ref))
-            }
-            Some(_) => None,
-            None => Some((reference, DEFAULT_GIT_REF)),
-        }
-    }
-
-    fn parse_scheme_host_path(location: &str) -> Option<(String, String, &str)> {
-        match location.split_once("://") {
-            Some((scheme, remainder)) => {
-                let (host, path) = remainder.split_once('/')?;
-                if scheme.is_empty() || host.is_empty() {
-                    return None;
-                }
-                Some((scheme.to_string(), host.to_string(), path))
-            }
-            None => Some(("https".to_string(), DEFAULT_HOST.to_string(), location)),
-        }
-    }
-
-    fn parse_segments(path: &str) -> Option<(&str, &str, Vec<&str>)> {
-        let mut segments = path.split('/').filter(|segment| !segment.is_empty());
-        let owner = segments.next()?;
-        let repo = segments.next()?;
-        let directory: Vec<&str> = segments.collect();
-        Some((owner, repo, directory))
+        RemoteReferenceParts::parse(reference)
+            .map(|parts| Self::Remote(parts.into_remote()))
+            .ok_or_else(|| ActionError::InvalidReference(raw.to_string()))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value_objects::RemoteActionReference;
 
-    fn remote(raw: &str) -> RemoteActionReference {
-        match ActionReference::parse(raw).unwrap() {
-            ActionReference::Remote(remote) => remote,
-            other => panic!("expected a remote action, got {other:?}"),
+    impl ActionReference {
+        fn remote_for_test(raw: &str) -> RemoteActionReference {
+            match Self::parse(raw).unwrap() {
+                Self::Remote(remote) => remote,
+                other => panic!("expected a remote action, got {other:?}"),
+            }
         }
     }
 
@@ -172,7 +101,7 @@ mod tests {
 
     #[test]
     fn parse_shorthand_defaults_to_github() {
-        let reference = remote("actions/checkout@v4");
+        let reference = ActionReference::remote_for_test("actions/checkout@v4");
 
         assert_eq!(reference.clone_url(), "https://github.com/actions/checkout");
         assert_eq!(reference.git_ref(), "v4");
@@ -181,12 +110,16 @@ mod tests {
 
     #[test]
     fn parse_shorthand_without_ref_defaults_to_main() {
-        assert_eq!(remote("actions/checkout").git_ref(), "main");
+        assert_eq!(
+            ActionReference::remote_for_test("actions/checkout").git_ref(),
+            "main"
+        );
     }
 
     #[test]
     fn parse_full_url_keeps_host() {
-        let reference = remote("https://data.forgejo.org/actions/cache@v4");
+        let reference =
+            ActionReference::remote_for_test("https://data.forgejo.org/actions/cache@v4");
 
         assert_eq!(reference.host(), "data.forgejo.org");
         assert_eq!(reference.owner(), "actions");
@@ -196,7 +129,8 @@ mod tests {
 
     #[test]
     fn parse_keeps_action_subdirectory() {
-        let reference = remote("https://gitlab.com/group/tools/deploy/action@main");
+        let reference =
+            ActionReference::remote_for_test("https://gitlab.com/group/tools/deploy/action@main");
 
         assert_eq!(reference.clone_url(), "https://gitlab.com/group/tools");
         assert_eq!(reference.directory(), Some("deploy/action"));
@@ -205,7 +139,7 @@ mod tests {
     #[test]
     fn parse_commit_sha_ref() {
         assert_eq!(
-            remote("actions/cache@a1b2c3d4e5f6").git_ref(),
+            ActionReference::remote_for_test("actions/cache@a1b2c3d4e5f6").git_ref(),
             "a1b2c3d4e5f6"
         );
     }
