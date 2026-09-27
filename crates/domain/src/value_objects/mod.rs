@@ -1,7 +1,3 @@
-pub mod act_event;
-pub mod act_input;
-pub mod act_job;
-pub mod act_workflow;
 pub mod action_definition;
 pub mod action_input;
 pub mod action_reference;
@@ -23,6 +19,7 @@ pub mod expression_token;
 pub mod git_dir_kind;
 pub mod interface_mode;
 pub mod job_matrix;
+pub mod job_name;
 pub mod job_strategy;
 pub(crate) mod json_text_reader;
 pub mod logical_operator;
@@ -44,14 +41,13 @@ pub mod step_type;
 pub mod token_permissions;
 pub mod trigger_filter;
 pub mod trigger_input;
+pub mod workflow_event;
+pub mod workflow_input;
+pub mod workflow_path;
 pub mod workflow_run_config;
 pub mod workflow_trigger;
 
 pub use self::{
-    act_event::ActEvent,
-    act_input::ActInput,
-    act_job::ActJob,
-    act_workflow::ActWorkflow,
     action_definition::ActionDefinition,
     action_input::ActionInput,
     action_reference::ActionReference,
@@ -73,6 +69,7 @@ pub use self::{
     git_dir_kind::GitDirKind,
     interface_mode::InterfaceMode,
     job_matrix::JobMatrix,
+    job_name::JobName,
     job_strategy::JobStrategy,
     logical_operator::LogicalOperator,
     marker::{Marker, MarkerKind, MarkerPreset},
@@ -93,6 +90,9 @@ pub use self::{
     token_permissions::TokenPermissions,
     trigger_filter::{RefPattern, TriggerFilter},
     trigger_input::TriggerInput,
+    workflow_event::WorkflowEvent,
+    workflow_input::WorkflowInput,
+    workflow_path::WorkflowPath,
     workflow_run_config::WorkflowRunConfig,
     workflow_trigger::{TriggerKind, WorkflowTrigger},
 };

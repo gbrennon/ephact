@@ -1,11 +1,11 @@
-use crate::value_objects::{ActEvent, ActInput, ActJob, ActWorkflow, Secret};
+use crate::value_objects::{JobName, Secret, WorkflowEvent, WorkflowInput, WorkflowPath};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WorkflowRunConfig {
-    workflow: Option<ActWorkflow>,
-    job: Option<ActJob>,
-    event: Option<ActEvent>,
-    inputs: Vec<ActInput>,
+    workflow: Option<WorkflowPath>,
+    job: Option<JobName>,
+    event: Option<WorkflowEvent>,
+    inputs: Vec<WorkflowInput>,
     secrets: Vec<Secret>,
     all_workflows: bool,
     allow_repo_writes: bool,
@@ -15,10 +15,10 @@ pub struct WorkflowRunConfig {
 }
 #[derive(Default)]
 pub(crate) struct WorkflowRunConfigParts {
-    workflow: Option<ActWorkflow>,
-    job: Option<ActJob>,
-    event: Option<ActEvent>,
-    inputs: Vec<ActInput>,
+    workflow: Option<WorkflowPath>,
+    job: Option<JobName>,
+    event: Option<WorkflowEvent>,
+    inputs: Vec<WorkflowInput>,
     secrets: Vec<Secret>,
     all_workflows: bool,
     allow_repo_writes: bool,
@@ -27,22 +27,22 @@ pub(crate) struct WorkflowRunConfigParts {
     allow_network: bool,
 }
 impl WorkflowRunConfigParts {
-    pub(crate) fn with_workflow(mut self, workflow: Option<ActWorkflow>) -> Self {
+    pub(crate) fn with_workflow(mut self, workflow: Option<WorkflowPath>) -> Self {
         self.workflow = workflow;
         self
     }
 
-    pub(crate) fn with_job(mut self, job: Option<ActJob>) -> Self {
+    pub(crate) fn with_job(mut self, job: Option<JobName>) -> Self {
         self.job = job;
         self
     }
 
-    pub(crate) fn with_event(mut self, event: Option<ActEvent>) -> Self {
+    pub(crate) fn with_event(mut self, event: Option<WorkflowEvent>) -> Self {
         self.event = event;
         self
     }
 
-    pub(crate) fn with_inputs(mut self, inputs: Vec<ActInput>) -> Self {
+    pub(crate) fn with_inputs(mut self, inputs: Vec<WorkflowInput>) -> Self {
         self.inputs = inputs;
         self
     }
@@ -122,25 +122,25 @@ impl WorkflowRunConfig {
 /// Builder API - fluent setters that consume and return `Self`.
 impl WorkflowRunConfig {
     /// Sets the workflow file to run.
-    pub fn with_workflow(mut self, workflow: ActWorkflow) -> Self {
+    pub fn with_workflow(mut self, workflow: WorkflowPath) -> Self {
         self.workflow = Some(workflow);
         self
     }
 
     /// Sets the specific job to run within the workflow.
-    pub fn with_job(mut self, job: ActJob) -> Self {
+    pub fn with_job(mut self, job: JobName) -> Self {
         self.job = Some(job);
         self
     }
 
     /// Sets the event to simulate.
-    pub fn with_event(mut self, event: ActEvent) -> Self {
+    pub fn with_event(mut self, event: WorkflowEvent) -> Self {
         self.event = Some(event);
         self
     }
 
     /// Adds an input variable.
-    pub fn add_input(mut self, input: ActInput) -> Self {
+    pub fn add_input(mut self, input: WorkflowInput) -> Self {
         self.inputs.push(input);
         self
     }
@@ -184,22 +184,22 @@ impl WorkflowRunConfig {
 /// Read-only access to each field of [`WorkflowRunConfig`].
 impl WorkflowRunConfig {
     /// Returns the workflow, if set.
-    pub fn workflow(&self) -> Option<&ActWorkflow> {
+    pub fn workflow(&self) -> Option<&WorkflowPath> {
         self.workflow.as_ref()
     }
 
     /// Returns the job, if set.
-    pub fn job(&self) -> Option<&ActJob> {
+    pub fn job(&self) -> Option<&JobName> {
         self.job.as_ref()
     }
 
     /// Returns the event, if set.
-    pub fn event(&self) -> Option<&ActEvent> {
+    pub fn event(&self) -> Option<&WorkflowEvent> {
         self.event.as_ref()
     }
 
     /// Returns all input variables.
-    pub fn inputs(&self) -> &[ActInput] {
+    pub fn inputs(&self) -> &[WorkflowInput] {
         &self.inputs
     }
 
@@ -250,9 +250,9 @@ mod tests {
     #[test]
     fn builder_adds_workflow_job_and_event() {
         let config = WorkflowRunConfig::new()
-            .with_workflow(ActWorkflow::new(".github/workflows/ci.yml".into()))
-            .with_job(ActJob::new("test".into()))
-            .with_event(ActEvent::new("push".into()));
+            .with_workflow(WorkflowPath::new(".github/workflows/ci.yml".into()))
+            .with_job(JobName::new("test".into()))
+            .with_event(WorkflowEvent::new("push".into()));
 
         assert_eq!(
             config.workflow().unwrap().as_str(),
@@ -265,7 +265,7 @@ mod tests {
     #[test]
     fn builder_adds_inputs() {
         let config = WorkflowRunConfig::new()
-            .add_input(ActInput::new("environment".into(), "staging".into()));
+            .add_input(WorkflowInput::new("environment".into(), "staging".into()));
 
         assert_eq!(config.inputs()[0].key(), "environment");
         assert_eq!(config.inputs()[0].value(), "staging");

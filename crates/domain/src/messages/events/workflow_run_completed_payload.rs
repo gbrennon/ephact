@@ -1,8 +1,8 @@
-/// Payload for [`DomainEvent::ActRunCompleted`].
+/// Payload for [`DomainEvent::WorkflowRunCompleted`].
 ///
-/// [`DomainEvent::ActRunCompleted`]: super::domain_event::DomainEvent::ActRunCompleted
+/// [`DomainEvent::WorkflowRunCompleted`]: super::domain_event::DomainEvent::WorkflowRunCompleted
 #[derive(Debug, Clone)]
-pub struct ActRunCompletedPayload {
+pub struct WorkflowRunCompletedPayload {
     run_id: String,
     repository_path: String,
     /// Names of containers created during the run. Handlers use these to
@@ -12,7 +12,7 @@ pub struct ActRunCompletedPayload {
     success: bool,
 }
 
-impl ActRunCompletedPayload {
+impl WorkflowRunCompletedPayload {
     pub fn new(
         run_id: String,
         repository_path: String,
@@ -49,7 +49,7 @@ mod tests {
 
     #[test]
     fn new_preserves_fields() {
-        let payload = ActRunCompletedPayload::new(
+        let payload = WorkflowRunCompletedPayload::new(
             "run-1".into(),
             "/repo".into(),
             vec!["container".into()],

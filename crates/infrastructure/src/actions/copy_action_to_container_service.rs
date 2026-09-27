@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Directory inside the container that holds actions copied in for a run.
-const CONTAINER_ACTIONS_ROOT: &str = "/tmp/ephemeral-act-actions";
+const CONTAINER_ACTIONS_ROOT: &str = "/tmp/ephact-actions";
 
 /// Service that copies an action's files into the container that runs it.
 pub struct CopyActionToContainerService {

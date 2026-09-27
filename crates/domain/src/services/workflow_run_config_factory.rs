@@ -1,5 +1,5 @@
 use crate::value_objects::{
-    ActEvent, ActInput, ActJob, ActWorkflow, Secret, WorkflowRunConfig,
+    JobName, Secret, WorkflowEvent, WorkflowInput, WorkflowPath, WorkflowRunConfig,
     workflow_run_config::WorkflowRunConfigParts,
 };
 
@@ -75,14 +75,14 @@ impl WorkflowRunConfigFactory {
     pub fn create(input: WorkflowRunConfigInput) -> WorkflowRunConfig {
         WorkflowRunConfig::from_parts(
             WorkflowRunConfigParts::default()
-                .with_workflow(input.workflow.map(ActWorkflow::new))
-                .with_job(input.job.map(ActJob::new))
-                .with_event(input.event.map(ActEvent::new))
+                .with_workflow(input.workflow.map(WorkflowPath::new))
+                .with_job(input.job.map(JobName::new))
+                .with_event(input.event.map(WorkflowEvent::new))
                 .with_inputs(
                     input
                         .inputs
                         .into_iter()
-                        .map(|(key, value)| ActInput::new(key, value))
+                        .map(|(key, value)| WorkflowInput::new(key, value))
                         .collect(),
                 )
                 .with_secrets(

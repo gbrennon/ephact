@@ -58,8 +58,8 @@ mod tests {
     #[test]
     fn create_and_remove_container_lifecycle() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-podman-lifecycle");
-        let _ = runtime.remove_container("ephemeral-act-test-podman-lifecycle");
+        let config = make_config("ephact-test-podman-lifecycle");
+        let _ = runtime.remove_container("ephact-test-podman-lifecycle");
         let container = runtime.create_container(&config).unwrap();
         container.remove().unwrap();
     }
@@ -79,8 +79,8 @@ mod tests {
     #[test]
     fn exec_echo_returns_stdout() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-podman-exec");
-        let _ = runtime.remove_container("ephemeral-act-test-podman-exec");
+        let config = make_config("ephact-test-podman-exec");
+        let _ = runtime.remove_container("ephact-test-podman-exec");
         let container = runtime.create_container(&config).unwrap();
         let result = container
             .exec(
@@ -104,20 +104,18 @@ mod tests {
     #[test]
     fn stop_running_container_succeeds() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-podman-stop");
-        let _ = runtime.remove_container("ephemeral-act-test-podman-stop");
+        let config = make_config("ephact-test-podman-stop");
+        let _ = runtime.remove_container("ephact-test-podman-stop");
         let container = runtime.create_container(&config).unwrap();
-        runtime
-            .stop_container("ephemeral-act-test-podman-stop")
-            .unwrap();
+        runtime.stop_container("ephact-test-podman-stop").unwrap();
         container.remove().unwrap();
     }
 
     #[test]
     fn exec_with_workdir_runs_in_specified_directory() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-podman-workdir");
-        let _ = runtime.remove_container("ephemeral-act-test-podman-workdir");
+        let config = make_config("ephact-test-podman-workdir");
+        let _ = runtime.remove_container("ephact-test-podman-workdir");
         let container = runtime.create_container(&config).unwrap();
         let result = container
             .exec(&["pwd".into()], Some("/tmp"), &HashMap::new())
@@ -130,8 +128,8 @@ mod tests {
     #[test]
     fn exec_with_env_passes_environment() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-podman-env");
-        let _ = runtime.remove_container("ephemeral-act-test-podman-env");
+        let config = make_config("ephact-test-podman-env");
+        let _ = runtime.remove_container("ephact-test-podman-env");
         let container = runtime.create_container(&config).unwrap();
         let mut env = HashMap::new();
         env.insert("MY_VAR".into(), "my_value".into());
@@ -150,8 +148,8 @@ mod tests {
     #[test]
     fn get_runner_context_returns_expected_paths() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-podman-context");
-        let _ = runtime.remove_container("ephemeral-act-test-podman-context");
+        let config = make_config("ephact-test-podman-context");
+        let _ = runtime.remove_container("ephact-test-podman-context");
         let container = runtime.create_container(&config).unwrap();
         let ctx = container.get_runner_context().unwrap();
         assert_eq!(ctx.workspace(), "/workspace");
@@ -162,8 +160,8 @@ mod tests {
     #[test]
     fn copy_to_creates_file_in_container() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-podman-copyto");
-        let _ = runtime.remove_container("ephemeral-act-test-podman-copyto");
+        let config = make_config("ephact-test-podman-copyto");
+        let _ = runtime.remove_container("ephact-test-podman-copyto");
         let container = runtime.create_container(&config).unwrap();
 
         let entries = vec![FileEntry::new("test.txt", b"hello copy_to".to_vec(), 0o644)];
@@ -184,8 +182,8 @@ mod tests {
     #[test]
     fn copy_from_reads_file_from_container() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-podman-copyfrom");
-        let _ = runtime.remove_container("ephemeral-act-test-podman-copyfrom");
+        let config = make_config("ephact-test-podman-copyfrom");
+        let _ = runtime.remove_container("ephact-test-podman-copyfrom");
         let container = runtime.create_container(&config).unwrap();
 
         container
@@ -210,8 +208,8 @@ mod tests {
     #[test]
     fn copy_to_and_copy_from_roundtrip() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-podman-roundtrip");
-        let _ = runtime.remove_container("ephemeral-act-test-podman-roundtrip");
+        let config = make_config("ephact-test-podman-roundtrip");
+        let _ = runtime.remove_container("ephact-test-podman-roundtrip");
         let container = runtime.create_container(&config).unwrap();
 
         let original = b"roundtrip data 12345";
@@ -227,8 +225,8 @@ mod tests {
     #[test]
     fn exec_failing_command_returns_nonzero_exit() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-podman-exitcode");
-        let _ = runtime.remove_container("ephemeral-act-test-podman-exitcode");
+        let config = make_config("ephact-test-podman-exitcode");
+        let _ = runtime.remove_container("ephact-test-podman-exitcode");
         let container = runtime.create_container(&config).unwrap();
 
         let result = container
@@ -245,8 +243,8 @@ mod tests {
     #[test]
     fn remove_with_force_cleans_up_container() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-podman-removeforce");
-        let _ = runtime.remove_container("ephemeral-act-test-podman-removeforce");
+        let config = make_config("ephact-test-podman-removeforce");
+        let _ = runtime.remove_container("ephact-test-podman-removeforce");
         let container = runtime.create_container(&config).unwrap();
 
         container.remove().unwrap();

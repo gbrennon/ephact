@@ -5,7 +5,7 @@ use ephact::{
     domain::{
         errors::ContainerError,
         messages::events::{
-            ActRunCompletedPayload, ContainerStartedPayload, DomainEvent, RunFailedPayload,
+            ContainerStartedPayload, DomainEvent, RunFailedPayload, WorkflowRunCompletedPayload,
         },
     },
     infrastructure::{
@@ -21,10 +21,10 @@ fn cleanup_handler_attempts_to_remove_containers_from_completed_event() {
     let spy_runtime = Arc::new(SpyContainerRuntime::new());
     let handler = ContainerCleanupHandler::new(spy_runtime.clone());
 
-    let container_names = vec!["ephemeral-act-test-12345-1000".to_string()];
+    let container_names = vec!["ephact-test-12345-1000".to_string()];
 
-    // Act: Publish ActRunCompleted event
-    let event = DomainEvent::ActRunCompleted(ActRunCompletedPayload::new(
+    // Act: Publish WorkflowRunCompleted event
+    let event = DomainEvent::WorkflowRunCompleted(WorkflowRunCompletedPayload::new(
         "test-run".to_string(),
         "/test/repo".to_string(),
         container_names.clone(),
@@ -57,8 +57,8 @@ fn cleanup_handler_attempts_to_remove_containers_from_completed_event() {
 fn cleanup_handler_removes_started_containers_when_run_fails() {
     let spy_runtime = Arc::new(SpyContainerRuntime::new());
     let handler = ContainerCleanupHandler::new(spy_runtime.clone());
-    let first_container = "ephemeral-act-build-1000-1";
-    let second_container = "ephemeral-act-test-1000-2";
+    let first_container = "ephact-build-1000-1";
+    let second_container = "ephact-test-1000-2";
 
     handler.handle(&container_started("run-7", first_container));
     handler.handle(&container_started("run-7", second_container));
@@ -74,7 +74,7 @@ fn cleanup_handler_ignores_started_containers_from_other_runs_when_run_fails() {
     let spy_runtime = Arc::new(SpyContainerRuntime::new());
     let handler = ContainerCleanupHandler::new(spy_runtime.clone());
 
-    handler.handle(&container_started("run-a", "ephemeral-act-a-1000-1"));
+    handler.handle(&container_started("run-a", "ephact-a-1000-1"));
     handler.handle(&run_failed("run-b"));
 
     let calls = spy_runtime.calls.lock().unwrap();

@@ -6,7 +6,7 @@ mod tests {
         application::dtos::requests::BuildRunContextRequest,
         domain::{
             RepoPath, Repository, RepositoryName, WorkflowRunConfig,
-            value_objects::{ActEvent, ActInput, ContextValue, Secret},
+            value_objects::{ContextValue, Secret, WorkflowEvent, WorkflowInput},
         },
         infrastructure::containers::{BuildRunContextPort, BuildRunContextService},
     };
@@ -44,7 +44,7 @@ mod tests {
     #[test]
     fn execute_exposes_inputs_under_both_inputs_and_the_github_event() {
         let config =
-            WorkflowRunConfig::new().add_input(ActInput::new("mode".into(), "staging".into()));
+            WorkflowRunConfig::new().add_input(WorkflowInput::new("mode".into(), "staging".into()));
 
         let context = context(config);
 
@@ -74,7 +74,7 @@ mod tests {
 
     #[test]
     fn execute_honours_the_configured_event_name() {
-        let config = WorkflowRunConfig::new().with_event(ActEvent::new("pull_request".into()));
+        let config = WorkflowRunConfig::new().with_event(WorkflowEvent::new("pull_request".into()));
 
         let context = context(config);
 

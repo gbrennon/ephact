@@ -4,7 +4,9 @@ use crate::{
     domain::{
         messages::{
             commands::ExecuteWorkflowCommand,
-            events::{ActRunCompletedPayload, DomainEvent, RunFailedPayload, RunStartedPayload},
+            events::{
+                DomainEvent, RunFailedPayload, RunStartedPayload, WorkflowRunCompletedPayload,
+            },
         },
         services::{
             repository_factory::RepositoryFactory,
@@ -33,7 +35,7 @@ pub const ALL_WORKFLOWS_SUMMARY_NAME: &str = "All Workflows";
 ///
 /// Reads all workflow sources through an outbound port and publishes one
 /// [`ExecuteWorkflowCommand`] per workflow. When every workflow finished, the
-/// completion is announced as an [`DomainEvent::ActRunCompleted`] event so
+/// completion is announced as an [`DomainEvent::WorkflowRunCompleted`] event so
 /// infrastructure handlers can clean up.
 pub struct RunAllWorkflowsService {
     workflow_source: Box<dyn WorkflowSourcePort>,
@@ -154,13 +156,14 @@ impl RunAllWorkflowsService {
             .iter()
             .flat_map(|execution| execution.container_names().to_vec())
             .collect();
-        self.event_bus
-            .publish(DomainEvent::ActRunCompleted(ActRunCompletedPayload::new(
+        self.event_bus.publish(DomainEvent::WorkflowRunCompleted(
+            WorkflowRunCompletedPayload::new(
                 run_id.to_string(),
                 repository_path.to_string(),
                 container_names,
                 success,
-            )));
+            ),
+        ));
     }
 
     fn announce_run_failed(&self, run_id: &str, repository_path: &str, error: &dyn Error) {

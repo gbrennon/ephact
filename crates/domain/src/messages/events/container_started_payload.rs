@@ -30,9 +30,9 @@ mod tests {
 
     #[test]
     fn new_preserves_fields() {
-        let payload = ContainerStartedPayload::new("run-1".into(), "ephemeral-act-build".into());
+        let payload = ContainerStartedPayload::new("run-1".into(), "ephact-build".into());
 
         assert_eq!(payload.run_id(), "run-1");
-        assert_eq!(payload.container_name(), "ephemeral-act-build");
+        assert_eq!(payload.container_name(), "ephact-build");
     }
 }

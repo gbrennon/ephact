@@ -21,7 +21,7 @@ use crate::{
     cli::run_args::{RunArgs, new_run_id},
     domain::{
         RepoPath, Repository, RepositoryName,
-        value_objects::{ActEvent, ActInput, ActWorkflow, WorkflowRunConfig},
+        value_objects::{WorkflowEvent, WorkflowInput, WorkflowPath, WorkflowRunConfig},
     },
 };
 
@@ -132,14 +132,14 @@ impl RunHandler {
         inputs: Vec<(String, String)>,
     ) -> WorkflowRunConfig {
         let config = event
-            .map(|name| WorkflowRunConfig::new().with_event(ActEvent::new(name)))
+            .map(|name| WorkflowRunConfig::new().with_event(WorkflowEvent::new(name)))
             .unwrap_or_else(|| WorkflowRunConfig::new());
         let config = match workflow {
-            Some(name) => config.with_workflow(ActWorkflow::new(name)),
+            Some(name) => config.with_workflow(WorkflowPath::new(name)),
             None => config,
         };
         inputs.into_iter().fold(config, |config, (key, value)| {
-            config.add_input(ActInput::new(key, value))
+            config.add_input(WorkflowInput::new(key, value))
         })
     }
 
@@ -321,10 +321,10 @@ impl RunHandler {
             .collect();
         let workflow = Self::select_pull_request_workflow(&workflows, terminal)?;
         if let Some(name) = workflow.name() {
-            config = config.with_workflow(ActWorkflow::new(name.to_string()));
+            config = config.with_workflow(WorkflowPath::new(name.to_string()));
         }
         config = config
-            .with_event(ActEvent::new("pull_request".to_string()))
+            .with_event(WorkflowEvent::new("pull_request".to_string()))
             .with_all_workflows(false);
         if collect_inputs {
             Self::collect_interactive_inputs(config, terminal)
@@ -398,7 +398,7 @@ impl RunHandler {
 
     fn read_interactive_input(
         terminal: &dyn Terminal,
-    ) -> Result<Option<ActInput>, Box<dyn std::error::Error>> {
+    ) -> Result<Option<WorkflowInput>, Box<dyn std::error::Error>> {
         let line = terminal.read_line()?;
         let trimmed = line.trim();
         if trimmed.is_empty() {
@@ -406,7 +406,7 @@ impl RunHandler {
         }
         let (key, source) = RunArgs::parse_input_source(trimmed)?;
         let value = source.resolve()?;
-        Ok(Some(ActInput::new(key, value)))
+        Ok(Some(WorkflowInput::new(key, value)))
     }
 
     fn preflight_inputs(
@@ -627,7 +627,7 @@ impl RunHandler {
                 "{}={value}",
                 declaration.name()
             ))?;
-            config = config.add_input(crate::domain::value_objects::ActInput::new(
+            config = config.add_input(crate::domain::value_objects::WorkflowInput::new(
                 declaration.name().to_owned(),
                 source.resolve()?,
             ));

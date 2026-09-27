@@ -1,14 +1,14 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ActWorkflow(String);
+pub struct WorkflowPath(String);
 
-impl ActWorkflow {
+impl WorkflowPath {
     /// Creates a new workflow from a path string.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use ephact_domain::value_objects::ActWorkflow;
-    /// let wf = ActWorkflow::new(".github/workflows/ci.yml".into());
+    /// # use ephact_domain::value_objects::WorkflowPath;
+    /// let wf = WorkflowPath::new(".github/workflows/ci.yml".into());
     /// assert_eq!(wf.as_str(), ".github/workflows/ci.yml");
     /// ```
     pub fn new(path: String) -> Self {
@@ -27,7 +27,7 @@ mod tests {
 
     #[test]
     fn new_stores_path() {
-        let wf = ActWorkflow::new(".github/workflows/ci.yml".into());
+        let wf = WorkflowPath::new(".github/workflows/ci.yml".into());
         assert_eq!(wf.as_str(), ".github/workflows/ci.yml");
     }
 }

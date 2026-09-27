@@ -5,7 +5,9 @@ use crate::{
         Repository,
         messages::{
             commands::ExecuteWorkflowCommand,
-            events::{ActRunCompletedPayload, DomainEvent, RunFailedPayload, RunStartedPayload},
+            events::{
+                DomainEvent, RunFailedPayload, RunStartedPayload, WorkflowRunCompletedPayload,
+            },
         },
         services::{
             repository_factory::RepositoryFactory,
@@ -195,13 +197,14 @@ impl RunWorkflowService {
         execution: WorkflowExecutionResponse,
     ) -> RunSummaryResponse {
         let (workflow_name, job_summaries, container_names, success) = execution.into_parts();
-        self.event_bus
-            .publish(DomainEvent::ActRunCompleted(ActRunCompletedPayload::new(
+        self.event_bus.publish(DomainEvent::WorkflowRunCompleted(
+            WorkflowRunCompletedPayload::new(
                 context.run_id.clone(),
                 context.repository_path.clone(),
                 container_names,
                 success,
-            )));
+            ),
+        ));
         RunSummaryResponse::new(
             workflow_name,
             job_summaries,

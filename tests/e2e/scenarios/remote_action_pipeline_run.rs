@@ -48,7 +48,7 @@ pub struct RemoteActionPipelineRun {
 impl RemoteActionPipelineRun {
     pub const TOOLCHAIN_SCRIPT: &'static str = r#"echo "toolchain ready for remote-toolchain""#;
     pub const ENTRY_POINT_FILE: &'static str = "index.js";
-    pub const CONTAINER_ACTIONS_ROOT: &'static str = "ephemeral-act-actions";
+    pub const CONTAINER_ACTIONS_ROOT: &'static str = "ephact-actions";
     pub const INPUT_VARIABLE: &'static str = "INPUT_NODE-VERSION";
 
     pub fn execute() -> Self {
