@@ -5,11 +5,14 @@ use crate::{
         Repository,
         messages::{
             commands::ExecuteWorkflowCommand,
-            events::{ActRunCompletedPayload, DomainEvent, RunFailedPayload, RunStartedPayload},
+            events::{
+                DomainEvent, RunFailedPayload, RunStartedPayload, WorkflowRunCompletedPayload,
+            },
         },
         services::{
             repository_factory::RepositoryFactory,
-            workflow_run_config_factory::{WorkflowRunConfigFactory, WorkflowRunConfigInput},
+            workflow_run_config_factory::WorkflowRunConfigFactory,
+            workflow_run_config_input::WorkflowRunConfigInput,
         },
         value_objects::workflow_run_config::WorkflowRunConfig,
     },
@@ -68,10 +71,9 @@ impl RunExecutionContext {
                 .with_allow_repo_writes(request.allow_repo_writes())
                 .with_allow_real_container(request.allow_real_container())
                 .with_allow_real_fetcher(request.allow_real_fetcher())
-                .with_allow_network(request.allow_network())
-                .with_run_id(request.run_id().to_string()),
+                .with_allow_network(request.allow_network()),
         );
-        let run_id = config.run_id().to_string();
+        let run_id = request.run_id().to_string();
         let workflow_name = config
             .workflow()
             .map(|workflow| workflow.as_str().to_string());
@@ -196,13 +198,14 @@ impl RunWorkflowService {
         execution: WorkflowExecutionResponse,
     ) -> RunSummaryResponse {
         let (workflow_name, job_summaries, container_names, success) = execution.into_parts();
-        self.event_bus
-            .publish(DomainEvent::ActRunCompleted(ActRunCompletedPayload::new(
+        self.event_bus.publish(DomainEvent::WorkflowRunCompleted(
+            WorkflowRunCompletedPayload::new(
                 context.run_id.clone(),
                 context.repository_path.clone(),
                 container_names,
                 success,
-            )));
+            ),
+        ));
         RunSummaryResponse::new(
             workflow_name,
             job_summaries,

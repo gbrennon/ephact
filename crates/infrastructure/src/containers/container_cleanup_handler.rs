@@ -65,7 +65,7 @@ impl DomainEventHandler for ContainerCleanupHandler {
             DomainEvent::ContainerStarted(payload) => {
                 self.record_started_container(payload.run_id(), payload.container_name())
             }
-            DomainEvent::ActRunCompleted(payload) => {
+            DomainEvent::WorkflowRunCompleted(payload) => {
                 self.cleanup_run(payload.run_id(), payload.container_names())
             }
             DomainEvent::RunFailed(payload) => self.cleanup_run(payload.run_id(), &[]),

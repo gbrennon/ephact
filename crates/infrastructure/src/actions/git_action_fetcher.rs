@@ -11,7 +11,7 @@ use crate::{
 };
 
 /// Directory name, under the cache root, that holds fetched action trees.
-const CACHE_DIRECTORY: &str = "ephemeral-act/actions";
+const CACHE_DIRECTORY: &str = "ephact/actions";
 
 /// Fetches remote actions with the `git` CLI, caching each
 /// host/owner/repo/revision combination on disk.

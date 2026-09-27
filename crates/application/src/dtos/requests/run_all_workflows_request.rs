@@ -23,6 +23,7 @@ impl RunAllWorkflowsRequest {
     pub fn from_domain(
         repository: &crate::domain::Repository,
         config: &crate::domain::WorkflowRunConfig,
+        run_id: impl Into<String>,
     ) -> Self {
         Self {
             repository_path: repository.path().as_path().to_path_buf(),
@@ -45,7 +46,7 @@ impl RunAllWorkflowsRequest {
             allow_real_container: config.allow_real_container(),
             allow_real_fetcher: config.allow_real_fetcher(),
             allow_network: config.allow_network(),
-            run_id: config.run_id().to_string(),
+            run_id: run_id.into(),
         }
     }
 

@@ -79,7 +79,7 @@ impl FilesystemWorkflowSource {
         None
     }
 
-    fn extract_events(content: &str) -> Vec<String> {
+    fn extrworkflow_events(content: &str) -> Vec<String> {
         let Ok(parsed) = serde_yaml::from_str::<WorkflowYaml>(content) else {
             return Vec::new();
         };
@@ -212,7 +212,7 @@ impl WorkflowSourcePort for FilesystemWorkflowSource {
                     crate::application::dtos::responses::WorkflowListItemResponse::new(
                         Some(name),
                         Some(file.to_string_lossy().to_string()),
-                        Self::extract_events(&content),
+                        Self::extrworkflow_events(&content),
                     ),
                 );
             }

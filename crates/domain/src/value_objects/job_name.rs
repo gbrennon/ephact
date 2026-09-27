@@ -1,14 +1,14 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ActJob(String);
+pub struct JobName(String);
 
-impl ActJob {
+impl JobName {
     /// Creates a new job from its name string.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use ephact_domain::value_objects::ActJob;
-    /// let job = ActJob::new("test".into());
+    /// # use ephact_domain::value_objects::JobName;
+    /// let job = JobName::new("test".into());
     /// assert_eq!(job.as_str(), "test");
     /// ```
     pub fn new(job: String) -> Self {
@@ -27,7 +27,7 @@ mod tests {
 
     #[test]
     fn new_stores_job_name() {
-        let job = ActJob::new("test".into());
+        let job = JobName::new("test".into());
         assert_eq!(job.as_str(), "test");
     }
 }

@@ -12,7 +12,7 @@ mod tests {
         },
         domain::{
             RepoPath, Repository, RepositoryName, WorkflowRunConfig, messages::events::DomainEvent,
-            value_objects::ActEvent,
+            value_objects::WorkflowEvent,
         },
     };
 
@@ -36,7 +36,7 @@ mod tests {
         config: WorkflowRunConfig,
         repository: Repository,
     ) -> RunAllWorkflowsRequest {
-        RunAllWorkflowsRequest::from_domain(&repository, &config)
+        RunAllWorkflowsRequest::from_domain(&repository, &config, "test-run")
     }
 
     #[test]
@@ -56,8 +56,8 @@ mod tests {
             ));
         let event_bus = FakeEventBus::new();
         let config =
-            WorkflowRunConfig::new("test-run").with_event(ActEvent::new("pull_request".to_owned()));
-        let run_id = config.run_id().to_string();
+            WorkflowRunConfig::new().with_event(WorkflowEvent::new("pull_request".to_owned()));
+        let run_id = "test-run";
         let repository_path = temp.path().display().to_string();
         let service = RunAllWorkflowsService::new(
             Box::new(workflow_source),
@@ -72,7 +72,7 @@ mod tests {
         assert_eq!(summary.name(), ALL_WORKFLOWS_SUMMARY_NAME);
         assert_eq!(command_bus.dispatched_workflows.lock().len(), 2);
         assert_pull_request_workflows(&command_bus);
-        assert_completed_events(&event_bus, &run_id, &repository_path);
+        assert_completed_events(&event_bus, run_id, &repository_path);
     }
 
     #[test]
@@ -88,7 +88,7 @@ mod tests {
         );
 
         let error = service
-            .execute(primitive_request(WorkflowRunConfig::new("test-run"), repo))
+            .execute(primitive_request(WorkflowRunConfig::new(), repo))
             .unwrap_err();
 
         assert_eq!(error.to_string(), "workflow event must be specified");
@@ -110,8 +110,8 @@ mod tests {
         };
         assert_eq!(payload.run_id(), run_id);
         assert_eq!(payload.repository_path(), repository_path);
-        let DomainEvent::ActRunCompleted(payload) = &events[1] else {
-            panic!("expected ActRunCompleted event");
+        let DomainEvent::WorkflowRunCompleted(payload) = &events[1] else {
+            panic!("expected WorkflowRunCompleted event");
         };
         assert_eq!(payload.run_id(), run_id);
         assert_eq!(payload.repository_path(), repository_path);
@@ -129,8 +129,8 @@ mod tests {
         let source = FakeWorkflowSource::new().failing_read_all_workflows("cannot list workflows");
         let event_bus = FakeEventBus::new();
         let config =
-            WorkflowRunConfig::new("test-run").with_event(ActEvent::new("pull_request".to_owned()));
-        let run_id = config.run_id().to_string();
+            WorkflowRunConfig::new().with_event(WorkflowEvent::new("pull_request".to_owned()));
+        let run_id = "test-run";
         let service = RunAllWorkflowsService::new(
             Box::new(source),
             Box::new(FakeCommandBus::new()),
@@ -172,7 +172,7 @@ mod tests {
             )),
         );
         let request = primitive_request(
-            WorkflowRunConfig::new("test-run").with_event(ActEvent::new("pull_request".to_owned())),
+            WorkflowRunConfig::new().with_event(WorkflowEvent::new("pull_request".to_owned())),
             repo,
         );
 

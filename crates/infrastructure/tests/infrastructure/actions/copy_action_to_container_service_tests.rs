@@ -34,7 +34,7 @@ mod tests {
             ))
             .unwrap();
 
-        assert_eq!(directory, "/tmp/ephemeral-act-actions/_repo_actions_greet");
+        assert_eq!(directory, "/tmp/ephact-actions/_repo_actions_greet");
     }
 
     #[test]
@@ -56,12 +56,12 @@ mod tests {
             vec![
                 "mkdir".to_string(),
                 "-p".to_string(),
-                "/tmp/ephemeral-act-actions/_repo_actions_greet".to_string()
+                "/tmp/ephact-actions/_repo_actions_greet".to_string()
             ]
         );
         assert_eq!(
             container.copied_paths(),
-            vec!["/tmp/ephemeral-act-actions/_repo_actions_greet".to_string()]
+            vec!["/tmp/ephact-actions/_repo_actions_greet".to_string()]
         );
         assert_eq!(container.copied_files()[0][0].path(), "action.yml");
     }

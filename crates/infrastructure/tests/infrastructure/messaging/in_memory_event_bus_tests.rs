@@ -2,19 +2,19 @@ use std::sync::Arc;
 
 use ephact::{
     application::ports::outbound::DomainEventBusPort,
-    domain::messages::events::{ActRunCompletedPayload, DomainEvent},
+    domain::messages::events::{DomainEvent, WorkflowRunCompletedPayload},
     infrastructure::{containers::ContainerCleanupHandler, messaging::InMemoryEventBus},
 };
 
 use crate::common::fakes::fake_runtime::FakeRuntime;
 
 #[test]
-fn publish_act_run_completed_stops_kills_and_removes_containers() {
+fn publish_workflow_run_completed_stops_kills_and_removes_containers() {
     let runtime = Arc::new(FakeRuntime::new());
     let cleanup_handler = Box::new(ContainerCleanupHandler::new(runtime.clone()));
     let bus = InMemoryEventBus::new(vec![cleanup_handler]);
 
-    let event = DomainEvent::ActRunCompleted(ActRunCompletedPayload::new(
+    let event = DomainEvent::WorkflowRunCompleted(WorkflowRunCompletedPayload::new(
         "run-1".to_string(),
         "/repo".to_string(),
         vec!["container-a".to_string(), "container-b".to_string()],
