@@ -62,8 +62,11 @@ impl<'a> RemoteReferenceParts<'a> {
         match location.split_once("://") {
             Some((scheme, remainder)) => {
                 let (host, path) = remainder.split_once('/')?;
-                (!scheme.is_empty() && !host.is_empty())
-                    .then_some((scheme.to_string(), host.to_string(), path))
+                (!scheme.is_empty() && !host.is_empty()).then_some((
+                    scheme.to_string(),
+                    host.to_string(),
+                    path,
+                ))
             }
             None => Some((
                 defaults.scheme().to_string(),

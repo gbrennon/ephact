@@ -1,3 +1,13 @@
+macro_rules! impl_application_error {
+    ($error_type:ty, $display:expr $(,)?) => {
+        impl std::fmt::Display for $error_type {
+            fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "{}", ($display)(self))
+            }
+        }
+    };
+}
+
 mod copy_repository_to_container_error;
 mod discover_run_inputs_error;
 mod execute_action_error;

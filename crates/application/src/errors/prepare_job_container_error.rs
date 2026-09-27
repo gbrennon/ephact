@@ -1,9 +1,17 @@
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum PrepareJobContainerError {
-    #[error("{0}")]
     Image(String),
-    #[error("{0}")]
     Container(String),
-    #[error("{0}")]
     Repository(String),
 }
+
+impl_application_error!(
+    PrepareJobContainerError,
+    |error: &PrepareJobContainerError| match error {
+        PrepareJobContainerError::Image(message)
+        | PrepareJobContainerError::Container(message)
+        | PrepareJobContainerError::Repository(message) => message.clone(),
+    },
+);
+
+impl std::error::Error for PrepareJobContainerError {}
