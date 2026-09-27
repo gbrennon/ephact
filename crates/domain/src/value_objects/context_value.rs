@@ -255,11 +255,11 @@ impl ContextValue {
         }
     }
     const NUMBER_CHARACTERS: [char; 5] = ['-', '+', '.', 'e', 'E'];
-    pub fn is_number_character(character: char) -> bool {
+    pub(crate) fn is_number_character(character: char) -> bool {
         character.is_ascii_digit() || Self::NUMBER_CHARACTERS.contains(&character)
     }
 
-    pub fn parse_number_literal(literal: &str) -> Result<ContextValue, JsonTextError> {
+    pub(crate) fn parse_number_literal(literal: &str) -> Result<ContextValue, JsonTextError> {
         match literal.contains(['.', 'e', 'E']) {
             true => literal
                 .parse::<f64>()
