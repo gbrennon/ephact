@@ -69,8 +69,10 @@ mod tests {
 
     use super::{super::repo_path::RepoPath, *};
 
-    fn workspace_root() -> PathBuf {
-        PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("../..")
+    impl RepositoryName {
+        fn workspace_root_for_test() -> PathBuf {
+            PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("../..")
+        }
     }
 
     #[test]
@@ -87,7 +89,7 @@ mod tests {
 
     #[test]
     fn from_repo_path_derives_name_from_path() {
-        let workspace_root = workspace_root();
+        let workspace_root = RepositoryName::workspace_root_for_test();
         let repo_path = RepoPath::new(workspace_root).unwrap();
         let name = RepositoryName::from_repo_path(&repo_path).unwrap();
         assert!(!name.as_str().is_empty());
