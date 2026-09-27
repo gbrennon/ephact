@@ -88,13 +88,15 @@ mod tests {
 
     use super::*;
 
-    fn workspace_root() -> PathBuf {
-        PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("../..")
+    impl RepoPath {
+        fn workspace_root_for_test() -> PathBuf {
+            PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("../..")
+        }
     }
 
     #[test]
     fn new_with_valid_git_repo_succeeds() {
-        let workspace_root = workspace_root();
+        let workspace_root = RepoPath::workspace_root_for_test();
         let repo_path = RepoPath::new(&workspace_root).unwrap();
         assert!(repo_path.as_path().join(".git").exists());
     }
@@ -121,7 +123,7 @@ mod tests {
 
     #[test]
     fn as_path_returns_canonical_path() {
-        let workspace_root = workspace_root();
+        let workspace_root = RepoPath::workspace_root_for_test();
         let expected = std::fs::canonicalize(&workspace_root).unwrap();
 
         let repo_path = RepoPath::new(&workspace_root).unwrap();
@@ -130,7 +132,7 @@ mod tests {
 
     #[test]
     fn git_dir_kind_identifies_repo_type() {
-        let workspace_root = workspace_root();
+        let workspace_root = RepoPath::workspace_root_for_test();
         let repo_path = RepoPath::new(&workspace_root).unwrap();
         let kind = repo_path.git_dir_kind();
         assert!(kind == GitDirKind::Standalone || kind == GitDirKind::Worktree);
@@ -138,7 +140,7 @@ mod tests {
 
     #[test]
     fn is_standalone_matches_git_dir_kind() {
-        let workspace_root = workspace_root();
+        let workspace_root = RepoPath::workspace_root_for_test();
         let repo_path = RepoPath::new(&workspace_root).unwrap();
         assert_eq!(
             repo_path.is_standalone(),
