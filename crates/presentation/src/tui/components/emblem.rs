@@ -11,35 +11,30 @@ use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 use super::color_support::ColorSupport;
 use crate::{domain::value_objects::Marker, tui::theme::Theme};
 
-/// Plain single-color emblem used when the terminal lacks 24-bit color.
-pub const FALLBACK_EMBLEM: &str = include_str!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/../../assets/project_emblem.txt"
-));
-
 const PROMPT_GLYPHS: [char; 2] = ['>', '_'];
 const NODE_GLYPHS: [char; 2] = ['@', 'o'];
 const MARKER_GLYPH: char = '_';
 const MARKER_SLOT_WIDTH: usize = 2;
 const MARKER_LINE_INDEX: u16 = 2;
 
-/// Builder that renders the project emblem as terminal lines.
-///
-/// Callers receive fancy 24-bit colored ASCII art when the terminal supports
-/// true color, and a single-color rendering of the fallback art otherwise.
-pub struct Emblem;
+pub struct Emblem<'a> {
+    text: &'a str,
+}
 
-impl Emblem {
-    /// Returns emblem lines appropriate for the given color capability.
-    pub fn lines_for(support: ColorSupport, marker: &Marker) -> Vec<Line<'static>> {
-        if support.is_true_color() {
-            return Self::fancy_lines(marker);
-        }
-        Self::fallback_lines(marker)
+impl<'a> Emblem<'a> {
+    pub fn new(text: &'a str) -> Self {
+        Self { text }
     }
 
-    /// Returns the fallback emblem styled with a single accent color.
+    pub fn lines_for(&self, support: ColorSupport, marker: &Marker) -> Vec<Line<'static>> {
+        if support.is_true_color() {
+            return self.fancy_lines(marker);
+        }
+        self.fallback_lines(marker)
+    }
+
     pub fn render_graphical_marker(
+        &self,
         frame: &mut Frame<'_>,
         area: Rect,
         marker: &Marker,
@@ -57,7 +52,7 @@ impl Emblem {
             return false;
         };
         let picker = Picker::from_fontsize((8, 16));
-        let image_area = Self::marker_area(area);
+        let image_area = self.marker_area(area);
         let Ok(protocol) = picker.new_protocol(image, image_area, Resize::Fit(None)) else {
             return false;
         };
@@ -65,17 +60,18 @@ impl Emblem {
         true
     }
 
-    fn marker_area(area: Rect) -> Rect {
-        let line = FALLBACK_EMBLEM
+    fn marker_area(&self, area: Rect) -> Rect {
+        let line = self
+            .text
             .lines()
             .nth(MARKER_LINE_INDEX as usize)
             .unwrap_or("");
-        let gutter = Self::left_gutter();
+        let gutter = self.left_gutter();
         let marker_column = line
             .find(MARKER_GLYPH)
             .map(|index| line[..index].chars().count().saturating_sub(gutter))
             .unwrap_or(0);
-        let emblem_width = Self::emblem_width() as u16;
+        let emblem_width = self.emblem_width() as u16;
         Rect::new(
             area.x
                 .saturating_add(area.width.saturating_sub(emblem_width) / 2)
@@ -86,30 +82,26 @@ impl Emblem {
         )
     }
 
-    pub fn fallback_lines(marker: &Marker) -> Vec<Line<'static>> {
-        FALLBACK_EMBLEM
+    pub fn fallback_lines(&self, marker: &Marker) -> Vec<Line<'static>> {
+        self.text
             .lines()
-            .map(|line| Self::fallback_line(line, marker))
+            .map(|line| Self::fallback_line(&self.padded(line, marker)))
             .collect()
     }
 
-    /// Returns the colored canonical emblem lines using the active-accent palette.
-    pub fn fancy_lines(marker: &Marker) -> Vec<Line<'static>> {
-        FALLBACK_EMBLEM
+    pub fn fancy_lines(&self, marker: &Marker) -> Vec<Line<'static>> {
+        self.text
             .lines()
-            .map(|line| Self::fancy_line(line, marker))
+            .map(|line| self.fancy_line(line, marker))
             .collect()
     }
 
-    fn fallback_line(text: &str, marker: &Marker) -> Line<'static> {
-        Line::from(Span::styled(
-            Self::padded(text, marker),
-            Theme::active_style(),
-        ))
+    fn fallback_line(text: &str) -> Line<'static> {
+        Line::from(Span::styled(text.to_string(), Theme::active_style()))
     }
 
-    fn fancy_line(text: &str, marker: &Marker) -> Line<'static> {
-        let (line, marker_start) = Self::padded_with_marker(text, marker);
+    fn fancy_line(&self, text: &str, marker: &Marker) -> Line<'static> {
+        let (line, marker_start) = self.padded_with_marker(text, marker);
         Line::from(
             line.chars()
                 .enumerate()
@@ -126,16 +118,16 @@ impl Emblem {
         )
     }
 
-    fn padded(text: &str, marker: &Marker) -> String {
-        Self::padded_with_marker(text, marker).0
+    fn padded(&self, text: &str, marker: &Marker) -> String {
+        self.padded_with_marker(text, marker).0
     }
 
-    fn padded_with_marker(text: &str, marker: &Marker) -> (String, Option<usize>) {
-        let gutter = Self::left_gutter();
+    fn padded_with_marker(&self, text: &str, marker: &Marker) -> (String, Option<usize>) {
+        let gutter = self.left_gutter();
         let source = Self::replace_marker(text, marker);
         let marker_start = source.1.map(|start| start.saturating_sub(gutter));
         let trimmed = source.0.chars().skip(gutter).collect::<String>();
-        let width = Self::emblem_width().saturating_sub(gutter);
+        let width = self.emblem_width().saturating_sub(gutter);
         let padding = width.saturating_sub(trimmed.width());
         (format!("{trimmed}{}", " ".repeat(padding)), marker_start)
     }
@@ -173,8 +165,8 @@ impl Emblem {
         slot
     }
 
-    fn emblem_width() -> usize {
-        FALLBACK_EMBLEM
+    fn emblem_width(&self) -> usize {
+        self.text
             .lines()
             .map(str::width)
             .max()
@@ -182,8 +174,8 @@ impl Emblem {
             .saturating_add(MARKER_SLOT_WIDTH - 1)
     }
 
-    fn left_gutter() -> usize {
-        FALLBACK_EMBLEM
+    fn left_gutter(&self) -> usize {
+        self.text
             .lines()
             .map(|line| {
                 line.chars()

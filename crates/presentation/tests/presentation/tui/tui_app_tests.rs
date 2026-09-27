@@ -59,11 +59,14 @@ mod tests {
         fs::write(&path, "marker = \"❯\"\n").expect("write settings");
         let store = Arc::new(TomlSettingsStore::new(path));
         let settings = store.read_settings().expect("read settings");
-        let mut app = TuiApp::new(vec![WorkflowListItemResponse::new(
-            Some("CI".to_string()),
-            None,
-            vec!["push".to_string()],
-        )])
+        let mut app = TuiApp::new(
+            vec![WorkflowListItemResponse::new(
+                Some("CI".to_string()),
+                None,
+                vec!["push".to_string()],
+            )],
+            ephact::PROJECT_EMBLEM.to_string(),
+        )
         .with_settings(settings, Some(store));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
@@ -88,7 +91,8 @@ mod tests {
     #[test]
     fn screen_transitions_preserve_shared_title_frame() {
         let title = "randomized splash quote";
-        let home = ScreenManager::new(Vec::new()).transition_to(TuiScreen::Home);
+        let home = ScreenManager::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string())
+            .transition_to(TuiScreen::Home);
         let workflows = home.transition_to(TuiScreen::ListWorkflows);
 
         let home_lines = rendered_lines(&home, title);
@@ -106,7 +110,7 @@ mod tests {
             WorkflowListItemResponse::new(Some("CI".to_string()), None, Vec::new()),
             WorkflowListItemResponse::new(Some("Deploy".to_string()), None, Vec::new()),
         ];
-        let screens = ScreenManager::new(workflows)
+        let screens = ScreenManager::new(workflows, ephact::PROJECT_EMBLEM.to_string())
             .transition_to(TuiScreen::RunWorkflow)
             .select_home_next()
             .select_run_workflow_next();
@@ -125,7 +129,7 @@ mod tests {
 
     #[test]
     fn tui_app_records_run_outcome_through_screen_manager() {
-        let mut app = TuiApp::new(Vec::new());
+        let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string());
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         let summary = RunSummaryResponse::new("CI", vec![], true, Duration::from_secs(1));
@@ -137,7 +141,7 @@ mod tests {
 
     #[test]
     fn selecting_list_workflows_enters_workflow_screen() {
-        let mut app = TuiApp::new(Vec::new());
+        let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string());
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
 
@@ -148,7 +152,7 @@ mod tests {
 
     #[test]
     fn selecting_list_actions_enters_actions_screen() {
-        let mut app = TuiApp::new(Vec::new());
+        let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string());
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
@@ -161,11 +165,14 @@ mod tests {
     #[test]
     fn configured_marker_is_used_by_text_input_form() {
         let settings = Settings::default().with_marker(Marker::custom_text("❯"));
-        let mut app = TuiApp::new(vec![WorkflowListItemResponse::new(
-            Some("CI".to_string()),
-            None,
-            vec!["push".to_string()],
-        )])
+        let mut app = TuiApp::new(
+            vec![WorkflowListItemResponse::new(
+                Some("CI".to_string()),
+                None,
+                vec!["push".to_string()],
+            )],
+            ephact::PROJECT_EMBLEM.to_string(),
+        )
         .with_settings(settings, None);
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
@@ -189,11 +196,14 @@ mod tests {
 
     #[test]
     fn boolean_input_editing_works_through_tui_app() {
-        let mut app = TuiApp::new(vec![WorkflowListItemResponse::new(
-            Some("CI".to_string()),
-            None,
-            vec!["push".to_string()],
-        )]);
+        let mut app = TuiApp::new(
+            vec![WorkflowListItemResponse::new(
+                Some("CI".to_string()),
+                None,
+                vec!["push".to_string()],
+            )],
+            ephact::PROJECT_EMBLEM.to_string(),
+        );
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.begin_run_configuration(
@@ -223,11 +233,14 @@ mod tests {
 
     #[test]
     fn run_picker_configures_on_enter_and_ignores_details_key() {
-        let mut app = TuiApp::new(vec![WorkflowListItemResponse::new(
-            Some("CI".to_string()),
-            None,
-            vec!["push".to_string()],
-        )]);
+        let mut app = TuiApp::new(
+            vec![WorkflowListItemResponse::new(
+                Some("CI".to_string()),
+                None,
+                vec!["push".to_string()],
+            )],
+            ephact::PROJECT_EMBLEM.to_string(),
+        );
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
@@ -242,13 +255,16 @@ mod tests {
 
     #[test]
     fn cancel_key_requests_cancellation_without_leaving_run_screen() {
-        let mut app = TuiApp::new(vec![
-            ephact::application::dtos::responses::WorkflowListItemResponse::new(
-                Some("CI".to_string()),
-                None,
-                Vec::new(),
-            ),
-        ]);
+        let mut app = TuiApp::new(
+            vec![
+                ephact::application::dtos::responses::WorkflowListItemResponse::new(
+                    Some("CI".to_string()),
+                    None,
+                    Vec::new(),
+                ),
+            ],
+            ephact::PROJECT_EMBLEM.to_string(),
+        );
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.take_run_request();
@@ -262,7 +278,7 @@ mod tests {
 
     #[test]
     fn details_key_opens_failed_run_details() {
-        let mut app = TuiApp::new(vec![]);
+        let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.record_run_outcome(RunSummaryResponse::new(
@@ -279,11 +295,14 @@ mod tests {
 
     #[test]
     fn tui_configuration_submits_selected_event() {
-        let mut app = TuiApp::new(vec![WorkflowListItemResponse::new(
-            Some("CI".to_string()),
-            None,
-            vec!["push".to_string(), "schedule".to_string()],
-        )]);
+        let mut app = TuiApp::new(
+            vec![WorkflowListItemResponse::new(
+                Some("CI".to_string()),
+                None,
+                vec!["push".to_string(), "schedule".to_string()],
+            )],
+            ephact::PROJECT_EMBLEM.to_string(),
+        );
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.begin_run_configuration(vec!["push".to_string(), "schedule".to_string()], vec![]);
@@ -299,7 +318,7 @@ mod tests {
 
     #[test]
     fn summary_navigation_scrolls_completed_run_summary() {
-        let mut app = TuiApp::new(Vec::new());
+        let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string());
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.record_run_outcome(RunSummaryResponse::new(
@@ -316,7 +335,7 @@ mod tests {
 
     #[test]
     fn details_key_opens_successful_run_details() {
-        let mut app = TuiApp::new(vec![]);
+        let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.record_run_outcome(RunSummaryResponse::new(
@@ -333,7 +352,7 @@ mod tests {
 
     #[test]
     fn escape_closes_failed_run_details() {
-        let mut app = TuiApp::new(vec![]);
+        let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.record_run_outcome(RunSummaryResponse::new(
@@ -351,7 +370,7 @@ mod tests {
 
     #[test]
     fn details_screen_scroll_stops_at_content_end() {
-        let mut app = TuiApp::new(vec![]);
+        let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.record_run_outcome(RunSummaryResponse::new(
@@ -369,13 +388,16 @@ mod tests {
 
     #[test]
     fn quit_key_does_not_exit_while_workflow_runs() {
-        let mut app = TuiApp::new(vec![
-            ephact::application::dtos::responses::WorkflowListItemResponse::new(
-                Some("CI".to_string()),
-                None,
-                Vec::new(),
-            ),
-        ]);
+        let mut app = TuiApp::new(
+            vec![
+                ephact::application::dtos::responses::WorkflowListItemResponse::new(
+                    Some("CI".to_string()),
+                    None,
+                    Vec::new(),
+                ),
+            ],
+            ephact::PROJECT_EMBLEM.to_string(),
+        );
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.take_run_request();

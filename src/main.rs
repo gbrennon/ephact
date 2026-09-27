@@ -33,6 +33,7 @@ fn run_application() -> Result<(), Box<dyn std::error::Error>> {
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_DESCRIPTION"),
         env!("CARGO_PKG_VERSION"),
+        ephact::PROJECT_EMBLEM,
     );
     let container =
         Container::build_with_branding(Some(Box::new(progress_reporter)), Box::new(branding_store));

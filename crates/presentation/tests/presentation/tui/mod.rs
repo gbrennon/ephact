@@ -128,7 +128,7 @@ fn home_menu_item_matches_other_inner_frame_padding() {
 
 #[test]
 fn splash_advances_to_home_on_non_q_key() {
-    let mut app = TuiApp::new(vec![]);
+    let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
 
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
@@ -137,7 +137,7 @@ fn splash_advances_to_home_on_non_q_key() {
 
 #[test]
 fn q_exits_from_splash() {
-    let mut app = TuiApp::new(vec![]);
+    let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
 
     app.handle_key(KeyEvent::new(KeyCode::Char(QUIT_KEY), KeyModifiers::NONE));
 
@@ -146,7 +146,7 @@ fn q_exits_from_splash() {
 
 #[test]
 fn home_navigation_bounds() {
-    let mut app = TuiApp::new(vec![]);
+    let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
     app.handle_key(KeyEvent::new(KeyCode::Up, KeyModifiers::NONE));
@@ -160,7 +160,7 @@ fn home_navigation_bounds() {
 
 #[test]
 fn home_down_then_enter_transitions_to_list_workflows() {
-    let mut app = TuiApp::new(vec![]);
+    let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
 
@@ -171,7 +171,7 @@ fn home_down_then_enter_transitions_to_list_workflows() {
 
 #[test]
 fn list_workflows_esc_returns_to_home() {
-    let mut app = TuiApp::new(vec![]);
+    let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
@@ -183,7 +183,7 @@ fn list_workflows_esc_returns_to_home() {
 
 #[test]
 fn list_workflows_backspace_returns_to_home() {
-    let mut app = TuiApp::new(vec![]);
+    let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
@@ -195,7 +195,7 @@ fn list_workflows_backspace_returns_to_home() {
 
 #[test]
 fn list_workflows_q_exits() {
-    let mut app = TuiApp::new(vec![]);
+    let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
@@ -211,7 +211,7 @@ fn list_workflows_selection_bounds() {
         WorkflowListItemResponse::new(Some("first".into()), None, vec![]),
         WorkflowListItemResponse::new(Some("second".into()), None, vec![]),
     ];
-    let mut app = TuiApp::new(workflows);
+    let mut app = TuiApp::new(workflows, ephact::PROJECT_EMBLEM.to_string());
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
@@ -229,7 +229,12 @@ fn list_workflows_selection_bounds() {
 #[test]
 fn splash_renders_fallback_emblem_without_true_color() {
     let text = TuiRenderAssertions::buffer_text(&TuiRenderAssertions::rendered_buffer(|frame| {
-        SplashScreen::render_with(frame, ColorSupport::Basic, SplashQuotes::select(0));
+        SplashScreen::render_with(
+            frame,
+            ephact::PROJECT_EMBLEM,
+            ColorSupport::Basic,
+            SplashQuotes::select(0),
+        );
     }));
 
     assert!(text.contains("@---o"));
@@ -239,7 +244,12 @@ fn splash_renders_fallback_emblem_without_true_color() {
 #[test]
 fn splash_renders_fancy_emblem_with_true_color() {
     let buffer = TuiRenderAssertions::rendered_buffer(|frame| {
-        SplashScreen::render_with(frame, ColorSupport::TrueColor, SplashQuotes::select(0));
+        SplashScreen::render_with(
+            frame,
+            ephact::PROJECT_EMBLEM,
+            ColorSupport::TrueColor,
+            SplashQuotes::select(0),
+        );
     });
 
     let text = TuiRenderAssertions::buffer_text(&buffer);
@@ -374,7 +384,7 @@ fn list_workflows_handler_returns_error_on_invalid_repo_path() {
 
 #[test]
 fn home_down_twice_then_enter_transitions_to_list_actions() {
-    let mut app = TuiApp::new(vec![]);
+    let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
@@ -386,7 +396,7 @@ fn home_down_twice_then_enter_transitions_to_list_actions() {
 
 #[test]
 fn list_actions_esc_returns_to_home() {
-    let mut app = TuiApp::new(vec![]);
+    let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
@@ -399,7 +409,7 @@ fn list_actions_esc_returns_to_home() {
 
 #[test]
 fn list_actions_backspace_returns_to_home() {
-    let mut app = TuiApp::new(vec![]);
+    let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
@@ -412,7 +422,7 @@ fn list_actions_backspace_returns_to_home() {
 
 #[test]
 fn list_actions_q_exits() {
-    let mut app = TuiApp::new(vec![]);
+    let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
@@ -429,7 +439,7 @@ fn list_actions_selection_bounds() {
         "actions/checkout@v4".to_string(),
         "docker://node:20".to_string(),
     ];
-    let mut app = TuiApp::new(vec![]).with_actions(actions);
+    let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string()).with_actions(actions);
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
@@ -537,7 +547,7 @@ fn list_actions_handler_returns_error_on_invalid_repo_path() {
 
 #[test]
 fn home_enter_on_run_workflow_transitions_to_run_workflow_screen() {
-    let mut app = TuiApp::new(vec![]);
+    let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
@@ -547,7 +557,7 @@ fn home_enter_on_run_workflow_transitions_to_run_workflow_screen() {
 
 #[test]
 fn run_workflow_esc_returns_to_home() {
-    let mut app = TuiApp::new(vec![]);
+    let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
@@ -563,7 +573,7 @@ fn run_workflow_enter_requests_run_when_workflows_present() {
         None,
         vec![],
     )];
-    let mut app = TuiApp::new(workflows);
+    let mut app = TuiApp::new(workflows, ephact::PROJECT_EMBLEM.to_string());
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
@@ -574,7 +584,7 @@ fn run_workflow_enter_requests_run_when_workflows_present() {
 
 #[test]
 fn run_workflow_enter_ignored_without_workflows() {
-    let mut app = TuiApp::new(vec![]);
+    let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
@@ -590,7 +600,7 @@ fn recording_run_outcome_exposes_summary_on_run_screen() {
         None,
         vec![],
     )];
-    let mut app = TuiApp::new(workflows);
+    let mut app = TuiApp::new(workflows, ephact::PROJECT_EMBLEM.to_string());
     let summary = RunSummaryResponse::new("CI", vec![], true, Duration::from_secs(1));
 
     app.record_run_outcome(summary.clone());

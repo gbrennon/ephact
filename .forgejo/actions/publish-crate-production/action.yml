@@ -1,5 +1,5 @@
-name: Publish crate to production
-description: Publish the crate to crates.io
+name: Publish crates to production
+description: Publish every workspace crate to crates.io in dependency order
 inputs:
   token:
     description: >-
@@ -27,10 +27,30 @@ runs:
           exit 1
         fi
 
+        ordered=(
+          ephact-domain
+          ephact-application
+          ephact-infrastructure
+          ephact-presentation
+          ephact
+        )
+
+        metadata="$(cargo metadata --no-deps --format-version 1)"
+        workspace_packages="$(
+          jq -r '[.packages[] | select(.source == null) | .name] | sort | .[]' \
+            <<<"$metadata"
+        )"
+        declared_packages="$(printf '%s\n' "${ordered[@]}" | sort)"
+        if [[ "$workspace_packages" != "$declared_packages" ]]; then
+          printf 'workspace packages:\n%s\n' "$workspace_packages" >&2
+          printf 'declared publish order:\n%s\n' "$declared_packages" >&2
+          printf 'workspace members changed; update the publish order in this action\n' >&2
+          exit 1
+        fi
+
         expected_version="${VERSION#v}"
         manifest_version="$(
-          cargo metadata --no-deps --format-version 1 \
-            | jq -r '.packages[0].version'
+          jq -r '.packages[] | select(.name == "ephact") | .version' <<<"$metadata"
         )"
         if [[ "$manifest_version" != "$expected_version" ]]; then
           printf 'Cargo.toml version %s does not match release %s\n' \
@@ -38,4 +58,44 @@ runs:
           exit 1
         fi
 
-        cargo publish --locked
+        index_url="https://index.crates.io"
+
+        index_has_version() {
+          local index_path="${1:0:2}/${1:2:2}/${1}"
+          local entries
+          entries="$(curl -sf "${index_url}/${index_path}" || true)"
+          [[ "$entries" == *"\"vers\":\"${2}\""* ]]
+        }
+
+        wait_for_index() {
+          local attempt
+          for attempt in $(seq 1 24); do
+            if index_has_version "$1" "$2"; then
+              rm -f "${CARGO_HOME:-$HOME/.cargo}"/registry/index/*/.cache/"${1:0:2}/${1:2:2}/${1}"
+              return 0
+            fi
+            printf 'waiting for %s@%s in the crates.io index (attempt %d)\n' \
+              "$1" "$2" "$attempt"
+            sleep 5
+          done
+          printf 'index did not show %s@%s\n' "$1" "$2" >&2
+          return 1
+        }
+
+        for crate in "${ordered[@]}"; do
+          if [[ "$crate" == ephact ]]; then
+            continue
+          fi
+          crate_version="$(
+            jq -r --arg name "$crate" \
+              '.packages[] | select(.name == $name) | .version' <<<"$metadata"
+          )"
+          if index_has_version "$crate" "$crate_version"; then
+            printf '%s@%s is already published; skipping\n' "$crate" "$crate_version"
+            continue
+          fi
+          cargo publish -p "$crate" --locked
+          wait_for_index "$crate" "$crate_version"
+        done
+
+        cargo publish -p ephact --locked
