@@ -40,15 +40,11 @@ impl TarTransfer {
         entry: &FileEntry,
     ) -> Result<(), ContainerError> {
         let mut header = tar::Header::new_gnu();
-        header
-            .set_path(entry.path())
-            .map_err(|error| self.copy_failed(&error))?;
         header.set_size(entry.content().len() as u64);
         header.set_mode(entry.mode());
-        header.set_cksum();
 
         builder
-            .append(&header, entry.content())
+            .append_data(&mut header, entry.path(), entry.content())
             .map_err(|error| self.copy_failed(&error))
     }
 
@@ -121,5 +117,48 @@ impl TarTransfer {
 
     fn copy_failed(&self, error: &dyn Display) -> ContainerError {
         ContainerError::CopyFailed(self.container_id.clone(), error.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::TarTransfer;
+    use crate::{
+        containers::bollard_wrapper::{API_DEFAULT_VERSION, Client},
+        domain::entities::FileEntry,
+    };
+
+    #[test]
+    fn pack_and_unpack_preserve_nested_repository_paths_over_one_hundred_bytes() {
+        let client = Client::connect_with_http("http://127.0.0.1:2375", 120, API_DEFAULT_VERSION)
+            .expect("container client");
+        let transfer = TarTransfer::new(client, "container".to_string());
+        let path = concat!(
+            "crates/infrastructure/tests/infrastructure/persistence/project_branding/",
+            "cargo_project_branding_store_tests.rs"
+        );
+        let entry = FileEntry::new(path, vec![], 0o644);
+
+        let archive = transfer.pack(&[entry]).expect("archive");
+        let entries = transfer.unpack(&archive).expect("unpacked entries");
+
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].path(), path);
+    }
+
+    #[test]
+    fn pack_accepts_paths_over_the_ustar_path_limit() {
+        let client = Client::connect_with_http("http://127.0.0.1:2375", 120, API_DEFAULT_VERSION)
+            .expect("container client");
+        let transfer = TarTransfer::new(client, "container".to_string());
+        let path = format!("{}file.txt", "segment/".repeat(32));
+        let entry = FileEntry::new(path, vec![1, 2, 3], 0o644);
+
+        let archive = transfer
+            .pack(std::slice::from_ref(&entry))
+            .expect("archive");
+        let entries = transfer.unpack(&archive).expect("unpacked entries");
+
+        assert_eq!(entries, vec![entry]);
     }
 }

@@ -42,29 +42,30 @@ impl fmt::Display for ProjectBrandingError {
 impl Error for ProjectBrandingError {}
 
 #[cfg(test)]
-#[test]
-fn display_empty_name_formats_expected_message() {
-    let error = ProjectBrandingError::EmptyName;
-    assert_eq!(error.to_string(), "project name must not be empty");
-}
+mod tests {
+    use super::*;
 
-#[cfg(test)]
-#[test]
-fn display_empty_description_formats_expected_message() {
-    let error = ProjectBrandingError::EmptyDescription;
-    assert_eq!(error.to_string(), "project description must not be empty");
-}
+    #[test]
+    fn display_empty_name_formats_expected_message() {
+        let error = ProjectBrandingError::EmptyName;
+        assert_eq!(error.to_string(), "project name must not be empty");
+    }
 
-#[cfg(test)]
-#[test]
-fn display_empty_version_formats_expected_message() {
-    let error = ProjectBrandingError::EmptyVersion;
-    assert_eq!(error.to_string(), "project version must not be empty");
-}
+    #[test]
+    fn display_empty_description_formats_expected_message() {
+        let error = ProjectBrandingError::EmptyDescription;
+        assert_eq!(error.to_string(), "project description must not be empty");
+    }
 
-#[cfg(test)]
-#[test]
-fn display_empty_emblem_formats_expected_message() {
-    let error = ProjectBrandingError::EmptyEmblem;
-    assert_eq!(error.to_string(), "project emblem must not be empty");
+    #[test]
+    fn display_empty_version_formats_expected_message() {
+        let error = ProjectBrandingError::EmptyVersion;
+        assert_eq!(error.to_string(), "project version must not be empty");
+    }
+
+    #[test]
+    fn display_empty_emblem_formats_expected_message() {
+        let error = ProjectBrandingError::EmptyEmblem;
+        assert_eq!(error.to_string(), "project emblem must not be empty");
+    }
 }

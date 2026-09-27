@@ -31,18 +31,25 @@ impl SplashScreen {
     const VERTICAL_PADDING: u16 = 1;
 
     /// Renders the splash with `title`, using the color capability from the environment.
-    pub fn render(frame: &mut Frame<'_>, title: &str) {
-        Self::render_with_marker(frame, ColorSupport::from_env(), title, &Marker::default());
+    pub fn render(frame: &mut Frame<'_>, emblem: &str, title: &str) {
+        Self::render_with_marker(
+            frame,
+            emblem,
+            ColorSupport::from_env(),
+            title,
+            &Marker::default(),
+        );
     }
 
     /// Renders the splash with `title` and an explicit color capability.
-    pub fn render_with(frame: &mut Frame<'_>, support: ColorSupport, title: &str) {
-        Self::render_with_marker(frame, support, title, &Marker::default());
+    pub fn render_with(frame: &mut Frame<'_>, emblem: &str, support: ColorSupport, title: &str) {
+        Self::render_with_marker(frame, emblem, support, title, &Marker::default());
     }
 
     /// Renders the splash with the configured marker and terminal capability.
     pub fn render_with_marker(
         frame: &mut Frame<'_>,
+        emblem: &str,
         support: ColorSupport,
         title: &str,
         marker: &Marker,
@@ -60,7 +67,7 @@ impl SplashScreen {
         let inner = block.inner(area);
         frame.render_widget(block, area);
 
-        let lines = Self::body_lines(support, marker);
+        let lines = Self::body_lines(emblem, support, marker);
         let content = Self::vertically_centered(inner, lines.len() as u16);
         frame.render_widget(
             Paragraph::new(lines)
@@ -68,11 +75,11 @@ impl SplashScreen {
                 .style(Theme::window_style()),
             content,
         );
-        Emblem::render_graphical_marker(frame, content, marker, support);
+        Emblem::new(emblem).render_graphical_marker(frame, content, marker, support);
     }
 
-    fn body_lines(support: ColorSupport, marker: &Marker) -> Vec<Line<'static>> {
-        let mut lines = Emblem::lines_for(support, marker);
+    fn body_lines(emblem: &str, support: ColorSupport, marker: &Marker) -> Vec<Line<'static>> {
+        let mut lines = Emblem::new(emblem).lines_for(support, marker);
         lines.push(Line::from(""));
         lines.push(Self::title_line(support));
         lines.push(Line::from(""));

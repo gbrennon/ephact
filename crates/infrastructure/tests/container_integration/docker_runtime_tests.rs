@@ -57,8 +57,8 @@ mod tests {
     #[test]
     fn create_and_remove_container_lifecycle() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-docker-lifecycle");
-        let _ = runtime.remove_container("ephemeral-act-test-docker-lifecycle");
+        let config = make_config("ephact-test-docker-lifecycle");
+        let _ = runtime.remove_container("ephact-test-docker-lifecycle");
         let container = runtime.create_container(&config).unwrap();
         container.remove().unwrap();
     }
@@ -78,8 +78,8 @@ mod tests {
     #[test]
     fn exec_echo_returns_stdout() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-docker-exec");
-        let _ = runtime.remove_container("ephemeral-act-test-docker-exec");
+        let config = make_config("ephact-test-docker-exec");
+        let _ = runtime.remove_container("ephact-test-docker-exec");
         let container = runtime.create_container(&config).unwrap();
         let result = container
             .exec(
@@ -103,20 +103,18 @@ mod tests {
     #[test]
     fn stop_running_container_succeeds() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-docker-stop");
-        let _ = runtime.remove_container("ephemeral-act-test-docker-stop");
+        let config = make_config("ephact-test-docker-stop");
+        let _ = runtime.remove_container("ephact-test-docker-stop");
         let container = runtime.create_container(&config).unwrap();
-        runtime
-            .stop_container("ephemeral-act-test-docker-stop")
-            .unwrap();
+        runtime.stop_container("ephact-test-docker-stop").unwrap();
         container.remove().unwrap();
     }
 
     #[test]
     fn exec_with_workdir_runs_in_specified_directory() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-docker-workdir");
-        let _ = runtime.remove_container("ephemeral-act-test-docker-workdir");
+        let config = make_config("ephact-test-docker-workdir");
+        let _ = runtime.remove_container("ephact-test-docker-workdir");
         let container = runtime.create_container(&config).unwrap();
         let result = container
             .exec(&["pwd".into()], Some("/tmp"), &HashMap::new())
@@ -129,8 +127,8 @@ mod tests {
     #[test]
     fn exec_with_env_passes_environment() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-docker-env");
-        let _ = runtime.remove_container("ephemeral-act-test-docker-env");
+        let config = make_config("ephact-test-docker-env");
+        let _ = runtime.remove_container("ephact-test-docker-env");
         let container = runtime.create_container(&config).unwrap();
         let mut env = HashMap::new();
         env.insert("MY_VAR".into(), "my_value".into());
@@ -149,8 +147,8 @@ mod tests {
     #[test]
     fn get_runner_context_returns_expected_paths() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-docker-context");
-        let _ = runtime.remove_container("ephemeral-act-test-docker-context");
+        let config = make_config("ephact-test-docker-context");
+        let _ = runtime.remove_container("ephact-test-docker-context");
         let container = runtime.create_container(&config).unwrap();
         let ctx = container.get_runner_context().unwrap();
         assert_eq!(ctx.workspace(), "/workspace");
@@ -161,8 +159,8 @@ mod tests {
     #[test]
     fn copy_to_creates_file_in_container() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-docker-copyto");
-        let _ = runtime.remove_container("ephemeral-act-test-docker-copyto");
+        let config = make_config("ephact-test-docker-copyto");
+        let _ = runtime.remove_container("ephact-test-docker-copyto");
         let container = runtime.create_container(&config).unwrap();
 
         let entries = vec![FileEntry::new("test.txt", b"hello copy_to".to_vec(), 0o644)];
@@ -183,8 +181,8 @@ mod tests {
     #[test]
     fn copy_from_reads_file_from_container() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-docker-copyfrom");
-        let _ = runtime.remove_container("ephemeral-act-test-docker-copyfrom");
+        let config = make_config("ephact-test-docker-copyfrom");
+        let _ = runtime.remove_container("ephact-test-docker-copyfrom");
         let container = runtime.create_container(&config).unwrap();
 
         container
@@ -209,8 +207,8 @@ mod tests {
     #[test]
     fn copy_to_and_copy_from_roundtrip() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-docker-roundtrip");
-        let _ = runtime.remove_container("ephemeral-act-test-docker-roundtrip");
+        let config = make_config("ephact-test-docker-roundtrip");
+        let _ = runtime.remove_container("ephact-test-docker-roundtrip");
         let container = runtime.create_container(&config).unwrap();
 
         let original = b"roundtrip data 12345";
@@ -226,8 +224,8 @@ mod tests {
     #[test]
     fn exec_failing_command_returns_nonzero_exit() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-docker-exitcode");
-        let _ = runtime.remove_container("ephemeral-act-test-docker-exitcode");
+        let config = make_config("ephact-test-docker-exitcode");
+        let _ = runtime.remove_container("ephact-test-docker-exitcode");
         let container = runtime.create_container(&config).unwrap();
 
         let result = container
@@ -244,8 +242,8 @@ mod tests {
     #[test]
     fn remove_with_force_cleans_up_container() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-docker-removeforce");
-        let _ = runtime.remove_container("ephemeral-act-test-docker-removeforce");
+        let config = make_config("ephact-test-docker-removeforce");
+        let _ = runtime.remove_container("ephact-test-docker-removeforce");
         let container = runtime.create_container(&config).unwrap();
 
         container.remove().unwrap();

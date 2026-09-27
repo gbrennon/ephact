@@ -22,7 +22,11 @@ pub struct RunWorkflowRequest {
 
 impl RunWorkflowRequest {
     /// Creates a primitive request from the domain run configuration.
-    pub fn from_domain(repository: &Repository, config: &WorkflowRunConfig) -> Self {
+    pub fn from_domain(
+        repository: &Repository,
+        config: &WorkflowRunConfig,
+        run_id: impl Into<String>,
+    ) -> Self {
         Self {
             repository_path: repository.path().as_path().to_path_buf(),
             repository_name: repository.name().as_str().to_string(),
@@ -44,7 +48,7 @@ impl RunWorkflowRequest {
             allow_real_container: config.allow_real_container(),
             allow_real_fetcher: config.allow_real_fetcher(),
             allow_network: config.allow_network(),
-            run_id: config.run_id().to_string(),
+            run_id: run_id.into(),
         }
     }
 }

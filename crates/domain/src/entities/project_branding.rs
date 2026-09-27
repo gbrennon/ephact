@@ -90,22 +90,26 @@ impl ProjectBranding {
 }
 
 #[cfg(test)]
-#[test]
-fn new_assigns_all_fields_and_accessors_return_references() {
-    let name = ProjectName::new("ephact".to_string()).unwrap();
-    let description = ProjectDescription::new("Ephemeral actions runner".to_string()).unwrap();
-    let version = ProjectVersion::new("0.1.0".to_string()).unwrap();
-    let emblem = ProjectEmblem::new("shield".to_string()).unwrap();
+mod tests {
+    use super::*;
 
-    let branding = ProjectBranding::new(
-        name.clone(),
-        description.clone(),
-        version.clone(),
-        emblem.clone(),
-    );
+    #[test]
+    fn new_assigns_all_fields_and_accessors_return_references() {
+        let name = ProjectName::new("ephact".to_string()).unwrap();
+        let description = ProjectDescription::new("Ephemeral actions runner".to_string()).unwrap();
+        let version = ProjectVersion::new("0.1.0".to_string()).unwrap();
+        let emblem = ProjectEmblem::new("shield".to_string()).unwrap();
 
-    assert_eq!(branding.name(), &name);
-    assert_eq!(branding.description(), &description);
-    assert_eq!(branding.version(), &version);
-    assert_eq!(branding.emblem(), &emblem);
+        let branding = ProjectBranding::new(
+            name.clone(),
+            description.clone(),
+            version.clone(),
+            emblem.clone(),
+        );
+
+        assert_eq!(branding.name(), &name);
+        assert_eq!(branding.description(), &description);
+        assert_eq!(branding.version(), &version);
+        assert_eq!(branding.emblem(), &emblem);
+    }
 }

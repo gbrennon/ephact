@@ -50,23 +50,25 @@ mod tests {
 
     use super::*;
 
-    fn workspace_root() -> PathBuf {
-        PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("../..")
-    }
+    impl Repository {
+        fn workspace_root_for_test() -> PathBuf {
+            PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("../..")
+        }
 
-    fn repo_path() -> RepoPath {
-        let workspace_root = workspace_root();
-        RepoPath::new(workspace_root).unwrap()
-    }
+        fn repo_path_for_test() -> RepoPath {
+            let workspace_root = Self::workspace_root_for_test();
+            RepoPath::new(workspace_root).unwrap()
+        }
 
-    fn repo_name() -> RepositoryName {
-        RepositoryName::new("test-repo".into()).unwrap()
+        fn repo_name_for_test() -> RepositoryName {
+            RepositoryName::new("test-repo".into()).unwrap()
+        }
     }
 
     #[test]
     fn new_sets_provided_path_and_name() {
-        let path = repo_path();
-        let name = repo_name();
+        let path = Repository::repo_path_for_test();
+        let name = Repository::repo_name_for_test();
 
         let repo = Repository::new(path.clone(), name.clone());
 
@@ -76,7 +78,10 @@ mod tests {
 
     #[test]
     fn reports_repository_kind() {
-        let repository = Repository::new(repo_path(), repo_name());
+        let repository = Repository::new(
+            Repository::repo_path_for_test(),
+            Repository::repo_name_for_test(),
+        );
 
         assert_eq!(
             repository.is_standalone(),

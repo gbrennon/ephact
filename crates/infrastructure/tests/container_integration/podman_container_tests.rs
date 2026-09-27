@@ -35,8 +35,8 @@ mod tests {
     #[test]
     fn exec_echo_returns_stdout_and_zero_exit() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-podman-ct-exec");
-        let _ = runtime.remove_container("ephemeral-act-test-podman-ct-exec");
+        let config = make_config("ephact-test-podman-ct-exec");
+        let _ = runtime.remove_container("ephact-test-podman-ct-exec");
         let container = runtime.create_container(&config).unwrap();
 
         let result = container
@@ -55,8 +55,8 @@ mod tests {
     #[test]
     fn exec_failing_command_returns_nonzero_exit() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-podman-ct-exitcode");
-        let _ = runtime.remove_container("ephemeral-act-test-podman-ct-exitcode");
+        let config = make_config("ephact-test-podman-ct-exitcode");
+        let _ = runtime.remove_container("ephact-test-podman-ct-exitcode");
         let container = runtime.create_container(&config).unwrap();
 
         let result = container
@@ -74,8 +74,8 @@ mod tests {
     #[test]
     fn exec_with_env_passes_environment() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-podman-ct-env");
-        let _ = runtime.remove_container("ephemeral-act-test-podman-ct-env");
+        let config = make_config("ephact-test-podman-ct-env");
+        let _ = runtime.remove_container("ephact-test-podman-ct-env");
         let container = runtime.create_container(&config).unwrap();
 
         let mut env = HashMap::new();
@@ -96,8 +96,8 @@ mod tests {
     #[test]
     fn copy_to_then_copy_from_roundtrip() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-podman-ct-roundtrip");
-        let _ = runtime.remove_container("ephemeral-act-test-podman-ct-roundtrip");
+        let config = make_config("ephact-test-podman-ct-roundtrip");
+        let _ = runtime.remove_container("ephact-test-podman-ct-roundtrip");
         let container = runtime.create_container(&config).unwrap();
 
         let original = b"container roundtrip data";
@@ -114,8 +114,8 @@ mod tests {
     #[test]
     fn get_runner_context_returns_expected_paths() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-podman-ct-context");
-        let _ = runtime.remove_container("ephemeral-act-test-podman-ct-context");
+        let config = make_config("ephact-test-podman-ct-context");
+        let _ = runtime.remove_container("ephact-test-podman-ct-context");
         let container = runtime.create_container(&config).unwrap();
 
         let ctx = container.get_runner_context().unwrap();
@@ -128,8 +128,8 @@ mod tests {
     #[test]
     fn remove_cleans_up_container() {
         let runtime = runtime!();
-        let config = make_config("ephemeral-act-test-podman-ct-remove");
-        let _ = runtime.remove_container("ephemeral-act-test-podman-ct-remove");
+        let config = make_config("ephact-test-podman-ct-remove");
+        let _ = runtime.remove_container("ephact-test-podman-ct-remove");
         let container = runtime.create_container(&config).unwrap();
 
         container.remove().unwrap();

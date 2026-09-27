@@ -1,7 +1,4 @@
-use std::{
-    path::PathBuf,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::path::PathBuf;
 
 use clap::Args;
 
@@ -10,7 +7,7 @@ use crate::{
     domain::{
         Repository, WorkflowRunConfig,
         value_objects::{
-            ActEvent, ActInput, ActJob, ActWorkflow, RepoPath, RepositoryName, Secret,
+            JobName, RepoPath, RepositoryName, Secret, WorkflowEvent, WorkflowInput, WorkflowPath,
         },
     },
 };
@@ -21,14 +18,6 @@ use crate::{
 /// etc.) and maps them into the domain model via
 /// [`to_domain`](Self::to_domain). The container runtime is auto-detected
 /// (Docker or Podman) at execution time.
-/// Creates a unique identifier for one CLI run.
-pub(crate) fn new_run_id() -> String {
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_or(0, |duration| duration.as_nanos());
-    format!("run-{}-{timestamp}", std::process::id())
-}
-
 #[derive(Args)]
 pub struct RunArgs {
     /// Path to the repository (defaults to the current directory).
@@ -108,7 +97,7 @@ impl RunArgs {
     }
 
     fn build_config(&self) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
-        let config = WorkflowRunConfig::new(new_run_id());
+        let config = WorkflowRunConfig::new();
         let config = self.apply_targets(config);
         let config = config
             .with_all_workflows(self.all_workflows || self.workflow.is_none())
@@ -122,13 +111,13 @@ impl RunArgs {
 
     fn apply_targets(&self, mut config: WorkflowRunConfig) -> WorkflowRunConfig {
         if let Some(wf) = &self.workflow {
-            config = config.with_workflow(ActWorkflow::new(wf.clone()));
+            config = config.with_workflow(WorkflowPath::new(wf.clone()));
         }
         if let Some(job) = &self.job {
-            config = config.with_job(ActJob::new(job.clone()));
+            config = config.with_job(JobName::new(job.clone()));
         }
         if let Some(event) = self.event.clone() {
-            config.with_event(ActEvent::new(event))
+            config.with_event(WorkflowEvent::new(event))
         } else {
             config
         }
@@ -140,7 +129,7 @@ impl RunArgs {
     ) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
         for input_str in &self.inputs {
             let (k, v) = Self::parse_key_value(input_str)?;
-            config = config.add_input(ActInput::new(k, v));
+            config = config.add_input(WorkflowInput::new(k, v));
         }
         Ok(config)
     }
@@ -164,7 +153,7 @@ impl RunArgs {
     pub fn verbose(&self) -> bool {
         self.verbose
     }
-    pub(crate) fn apply_settings(&mut self, settings: &crate::domain::Settings) {
+    pub(super) fn apply_settings(&mut self, settings: &crate::domain::Settings) {
         self.interactive |= settings.interactive();
         self.all_workflows |= settings.all_workflows();
         self.preserve |= settings.preserve();

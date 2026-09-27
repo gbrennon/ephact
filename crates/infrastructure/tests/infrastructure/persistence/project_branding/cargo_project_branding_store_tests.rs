@@ -11,6 +11,7 @@ mod tests {
             env!("CARGO_PKG_NAME"),
             env!("CARGO_PKG_DESCRIPTION"),
             env!("CARGO_PKG_VERSION"),
+            ephact::PROJECT_EMBLEM,
         );
 
         let branding = store
@@ -25,7 +26,7 @@ mod tests {
         assert_eq!(branding.version().as_str(), env!("CARGO_PKG_VERSION"));
         assert_eq!(
             branding.emblem().as_str(),
-            include_str!("../../../../../../assets/project_emblem.txt").trim_end()
+            ephact::PROJECT_EMBLEM.trim_end()
         );
     }
 }

@@ -14,8 +14,8 @@ mod tests {
     fn request(repo_path: &Path, allow_repo_writes: bool) -> CreateJobContainerRequest {
         CreateJobContainerRequest::new(
             "ubuntu:latest".to_string(),
-            "ephemeral-act-build-42".to_string(),
-            "ephemeral-act-build".to_string(),
+            "ephact-build-42".to_string(),
+            "ephact-build".to_string(),
             repo_path.to_path_buf(),
             allow_repo_writes,
         )
@@ -30,7 +30,7 @@ mod tests {
 
         assert_eq!(
             runtime.removed_containers.lock().clone(),
-            vec!["ephemeral-act-build", "ephemeral-act-build-42"]
+            vec!["ephact-build", "ephact-build-42"]
         );
         assert_eq!(runtime.created_containers.lock().len(), 1);
     }
@@ -74,7 +74,7 @@ mod tests {
             config.cmd().unwrap(),
             vec!["sleep".to_string(), "infinity".to_string()]
         );
-        assert_eq!(config.name(), Some("ephemeral-act-build-42"));
+        assert_eq!(config.name(), Some("ephact-build-42"));
     }
 
     #[test]

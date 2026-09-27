@@ -52,12 +52,12 @@ impl JobContainerPreparerPort for PrepareJobContainerService {
             .map(|duration| duration.as_millis())
             .unwrap_or(0);
         let container_name = format!(
-            "ephemeral-act-{}-{}-{}",
+            "ephact-{}-{}-{}",
             request.job_id(),
             process::id(),
             timestamp
         );
-        let legacy_container_name = format!("ephemeral-act-{}", request.job_id());
+        let legacy_container_name = format!("ephact-{}", request.job_id());
         let container = self
             .container_creator
             .execute(CreateJobContainerRequest::new(

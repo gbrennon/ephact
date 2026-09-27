@@ -39,7 +39,6 @@ impl Default for EvaluationContext {
 
 impl EvaluationContext {
     /// Creates a new evaluation context with empty objects for every field.
-    #[must_use]
     pub fn new() -> Self {
         let empty_obj = ContextValue::empty_mapping();
         Self {
@@ -60,7 +59,6 @@ impl EvaluationContext {
     /// Looks up a top-level context variable by name.
     ///
     /// Returns `None` if the name does not match any known context.
-    #[must_use]
     pub fn get(&self, name: &str) -> Option<&ContextValue> {
         match name {
             "github" => Some(&self.github),
@@ -78,57 +76,46 @@ impl EvaluationContext {
         }
     }
 
-    #[must_use]
     pub fn github(&self) -> &ContextValue {
         &self.github
     }
 
-    #[must_use]
     pub fn env(&self) -> &ContextValue {
         &self.env
     }
 
-    #[must_use]
     pub fn job(&self) -> &ContextValue {
         &self.job
     }
 
-    #[must_use]
     pub fn steps(&self) -> &ContextValue {
         &self.steps
     }
 
-    #[must_use]
     pub fn runner(&self) -> &ContextValue {
         &self.runner
     }
 
-    #[must_use]
     pub fn secrets(&self) -> &ContextValue {
         &self.secrets
     }
 
-    #[must_use]
     pub fn vars(&self) -> &ContextValue {
         &self.vars
     }
 
-    #[must_use]
     pub fn strategy(&self) -> &ContextValue {
         &self.strategy
     }
 
-    #[must_use]
     pub fn matrix(&self) -> &ContextValue {
         &self.matrix
     }
 
-    #[must_use]
     pub fn needs(&self) -> &ContextValue {
         &self.needs
     }
 
-    #[must_use]
     pub fn inputs(&self) -> &ContextValue {
         &self.inputs
     }

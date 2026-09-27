@@ -10,7 +10,7 @@ use super::event::Event;
 pub enum DomainEvent {
     RunStarted(super::run_started_payload::RunStartedPayload),
     RunFailed(super::run_failed_payload::RunFailedPayload),
-    ActRunCompleted(super::act_run_completed_payload::ActRunCompletedPayload),
+    WorkflowRunCompleted(super::workflow_run_completed_payload::WorkflowRunCompletedPayload),
     ContainerStarted(super::container_started_payload::ContainerStartedPayload),
     WorkflowStarted(super::workflow_started_payload::WorkflowStartedPayload),
     JobStarted(super::job_started_payload::JobStartedPayload),

@@ -1,14 +1,14 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ActEvent(String);
+pub struct WorkflowEvent(String);
 
-impl ActEvent {
+impl WorkflowEvent {
     /// Creates a new event from its name string.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use ephact_domain::value_objects::ActEvent;
-    /// let event = ActEvent::new("push".into());
+    /// # use ephact_domain::value_objects::WorkflowEvent;
+    /// let event = WorkflowEvent::new("push".into());
     /// assert_eq!(event.as_str(), "push");
     /// ```
     pub fn new(event: String) -> Self {
@@ -27,7 +27,7 @@ mod tests {
 
     #[test]
     fn new_stores_event_name() {
-        let event = ActEvent::new("push".into());
+        let event = WorkflowEvent::new("push".into());
         assert_eq!(event.as_str(), "push");
     }
 }

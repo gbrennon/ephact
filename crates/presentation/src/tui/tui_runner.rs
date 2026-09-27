@@ -75,8 +75,8 @@ impl TuiRunner {
         self
     }
 
-    pub async fn run(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let mut app = self.build_app()?;
+    pub async fn run(&self, emblem: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let mut app = self.build_app(emblem)?;
         let _guard = TerminalGuard::enter()?;
         let mut terminal = Self::init_terminal()?;
         self.activate_tui_progress();
@@ -97,15 +97,17 @@ impl TuiRunner {
         }
     }
 
-    fn build_app(&self) -> Result<TuiApp, Box<dyn std::error::Error>> {
+    fn build_app(&self, emblem: &str) -> Result<TuiApp, Box<dyn std::error::Error>> {
         let current_dir = std::env::current_dir()?;
         let workflows_screen =
             ListWorkflowsScreen::from_handler(&*self.list_workflows_port, current_dir.clone())?;
         let actions_screen =
             ListActionsScreen::from_handler(&*self.list_actions_port, current_dir)?;
-        Ok(TuiApp::new(workflows_screen.workflows().to_vec())
-            .with_actions(actions_screen.actions().to_vec())
-            .with_settings(self.settings.clone(), self.settings_store.clone()))
+        Ok(
+            TuiApp::new(workflows_screen.workflows().to_vec(), emblem.to_string())
+                .with_actions(actions_screen.actions().to_vec())
+                .with_settings(self.settings.clone(), self.settings_store.clone()),
+        )
     }
 
     /// Runs the given workflow (or all workflows when `None`) in the current

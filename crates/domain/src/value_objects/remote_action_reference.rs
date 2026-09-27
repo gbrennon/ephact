@@ -112,20 +112,22 @@ impl RemoteActionReference {
 mod tests {
     use super::*;
 
-    fn forgejo_cache() -> RemoteActionReference {
-        RemoteActionReference::new(
-            "https".into(),
-            "data.forgejo.org".into(),
-            "actions".into(),
-            "cache".into(),
-            "v4".into(),
-        )
+    impl RemoteActionReference {
+        fn forgejo_cache_for_test() -> Self {
+            Self::new(
+                "https".into(),
+                "data.forgejo.org".into(),
+                "actions".into(),
+                "cache".into(),
+                "v4".into(),
+            )
+        }
     }
 
     #[test]
     fn clone_url_joins_scheme_host_owner_and_repo() {
         assert_eq!(
-            forgejo_cache().clone_url(),
+            RemoteActionReference::forgejo_cache_for_test().clone_url(),
             "https://data.forgejo.org/actions/cache"
         );
     }
@@ -146,19 +148,22 @@ mod tests {
     #[test]
     fn cache_key_replaces_path_separators() {
         assert_eq!(
-            forgejo_cache().cache_key(),
+            RemoteActionReference::forgejo_cache_for_test().cache_key(),
             "data.forgejo.org_actions_cache_v4"
         );
     }
 
     #[test]
     fn directory_is_absent_for_root_actions() {
-        assert_eq!(forgejo_cache().directory(), None);
+        assert_eq!(
+            RemoteActionReference::forgejo_cache_for_test().directory(),
+            None
+        );
     }
 
     #[test]
     fn accessors_expose_repository_coordinates() {
-        let reference = forgejo_cache();
+        let reference = RemoteActionReference::forgejo_cache_for_test();
 
         assert_eq!(reference.host(), "data.forgejo.org");
         assert_eq!(reference.owner(), "actions");

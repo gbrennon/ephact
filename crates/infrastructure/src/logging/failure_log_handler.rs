@@ -315,7 +315,7 @@ impl DomainEventHandler for FailureLogHandler {
                 payload.workflow_name(),
                 payload.error(),
             ),
-            DomainEvent::ActRunCompleted(payload) => self.on_run_completed(
+            DomainEvent::WorkflowRunCompleted(payload) => self.on_run_completed(
                 payload.run_id(),
                 payload.repository_path(),
                 payload.success(),
@@ -392,7 +392,7 @@ fn render_log(run_id: &str, state: &FailureLogState) -> String {
 mod tests {
     use super::*;
     use crate::domain::messages::events::{
-        ActRunCompletedPayload, RunFailedPayload, RunStartedPayload, StepFinishedDetails,
+        RunFailedPayload, RunStartedPayload, StepFinishedDetails, WorkflowRunCompletedPayload,
     };
 
     fn started(run_id: &str, repository_path: &str) -> DomainEvent {
@@ -423,12 +423,14 @@ mod tests {
         let handler = FailureLogHandler::with_temp_root(temp_root.path());
         handler.handle(&started("run-1", "/repo/project"));
         handler.handle(&finished("run-1"));
-        handler.handle(&DomainEvent::ActRunCompleted(ActRunCompletedPayload::new(
-            "run-1".to_string(),
-            "/repo/project".to_string(),
-            Vec::new(),
-            false,
-        )));
+        handler.handle(&DomainEvent::WorkflowRunCompleted(
+            WorkflowRunCompletedPayload::new(
+                "run-1".to_string(),
+                "/repo/project".to_string(),
+                Vec::new(),
+                false,
+            ),
+        ));
 
         let path = handler.path_store().take("run-1").unwrap();
         assert!(!path.starts_with("/repo/project"));
@@ -464,12 +466,14 @@ mod tests {
         let handler = FailureLogHandler::with_temp_root(temp_root.path());
         handler.handle(&started("run-3", "/repo/project"));
         handler.handle(&finished("run-3"));
-        handler.handle(&DomainEvent::ActRunCompleted(ActRunCompletedPayload::new(
-            "run-3".to_string(),
-            "/repo/project".to_string(),
-            Vec::new(),
-            true,
-        )));
+        handler.handle(&DomainEvent::WorkflowRunCompleted(
+            WorkflowRunCompletedPayload::new(
+                "run-3".to_string(),
+                "/repo/project".to_string(),
+                Vec::new(),
+                true,
+            ),
+        ));
 
         assert!(handler.path_store().take("run-3").is_none());
         assert!(handler.errors.read_and_clear().is_empty());

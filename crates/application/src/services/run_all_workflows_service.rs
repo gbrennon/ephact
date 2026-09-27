@@ -4,11 +4,14 @@ use crate::{
     domain::{
         messages::{
             commands::ExecuteWorkflowCommand,
-            events::{ActRunCompletedPayload, DomainEvent, RunFailedPayload, RunStartedPayload},
+            events::{
+                DomainEvent, RunFailedPayload, RunStartedPayload, WorkflowRunCompletedPayload,
+            },
         },
         services::{
             repository_factory::RepositoryFactory,
-            workflow_run_config_factory::{WorkflowRunConfigFactory, WorkflowRunConfigInput},
+            workflow_run_config_factory::WorkflowRunConfigFactory,
+            workflow_run_config_input::WorkflowRunConfigInput,
         },
     },
     dtos::{
@@ -33,7 +36,7 @@ pub const ALL_WORKFLOWS_SUMMARY_NAME: &str = "All Workflows";
 ///
 /// Reads all workflow sources through an outbound port and publishes one
 /// [`ExecuteWorkflowCommand`] per workflow. When every workflow finished, the
-/// completion is announced as an [`DomainEvent::ActRunCompleted`] event so
+/// completion is announced as an [`DomainEvent::WorkflowRunCompleted`] event so
 /// infrastructure handlers can clean up.
 pub struct RunAllWorkflowsService {
     workflow_source: Box<dyn WorkflowSourcePort>,
@@ -80,10 +83,9 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
                 .with_allow_repo_writes(request.allow_repo_writes())
                 .with_allow_real_container(request.allow_real_container())
                 .with_allow_real_fetcher(request.allow_real_fetcher())
-                .with_allow_network(request.allow_network())
-                .with_run_id(request.run_id().to_string()),
+                .with_allow_network(request.allow_network()),
         );
-        let run_id = config.run_id().to_string();
+        let run_id = request.run_id().to_string();
         let repository_path = repository.path().as_path().display().to_string();
         let Some(event) = config.event() else {
             return Err(RunAllWorkflowsError::Workflow(
@@ -95,14 +97,15 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
                 run_id.clone(),
                 repository_path.clone(),
             )));
-        let executions = match self.execute_all_workflows(&repository, &config, event.as_str()) {
-            Ok(executions) => executions,
-            Err(error) => {
-                let error = RunAllWorkflowsError::Workflow(error.to_string());
-                self.announce_run_failed(&run_id, &repository_path, &error);
-                return Err(error);
-            }
-        };
+        let executions =
+            match self.execute_all_workflows(&repository, &config, event.as_str(), &run_id) {
+                Ok(executions) => executions,
+                Err(error) => {
+                    let error = RunAllWorkflowsError::Workflow(error.to_string());
+                    self.announce_run_failed(&run_id, &repository_path, &error);
+                    return Err(error);
+                }
+            };
         let success = executions.iter().all(|execution| execution.success());
 
         self.announce_run_completed(&run_id, &repository_path, &executions, success);
@@ -121,6 +124,7 @@ impl RunAllWorkflowsService {
         repository: &crate::domain::Repository,
         config: &crate::domain::value_objects::WorkflowRunConfig,
         event: &str,
+        run_id: &str,
     ) -> Result<Vec<WorkflowExecutionResponse>, RunAllWorkflowsError> {
         let workflow_contents = self
             .workflow_source
@@ -135,7 +139,7 @@ impl RunAllWorkflowsService {
                         content,
                         config.clone(),
                         repository.clone(),
-                        config.run_id().to_string(),
+                        run_id.to_string(),
                         config.allow_repo_writes(),
                     ))
                     .map_err(|error| RunAllWorkflowsError::Workflow(error.to_string()))
@@ -153,13 +157,14 @@ impl RunAllWorkflowsService {
             .iter()
             .flat_map(|execution| execution.container_names().to_vec())
             .collect();
-        self.event_bus
-            .publish(DomainEvent::ActRunCompleted(ActRunCompletedPayload::new(
+        self.event_bus.publish(DomainEvent::WorkflowRunCompleted(
+            WorkflowRunCompletedPayload::new(
                 run_id.to_string(),
                 repository_path.to_string(),
                 container_names,
                 success,
-            )));
+            ),
+        ));
     }
 
     fn announce_run_failed(&self, run_id: &str, repository_path: &str, error: &dyn Error) {

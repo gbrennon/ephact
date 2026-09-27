@@ -157,7 +157,7 @@ impl Cli {
     {
         let args: Vec<OsString> = args.into_iter().map(Into::into).collect();
         if Self::is_tui_command(&args) {
-            self.tui_runner.run().await?;
+            self.run_tui().await?;
             return Ok(String::new());
         }
         self.execute_cli(args, terminal).await
@@ -165,6 +165,11 @@ impl Cli {
 
     fn is_tui_command(args: &[OsString]) -> bool {
         args.get(1).is_some_and(|arg| arg == "tui")
+    }
+
+    async fn run_tui(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let branding = self.show_project_branding_info_port.execute()?;
+        self.tui_runner.run(branding.emblem()).await
     }
     async fn execute_cli(
         &self,
@@ -213,7 +218,7 @@ impl Cli {
 
     async fn execute_default_interface(&self) -> Result<String, Box<dyn std::error::Error>> {
         if self.settings.default_interface() == InterfaceMode::Tui {
-            self.tui_runner.run().await?;
+            self.run_tui().await?;
             return Ok(String::new());
         }
         Ok(CliParser::build_command().render_long_help().to_string())
@@ -381,7 +386,7 @@ all-workflows = {}\n",
                 output.push_str(&self.execute_settings(settings)?);
                 Ok(())
             }
-            Command::Tui => self.tui_runner.run().await,
+            Command::Tui => self.run_tui().await,
             Command::Cli => {
                 output.push_str(&CliParser::build_command().render_long_help().to_string());
                 Ok(())

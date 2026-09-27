@@ -47,8 +47,8 @@ mod tests {
         let name = prepared.container_name();
         let pid = std::process::id();
         assert!(
-            name.starts_with(&format!("ephemeral-act-build-{}", pid)),
-            "Container name '{}' should start with 'ephemeral-act-build-{}'",
+            name.starts_with(&format!("ephact-build-{}", pid)),
+            "Container name '{}' should start with 'ephact-build-{}'",
             name,
             pid
         );
@@ -67,15 +67,15 @@ mod tests {
 
         let legacy_names = creator.legacy_container_names();
         assert_eq!(legacy_names.len(), 1);
-        assert_eq!(legacy_names[0], "ephemeral-act-build");
+        assert_eq!(legacy_names[0], "ephact-build");
 
         let container_names = creator.container_names();
         assert_eq!(container_names.len(), 1);
         let name = &container_names[0];
         let pid = std::process::id();
         assert!(
-            name.starts_with(&format!("ephemeral-act-build-{}", pid)),
-            "Container name '{}' should start with 'ephemeral-act-build-{}'",
+            name.starts_with(&format!("ephact-build-{}", pid)),
+            "Container name '{}' should start with 'ephact-build-{}'",
             name,
             pid
         );

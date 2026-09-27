@@ -4,7 +4,7 @@ mod tests {
 
     use ephact::{
         application::dtos::requests::ResolveWorkflowFilesRequest,
-        domain::{ActWorkflow, WorkflowRunConfig},
+        domain::{WorkflowPath, WorkflowRunConfig},
         infrastructure::workflows::{
             resolve_workflow_files_port::ResolveWorkflowFilesPort,
             resolve_workflow_files_service::ResolveWorkflowFilesService,
@@ -31,7 +31,7 @@ mod tests {
             ))),
             Box::new(detector),
         );
-        let config = WorkflowRunConfig::new("test-run").with_all_workflows(true);
+        let config = WorkflowRunConfig::new().with_all_workflows(true);
 
         let response = service
             .execute(ResolveWorkflowFilesRequest::new(
@@ -57,8 +57,7 @@ mod tests {
                 "detected.yml",
             ))),
         );
-        let config =
-            WorkflowRunConfig::new("test-run").with_workflow(ActWorkflow::new("ci.yml".into()));
+        let config = WorkflowRunConfig::new().with_workflow(WorkflowPath::new("ci.yml".into()));
 
         let response = service
             .execute(ResolveWorkflowFilesRequest::new(
@@ -81,7 +80,7 @@ mod tests {
                 "detected.yml",
             ))),
         );
-        let config = WorkflowRunConfig::new("test-run");
+        let config = WorkflowRunConfig::new();
 
         let response = service
             .execute(ResolveWorkflowFilesRequest::new(
@@ -99,8 +98,7 @@ mod tests {
     #[test]
     fn execute_does_not_consult_the_detector_for_a_named_workflow() {
         let detector = FakeDetectWorkflowFilePort::returning(PathBuf::from("detected.yml"));
-        let config =
-            WorkflowRunConfig::new("test-run").with_workflow(ActWorkflow::new("ci.yml".into()));
+        let config = WorkflowRunConfig::new().with_workflow(WorkflowPath::new("ci.yml".into()));
         let service = ResolveWorkflowFilesService::new(
             Box::new(FakeListAllWorkflowFilesPort::returning(vec![])),
             Box::new(FakeResolveNamedWorkflowFilePort::returning(PathBuf::from(
@@ -128,8 +126,7 @@ mod tests {
                 "detected.yml",
             ))),
         );
-        let config =
-            WorkflowRunConfig::new("test-run").with_workflow(ActWorkflow::new("ci.yml".into()));
+        let config = WorkflowRunConfig::new().with_workflow(WorkflowPath::new("ci.yml".into()));
 
         let error = service
             .execute(ResolveWorkflowFilesRequest::new(

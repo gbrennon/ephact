@@ -7,7 +7,12 @@ mod tests {
     #[test]
     fn splash_renders_its_keybind_hint() {
         let splash = TuiRenderAssertions::rendered_buffer(|frame| {
-            SplashScreen::render_with(frame, ColorSupport::Basic, "test quote");
+            SplashScreen::render_with(
+                frame,
+                ephact::PROJECT_EMBLEM,
+                ColorSupport::Basic,
+                "test quote",
+            );
         });
 
         let text = TuiRenderAssertions::buffer_text(&splash);
