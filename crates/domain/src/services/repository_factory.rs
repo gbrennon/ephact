@@ -20,13 +20,15 @@ mod tests {
 
     use super::RepositoryFactory;
 
-    fn workspace_root() -> PathBuf {
-        PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("../..")
+    impl RepositoryFactory {
+        fn workspace_root_for_test() -> PathBuf {
+            PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("../..")
+        }
     }
 
     #[test]
     fn creates_a_repository_from_primitive_data() {
-        let path = workspace_root();
+        let path = RepositoryFactory::workspace_root_for_test();
 
         let repository = RepositoryFactory::create(path, "ephact".to_string()).unwrap();
 
