@@ -13,70 +13,6 @@ pub struct WorkflowRunConfig {
     allow_real_fetcher: bool,
     allow_network: bool,
 }
-#[derive(Default)]
-pub(crate) struct WorkflowRunConfigParts {
-    workflow: Option<WorkflowPath>,
-    job: Option<JobName>,
-    event: Option<WorkflowEvent>,
-    inputs: Vec<WorkflowInput>,
-    secrets: Vec<Secret>,
-    all_workflows: bool,
-    allow_repo_writes: bool,
-    allow_real_container: bool,
-    allow_real_fetcher: bool,
-    allow_network: bool,
-}
-impl WorkflowRunConfigParts {
-    pub(crate) fn with_workflow(mut self, workflow: Option<WorkflowPath>) -> Self {
-        self.workflow = workflow;
-        self
-    }
-
-    pub(crate) fn with_job(mut self, job: Option<JobName>) -> Self {
-        self.job = job;
-        self
-    }
-
-    pub(crate) fn with_event(mut self, event: Option<WorkflowEvent>) -> Self {
-        self.event = event;
-        self
-    }
-
-    pub(crate) fn with_inputs(mut self, inputs: Vec<WorkflowInput>) -> Self {
-        self.inputs = inputs;
-        self
-    }
-
-    pub(crate) fn with_secrets(mut self, secrets: Vec<Secret>) -> Self {
-        self.secrets = secrets;
-        self
-    }
-
-    pub(crate) fn with_all_workflows(mut self, all_workflows: bool) -> Self {
-        self.all_workflows = all_workflows;
-        self
-    }
-
-    pub(crate) fn with_allow_repo_writes(mut self, allow_repo_writes: bool) -> Self {
-        self.allow_repo_writes = allow_repo_writes;
-        self
-    }
-
-    pub(crate) fn with_allow_real_container(mut self, allow_real_container: bool) -> Self {
-        self.allow_real_container = allow_real_container;
-        self
-    }
-
-    pub(crate) fn with_allow_real_fetcher(mut self, allow_real_fetcher: bool) -> Self {
-        self.allow_real_fetcher = allow_real_fetcher;
-        self
-    }
-
-    pub(crate) fn with_allow_network(mut self, allow_network: bool) -> Self {
-        self.allow_network = allow_network;
-        self
-    }
-}
 
 /// Constructors for [`WorkflowRunConfig`].
 impl WorkflowRunConfig {
@@ -99,23 +35,6 @@ impl WorkflowRunConfig {
 impl Default for WorkflowRunConfig {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl WorkflowRunConfig {
-    pub(crate) fn from_parts(parts: WorkflowRunConfigParts) -> Self {
-        Self {
-            workflow: parts.workflow,
-            job: parts.job,
-            event: parts.event,
-            inputs: parts.inputs,
-            secrets: parts.secrets,
-            all_workflows: parts.all_workflows,
-            allow_repo_writes: parts.allow_repo_writes,
-            allow_real_container: parts.allow_real_container,
-            allow_real_fetcher: parts.allow_real_fetcher,
-            allow_network: parts.allow_network,
-        }
     }
 }
 

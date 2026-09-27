@@ -11,7 +11,8 @@ use crate::{
         },
         services::{
             repository_factory::RepositoryFactory,
-            workflow_run_config_factory::{WorkflowRunConfigFactory, WorkflowRunConfigInput},
+            workflow_run_config_factory::WorkflowRunConfigFactory,
+            workflow_run_config_input::WorkflowRunConfigInput,
         },
         value_objects::workflow_run_config::WorkflowRunConfig,
     },

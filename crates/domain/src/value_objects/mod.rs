@@ -21,7 +21,7 @@ pub mod interface_mode;
 pub mod job_matrix;
 pub mod job_name;
 pub mod job_strategy;
-pub(crate) mod json_text_reader;
+pub(super) mod json_text_reader;
 pub mod logical_operator;
 pub mod marker;
 pub mod operation_mode;

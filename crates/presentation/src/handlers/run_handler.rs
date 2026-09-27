@@ -1,8 +1,11 @@
 use std::path::PathBuf;
 
-use super::super::components::{
-    box_component::BoxComponent, component::Component, run_summary::RunSummaryComponent,
-    terminal::Terminal,
+use super::{
+    super::components::{
+        box_component::BoxComponent, component::Component, run_summary::RunSummaryComponent,
+        terminal::Terminal,
+    },
+    run_id::new_run_id,
 };
 use crate::{
     application::{
@@ -18,7 +21,7 @@ use crate::{
             outbound::RunInputsDiscovererPort,
         },
     },
-    cli::run_args::{RunArgs, new_run_id},
+    cli::run_args::RunArgs,
     domain::{
         RepoPath, Repository, RepositoryName,
         value_objects::{WorkflowEvent, WorkflowInput, WorkflowPath, WorkflowRunConfig},
