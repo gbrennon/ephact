@@ -36,7 +36,7 @@ mod tests {
         config: WorkflowRunConfig,
         repository: Repository,
     ) -> RunAllWorkflowsRequest {
-        RunAllWorkflowsRequest::from_domain(&repository, &config)
+        RunAllWorkflowsRequest::from_domain(&repository, &config, "test-run")
     }
 
     #[test]
@@ -55,8 +55,7 @@ mod tests {
                 true,
             ));
         let event_bus = FakeEventBus::new();
-        let config =
-            WorkflowRunConfig::new("test-run").with_event(ActEvent::new("pull_request".to_owned()));
+        let config = WorkflowRunConfig::new().with_event(ActEvent::new("pull_request".to_owned()));
         let run_id = config.run_id().to_string();
         let repository_path = temp.path().display().to_string();
         let service = RunAllWorkflowsService::new(
@@ -88,7 +87,7 @@ mod tests {
         );
 
         let error = service
-            .execute(primitive_request(WorkflowRunConfig::new("test-run"), repo))
+            .execute(primitive_request(WorkflowRunConfig::new(), repo))
             .unwrap_err();
 
         assert_eq!(error.to_string(), "workflow event must be specified");
@@ -128,9 +127,8 @@ mod tests {
         let repo = make_repo(temp.path());
         let source = FakeWorkflowSource::new().failing_read_all_workflows("cannot list workflows");
         let event_bus = FakeEventBus::new();
-        let config =
-            WorkflowRunConfig::new("test-run").with_event(ActEvent::new("pull_request".to_owned()));
-        let run_id = config.run_id().to_string();
+        let config = WorkflowRunConfig::new().with_event(ActEvent::new("pull_request".to_owned()));
+        let run_id = "test-run";
         let service = RunAllWorkflowsService::new(
             Box::new(source),
             Box::new(FakeCommandBus::new()),
@@ -172,7 +170,7 @@ mod tests {
             )),
         );
         let request = primitive_request(
-            WorkflowRunConfig::new("test-run").with_event(ActEvent::new("pull_request".to_owned())),
+            WorkflowRunConfig::new().with_event(ActEvent::new("pull_request".to_owned())),
             repo,
         );
 

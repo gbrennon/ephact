@@ -12,7 +12,6 @@ pub struct WorkflowRunConfig {
     allow_real_container: bool,
     allow_real_fetcher: bool,
     allow_network: bool,
-    run_id: String,
 }
 #[derive(Default)]
 pub(crate) struct WorkflowRunConfigParts {
@@ -26,7 +25,6 @@ pub(crate) struct WorkflowRunConfigParts {
     allow_real_container: bool,
     allow_real_fetcher: bool,
     allow_network: bool,
-    run_id: String,
 }
 impl WorkflowRunConfigParts {
     pub(crate) fn with_workflow(mut self, workflow: Option<ActWorkflow>) -> Self {
@@ -78,17 +76,12 @@ impl WorkflowRunConfigParts {
         self.allow_network = allow_network;
         self
     }
-
-    pub(crate) fn with_run_id(mut self, run_id: String) -> Self {
-        self.run_id = run_id;
-        self
-    }
 }
 
 /// Constructors for [`WorkflowRunConfig`].
 impl WorkflowRunConfig {
-    /// Creates a new config with sensible defaults and the supplied run identity.
-    pub fn new(run_id: impl Into<String>) -> Self {
+    /// Creates a new config with sensible defaults.
+    pub fn new() -> Self {
         Self {
             workflow: None,
             job: None,
@@ -100,7 +93,6 @@ impl WorkflowRunConfig {
             allow_real_container: false,
             allow_real_fetcher: false,
             allow_network: false,
-            run_id: run_id.into(),
         }
     }
 }
@@ -118,7 +110,6 @@ impl WorkflowRunConfig {
             allow_real_container: parts.allow_real_container,
             allow_real_fetcher: parts.allow_real_fetcher,
             allow_network: parts.allow_network,
-            run_id: parts.run_id,
         }
     }
 }
@@ -235,11 +226,6 @@ impl WorkflowRunConfig {
     pub fn allow_repo_writes(&self) -> bool {
         self.allow_repo_writes
     }
-
-    /// Returns the stable identity for this run.
-    pub fn run_id(&self) -> &str {
-        &self.run_id
-    }
 }
 
 #[cfg(test)]
@@ -248,7 +234,7 @@ mod tests {
 
     #[test]
     fn new_config_starts_with_defaults() {
-        let config = WorkflowRunConfig::new("test-run");
+        let config = WorkflowRunConfig::new();
         assert!(config.workflow().is_none());
         assert!(config.job().is_none());
         assert!(config.event().is_none());
@@ -258,7 +244,7 @@ mod tests {
 
     #[test]
     fn builder_adds_workflow_job_and_event() {
-        let config = WorkflowRunConfig::new("test-run")
+        let config = WorkflowRunConfig::new()
             .with_workflow(ActWorkflow::new(".github/workflows/ci.yml".into()))
             .with_job(ActJob::new("test".into()))
             .with_event(ActEvent::new("push".into()));
@@ -273,7 +259,7 @@ mod tests {
 
     #[test]
     fn builder_adds_inputs() {
-        let config = WorkflowRunConfig::new("test-run")
+        let config = WorkflowRunConfig::new()
             .add_input(ActInput::new("environment".into(), "staging".into()));
 
         assert_eq!(config.inputs()[0].key(), "environment");
@@ -282,8 +268,7 @@ mod tests {
 
     #[test]
     fn add_secret_keeps_name_and_value() {
-        let config = WorkflowRunConfig::new("test-run")
-            .add_secret(Secret::new("KEY".into(), "value".into()));
+        let config = WorkflowRunConfig::new().add_secret(Secret::new("KEY".into(), "value".into()));
 
         assert_eq!(config.secrets().len(), 1);
         assert_eq!(config.secrets()[0].name(), "KEY");
@@ -292,19 +277,19 @@ mod tests {
 
     #[test]
     fn default_creates_empty_config() {
-        let config = WorkflowRunConfig::new("test-run");
+        let config = WorkflowRunConfig::new();
         assert!(config.workflow.is_none());
         assert!(config.job.is_none());
     }
 
     #[test]
     fn new_config_disables_all_workflows() {
-        assert!(!WorkflowRunConfig::new("test-run").all_workflows());
+        assert!(!WorkflowRunConfig::new().all_workflows());
     }
 
     #[test]
     fn new_config_disables_every_allow_flag() {
-        let config = WorkflowRunConfig::new("test-run");
+        let config = WorkflowRunConfig::new();
         assert!(!config.allow_real_container());
         assert!(!config.allow_real_fetcher());
         assert!(!config.allow_network());
@@ -313,7 +298,7 @@ mod tests {
     #[test]
     fn with_allow_real_container_opts_into_the_real_runtime() {
         assert!(
-            WorkflowRunConfig::new("test-run")
+            WorkflowRunConfig::new()
                 .with_allow_real_container(true)
                 .allow_real_container()
         );
@@ -322,7 +307,7 @@ mod tests {
     #[test]
     fn with_allow_real_fetcher_opts_into_the_real_fetcher() {
         assert!(
-            WorkflowRunConfig::new("test-run")
+            WorkflowRunConfig::new()
                 .with_allow_real_fetcher(true)
                 .allow_real_fetcher()
         );
@@ -331,7 +316,7 @@ mod tests {
     #[test]
     fn with_allow_network_permits_outbound_requests() {
         assert!(
-            WorkflowRunConfig::new("test-run")
+            WorkflowRunConfig::new()
                 .with_allow_network(true)
                 .allow_network()
         );
@@ -340,7 +325,7 @@ mod tests {
     #[test]
     fn with_all_workflows_enables_running_every_workflow() {
         assert!(
-            WorkflowRunConfig::new("test-run")
+            WorkflowRunConfig::new()
                 .with_all_workflows(true)
                 .all_workflows()
         );

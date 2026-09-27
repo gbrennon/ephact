@@ -108,7 +108,7 @@ impl RunArgs {
     }
 
     fn build_config(&self) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
-        let config = WorkflowRunConfig::new(new_run_id());
+        let config = WorkflowRunConfig::new();
         let config = self.apply_targets(config);
         let config = config
             .with_all_workflows(self.all_workflows || self.workflow.is_none())

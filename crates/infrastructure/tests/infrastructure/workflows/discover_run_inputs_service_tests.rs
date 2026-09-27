@@ -40,7 +40,7 @@ mod tests {
 
         let declarations = service
             .discover(DiscoverRunInputsRequest::new(
-                WorkflowRunConfig::new("test-run"),
+                WorkflowRunConfig::new(),
                 repository,
             ))
             .unwrap();

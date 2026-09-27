@@ -68,10 +68,9 @@ impl RunExecutionContext {
                 .with_allow_repo_writes(request.allow_repo_writes())
                 .with_allow_real_container(request.allow_real_container())
                 .with_allow_real_fetcher(request.allow_real_fetcher())
-                .with_allow_network(request.allow_network())
-                .with_run_id(request.run_id().to_string()),
+                .with_allow_network(request.allow_network()),
         );
-        let run_id = config.run_id().to_string();
+        let run_id = request.run_id().to_string();
         let workflow_name = config
             .workflow()
             .map(|workflow| workflow.as_str().to_string());

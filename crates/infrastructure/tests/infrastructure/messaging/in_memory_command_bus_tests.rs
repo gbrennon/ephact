@@ -130,7 +130,7 @@ mod tests {
 
         let cmd = ExecuteWorkflowCommand::new(
             "name: CI\non: [push]\n".to_string(),
-            WorkflowRunConfig::new("test-run"),
+            WorkflowRunConfig::new(),
             repository,
             "test-run".to_string(),
             false,

@@ -34,7 +34,7 @@ mod tests {
     }
 
     fn primitive_request(config: WorkflowRunConfig, repository: Repository) -> RunWorkflowRequest {
-        RunWorkflowRequest::from_domain(&repository, &config)
+        RunWorkflowRequest::from_domain(&repository, &config, "test-run")
     }
 
     #[tokio::test]
@@ -52,9 +52,8 @@ mod tests {
                 true,
             ));
         let event_bus = FakeEventBus::new();
-        let config =
-            WorkflowRunConfig::new("test-run").with_event(ActEvent::new("pull_request".to_owned()));
-        let run_id = config.run_id().to_string();
+        let config = WorkflowRunConfig::new().with_event(ActEvent::new("pull_request".to_owned()));
+        let run_id = "test-run";
         let repository_path = temp.path().display().to_string();
 
         let service = RunWorkflowService::new(
@@ -96,7 +95,7 @@ mod tests {
         let repo = make_repo(temp.path());
         let source = FakeWorkflowSource::new().failing_read_workflow("cannot read workflow");
         let event_bus = FakeEventBus::new();
-        let config = WorkflowRunConfig::new("test-run");
+        let config = WorkflowRunConfig::new();
         let run_id = config.run_id().to_string();
 
         let service = RunWorkflowService::new(
@@ -129,7 +128,7 @@ mod tests {
             FakeWorkflowSource::new().with_workflow_content("name: CI\non: merge_group\njobs: {}");
         let event_bus = FakeEventBus::new();
         let command_bus = FakeCommandBus::new();
-        let config = WorkflowRunConfig::new("test-run");
+        let config = WorkflowRunConfig::new();
         let run_id = config.run_id().to_string();
         let service = RunWorkflowService::new(
             Box::new(workflow_source),
@@ -168,7 +167,7 @@ mod tests {
             Box::new(event_bus),
             Box::new(FakeDetectWorkflowTriggerPort::never_triggering()),
         );
-        let request = primitive_request(WorkflowRunConfig::new("test-run"), repo);
+        let request = primitive_request(WorkflowRunConfig::new(), repo);
 
         let error = service.execute(request).await.unwrap_err();
 

@@ -100,7 +100,7 @@ impl RunHandler {
     ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
         let repository = Self::build_repository(repository_path)?;
         let config = Self::single_workflow_config(workflow, event, inputs);
-        let request = Self::build_run_workflow_request(&config, &repository);
+        let request = Self::build_run_workflow_request(&config, &repository, &new_run_id());
         Ok(run_workflow_port.execute(request).await?)
     }
 
@@ -132,8 +132,8 @@ impl RunHandler {
         inputs: Vec<(String, String)>,
     ) -> WorkflowRunConfig {
         let config = event
-            .map(|name| WorkflowRunConfig::new(new_run_id()).with_event(ActEvent::new(name)))
-            .unwrap_or_else(|| WorkflowRunConfig::new(new_run_id()));
+            .map(|name| WorkflowRunConfig::new().with_event(ActEvent::new(name)))
+            .unwrap_or_else(|| WorkflowRunConfig::new());
         let config = match workflow {
             Some(name) => config.with_workflow(ActWorkflow::new(name)),
             None => config,
@@ -183,9 +183,11 @@ impl RunHandler {
         } else {
             config
         };
+        let run_id = new_run_id();
         let summary = Self::execute_async(
             config,
             repository,
+            &run_id,
             run_workflow_port,
             run_all_workflows_port,
         )
@@ -206,9 +208,11 @@ impl RunHandler {
             preflight_ports.list_workflows_port,
             preflight_ports.terminal,
         )?;
+        let run_id = new_run_id();
         let summary = Self::execute_async(
             config,
             repository,
+            &run_id,
             run_workflow_port,
             run_all_workflows_port,
         )
@@ -232,10 +236,11 @@ impl RunHandler {
             preflight_ports.list_workflows_port,
             preflight_ports.terminal,
         )?;
-        let run_id = config.run_id().to_string();
+        let run_id = new_run_id();
         let summary = match Self::execute_async(
             config,
             repository,
+            &run_id,
             run_workflow_port,
             run_all_workflows_port,
         )
@@ -633,14 +638,15 @@ impl RunHandler {
     async fn execute_async(
         config: WorkflowRunConfig,
         repository: crate::domain::Repository,
+        run_id: &str,
         run_workflow_port: &dyn RunWorkflowPort,
         run_all_workflows_port: &dyn RunAllWorkflowsPort,
     ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
         if config.all_workflows() {
-            let request = Self::build_run_all_request(&config, &repository);
+            let request = Self::build_run_all_request(&config, &repository, run_id);
             Ok(run_all_workflows_port.execute(request)?)
         } else {
-            let request = Self::build_run_workflow_request(&config, &repository);
+            let request = Self::build_run_workflow_request(&config, &repository, run_id);
             Ok(run_workflow_port.execute(request).await?)
         }
     }
@@ -648,15 +654,17 @@ impl RunHandler {
     fn build_run_all_request(
         config: &WorkflowRunConfig,
         repository: &crate::domain::Repository,
+        run_id: &str,
     ) -> RunAllWorkflowsRequest {
-        RunAllWorkflowsRequest::from_domain(repository, config)
+        RunAllWorkflowsRequest::from_domain(repository, config, run_id)
     }
 
     fn build_run_workflow_request(
         config: &WorkflowRunConfig,
         repository: &crate::domain::Repository,
+        run_id: &str,
     ) -> RunWorkflowRequest {
-        RunWorkflowRequest::from_domain(repository, config)
+        RunWorkflowRequest::from_domain(repository, config, run_id)
     }
 
     pub fn render(summary: &RunSummaryResponse) -> String {

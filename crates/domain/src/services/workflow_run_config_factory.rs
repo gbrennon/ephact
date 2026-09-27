@@ -15,7 +15,6 @@ pub struct WorkflowRunConfigInput {
     allow_real_container: bool,
     allow_real_fetcher: bool,
     allow_network: bool,
-    run_id: String,
 }
 
 impl WorkflowRunConfigInput {
@@ -68,11 +67,6 @@ impl WorkflowRunConfigInput {
         self.allow_network = allow_network;
         self
     }
-
-    pub fn with_run_id(mut self, run_id: String) -> Self {
-        self.run_id = run_id;
-        self
-    }
 }
 
 pub struct WorkflowRunConfigFactory;
@@ -102,8 +96,7 @@ impl WorkflowRunConfigFactory {
                 .with_allow_repo_writes(input.allow_repo_writes)
                 .with_allow_real_container(input.allow_real_container)
                 .with_allow_real_fetcher(input.allow_real_fetcher)
-                .with_allow_network(input.allow_network)
-                .with_run_id(input.run_id),
+                .with_allow_network(input.allow_network),
         )
     }
 }
