@@ -86,36 +86,42 @@ impl StepInterpolator {
 mod tests {
     use super::*;
 
-    fn context_with_secret(name: &str, value: &str) -> EvaluationContext {
-        let secrets = crate::value_objects::ContextValue::mapping([(
-            name.to_owned(),
-            crate::value_objects::ContextValue::text(value),
-        )]);
-        EvaluationContext::new().with_secrets(secrets)
-    }
+    impl StepInterpolator {
+        fn context_with_secret_for_test(name: &str, value: &str) -> EvaluationContext {
+            let secrets = crate::value_objects::ContextValue::mapping([(
+                name.to_owned(),
+                crate::value_objects::ContextValue::text(value),
+            )]);
+            EvaluationContext::new().with_secrets(secrets)
+        }
 
-    fn context_with_input(name: &str, value: &str) -> EvaluationContext {
-        let inputs = crate::value_objects::ContextValue::mapping([(
-            name.to_owned(),
-            crate::value_objects::ContextValue::text(value),
-        )]);
-        EvaluationContext::new().with_inputs(inputs)
-    }
+        fn context_with_input_for_test(name: &str, value: &str) -> EvaluationContext {
+            let inputs = crate::value_objects::ContextValue::mapping([(
+                name.to_owned(),
+                crate::value_objects::ContextValue::text(value),
+            )]);
+            EvaluationContext::new().with_inputs(inputs)
+        }
 
-    fn run_step(script: &str) -> Step {
-        Step::new(None, None, Some(script.to_owned()), None)
-    }
+        fn run_step_for_test(script: &str) -> Step {
+            Step::new(None, None, Some(script.to_owned()), None)
+        }
 
-    fn action_step(uses: &str, with: HashMap<String, String>) -> Step {
-        Step::new(None, None, None, Some(uses.to_owned())).with_inputs(with)
+        fn action_step_for_test(uses: &str, with: HashMap<String, String>) -> Step {
+            Step::new(None, None, None, Some(uses.to_owned())).with_inputs(with)
+        }
     }
 
     #[test]
     fn interpolate_resolves_secrets_in_run_script() {
-        let step = run_step("cargo publish --token ${{ secrets.TOKEN }}");
+        let step =
+            StepInterpolator::run_step_for_test("cargo publish --token ${{ secrets.TOKEN }}");
 
-        let interpolated =
-            StepInterpolator::interpolate(&step, &context_with_secret("TOKEN", "abc123")).unwrap();
+        let interpolated = StepInterpolator::interpolate(
+            &step,
+            &StepInterpolator::context_with_secret_for_test("TOKEN", "abc123"),
+        )
+        .unwrap();
         assert!(interpolated.run().unwrap().contains("abc123"));
     }
 
@@ -125,8 +131,11 @@ mod tests {
             [("TOKEN".to_owned(), "${{ secrets.TOKEN }}".to_owned())],
         ));
 
-        let interpolated =
-            StepInterpolator::interpolate(&step, &context_with_secret("TOKEN", "abc123")).unwrap();
+        let interpolated = StepInterpolator::interpolate(
+            &step,
+            &StepInterpolator::context_with_secret_for_test("TOKEN", "abc123"),
+        )
+        .unwrap();
 
         assert_eq!(
             interpolated.env().get("TOKEN").map(String::as_str),
@@ -136,13 +145,16 @@ mod tests {
 
     #[test]
     fn interpolate_resolves_with_values() {
-        let step = action_step(
+        let step = StepInterpolator::action_step_for_test(
             "./action",
             HashMap::from([("mode".to_owned(), "${{ inputs.mode }}".to_owned())]),
         );
 
-        let interpolated =
-            StepInterpolator::interpolate(&step, &context_with_input("mode", "staging")).unwrap();
+        let interpolated = StepInterpolator::interpolate(
+            &step,
+            &StepInterpolator::context_with_input_for_test("mode", "staging"),
+        )
+        .unwrap();
 
         assert_eq!(
             interpolated.with().get("mode").map(String::as_str),
@@ -152,10 +164,16 @@ mod tests {
 
     #[test]
     fn interpolate_resolves_action_reference() {
-        let step = action_step("actions/cache@${{ inputs.version }}", HashMap::new());
+        let step = StepInterpolator::action_step_for_test(
+            "actions/cache@${{ inputs.version }}",
+            HashMap::new(),
+        );
 
-        let interpolated =
-            StepInterpolator::interpolate(&step, &context_with_input("version", "v4")).unwrap();
+        let interpolated = StepInterpolator::interpolate(
+            &step,
+            &StepInterpolator::context_with_input_for_test("version", "v4"),
+        )
+        .unwrap();
 
         assert_eq!(interpolated.uses(), Some("actions/cache@v4"));
     }
@@ -172,7 +190,7 @@ mod tests {
 
     #[test]
     fn interpolate_errors_on_unparsable_expression() {
-        let step = run_step("echo ${{ secrets. }}");
+        let step = StepInterpolator::run_step_for_test("echo ${{ secrets. }}");
 
         assert!(StepInterpolator::interpolate(&step, &EvaluationContext::new()).is_err());
     }
