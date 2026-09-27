@@ -72,7 +72,7 @@ mod tests {
         assert_eq!(summary.name(), ALL_WORKFLOWS_SUMMARY_NAME);
         assert_eq!(command_bus.dispatched_workflows.lock().len(), 2);
         assert_pull_request_workflows(&command_bus);
-        assert_completed_events(&event_bus, &run_id, &repository_path);
+        assert_completed_events(&event_bus, run_id, &repository_path);
     }
 
     #[test]
