@@ -36,32 +36,27 @@ pub enum ContextValue {
 
 impl ContextValue {
     /// Creates a textual value.
-    #[must_use]
     pub fn text(value: impl Into<String>) -> Self {
         Self::Text(value.into())
     }
 
     /// Creates a mapping without entries.
-    #[must_use]
     pub fn empty_mapping() -> Self {
         Self::Mapping(BTreeMap::new())
     }
 
     /// Creates a mapping from name and value pairs.
-    #[must_use]
     pub fn mapping(entries: impl IntoIterator<Item = (String, ContextValue)>) -> Self {
         Self::Mapping(entries.into_iter().collect())
     }
 
     /// Creates a list from the given items.
-    #[must_use]
     pub fn list(items: impl IntoIterator<Item = ContextValue>) -> Self {
         Self::List(items.into_iter().collect())
     }
 
     /// Returns the value stored under `name`, or `None` when this value is not
     /// a mapping or has no such entry.
-    #[must_use]
     pub fn property(&self, name: &str) -> Option<&ContextValue> {
         match self {
             Self::Mapping(entries) => entries.get(name),
@@ -71,7 +66,6 @@ impl ContextValue {
 
     /// Returns the item at `index`, or `None` when this value is not a list or
     /// the index is out of bounds.
-    #[must_use]
     pub fn element(&self, index: usize) -> Option<&ContextValue> {
         match self {
             Self::List(items) => items.get(index),
@@ -80,7 +74,6 @@ impl ContextValue {
     }
 
     /// Returns the text of a [`ContextValue::Text`], `None` otherwise.
-    #[must_use]
     pub fn as_text(&self) -> Option<&str> {
         match self {
             Self::Text(value) => Some(value),
@@ -89,7 +82,6 @@ impl ContextValue {
     }
 
     /// Returns the items of a [`ContextValue::List`], `None` otherwise.
-    #[must_use]
     pub fn as_list(&self) -> Option<&[ContextValue]> {
         match self {
             Self::List(items) => Some(items),
@@ -98,7 +90,6 @@ impl ContextValue {
     }
 
     /// Returns the numeric value of an integer or decimal, `None` otherwise.
-    #[must_use]
     pub fn as_number(&self) -> Option<f64> {
         match self {
             Self::Integer(value) => Some(*value as f64),
@@ -108,7 +99,6 @@ impl ContextValue {
     }
 
     /// Returns `true` when this value is a mapping.
-    #[must_use]
     pub fn is_mapping(&self) -> bool {
         matches!(self, Self::Mapping(_))
     }
@@ -118,7 +108,6 @@ impl ContextValue {
     ///
     /// Falsy values are `null`, `false`, zero numbers and the empty text.
     /// Lists and mappings are always truthy.
-    #[must_use]
     pub fn is_truthy(&self) -> bool {
         match self {
             Self::Null => false,
@@ -131,7 +120,6 @@ impl ContextValue {
     }
 
     /// Returns the type name used in expression error messages.
-    #[must_use]
     pub fn type_name(&self) -> &'static str {
         match self {
             Self::Null => "null",
@@ -146,7 +134,6 @@ impl ContextValue {
     /// Renders this value the way `format` and `join` render their arguments.
     ///
     /// Scalars render as their literal form and composites as compact JSON.
-    #[must_use]
     pub fn to_display_text(&self) -> String {
         match self {
             Self::Null => "null".to_owned(),
@@ -159,7 +146,6 @@ impl ContextValue {
     }
 
     /// Renders this value as compact JSON text with sorted mapping keys.
-    #[must_use]
     pub fn to_json_text(&self) -> String {
         let mut text = String::new();
         self.write_json_text(&mut text);
@@ -255,11 +241,11 @@ impl ContextValue {
         }
     }
     const NUMBER_CHARACTERS: [char; 5] = ['-', '+', '.', 'e', 'E'];
-    pub(crate) fn is_number_character(character: char) -> bool {
+    pub fn is_number_character(character: char) -> bool {
         character.is_ascii_digit() || Self::NUMBER_CHARACTERS.contains(&character)
     }
 
-    pub(crate) fn parse_number_literal(literal: &str) -> Result<ContextValue, JsonTextError> {
+    pub fn parse_number_literal(literal: &str) -> Result<ContextValue, JsonTextError> {
         match literal.contains(['.', 'e', 'E']) {
             true => literal
                 .parse::<f64>()

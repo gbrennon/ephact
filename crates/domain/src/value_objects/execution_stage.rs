@@ -11,17 +11,14 @@ pub struct ExecutionStage {
 }
 
 impl ExecutionStage {
-    #[must_use]
     pub fn new(runs: Vec<JobRun>) -> Self {
         Self { runs }
     }
 
-    #[must_use]
     pub fn runs(&self) -> &[JobRun] {
         &self.runs
     }
 
-    #[must_use]
     pub fn into_runs(self) -> Vec<JobRun> {
         self.runs
     }

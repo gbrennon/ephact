@@ -19,7 +19,6 @@ pub struct ExpressionEvaluator<'a> {
 
 impl<'a> ExpressionEvaluator<'a> {
     /// Creates a new `ExpressionEvaluator` bound to the given evaluation context.
-    #[must_use]
     pub fn new(context: &'a EvaluationContext) -> Self {
         Self {
             context,

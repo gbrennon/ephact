@@ -10,17 +10,14 @@ pub struct ExecutionPlan {
 }
 
 impl ExecutionPlan {
-    #[must_use]
     pub fn new(stages: Vec<ExecutionStage>) -> Self {
         Self { stages }
     }
 
-    #[must_use]
     pub fn stages(&self) -> &[ExecutionStage] {
         &self.stages
     }
 
-    #[must_use]
     pub fn into_stages(self) -> Vec<ExecutionStage> {
         self.stages
     }
