@@ -60,33 +60,35 @@ mod tests {
     use super::*;
     use crate::value_objects::{RepoPath, RepositoryName};
 
-    fn workspace_root() -> PathBuf {
-        PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("../..")
-    }
+    impl EphemeralRepository {
+        fn workspace_root_for_test() -> PathBuf {
+            PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("../..")
+        }
 
-    fn source_repo() -> Repository {
-        let workspace_root = workspace_root();
-        let path = RepoPath::new(workspace_root).unwrap();
-        let name = RepositoryName::from_repo_path(&path).unwrap();
-        Repository::new(path, name)
+        fn source_repo_for_test() -> Repository {
+            let workspace_root = Self::workspace_root_for_test();
+            let path = RepoPath::new(workspace_root).unwrap();
+            let name = RepositoryName::from_repo_path(&path).unwrap();
+            Repository::new(path, name)
+        }
     }
 
     #[test]
     fn new_sets_temp_dir_template_from_repo_name() {
-        let source = source_repo();
+        let source = EphemeralRepository::source_repo_for_test();
         let ephemeral = EphemeralRepository::new(&source, CleanupPolicy::CleanupOnExit);
 
         assert!(
             ephemeral
                 .temp_dir_template()
                 .as_str()
-                .starts_with("act-run-")
+                .starts_with("ephact-run-")
         );
     }
 
     #[test]
     fn new_sets_cleanup_policy() {
-        let source = source_repo();
+        let source = EphemeralRepository::source_repo_for_test();
         let ephemeral = EphemeralRepository::new(&source, CleanupPolicy::Preserve);
 
         assert_eq!(ephemeral.cleanup_policy(), &CleanupPolicy::Preserve);
@@ -94,7 +96,7 @@ mod tests {
 
     #[test]
     fn needs_standalone_conversion_reflects_source_worktree_status() {
-        let source = source_repo();
+        let source = EphemeralRepository::source_repo_for_test();
         let ephemeral = EphemeralRepository::new(&source, CleanupPolicy::CleanupOnExit);
 
         let is_worktree = source.path().is_worktree();
