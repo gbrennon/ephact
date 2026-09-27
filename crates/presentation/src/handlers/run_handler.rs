@@ -133,7 +133,7 @@ impl RunHandler {
     ) -> WorkflowRunConfig {
         let config = event
             .map(|name| WorkflowRunConfig::new().with_event(WorkflowEvent::new(name)))
-            .unwrap_or_else(WorkflowRunConfig::new);
+            .unwrap_or_default();
         let config = match workflow {
             Some(name) => config.with_workflow(WorkflowPath::new(name)),
             None => config,
