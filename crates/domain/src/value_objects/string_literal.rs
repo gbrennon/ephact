@@ -8,24 +8,20 @@ impl StringLiteral {
         let start = cursor.position();
         cursor.advance();
         let mut value = String::new();
-        loop {
-            match cursor.current() {
-                None => return Err(LexerError::UnterminatedString(start)),
-                Some('\'') => {
-                    cursor.advance();
-                    if cursor.current() == Some('\'') {
-                        cursor.advance();
-                        value.push('\'');
-                    } else {
-                        return Ok(ExpressionToken::String(value));
-                    }
-                }
-                Some(ch) => {
-                    cursor.advance();
-                    value.push(ch);
-                }
+        while let Some(ch) = cursor.current() {
+            cursor.advance();
+            if ch != '\'' {
+                value.push(ch);
+                continue;
             }
+            if cursor.current() == Some('\'') {
+                cursor.advance();
+                value.push('\'');
+                continue;
+            }
+            return Ok(ExpressionToken::String(value));
         }
+        Err(LexerError::UnterminatedString(start))
     }
 }
 
