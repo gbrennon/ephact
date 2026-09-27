@@ -22,7 +22,6 @@ pub struct JobRun {
 }
 
 impl JobRun {
-    #[must_use]
     pub fn new(
         workflow_name: Option<String>,
         job_id: String,
@@ -37,22 +36,18 @@ impl JobRun {
         }
     }
 
-    #[must_use]
     pub fn workflow_name(&self) -> Option<&str> {
         self.workflow_name.as_deref()
     }
 
-    #[must_use]
     pub fn job_id(&self) -> &str {
         &self.job_id
     }
 
-    #[must_use]
     pub fn job(&self) -> &Job {
         &self.job
     }
 
-    #[must_use]
     pub fn matrix_values(&self) -> Option<&HashMap<String, String>> {
         self.matrix_values.as_ref()
     }

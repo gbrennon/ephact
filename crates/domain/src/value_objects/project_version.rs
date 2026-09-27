@@ -60,22 +60,24 @@ impl fmt::Display for ProjectVersion {
 }
 
 #[cfg(test)]
-#[test]
-fn new_with_valid_version_succeeds() {
-    let version = ProjectVersion::new("0.1.0".to_string()).unwrap();
-    assert_eq!(version.as_str(), "0.1.0");
-}
+mod tests {
+    use super::*;
 
-#[cfg(test)]
-#[test]
-fn new_with_empty_version_returns_empty_version_error() {
-    let result = ProjectVersion::new("".to_string());
-    assert_eq!(result, Err(ProjectBrandingError::EmptyVersion));
-}
+    #[test]
+    fn new_with_valid_version_succeeds() {
+        let version = ProjectVersion::new("0.1.0".to_string()).unwrap();
+        assert_eq!(version.as_str(), "0.1.0");
+    }
 
-#[cfg(test)]
-#[test]
-fn display_formats_inner_string() {
-    let version = ProjectVersion::new("0.1.0".to_string()).unwrap();
-    assert_eq!(format!("{version}"), "0.1.0");
+    #[test]
+    fn new_with_empty_version_returns_empty_version_error() {
+        let result = ProjectVersion::new("".to_string());
+        assert_eq!(result, Err(ProjectBrandingError::EmptyVersion));
+    }
+
+    #[test]
+    fn display_formats_inner_string() {
+        let version = ProjectVersion::new("0.1.0".to_string()).unwrap();
+        assert_eq!(format!("{version}"), "0.1.0");
+    }
 }

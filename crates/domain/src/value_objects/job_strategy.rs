@@ -84,22 +84,28 @@ mod tests {
     use super::*;
     use crate::value_objects::ContextValue;
 
-    fn matrix(variables: &[(&str, usize)]) -> JobMatrix {
-        let variables = variables
-            .iter()
-            .map(|(name, count)| {
-                let values = (0..*count)
-                    .map(|index| ContextValue::text(format!("{name}-{index}")))
-                    .collect();
-                ((*name).to_owned(), values)
-            })
-            .collect();
-        JobMatrix::new(variables, Vec::new(), Vec::new())
+    impl JobStrategy {
+        fn matrix_for_test(variables: &[(&str, usize)]) -> JobMatrix {
+            let variables = variables
+                .iter()
+                .map(|(name, count)| {
+                    let values = (0..*count)
+                        .map(|index| ContextValue::text(format!("{name}-{index}")))
+                        .collect();
+                    ((*name).to_owned(), values)
+                })
+                .collect();
+            JobMatrix::new(variables, Vec::new(), Vec::new())
+        }
     }
 
     #[test]
     fn a_strategy_with_a_matrix_reports_its_combinations() {
-        let strategy = JobStrategy::new(Some(matrix(&[("os", 2), ("rust", 2)])), false, Some(2));
+        let strategy = JobStrategy::new(
+            Some(JobStrategy::matrix_for_test(&[("os", 2), ("rust", 2)])),
+            false,
+            Some(2),
+        );
 
         assert!(strategy.has_matrix());
         assert!(!strategy.fail_fast());
@@ -109,7 +115,7 @@ mod tests {
 
     #[test]
     fn an_empty_matrix_has_no_combinations() {
-        let strategy = JobStrategy::new(Some(matrix(&[])), true, None);
+        let strategy = JobStrategy::new(Some(JobStrategy::matrix_for_test(&[])), true, None);
 
         assert_eq!(strategy.combination_count(), 0);
     }

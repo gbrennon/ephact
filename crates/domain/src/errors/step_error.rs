@@ -26,17 +26,14 @@ impl StepError {
         }
     }
 
-    #[must_use]
     pub fn message(&self) -> &str {
         &self.message
     }
 
-    #[must_use]
     pub fn stdout(&self) -> &str {
         &self.stdout
     }
 
-    #[must_use]
     pub fn stderr(&self) -> &str {
         &self.stderr
     }
@@ -53,7 +50,7 @@ impl StepError {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
 
     #[test]

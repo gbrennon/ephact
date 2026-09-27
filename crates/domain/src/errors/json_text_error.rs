@@ -14,7 +14,6 @@ impl std::error::Error for JsonTextError {}
 
 impl JsonTextError {
     /// Creates an error describing why the JSON text could not be read.
-    #[must_use]
     pub fn new(message: impl Into<String>) -> Self {
         Self(message.into())
     }

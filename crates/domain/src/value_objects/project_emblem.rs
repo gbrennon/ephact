@@ -60,22 +60,24 @@ impl fmt::Display for ProjectEmblem {
 }
 
 #[cfg(test)]
-#[test]
-fn new_with_valid_emblem_succeeds() {
-    let emblem = ProjectEmblem::new("shield".to_string()).unwrap();
-    assert_eq!(emblem.as_str(), "shield");
-}
+mod tests {
+    use super::*;
 
-#[cfg(test)]
-#[test]
-fn new_with_empty_emblem_returns_empty_emblem_error() {
-    let result = ProjectEmblem::new("".to_string());
-    assert_eq!(result, Err(ProjectBrandingError::EmptyEmblem));
-}
+    #[test]
+    fn new_with_valid_emblem_succeeds() {
+        let emblem = ProjectEmblem::new("shield".to_string()).unwrap();
+        assert_eq!(emblem.as_str(), "shield");
+    }
 
-#[cfg(test)]
-#[test]
-fn display_formats_inner_string() {
-    let emblem = ProjectEmblem::new("shield".to_string()).unwrap();
-    assert_eq!(format!("{emblem}"), "shield");
+    #[test]
+    fn new_with_empty_emblem_returns_empty_emblem_error() {
+        let result = ProjectEmblem::new("".to_string());
+        assert_eq!(result, Err(ProjectBrandingError::EmptyEmblem));
+    }
+
+    #[test]
+    fn display_formats_inner_string() {
+        let emblem = ProjectEmblem::new("shield".to_string()).unwrap();
+        assert_eq!(format!("{emblem}"), "shield");
+    }
 }

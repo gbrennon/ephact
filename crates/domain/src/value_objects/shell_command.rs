@@ -88,25 +88,29 @@ impl ShellCommand {
 mod tests {
     use super::*;
 
-    fn step(
-        run: Option<&str>,
-        shell: Option<&str>,
-        working_directory: Option<&str>,
-        env: HashMap<String, String>,
-        uses: Option<&str>,
-    ) -> Step {
-        Step::new(None, None, run.map(str::to_owned), uses.map(str::to_owned))
-            .with_shell(shell.map(str::to_owned))
-            .with_working_directory(working_directory.map(str::to_owned))
-            .with_env(env)
-    }
+    impl ShellCommand {
+        fn step_for_test(
+            run: Option<&str>,
+            shell: Option<&str>,
+            working_directory: Option<&str>,
+            env: HashMap<String, String>,
+            uses: Option<&str>,
+        ) -> Step {
+            Step::new(None, None, run.map(str::to_owned), uses.map(str::to_owned))
+                .with_shell(shell.map(str::to_owned))
+                .with_working_directory(working_directory.map(str::to_owned))
+                .with_env(env)
+        }
 
-    fn run_step(script: &str) -> Step {
-        step(Some(script), None, None, HashMap::new(), None)
+        fn run_step_for_test(script: &str) -> Step {
+            Self::step_for_test(Some(script), None, None, HashMap::new(), None)
+        }
     }
     #[test]
     fn for_step_defaults_to_bash() {
-        let command = ShellCommand::for_step(&run_step("echo hi"), &HashMap::new()).unwrap();
+        let command =
+            ShellCommand::for_step(&ShellCommand::run_step_for_test("echo hi"), &HashMap::new())
+                .unwrap();
 
         assert_eq!(command.argv(), ["bash", "-c", "echo hi"]);
     }
@@ -114,7 +118,7 @@ mod tests {
     #[test]
     fn for_step_honors_declared_shell() {
         let command = ShellCommand::for_step(
-            &step(Some("echo hi"), Some("sh"), None, HashMap::new(), None),
+            &ShellCommand::step_for_test(Some("echo hi"), Some("sh"), None, HashMap::new(), None),
             &HashMap::new(),
         )
         .unwrap();
@@ -125,7 +129,7 @@ mod tests {
     #[test]
     fn for_step_keeps_working_directory() {
         let command = ShellCommand::for_step(
-            &step(
+            &ShellCommand::step_for_test(
                 Some("echo hi"),
                 None,
                 Some("crates/app"),
@@ -146,7 +150,7 @@ mod tests {
         job_env.insert("KEEP".to_string(), "yes".to_string());
 
         let command = ShellCommand::for_step(
-            &step(
+            &ShellCommand::step_for_test(
                 Some("echo hi"),
                 None,
                 None,
@@ -165,7 +169,7 @@ mod tests {
     fn for_step_returns_none_without_script() {
         assert!(
             ShellCommand::for_step(
-                &step(None, None, None, HashMap::new(), Some("./action")),
+                &ShellCommand::step_for_test(None, None, None, HashMap::new(), Some("./action")),
                 &HashMap::new()
             )
             .is_none()

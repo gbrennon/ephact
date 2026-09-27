@@ -61,22 +61,24 @@ impl fmt::Display for ProjectDescription {
 }
 
 #[cfg(test)]
-#[test]
-fn new_with_valid_description_succeeds() {
-    let description = ProjectDescription::new("A fast runner".to_string()).unwrap();
-    assert_eq!(description.as_str(), "A fast runner");
-}
+mod tests {
+    use super::*;
 
-#[cfg(test)]
-#[test]
-fn new_with_empty_description_returns_empty_description_error() {
-    let result = ProjectDescription::new("".to_string());
-    assert_eq!(result, Err(ProjectBrandingError::EmptyDescription));
-}
+    #[test]
+    fn new_with_valid_description_succeeds() {
+        let description = ProjectDescription::new("A fast runner".to_string()).unwrap();
+        assert_eq!(description.as_str(), "A fast runner");
+    }
 
-#[cfg(test)]
-#[test]
-fn display_formats_inner_string() {
-    let description = ProjectDescription::new("A fast runner".to_string()).unwrap();
-    assert_eq!(format!("{description}"), "A fast runner");
+    #[test]
+    fn new_with_empty_description_returns_empty_description_error() {
+        let result = ProjectDescription::new("".to_string());
+        assert_eq!(result, Err(ProjectBrandingError::EmptyDescription));
+    }
+
+    #[test]
+    fn display_formats_inner_string() {
+        let description = ProjectDescription::new("A fast runner".to_string()).unwrap();
+        assert_eq!(format!("{description}"), "A fast runner");
+    }
 }

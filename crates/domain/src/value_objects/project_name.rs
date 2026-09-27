@@ -60,22 +60,24 @@ impl fmt::Display for ProjectName {
 }
 
 #[cfg(test)]
-#[test]
-fn new_with_valid_name_succeeds() {
-    let name = ProjectName::new("my-project".to_string()).unwrap();
-    assert_eq!(name.as_str(), "my-project");
-}
+mod tests {
+    use super::*;
 
-#[cfg(test)]
-#[test]
-fn new_with_empty_name_returns_empty_name_error() {
-    let result = ProjectName::new("".to_string());
-    assert_eq!(result, Err(ProjectBrandingError::EmptyName));
-}
+    #[test]
+    fn new_with_valid_name_succeeds() {
+        let name = ProjectName::new("my-project".to_string()).unwrap();
+        assert_eq!(name.as_str(), "my-project");
+    }
 
-#[cfg(test)]
-#[test]
-fn display_formats_inner_string() {
-    let name = ProjectName::new("my-project".to_string()).unwrap();
-    assert_eq!(format!("{name}"), "my-project");
+    #[test]
+    fn new_with_empty_name_returns_empty_name_error() {
+        let result = ProjectName::new("".to_string());
+        assert_eq!(result, Err(ProjectBrandingError::EmptyName));
+    }
+
+    #[test]
+    fn display_formats_inner_string() {
+        let name = ProjectName::new("my-project".to_string()).unwrap();
+        assert_eq!(format!("{name}"), "my-project");
+    }
 }
