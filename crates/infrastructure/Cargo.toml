@@ -2,6 +2,8 @@
 name = "ephact-infrastructure"
 version = "0.3.0"
 edition = "2024"
+description = "Infrastructure layer of ephact: container, workflow, persistence and messaging adapters."
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 serde_yaml = "0.9"
