@@ -10,13 +10,21 @@ use crate::{
     containers::workspace::CONTAINER_WORKSPACE,
     domain::{
         errors::{ActionError, StepError},
-        value_objects::ActionReference,
+        value_objects::{ActionReference, RemoteReferenceDefaults},
     },
 };
 
 /// Repository name whose action only checks out the repository, which the
 /// runner already provides by mounting the workspace.
 const CHECKOUT_REPO: &str = "checkout";
+
+/// Forge a shorthand `owner/repo` reference resolves against when the `uses:`
+/// value omits a scheme and host. Choosing GitHub as the default is a
+/// deployment policy owned by infrastructure, not the domain.
+const DEFAULT_FORGE_SCHEME: &str = "https";
+const DEFAULT_FORGE_HOST: &str = "github.com";
+/// Git ref assumed when a reference omits `@ref`.
+const DEFAULT_GIT_REF: &str = "main";
 
 /// Service that decides where the action a step references lives.
 ///
@@ -38,7 +46,12 @@ impl ActionDirectoryResolverPort for ResolveActionDirectoryService {
         &self,
         request: ResolveActionDirectoryRequest,
     ) -> Result<ResolvedActionDirectoryResponse, StepError> {
-        let reference = ActionReference::parse(request.action_ref())
+        let defaults = RemoteReferenceDefaults::new(
+            DEFAULT_FORGE_SCHEME.to_string(),
+            DEFAULT_FORGE_HOST.to_string(),
+            DEFAULT_GIT_REF.to_string(),
+        );
+        let reference = ActionReference::parse(request.action_ref(), &defaults)
             .map_err(|error| StepError::new(error.to_string()))?;
 
         match &reference {

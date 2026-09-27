@@ -1,21 +1,25 @@
-pub mod remote_reference_parts;
-
-use remote_reference_parts::RemoteReferenceParts;
-
-use crate::{errors::ActionError, value_objects::RemoteActionReference};
+use crate::{
+    errors::ActionError,
+    value_objects::{
+        RemoteActionReference, RemoteReferenceDefaults,
+        remote_reference_parts::RemoteReferenceParts,
+    },
+};
 
 /// A parsed `uses:` value, classified by how the action must be resolved.
 ///
-/// Parsing is platform-agnostic: shorthand references resolve against
-/// `github.com`, while any forge can be addressed with an explicit URL, so
-/// `actions/cache@v4` and `https://data.forgejo.org/actions/cache@v4` are both
-/// understood.
+/// Parsing is platform-agnostic: an explicit URL addresses any forge directly,
+/// while a shorthand reference is completed from caller-supplied
+/// [`RemoteReferenceDefaults`], so which forge a bare `owner/repo` resolves
+/// against is a deployment decision the domain does not hardcode.
 ///
 /// # Examples
 ///
 /// ```
-/// # use ephact_domain::value_objects::ActionReference;
-/// let reference = ActionReference::parse("https://data.forgejo.org/actions/cache@v4").unwrap();
+/// # use ephact_domain::value_objects::{ActionReference, RemoteReferenceDefaults};
+/// let defaults = RemoteReferenceDefaults::new("https".into(), "github.com".into(), "main".into());
+/// let reference =
+///     ActionReference::parse("https://data.forgejo.org/actions/cache@v4", &defaults).unwrap();
 /// let ActionReference::Remote(remote) = reference else { panic!("expected a remote action") };
 /// assert_eq!(remote.clone_url(), "https://data.forgejo.org/actions/cache");
 /// assert_eq!(remote.git_ref(), "v4");
@@ -40,7 +44,7 @@ impl ActionReference {
     ///
     /// Returns [`ActionError::InvalidReference`] when the value names neither a
     /// relative path, a container image, nor an `owner/repo` pair.
-    pub fn parse(raw: &str) -> Result<Self, ActionError> {
+    pub fn parse(raw: &str, defaults: &RemoteReferenceDefaults) -> Result<Self, ActionError> {
         let reference = raw.trim();
         if reference.is_empty() {
             return Err(ActionError::InvalidReference(raw.to_string()));
@@ -51,11 +55,15 @@ impl ActionReference {
         if reference.starts_with("./") || reference.starts_with("../") {
             return Ok(Self::Local(reference.to_string()));
         }
-        Self::parse_remote(reference, raw)
+        Self::parse_remote(reference, raw, defaults)
     }
 
-    fn parse_remote(reference: &str, raw: &str) -> Result<Self, ActionError> {
-        RemoteReferenceParts::parse(reference)
+    fn parse_remote(
+        reference: &str,
+        raw: &str,
+        defaults: &RemoteReferenceDefaults,
+    ) -> Result<Self, ActionError> {
+        RemoteReferenceParts::parse(reference, defaults)
             .map(|parts| Self::Remote(parts.into_remote()))
             .ok_or_else(|| ActionError::InvalidReference(raw.to_string()))
     }
@@ -66,9 +74,13 @@ mod tests {
     use super::*;
     use crate::value_objects::RemoteActionReference;
 
+    fn github_defaults() -> RemoteReferenceDefaults {
+        RemoteReferenceDefaults::new("https".into(), "github.com".into(), "main".into())
+    }
+
     impl ActionReference {
         fn remote_for_test(raw: &str) -> RemoteActionReference {
-            match Self::parse(raw).unwrap() {
+            match Self::parse(raw, &github_defaults()).unwrap() {
                 Self::Remote(remote) => remote,
                 other => panic!("expected a remote action, got {other:?}"),
             }
@@ -78,7 +90,7 @@ mod tests {
     #[test]
     fn parse_relative_path_is_local() {
         assert_eq!(
-            ActionReference::parse("./.forgejo/actions/publish").unwrap(),
+            ActionReference::parse("./.forgejo/actions/publish", &github_defaults()).unwrap(),
             ActionReference::Local("./.forgejo/actions/publish".into())
         );
     }
@@ -86,7 +98,7 @@ mod tests {
     #[test]
     fn parse_parent_relative_path_is_local() {
         assert_eq!(
-            ActionReference::parse("../shared/action").unwrap(),
+            ActionReference::parse("../shared/action", &github_defaults()).unwrap(),
             ActionReference::Local("../shared/action".into())
         );
     }
@@ -94,7 +106,7 @@ mod tests {
     #[test]
     fn parse_docker_image_is_docker() {
         assert_eq!(
-            ActionReference::parse("docker://alpine:3.20").unwrap(),
+            ActionReference::parse("docker://alpine:3.20", &github_defaults()).unwrap(),
             ActionReference::Docker("alpine:3.20".into())
         );
     }
@@ -147,7 +159,7 @@ mod tests {
     #[test]
     fn parse_rejects_empty_reference() {
         assert_eq!(
-            ActionReference::parse("   "),
+            ActionReference::parse("   ", &github_defaults()),
             Err(ActionError::InvalidReference("   ".into()))
         );
     }
@@ -155,7 +167,7 @@ mod tests {
     #[test]
     fn parse_rejects_reference_without_repository() {
         assert_eq!(
-            ActionReference::parse("checkout@v4"),
+            ActionReference::parse("checkout@v4", &github_defaults()),
             Err(ActionError::InvalidReference("checkout@v4".into()))
         );
     }
@@ -163,7 +175,7 @@ mod tests {
     #[test]
     fn parse_rejects_reference_with_empty_ref() {
         assert_eq!(
-            ActionReference::parse("actions/cache@"),
+            ActionReference::parse("actions/cache@", &github_defaults()),
             Err(ActionError::InvalidReference("actions/cache@".into()))
         );
     }
@@ -171,7 +183,7 @@ mod tests {
     #[test]
     fn parse_rejects_url_without_path() {
         assert_eq!(
-            ActionReference::parse("https://data.forgejo.org@v4"),
+            ActionReference::parse("https://data.forgejo.org@v4", &github_defaults()),
             Err(ActionError::InvalidReference(
                 "https://data.forgejo.org@v4".into()
             ))
