@@ -78,13 +78,6 @@ jobs:
           secret-name: CARGO_REGISTRY_TOKEN
           validate-url: https://crates.io/api/v1/me
           auth-scheme: bearer
-      - name: Verify crates.io staging token
-        uses: ./.forgejo/actions/verify-token
-        with:
-          token: ${{ secrets.CARGO_REGISTRIES_STAGING_TOKEN }}
-          secret-name: CARGO_REGISTRIES_STAGING_TOKEN
-          validate-url: https://staging.crates.io/api/v1/me
-          auth-scheme: bearer
       - name: Verify Codeberg token
         uses: ./.forgejo/actions/verify-token
         with:

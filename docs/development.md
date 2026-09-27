@@ -112,7 +112,6 @@ Configure the following secrets in Codeberg repository settings under
 | Secret | Purpose | Source / Value |
 | ------ | ------- | -------------- |
 | `CARGO_REGISTRY_TOKEN` | Crates.io production publishing | crates.io API token |
-| `CARGO_REGISTRIES_STAGING_TOKEN` | Staging registry publishing | staging.crates.io API token |
 | `GH_RELEASE_TOKEN` | GitHub mirror release publishing | GitHub personal access token |
 
 #### Built-in Tokens
