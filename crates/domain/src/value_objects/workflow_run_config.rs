@@ -96,6 +96,11 @@ impl WorkflowRunConfig {
         }
     }
 }
+impl Default for WorkflowRunConfig {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl WorkflowRunConfig {
     pub(crate) fn from_parts(parts: WorkflowRunConfigParts) -> Self {
