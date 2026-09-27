@@ -1,15 +1,19 @@
+use crate::value_objects::{
+    JobName, Secret, WorkflowEvent, WorkflowInput, WorkflowPath, WorkflowRunConfig,
+};
+
 #[derive(Default)]
 pub struct WorkflowRunConfigInput {
-    pub(super) workflow: Option<String>,
-    pub(super) job: Option<String>,
-    pub(super) event: Option<String>,
-    pub(super) inputs: Vec<(String, String)>,
-    pub(super) secrets: Vec<(String, String)>,
-    pub(super) all_workflows: bool,
-    pub(super) allow_repo_writes: bool,
-    pub(super) allow_real_container: bool,
-    pub(super) allow_real_fetcher: bool,
-    pub(super) allow_network: bool,
+    workflow: Option<String>,
+    job: Option<String>,
+    event: Option<String>,
+    inputs: Vec<(String, String)>,
+    secrets: Vec<(String, String)>,
+    all_workflows: bool,
+    allow_repo_writes: bool,
+    allow_real_container: bool,
+    allow_real_fetcher: bool,
+    allow_network: bool,
 }
 
 impl WorkflowRunConfigInput {
@@ -61,5 +65,33 @@ impl WorkflowRunConfigInput {
     pub fn with_allow_network(mut self, allow_network: bool) -> Self {
         self.allow_network = allow_network;
         self
+    }
+
+    /// Consumes the input and builds its domain workflow configuration.
+    pub fn into_config(self) -> WorkflowRunConfig {
+        let mut config = WorkflowRunConfig::new();
+
+        if let Some(workflow) = self.workflow {
+            config = config.with_workflow(WorkflowPath::new(workflow));
+        }
+        if let Some(job) = self.job {
+            config = config.with_job(JobName::new(job));
+        }
+        if let Some(event) = self.event {
+            config = config.with_event(WorkflowEvent::new(event));
+        }
+        for (key, value) in self.inputs {
+            config = config.add_input(WorkflowInput::new(key, value));
+        }
+        for (name, value) in self.secrets {
+            config = config.add_secret(Secret::new(name, value));
+        }
+
+        config
+            .with_all_workflows(self.all_workflows)
+            .with_allow_repo_writes(self.allow_repo_writes)
+            .with_allow_real_container(self.allow_real_container)
+            .with_allow_real_fetcher(self.allow_real_fetcher)
+            .with_allow_network(self.allow_network)
     }
 }

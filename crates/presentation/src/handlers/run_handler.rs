@@ -5,7 +5,7 @@ use super::{
         box_component::BoxComponent, component::Component, run_summary::RunSummaryComponent,
         terminal::Terminal,
     },
-    run_id::new_run_id,
+    run_id::RunIdGenerator,
 };
 use crate::{
     application::{
@@ -103,7 +103,8 @@ impl RunHandler {
     ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
         let repository = Self::build_repository(repository_path)?;
         let config = Self::single_workflow_config(workflow, event, inputs);
-        let request = Self::build_run_workflow_request(&config, &repository, &new_run_id());
+        let request =
+            Self::build_run_workflow_request(&config, &repository, &RunIdGenerator.generate());
         Ok(run_workflow_port.execute(request).await?)
     }
 
@@ -186,7 +187,7 @@ impl RunHandler {
         } else {
             config
         };
-        let run_id = new_run_id();
+        let run_id = RunIdGenerator.generate();
         let summary = Self::execute_async(
             config,
             repository,
@@ -211,7 +212,7 @@ impl RunHandler {
             preflight_ports.list_workflows_port,
             preflight_ports.terminal,
         )?;
-        let run_id = new_run_id();
+        let run_id = RunIdGenerator.generate();
         let summary = Self::execute_async(
             config,
             repository,
@@ -239,7 +240,7 @@ impl RunHandler {
             preflight_ports.list_workflows_port,
             preflight_ports.terminal,
         )?;
-        let run_id = new_run_id();
+        let run_id = RunIdGenerator.generate();
         let summary = match Self::execute_async(
             config,
             repository,
