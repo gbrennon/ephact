@@ -188,7 +188,7 @@ mod tests {
 
     #[test]
     fn settings_is_reachable_from_home_menu() {
-        let mut app = TuiApp::new(Vec::new());
+        let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string());
 
         open_settings(&mut app);
 
@@ -200,8 +200,8 @@ mod tests {
         let store = Arc::new(FakeSettingsStore::new(Settings::default()));
         let workflow =
             WorkflowListItemResponse::new(Some("CI".to_string()), None, vec!["push".to_string()]);
-        let mut app =
-            TuiApp::new(vec![workflow]).with_settings(Settings::default(), Some(store.clone()));
+        let mut app = TuiApp::new(vec![workflow], ephact::PROJECT_EMBLEM.to_string())
+            .with_settings(Settings::default(), Some(store.clone()));
         open_settings(&mut app);
         for _ in 0..9 {
             app.handle_key(key(KeyCode::Down));
@@ -238,8 +238,8 @@ mod tests {
     #[test]
     fn settings_save_persists_edited_interface() {
         let store = Arc::new(FakeSettingsStore::new(Settings::default()));
-        let mut app =
-            TuiApp::new(Vec::new()).with_settings(Settings::default(), Some(store.clone()));
+        let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string())
+            .with_settings(Settings::default(), Some(store.clone()));
         open_settings(&mut app);
         app.handle_key(key(KeyCode::Enter));
         app.handle_key(key(KeyCode::Right));
@@ -254,8 +254,8 @@ mod tests {
     #[test]
     fn settings_cancel_does_not_write() {
         let store = Arc::new(FakeSettingsStore::new(Settings::default()));
-        let mut app =
-            TuiApp::new(Vec::new()).with_settings(Settings::default(), Some(store.clone()));
+        let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string())
+            .with_settings(Settings::default(), Some(store.clone()));
         open_settings(&mut app);
         app.handle_key(key(KeyCode::Enter));
         app.handle_key(key(KeyCode::Right));
@@ -269,7 +269,8 @@ mod tests {
     #[test]
     fn settings_save_failure_keeps_settings_screen_open() {
         let store = Arc::new(FakeSettingsStore::failing(Settings::default(), "disk full"));
-        let mut app = TuiApp::new(Vec::new()).with_settings(Settings::default(), Some(store));
+        let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string())
+            .with_settings(Settings::default(), Some(store));
         open_settings(&mut app);
         app.handle_key(save_key());
 
@@ -279,8 +280,8 @@ mod tests {
     #[test]
     fn settings_save_persists_custom_marker() {
         let store = Arc::new(FakeSettingsStore::new(Settings::default()));
-        let mut app =
-            TuiApp::new(Vec::new()).with_settings(Settings::default(), Some(store.clone()));
+        let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string())
+            .with_settings(Settings::default(), Some(store.clone()));
         open_settings(&mut app);
 
         for _ in 0..9 {
@@ -303,8 +304,8 @@ mod tests {
     #[test]
     fn settings_save_persists_toggled_boolean_settings() {
         let store = Arc::new(FakeSettingsStore::new(Settings::default()));
-        let mut app =
-            TuiApp::new(Vec::new()).with_settings(Settings::default(), Some(store.clone()));
+        let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string())
+            .with_settings(Settings::default(), Some(store.clone()));
         open_settings(&mut app);
 
         app.handle_key(key(KeyCode::Down));
@@ -323,8 +324,8 @@ mod tests {
     #[test]
     fn settings_save_persists_multiple_modified_settings() {
         let store = Arc::new(FakeSettingsStore::new(Settings::default()));
-        let mut app =
-            TuiApp::new(Vec::new()).with_settings(Settings::default(), Some(store.clone()));
+        let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string())
+            .with_settings(Settings::default(), Some(store.clone()));
         open_settings(&mut app);
 
         app.handle_key(key(KeyCode::Enter));
@@ -355,8 +356,8 @@ mod tests {
     #[test]
     fn settings_canceling_boolean_edit_with_escape_reverts_value() {
         let store = Arc::new(FakeSettingsStore::new(Settings::default()));
-        let mut app =
-            TuiApp::new(Vec::new()).with_settings(Settings::default(), Some(store.clone()));
+        let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string())
+            .with_settings(Settings::default(), Some(store.clone()));
         open_settings(&mut app);
 
         app.handle_key(key(KeyCode::Down));

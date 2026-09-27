@@ -32,9 +32,9 @@ impl TuiApp {
     const NEXT_KEY: char = 'j';
     const DETAILS_KEY: char = 'd';
 
-    pub fn new(workflows: Vec<WorkflowListItemResponse>) -> Self {
+    pub fn new(workflows: Vec<WorkflowListItemResponse>, emblem: String) -> Self {
         Self {
-            screens: ScreenManager::new(workflows),
+            screens: ScreenManager::new(workflows, emblem),
             run_requested: false,
             cancel_requested: false,
             configuration_requested: false,
@@ -324,11 +324,5 @@ impl TuiApp {
         if self.screens.has_workflows() {
             self.run_requested = true;
         }
-    }
-}
-
-impl Default for TuiApp {
-    fn default() -> Self {
-        Self::new(Vec::new())
     }
 }

@@ -22,6 +22,7 @@ impl EphactApplication {
             env!("CARGO_PKG_NAME"),
             env!("CARGO_PKG_DESCRIPTION"),
             env!("CARGO_PKG_VERSION"),
+            ephact::PROJECT_EMBLEM,
         );
         let container = Container::with_collaborators_and_branding(
             runtime,

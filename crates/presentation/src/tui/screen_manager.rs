@@ -41,13 +41,14 @@ pub struct ScreenManager {
     list_actions: ListActionsScreen,
     run_workflow: RunWorkflowScreen,
     settings: SettingsScreen,
+    emblem: String,
 }
 
 impl ScreenManager {
     const INITIAL_HOME_SELECTION: usize = 0;
     const SELECTION_STEP: usize = 1;
 
-    pub fn new(workflows: Vec<WorkflowListItemResponse>) -> Self {
+    pub fn new(workflows: Vec<WorkflowListItemResponse>, emblem: String) -> Self {
         Self {
             current_screen: TuiScreen::Splash,
             previous_screen: None,
@@ -56,6 +57,7 @@ impl ScreenManager {
             list_actions: ListActionsScreen::new(Vec::new()),
             run_workflow: RunWorkflowScreen::new(workflows),
             settings: SettingsScreen::new(Settings::default(), None),
+            emblem,
         }
     }
 
@@ -113,6 +115,7 @@ impl ScreenManager {
         if self.current_screen == TuiScreen::Splash {
             SplashScreen::render_with(
                 frame,
+                &self.emblem,
                 crate::tui::components::ColorSupport::from_env(),
                 splash_quote,
             );
