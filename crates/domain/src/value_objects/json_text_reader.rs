@@ -4,17 +4,17 @@ use super::ContextValue;
 use crate::errors::JsonTextError;
 
 /// Recursive-descent reader turning JSON text into a [`ContextValue`].
-pub(crate) struct JsonTextReader<'a> {
+pub struct JsonTextReader<'a> {
     text: &'a str,
     position: usize,
 }
 
 impl<'a> JsonTextReader<'a> {
-    pub(crate) fn new(text: &'a str) -> Self {
+    pub fn new(text: &'a str) -> Self {
         Self { text, position: 0 }
     }
 
-    pub(crate) fn read_document(mut self) -> Result<ContextValue, JsonTextError> {
+    pub fn read_document(mut self) -> Result<ContextValue, JsonTextError> {
         let value = self.read_value()?;
         self.skip_whitespace();
         match self.peek() {
