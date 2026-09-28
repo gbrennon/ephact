@@ -8,6 +8,7 @@ pub mod run_action_service;
 pub mod run_all_workflows_service;
 pub mod run_workflow_service;
 pub mod show_project_branding_info_service;
+pub mod workflow_execution_aggregator;
 
 pub use execute_action_service::ExecuteActionService;
 pub use execute_job_service::ExecuteJobService;
@@ -19,3 +20,4 @@ pub use run_action_service::RunActionService;
 pub use run_all_workflows_service::RunAllWorkflowsService;
 pub use run_workflow_service::RunWorkflowService;
 pub use show_project_branding_info_service::ShowProjectBrandingInfoService;
+pub use workflow_execution_aggregator::WorkflowExecutionAggregator;
