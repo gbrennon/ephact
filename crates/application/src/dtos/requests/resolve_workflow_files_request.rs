@@ -1,30 +1,33 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::domain::WorkflowRunConfig;
 
 /// Request DTO for the
 /// [`ResolveWorkflowFilesPort`](crate::ports::inbound::resolve_workflow_files_port::ResolveWorkflowFilesPort)
 /// inbound port.
-pub struct ResolveWorkflowFilesRequest<'a> {
+pub struct ResolveWorkflowFilesRequest {
     /// Configuration naming which workflows the run executes.
-    config: &'a WorkflowRunConfig,
+    config: WorkflowRunConfig,
     /// Path to the repository the workflows are resolved in.
-    repo_path: &'a Path,
+    repo_path: PathBuf,
 }
 
-impl<'a> ResolveWorkflowFilesRequest<'a> {
-    /// Creates a new request.
-    pub fn new(config: &'a WorkflowRunConfig, repo_path: &'a Path) -> Self {
-        Self { config, repo_path }
+impl ResolveWorkflowFilesRequest {
+    /// Creates a new owned request from the supplied inputs.
+    pub fn new(config: &WorkflowRunConfig, repo_path: &Path) -> Self {
+        Self {
+            config: config.clone(),
+            repo_path: repo_path.to_path_buf(),
+        }
     }
 
     /// Configuration naming which workflows the run executes.
-    pub fn config(&self) -> &'a WorkflowRunConfig {
-        self.config
+    pub fn config(&self) -> &WorkflowRunConfig {
+        &self.config
     }
 
     /// Path to the repository the workflows are resolved in.
-    pub fn repo_path(&self) -> &'a Path {
-        self.repo_path
+    pub fn repo_path(&self) -> &Path {
+        &self.repo_path
     }
 }
