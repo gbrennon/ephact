@@ -89,13 +89,29 @@ from `Cli`.
 ## Running Workflows Locally
 
 Use the existing `just` recipe names to run the checks that correspond to the
-Forgejo CI jobs:
+Forgejo CI jobs. The repository names these recipes `ci`, `lint`, and `test`
+(not `run-ci`, `run-lint`, or `run-test`):
+
+```sh
+# Run the local Validate, Test, and Lint checks in CI order.
+just ci
+
+# Run one check independently.
+just lint
+just test
+just fmt-check
+just lint-workflows
+```
+
+Run `just test --crate domain` to limit coverage to one crate. Run `just
+lint-workflows` to validate Forgejo workflow syntax with actionlint.
 
 | Local command    | CI job              | What it checks |
 | ---------------- | ------------------- | -------------- |
 | `just fmt-check` | Validate            | Confirms the workspace is formatted with Rustfmt. |
 | `just test`      | Test                | Runs the default-feature test suite with the configured 80% coverage threshold. |
 | `just lint`      | Lint                | Runs locked Clippy checks for all targets with warnings denied. |
+| `just lint-workflows` | Workflow lint   | Validates Forgejo workflow syntax with actionlint. |
 | `just ci`        | Validate, Test, Lint | Runs the three local checks in the same order as CI. |
 
 Run `just ci` before opening a pull request when you want the local equivalent
