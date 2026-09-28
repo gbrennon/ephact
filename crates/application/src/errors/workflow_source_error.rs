@@ -1,11 +1,26 @@
 use std::io;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum WorkflowSourceError {
-    #[error("{0}")]
-    Io(#[source] io::Error),
-    #[error("{0}")]
+    Io(io::Error),
     NotFound(String),
-    #[error("no workflow files found")]
     Empty,
+}
+
+impl_application_error!(
+    WorkflowSourceError,
+    |error: &WorkflowSourceError| match error {
+        WorkflowSourceError::Io(error) => error.to_string(),
+        WorkflowSourceError::NotFound(message) => message.clone(),
+        WorkflowSourceError::Empty => "no workflow files found".to_owned(),
+    },
+);
+
+impl std::error::Error for WorkflowSourceError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Io(error) => Some(error),
+            Self::NotFound(_) | Self::Empty => None,
+        }
+    }
 }

@@ -1,5 +1,13 @@
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum ExecuteWorkflowError {
-    #[error("{0}")]
     Workflow(String),
 }
+
+impl_application_error!(
+    ExecuteWorkflowError,
+    |error: &ExecuteWorkflowError| match error {
+        ExecuteWorkflowError::Workflow(message) => message.clone(),
+    },
+);
+
+impl std::error::Error for ExecuteWorkflowError {}

@@ -87,25 +87,28 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
         );
         let run_id = request.run_id().to_string();
         let repository_path = repository.path().as_path().display().to_string();
-        let Some(event) = config.event() else {
+        if !config.is_valid() {
             return Err(RunAllWorkflowsError::Workflow(
                 "workflow event must be specified".to_owned(),
             ));
+        }
+        let event = match config.event() {
+            Some(event) => event.as_str(),
+            None => unreachable!("valid config must contain an event"),
         };
         self.event_bus
             .publish(DomainEvent::RunStarted(RunStartedPayload::new(
                 run_id.clone(),
                 repository_path.clone(),
             )));
-        let executions =
-            match self.execute_all_workflows(&repository, &config, event.as_str(), &run_id) {
-                Ok(executions) => executions,
-                Err(error) => {
-                    let error = RunAllWorkflowsError::Workflow(error.to_string());
-                    self.announce_run_failed(&run_id, &repository_path, &error);
-                    return Err(error);
-                }
-            };
+        let executions = match self.execute_all_workflows(&repository, &config, event, &run_id) {
+            Ok(executions) => executions,
+            Err(error) => {
+                let error = RunAllWorkflowsError::Workflow(error.to_string());
+                self.announce_run_failed(&run_id, &repository_path, &error);
+                return Err(error);
+            }
+        };
         let success = executions.iter().all(|execution| execution.success());
 
         self.announce_run_completed(&run_id, &repository_path, &executions, success);

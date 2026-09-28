@@ -117,6 +117,11 @@ impl WorkflowRunConfig {
         self.event.as_ref()
     }
 
+    /// Returns whether the configuration contains the event required to run a workflow.
+    pub fn is_valid(&self) -> bool {
+        self.event.is_some()
+    }
+
     /// Returns all input variables.
     pub fn inputs(&self) -> &[WorkflowInput] {
         &self.inputs
@@ -164,6 +169,18 @@ mod tests {
         assert!(config.event().is_none());
         assert!(config.inputs().is_empty());
         assert!(config.secrets().is_empty());
+    }
+
+    #[test]
+    fn config_without_event_is_invalid() {
+        assert!(!WorkflowRunConfig::new().is_valid());
+    }
+
+    #[test]
+    fn config_with_event_is_valid() {
+        let config = WorkflowRunConfig::new().with_event(WorkflowEvent::new("push".into()));
+
+        assert!(config.is_valid());
     }
 
     #[test]

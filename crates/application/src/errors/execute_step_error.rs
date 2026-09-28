@@ -1,10 +1,13 @@
 use crate::domain::errors::StepError;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum ExecuteStepError {
-    #[error("{0}")]
-    Step(#[source] StepError),
+    Step(StepError),
 }
+
+impl_application_error!(ExecuteStepError, |error: &ExecuteStepError| match error {
+    ExecuteStepError::Step(error) => error.to_string(),
+},);
 
 impl ExecuteStepError {
     pub fn message(&self) -> &str {
@@ -22,6 +25,14 @@ impl ExecuteStepError {
     pub fn stderr(&self) -> &str {
         match self {
             Self::Step(error) => error.stderr(),
+        }
+    }
+}
+
+impl std::error::Error for ExecuteStepError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Step(error) => Some(error),
         }
     }
 }
