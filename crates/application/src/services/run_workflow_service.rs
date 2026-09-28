@@ -20,7 +20,7 @@ use crate::{
         requests::RunWorkflowRequest,
         responses::{RunSummaryResponse, WorkflowExecutionResponse},
     },
-    errors::RunWorkflowError,
+    errors::ApplicationError,
     ports::{
         inbound::RunWorkflowPort,
         outbound::{
@@ -108,20 +108,20 @@ impl RunWorkflowPort for RunWorkflowService {
     fn execute(
         &self,
         request: RunWorkflowRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<RunSummaryResponse, RunWorkflowError>> + Send + '_>>
+    ) -> Pin<Box<dyn Future<Output = Result<RunSummaryResponse, ApplicationError>> + Send + '_>>
     {
         Box::pin(async move {
             let context = RunExecutionContext::new(request)
-                .map_err(|error| RunWorkflowError::Workflow(error.to_string()))?;
+                .map_err(|error| ApplicationError::Workflow(error.to_string()))?;
             self.announce_run_started(&context);
             let workflow_content = self
                 .read_workflow(&context)
-                .map_err(|error| RunWorkflowError::Workflow(error.to_string()))?;
+                .map_err(|error| ApplicationError::Workflow(error.to_string()))?;
             self.ensure_requested_trigger(&context, &workflow_content)
-                .map_err(|error| RunWorkflowError::Workflow(error.to_string()))?;
+                .map_err(|error| ApplicationError::Workflow(error.to_string()))?;
             let execution = self
                 .dispatch_workflow(&context, workflow_content)
-                .map_err(|error| RunWorkflowError::Workflow(error.to_string()))?;
+                .map_err(|error| ApplicationError::Workflow(error.to_string()))?;
             Ok(self.complete_run(&context, execution))
         })
     }

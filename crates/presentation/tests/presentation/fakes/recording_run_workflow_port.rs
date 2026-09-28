@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use ephact::application::{
     dtos::{requests::RunWorkflowRequest, responses::RunSummaryResponse},
-    errors::RunWorkflowError,
+    errors::ApplicationError,
     ports::inbound::run_workflow_port::RunWorkflowPort,
 };
 
@@ -33,7 +33,7 @@ impl RunWorkflowPort for RecordingRunWorkflowPort {
         request: RunWorkflowRequest,
     ) -> std::pin::Pin<
         Box<
-            dyn std::future::Future<Output = Result<RunSummaryResponse, RunWorkflowError>>
+            dyn std::future::Future<Output = Result<RunSummaryResponse, ApplicationError>>
                 + Send
                 + '_,
         >,

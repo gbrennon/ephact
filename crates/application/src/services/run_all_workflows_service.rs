@@ -18,7 +18,7 @@ use crate::{
         requests::RunAllWorkflowsRequest,
         responses::{JobSummaryResponse, RunSummaryResponse, WorkflowExecutionResponse},
     },
-    errors::RunAllWorkflowsError,
+    errors::ApplicationError,
     ports::{
         inbound::run_all_workflows_port::RunAllWorkflowsPort,
         outbound::{
@@ -65,13 +65,13 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
     fn execute(
         &self,
         request: RunAllWorkflowsRequest,
-    ) -> Result<RunSummaryResponse, RunAllWorkflowsError> {
+    ) -> Result<RunSummaryResponse, ApplicationError> {
         let started_at = Instant::now();
         let repository = RepositoryFactory::create(
             request.repository_path().to_path_buf(),
             request.repository_name().to_string(),
         )
-        .map_err(|error| RunAllWorkflowsError::Workflow(format!("{error:?}")))?;
+        .map_err(|error| ApplicationError::Workflow(format!("{error:?}")))?;
         let config = WorkflowRunConfigFactory::create(
             WorkflowRunConfigInput::default()
                 .with_workflow(request.workflow().map(str::to_string))
@@ -88,7 +88,7 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
         let run_id = request.run_id().to_string();
         let repository_path = repository.path().as_path().display().to_string();
         if !config.is_valid() {
-            return Err(RunAllWorkflowsError::Workflow(
+            return Err(ApplicationError::Workflow(
                 "workflow event must be specified".to_owned(),
             ));
         }
@@ -104,7 +104,7 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
         let executions = match self.execute_all_workflows(&repository, &config, event, &run_id) {
             Ok(executions) => executions,
             Err(error) => {
-                let error = RunAllWorkflowsError::Workflow(error.to_string());
+                let error = ApplicationError::Workflow(error.to_string());
                 self.announce_run_failed(&run_id, &repository_path, &error);
                 return Err(error);
             }
@@ -128,11 +128,11 @@ impl RunAllWorkflowsService {
         config: &crate::domain::value_objects::WorkflowRunConfig,
         event: &str,
         run_id: &str,
-    ) -> Result<Vec<WorkflowExecutionResponse>, RunAllWorkflowsError> {
+    ) -> Result<Vec<WorkflowExecutionResponse>, ApplicationError> {
         let workflow_contents = self
             .workflow_source
             .read_all_workflows(repository)
-            .map_err(|error| RunAllWorkflowsError::Workflow(error.to_string()))?;
+            .map_err(|error| ApplicationError::Workflow(error.to_string()))?;
         workflow_contents
             .into_iter()
             .filter(|content| self.trigger_detector.triggers_on_event(content, event))
@@ -145,7 +145,7 @@ impl RunAllWorkflowsService {
                         run_id.to_string(),
                         config.allow_repo_writes(),
                     ))
-                    .map_err(|error| RunAllWorkflowsError::Workflow(error.to_string()))
+                    .map_err(|error| ApplicationError::Workflow(error.to_string()))
             })
             .collect()
     }

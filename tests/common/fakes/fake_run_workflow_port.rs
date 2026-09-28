@@ -26,7 +26,7 @@ impl RunWorkflowPort for FakeRunWorkflowPort {
             dyn std::future::Future<
                     Output = Result<
                         RunSummaryResponse,
-                        ephact::application::errors::RunWorkflowError,
+                        ephact::application::errors::ApplicationError,
                     >,
                 > + Send
                 + '_,

@@ -11,7 +11,7 @@ mod tests {
                 requests::RunWorkflowRequest,
                 responses::{RunSummaryResponse, WorkflowExecutionResponse},
             },
-            errors::RunWorkflowError,
+            errors::ApplicationError,
             ports::inbound::RunWorkflowPort,
             services::run_workflow_service::RunWorkflowService,
         },
@@ -31,7 +31,7 @@ mod tests {
     fn execute_workflow(
         service: &RunWorkflowService,
         request: RunWorkflowRequest,
-    ) -> Result<RunSummaryResponse, RunWorkflowError> {
+    ) -> Result<RunSummaryResponse, ApplicationError> {
         let mut future = service.execute(request);
         let mut context = Context::from_waker(Waker::noop());
 

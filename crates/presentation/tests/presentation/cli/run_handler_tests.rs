@@ -67,7 +67,7 @@ mod tests {
                 dyn std::future::Future<
                         Output = Result<
                             RunSummaryResponse,
-                            ephact::application::errors::RunWorkflowError,
+                            ephact::application::errors::ApplicationError,
                         >,
                     > + Send
                     + '_,
@@ -84,8 +84,8 @@ mod tests {
         fn execute(
             &self,
             _request: RunAllWorkflowsRequest,
-        ) -> Result<RunSummaryResponse, ephact::application::errors::RunAllWorkflowsError> {
-            Err(ephact::application::errors::RunAllWorkflowsError::Workflow(
+        ) -> Result<RunSummaryResponse, ephact::application::errors::ApplicationError> {
+            Err(ephact::application::errors::ApplicationError::Workflow(
                 "all workflows should not run interactively".to_string(),
             ))
         }
