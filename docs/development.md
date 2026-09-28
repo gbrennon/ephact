@@ -71,7 +71,7 @@ For example, a new `inspect` command would be registered alongside `run`:
 #[derive(clap::Subcommand)]
 enum Command {
     Run(Box<RunArgs>),
-    Inspect(InspectArgs),
+    Inspect(InspectArgs), // define InspectArgs in inspect_args.rs
 }
 ```
 
