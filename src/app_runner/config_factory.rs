@@ -8,9 +8,7 @@ pub struct ConfigFactory {
 
 impl ConfigFactory {
     pub fn from_environment() -> Self {
-        Self {
-            home: env::var_os("HOME"),
-        }
+        Self::from_home(env::var_os("HOME"))
     }
 
     pub fn from_home(home: Option<OsString>) -> Self {
