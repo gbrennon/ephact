@@ -17,7 +17,7 @@ impl AppRunner {
         let stderr_filter = StderrFilter::install();
         let result = Self::run_application_impl();
         stderr_filter.restore();
-        Self::finish(result, &ProcessExit);
+        Self::finish(result, Self::exit);
     }
 
     fn run_application_impl() -> Result<(), Box<dyn Error>> {
@@ -45,25 +45,17 @@ impl AppRunner {
         app.run(std::env::args_os())
     }
 
-    fn finish<E: ExitStrategy>(result: Result<(), Box<dyn Error>>, exit_strategy: &E) {
+    fn finish<F: Fn(i32)>(result: Result<(), Box<dyn Error>>, exit_strategy: F) {
         match result {
-            Ok(()) => exit_strategy.exit(0),
+            Ok(()) => exit_strategy(0),
             Err(error) => {
                 eprintln!("Error: {error}");
-                exit_strategy.exit(1);
+                exit_strategy(1);
             }
         }
     }
-}
 
-trait ExitStrategy {
-    fn exit(&self, code: i32);
-}
-
-struct ProcessExit;
-
-impl ExitStrategy for ProcessExit {
-    fn exit(&self, code: i32) {
+    fn exit(code: i32) {
         std::process::exit(code);
     }
 }
