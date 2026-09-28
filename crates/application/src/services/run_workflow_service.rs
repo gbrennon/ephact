@@ -2,7 +2,7 @@ use std::{error::Error, future::Future, pin::Pin, time::Instant};
 
 use crate::{
     domain::{
-        Repository,
+        Repository, Validatable,
         messages::{
             commands::ExecuteWorkflowCommand,
             events::{
