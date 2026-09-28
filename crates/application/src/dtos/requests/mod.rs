@@ -88,5 +88,5 @@ pub use run_composite_action_request::RunCompositeActionRequest;
 pub use run_composite_step_request::RunCompositeStepRequest;
 pub use run_node_action_request::RunNodeActionRequest;
 pub use run_shell_step_request::RunShellStepRequest;
-pub use run_workflow_request::RunWorkflowRequest;
+pub use run_workflow_request::{RunRequestBuilder, RunWorkflowRequest};
 pub use summarize_step_request::SummarizeStepRequest;
