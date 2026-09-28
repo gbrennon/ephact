@@ -17,8 +17,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.forgejo/actions/install-dependencies
-      - uses: ./.forgejo/actions/cache-rust-deps
+      - uses: ./.forgejo/actions/setup-rust-environment
         with:
           cache-key-prefix: ephact-release
           rustc-version: stable
