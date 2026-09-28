@@ -1,0 +1,10 @@
+name: Validate Rust project
+description: Check Rust formatting for CI
+
+runs:
+  using: composite
+
+  steps:
+    - name: Check formatting
+      shell: bash
+      run: cargo fmt --all -- --check
