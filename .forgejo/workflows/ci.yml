@@ -31,9 +31,21 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install actionlint
-        run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.11
+        run: |
+          case "$(uname -m)" in
+            x86_64) asset_arch="amd64" ;;
+            aarch64|arm64) asset_arch="arm64" ;;
+            *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;;
+          esac
+          curl -fsSL --proto '=https' --tlsv1.2 \
+            -o /tmp/actionlint.tar.gz \
+            "https://github.com/rhysd/actionlint/releases/download/v1.7.11/actionlint_1.7.11_linux_${asset_arch}.tar.gz"
+          tar -xzf /tmp/actionlint.tar.gz -C /tmp actionlint
+          install -m 0755 /tmp/actionlint /usr/local/bin/actionlint
+          rm -f /tmp/actionlint.tar.gz /tmp/actionlint
+          actionlint -version
       - name: Validate workflows
-        run: '"$(go env GOPATH)/bin/actionlint" -config-file .actionlint.yaml .forgejo/workflows/*.yml'
+        run: actionlint -config-file .actionlint.yaml .forgejo/workflows/*.yml
 
   test:
     name: Test
