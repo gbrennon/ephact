@@ -37,6 +37,8 @@ pub mod project_emblem;
 pub mod project_name;
 pub mod project_version;
 pub mod remote_action_reference;
+pub mod remote_reference_defaults;
+pub mod remote_reference_parts;
 pub mod repo_path;
 pub mod repository_name;
 pub mod run_step_defaults;
@@ -93,6 +95,7 @@ pub use self::{
     project_name::ProjectName,
     project_version::ProjectVersion,
     remote_action_reference::RemoteActionReference,
+    remote_reference_defaults::RemoteReferenceDefaults,
     repo_path::RepoPath,
     repository_name::RepositoryName,
     run_step_defaults::RunStepDefaults,

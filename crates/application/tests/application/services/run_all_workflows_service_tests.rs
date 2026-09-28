@@ -11,8 +11,9 @@ mod tests {
             },
         },
         domain::{
-            RepoPath, Repository, RepositoryName, WorkflowRunConfig, messages::events::DomainEvent,
-            value_objects::WorkflowEvent,
+            RepoPath, Repository, RepositoryName, WorkflowRunConfig,
+            messages::events::DomainEvent,
+            value_objects::{WorkflowEvent, WorkflowPath},
         },
     };
 
@@ -89,6 +90,27 @@ mod tests {
 
         let error = service
             .execute(primitive_request(WorkflowRunConfig::new(), repo))
+            .unwrap_err();
+
+        assert_eq!(error.to_string(), "workflow event must be specified");
+        assert!(command_bus.dispatched_workflows.lock().is_empty());
+    }
+
+    #[test]
+    fn execute_rejects_named_workflow_without_an_explicit_event() {
+        let temp = tempfile::tempdir().unwrap();
+        let repo = make_repo(temp.path());
+        let command_bus = FakeCommandBus::new();
+        let service = RunAllWorkflowsService::new(
+            Box::new(FakeWorkflowSource::new()),
+            Box::new(command_bus.clone()),
+            Box::new(FakeEventBus::new()),
+            Box::new(FakeDetectWorkflowTriggerPort::always_triggering()),
+        );
+        let config = WorkflowRunConfig::new().with_workflow(WorkflowPath::new("ci.yml".to_owned()));
+
+        let error = service
+            .execute(primitive_request(config, repo))
             .unwrap_err();
 
         assert_eq!(error.to_string(), "workflow event must be specified");

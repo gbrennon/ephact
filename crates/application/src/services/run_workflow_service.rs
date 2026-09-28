@@ -154,11 +154,15 @@ impl RunWorkflowService {
         context: &RunExecutionContext,
         workflow_content: &str,
     ) -> Result<(), Box<dyn Error>> {
-        let Some(event) = context.config.event() else {
+        if !context.config.is_valid() {
             let error: Box<dyn Error> = "workflow event must be specified".into();
             self.announce_run_failed(context, &*error);
             return Err(error);
-        };
+        }
+        let event = context
+            .config
+            .event()
+            .expect("valid workflow run configuration has an event");
         if self
             .trigger_detector
             .triggers_on_event(workflow_content, event.as_str())

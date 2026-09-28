@@ -16,7 +16,7 @@ pub use self::{
         ActionReference, CleanupPolicy, ContainerEngine, GitDirKind, InterfaceMode, JobName,
         Marker, MarkerKind, MarkerPreset, OperationMode, OutputPreferences, Permissions,
         ProjectDescription, ProjectEmblem, ProjectName, ProjectVersion, RemoteActionReference,
-        RepoPath, RepositoryName, Secret, WorkflowEvent, WorkflowInput, WorkflowPath,
-        WorkflowRunConfig,
+        RemoteReferenceDefaults, RepoPath, RepositoryName, Secret, WorkflowEvent, WorkflowInput,
+        WorkflowPath, WorkflowRunConfig,
     },
 };

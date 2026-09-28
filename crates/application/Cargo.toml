@@ -6,12 +6,8 @@ description = "Application layer of ephact: application services, ports and DTOs
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-thiserror = "2.0.18"
-serde_yaml = "0.9"
-
 # Dependencies on the domain layer
 ephact-domain = { path = "../domain", version = "0.3.0" }
-
 
 [features]
 container-integration = []

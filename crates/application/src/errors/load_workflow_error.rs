@@ -1,7 +1,11 @@
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum LoadWorkflowError {
-    #[error("{0}")]
-    Parse(#[source] serde_yaml::Error),
-    #[error("{0}")]
+    Parse(String),
     Message(String),
 }
+
+impl_application_error!(LoadWorkflowError, |error: &LoadWorkflowError| match error {
+    LoadWorkflowError::Parse(message) | LoadWorkflowError::Message(message) => message.clone(),
+},);
+
+impl std::error::Error for LoadWorkflowError {}

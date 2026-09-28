@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
+    use std::{
+        path::Path,
+        task::{Context, Poll, Waker},
+    };
 
     use ephact::{
         application::{
@@ -8,12 +11,14 @@ mod tests {
                 requests::RunWorkflowRequest,
                 responses::{RunSummaryResponse, WorkflowExecutionResponse},
             },
+            errors::RunWorkflowError,
             ports::inbound::RunWorkflowPort,
             services::run_workflow_service::RunWorkflowService,
         },
         domain::{
-            RepoPath, Repository, RepositoryName, WorkflowRunConfig, messages::events::DomainEvent,
-            value_objects::WorkflowEvent,
+            RepoPath, Repository, RepositoryName, WorkflowRunConfig,
+            messages::events::DomainEvent,
+            value_objects::{WorkflowEvent, WorkflowPath},
         },
     };
 
@@ -22,6 +27,21 @@ mod tests {
         fake_detect_workflow_trigger_port::FakeDetectWorkflowTriggerPort,
         fake_event_bus::FakeEventBus, fake_workflow_source::FakeWorkflowSource,
     };
+
+    fn execute_workflow(
+        service: &RunWorkflowService,
+        request: RunWorkflowRequest,
+    ) -> Result<RunSummaryResponse, RunWorkflowError> {
+        let mut future = service.execute(request);
+        let mut context = Context::from_waker(Waker::noop());
+
+        loop {
+            match future.as_mut().poll(&mut context) {
+                Poll::Ready(output) => return output,
+                Poll::Pending => std::thread::yield_now(),
+            }
+        }
+    }
 
     fn make_repo(path: &Path) -> Repository {
         let git_dir = path.join(".git");
@@ -37,8 +57,8 @@ mod tests {
         RunWorkflowRequest::from_domain(&repository, &config, "test-run")
     }
 
-    #[tokio::test]
-    async fn execute_runs_workflow_and_publishes_lifecycle_events() {
+    #[test]
+    fn execute_runs_workflow_and_publishes_lifecycle_events() {
         let temp = tempfile::tempdir().unwrap();
         let repo = make_repo(temp.path());
 
@@ -65,7 +85,7 @@ mod tests {
         );
         let request = primitive_request(config, repo);
 
-        let summary: RunSummaryResponse = service.execute(request).await.unwrap();
+        let summary: RunSummaryResponse = execute_workflow(&service, request).unwrap();
 
         assert_eq!(summary.name(), "CI");
         assert!(summary.success());
@@ -90,8 +110,8 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn execute_publishes_run_failed_when_workflow_read_fails() {
+    #[test]
+    fn execute_publishes_run_failed_when_workflow_read_fails() {
         let temp = tempfile::tempdir().unwrap();
         let repo = make_repo(temp.path());
         let source = FakeWorkflowSource::new().failing_read_workflow("cannot read workflow");
@@ -106,10 +126,7 @@ mod tests {
             Box::new(FakeDetectWorkflowTriggerPort::always_triggering()),
         );
 
-        let error = service
-            .execute(primitive_request(config, repo))
-            .await
-            .unwrap_err();
+        let error = execute_workflow(&service, primitive_request(config, repo)).unwrap_err();
 
         assert_eq!(error.to_string(), "cannot read workflow");
         let events = event_bus.events();
@@ -121,8 +138,8 @@ mod tests {
         assert_eq!(payload.error(), "cannot read workflow");
     }
 
-    #[tokio::test]
-    async fn execute_publishes_run_failed_when_event_is_missing() {
+    #[test]
+    fn execute_publishes_run_failed_when_event_is_missing() {
         let temp = tempfile::tempdir().unwrap();
         let repo = make_repo(temp.path());
         let workflow_source =
@@ -138,10 +155,7 @@ mod tests {
             Box::new(FakeDetectWorkflowTriggerPort::never_triggering()),
         );
 
-        let error = service
-            .execute(primitive_request(config, repo))
-            .await
-            .unwrap_err();
+        let error = execute_workflow(&service, primitive_request(config, repo)).unwrap_err();
 
         assert_eq!(error.to_string(), "workflow event must be specified");
         let events = event_bus.events();
@@ -154,8 +168,8 @@ mod tests {
         assert!(command_bus.dispatched_workflows.lock().is_empty());
     }
 
-    #[tokio::test]
-    async fn execute_rejects_workflows_without_an_explicit_event() {
+    #[test]
+    fn execute_rejects_workflows_without_an_explicit_event() {
         let temp = tempfile::tempdir().unwrap();
         let repo = make_repo(temp.path());
         let workflow_source =
@@ -170,7 +184,28 @@ mod tests {
         );
         let request = primitive_request(WorkflowRunConfig::new(), repo);
 
-        let error = service.execute(request).await.unwrap_err();
+        let error = execute_workflow(&service, request).unwrap_err();
+
+        assert_eq!(error.to_string(), "workflow event must be specified");
+        assert!(command_bus.dispatched_workflows.lock().is_empty());
+    }
+
+    #[test]
+    fn execute_rejects_named_workflow_without_an_explicit_event() {
+        let temp = tempfile::tempdir().unwrap();
+        let repo = make_repo(temp.path());
+        let workflow_source = FakeWorkflowSource::new();
+        let command_bus = FakeCommandBus::new();
+        let event_bus = FakeEventBus::new();
+        let service = RunWorkflowService::new(
+            Box::new(workflow_source),
+            Box::new(command_bus.clone()),
+            Box::new(event_bus),
+            Box::new(FakeDetectWorkflowTriggerPort::never_triggering()),
+        );
+        let config = WorkflowRunConfig::new().with_workflow(WorkflowPath::new("ci.yml".to_owned()));
+
+        let error = execute_workflow(&service, primitive_request(config, repo)).unwrap_err();
 
         assert_eq!(error.to_string(), "workflow event must be specified");
         assert!(command_bus.dispatched_workflows.lock().is_empty());

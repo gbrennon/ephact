@@ -1,9 +1,24 @@
 use std::io;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum CopyRepositoryToContainerError {
-    #[error("{0}")]
-    Filesystem(#[source] io::Error),
-    #[error("{0}")]
+    Filesystem(io::Error),
     Container(String),
+}
+
+impl_application_error!(
+    CopyRepositoryToContainerError,
+    |error: &CopyRepositoryToContainerError| match error {
+        CopyRepositoryToContainerError::Filesystem(error) => error.to_string(),
+        CopyRepositoryToContainerError::Container(message) => message.clone(),
+    },
+);
+
+impl std::error::Error for CopyRepositoryToContainerError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Filesystem(error) => Some(error),
+            Self::Container(_) => None,
+        }
+    }
 }

@@ -1,11 +1,22 @@
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum SettingsStoreError {
-    #[error("settings file could not be read: {0}")]
     Read(String),
-    #[error("settings file could not be written: {0}")]
     Write(String),
-    #[error("settings file contains invalid TOML: {0}")]
     Parse(String),
-    #[error("settings path could not be resolved: {0}")]
     Path(String),
 }
+
+impl_application_error!(
+    SettingsStoreError,
+    |error: &SettingsStoreError| match error {
+        SettingsStoreError::Read(message) => format!("settings file could not be read: {message}"),
+        SettingsStoreError::Write(message) =>
+            format!("settings file could not be written: {message}"),
+        SettingsStoreError::Parse(message) =>
+            format!("settings file contains invalid TOML: {message}"),
+        SettingsStoreError::Path(message) =>
+            format!("settings path could not be resolved: {message}"),
+    },
+);
+
+impl std::error::Error for SettingsStoreError {}
