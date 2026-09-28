@@ -16,7 +16,7 @@ use crate::{
     },
     dtos::{
         requests::RunAllWorkflowsRequest,
-        responses::{JobSummaryResponse, RunSummaryResponse, WorkflowExecutionResponse},
+        responses::{RunSummaryResponse, WorkflowExecutionResponse},
     },
     errors::ApplicationError,
     ports::{
@@ -27,6 +27,7 @@ use crate::{
             workflow_command_bus_port::WorkflowCommandBusPort,
         },
     },
+    services::workflow_execution_aggregator::WorkflowExecutionAggregator,
 };
 
 /// Name reported for the aggregate summary of a full multi-workflow run.
@@ -95,7 +96,7 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
 
         Ok(RunSummaryResponse::new(
             ALL_WORKFLOWS_SUMMARY_NAME,
-            self.collect_qualified_job_summaries(&executions),
+            WorkflowExecutionAggregator::new().aggregate(&executions),
             success,
             started_at.elapsed(),
         ))
@@ -190,30 +191,5 @@ impl RunAllWorkflowsService {
                 None,
                 error.to_string(),
             )));
-    }
-
-    fn collect_qualified_job_summaries(
-        &self,
-        executions: &[WorkflowExecutionResponse],
-    ) -> Vec<JobSummaryResponse> {
-        executions
-            .iter()
-            .flat_map(|execution| {
-                execution
-                    .job_summaries()
-                    .iter()
-                    .map(move |job| Self::qualify_job_summary(execution, job))
-            })
-            .collect()
-    }
-
-    fn qualify_job_summary(
-        execution: &WorkflowExecutionResponse,
-        job: &JobSummaryResponse,
-    ) -> JobSummaryResponse {
-        let qualified = job
-            .name()
-            .map(|name| format!("{} / {}", execution.workflow_name(), name));
-        job.clone().with_name(qualified)
     }
 }
