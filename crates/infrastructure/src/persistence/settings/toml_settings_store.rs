@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use super::toml_settings::TomlSettings;
+use super::{super::atomic_write, toml_settings::TomlSettings};
 use crate::{
     application::{errors::SettingsStoreError, ports::outbound::SettingsStorePort},
     domain::Settings,
@@ -44,19 +44,6 @@ impl TomlSettingsStore {
         toml::to_string_pretty(&TomlSettings::from(settings))
             .map_err(|error| SettingsStoreError::Write(error.to_string()))
     }
-
-    fn temporary_path(&self) -> PathBuf {
-        self.path
-            .with_extension(format!("tmp-{}", uuid::Uuid::new_v4()))
-    }
-
-    fn replace_temporary_file(&self, temporary_path: &Path) -> Result<(), SettingsStoreError> {
-        if let Err(error) = fs::rename(temporary_path, &self.path) {
-            let _ = fs::remove_file(temporary_path);
-            return Err(SettingsStoreError::Write(error.to_string()));
-        }
-        Ok(())
-    }
 }
 
 impl SettingsStorePort for TomlSettingsStore {
@@ -77,10 +64,8 @@ impl SettingsStorePort for TomlSettingsStore {
         let parent = self.parent_path()?;
         fs::create_dir_all(parent).map_err(|error| SettingsStoreError::Write(error.to_string()))?;
         let contents = self.serialize(settings)?;
-        let temporary_path = self.temporary_path();
-        fs::write(&temporary_path, contents)
-            .map_err(|error| SettingsStoreError::Write(error.to_string()))?;
-        self.replace_temporary_file(&temporary_path)
+        atomic_write::write(&self.path, contents)
+            .map_err(|error| SettingsStoreError::Write(error.to_string()))
     }
 
     fn config_path(&self) -> PathBuf {
