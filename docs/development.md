@@ -114,6 +114,8 @@ The CI workflow in `.forgejo/workflows/ci.yml` runs on pushes to `main`, pull
 requests targeting `main`, and manual dispatch:
 
 1. **Validate** runs `cargo fmt --all -- --check`.
+1. **Workflow lint** downloads the pinned actionlint release and validates every
+   `.forgejo/workflows/*.yml` file with the repository configuration.
 1. **Test** runs `just test`, covering default-feature test targets with the 80%
    aggregate line threshold while excluding feature-gated container integration.
 1. **Lint** runs `cargo clippy --all-targets --locked -- -D warnings`.
@@ -131,8 +133,8 @@ The Validate, Test, and Lint jobs share the
     include-sysroot: "false"
 ```
 
-Workflow linting is available locally through `just lint-workflows`, but it is
-not currently a CI step.
+Workflow linting is available locally through `just lint-workflows` and runs in
+CI as the **Workflow lint** job.
 
 ### Repository Secrets
 

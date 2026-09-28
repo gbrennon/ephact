@@ -25,6 +25,16 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
 
+  workflow-lint:
+    name: Workflow lint
+    runs-on: codeberg-tiny
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install actionlint
+        run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.11
+      - name: Validate workflows
+        run: '"$(go env GOPATH)/bin/actionlint" -config-file .actionlint.yaml .forgejo/workflows/*.yml'
+
   test:
     name: Test
     runs-on: codeberg-medium
