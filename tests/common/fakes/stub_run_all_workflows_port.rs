@@ -11,9 +11,9 @@ impl RunAllWorkflowsPort for StubRunAllWorkflowsPort {
     fn execute(
         &self,
         _request: RunAllWorkflowsRequest,
-    ) -> Result<RunSummaryResponse, ephact::application::errors::RunAllWorkflowsError> {
+    ) -> Result<RunSummaryResponse, ephact::application::errors::ApplicationError> {
         self.result
             .clone()
-            .map_err(ephact::application::errors::RunAllWorkflowsError::Workflow)
+            .map_err(ephact::application::errors::ApplicationError::Workflow)
     }
 }

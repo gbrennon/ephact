@@ -26,7 +26,7 @@ impl RunAllWorkflowsPort for FakeRunAllWorkflowsPort {
     fn execute(
         &self,
         _request: RunAllWorkflowsRequest,
-    ) -> Result<RunSummaryResponse, ephact::application::errors::RunAllWorkflowsError> {
+    ) -> Result<RunSummaryResponse, ephact::application::errors::ApplicationError> {
         Ok(self.result.clone())
     }
 }

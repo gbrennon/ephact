@@ -127,7 +127,7 @@ mod tests {
                 dyn std::future::Future<
                         Output = Result<
                             RunSummaryResponse,
-                            ephact::application::errors::RunWorkflowError,
+                            ephact::application::errors::ApplicationError,
                         >,
                     > + Send
                     + '_,
@@ -142,7 +142,7 @@ mod tests {
         fn execute(
             &self,
             _request: RunAllWorkflowsRequest,
-        ) -> Result<RunSummaryResponse, ephact::application::errors::RunAllWorkflowsError> {
+        ) -> Result<RunSummaryResponse, ephact::application::errors::ApplicationError> {
             Ok(self.summary.clone())
         }
     }

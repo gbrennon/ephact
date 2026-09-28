@@ -1,6 +1,6 @@
 use crate::{
     dtos::{requests::RunAllWorkflowsRequest, responses::RunSummaryResponse},
-    errors::RunAllWorkflowsError,
+    errors::ApplicationError,
 };
 
 /// Inbound port representing the entrypoint to run all workflows in a repository.
@@ -9,5 +9,5 @@ pub trait RunAllWorkflowsPort {
     fn execute(
         &self,
         request: RunAllWorkflowsRequest,
-    ) -> Result<RunSummaryResponse, RunAllWorkflowsError>;
+    ) -> Result<RunSummaryResponse, ApplicationError>;
 }
