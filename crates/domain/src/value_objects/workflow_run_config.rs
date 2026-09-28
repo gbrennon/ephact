@@ -1,4 +1,7 @@
-use crate::value_objects::{JobName, Secret, WorkflowEvent, WorkflowInput, WorkflowPath};
+use crate::{
+    traits::Validatable,
+    value_objects::{JobName, Secret, WorkflowEvent, WorkflowInput, WorkflowPath},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WorkflowRunConfig {
@@ -35,6 +38,12 @@ impl WorkflowRunConfig {
 impl Default for WorkflowRunConfig {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Validatable for WorkflowRunConfig {
+    fn is_valid(&self) -> bool {
+        self.event.is_some()
     }
 }
 
@@ -115,11 +124,6 @@ impl WorkflowRunConfig {
     /// Returns the event, if set.
     pub fn event(&self) -> Option<&WorkflowEvent> {
         self.event.as_ref()
-    }
-
-    /// Returns whether the configuration contains the event required to run a workflow.
-    pub fn is_valid(&self) -> bool {
-        self.event.is_some()
     }
 
     /// Returns all input variables.
