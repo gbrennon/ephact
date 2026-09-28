@@ -72,30 +72,10 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
             request.repository_name().to_string(),
         )
         .map_err(|error| ApplicationError::Workflow(format!("{error:?}")))?;
-        let config = WorkflowRunConfigFactory::create(
-            WorkflowRunConfigInput::default()
-                .with_workflow(request.workflow().map(str::to_string))
-                .with_job(request.job().map(str::to_string))
-                .with_event(request.event().map(str::to_string))
-                .with_inputs(request.inputs().to_vec())
-                .with_secrets(request.secrets().to_vec())
-                .with_all_workflows(request.all_workflows())
-                .with_allow_repo_writes(request.allow_repo_writes())
-                .with_allow_real_container(request.allow_real_container())
-                .with_allow_real_fetcher(request.allow_real_fetcher())
-                .with_allow_network(request.allow_network()),
-        );
+        let config = Self::create_config(&request);
+        let event = Self::required_event(&config)?;
         let run_id = request.run_id().to_string();
         let repository_path = repository.path().as_path().display().to_string();
-        if !config.is_valid() {
-            return Err(ApplicationError::Workflow(
-                "workflow event must be specified".to_owned(),
-            ));
-        }
-        let event = match config.event() {
-            Some(event) => event.as_str(),
-            None => unreachable!("valid config must contain an event"),
-        };
         self.event_bus
             .publish(DomainEvent::RunStarted(RunStartedPayload::new(
                 run_id.clone(),
@@ -122,6 +102,32 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
     }
 }
 impl RunAllWorkflowsService {
+    fn create_config(
+        request: &RunAllWorkflowsRequest,
+    ) -> crate::domain::value_objects::WorkflowRunConfig {
+        WorkflowRunConfigFactory::create(
+            WorkflowRunConfigInput::default()
+                .with_workflow(request.workflow().map(str::to_string))
+                .with_job(request.job().map(str::to_string))
+                .with_event(request.event().map(str::to_string))
+                .with_inputs(request.inputs().to_vec())
+                .with_secrets(request.secrets().to_vec())
+                .with_all_workflows(request.all_workflows())
+                .with_allow_repo_writes(request.allow_repo_writes())
+                .with_allow_real_container(request.allow_real_container())
+                .with_allow_real_fetcher(request.allow_real_fetcher())
+                .with_allow_network(request.allow_network()),
+        )
+    }
+
+    fn required_event(
+        config: &crate::domain::value_objects::WorkflowRunConfig,
+    ) -> Result<&str, ApplicationError> {
+        config.event().map(|event| event.as_str()).ok_or_else(|| {
+            ApplicationError::Workflow("workflow event must be specified".to_owned())
+        })
+    }
+
     fn execute_all_workflows(
         &self,
         repository: &crate::domain::Repository,
@@ -133,9 +139,8 @@ impl RunAllWorkflowsService {
             .workflow_source
             .read_all_workflows(repository)
             .map_err(|error| ApplicationError::Workflow(error.to_string()))?;
-        workflow_contents
+        self.filter_workflow_contents(workflow_contents, event)
             .into_iter()
-            .filter(|content| self.trigger_detector.triggers_on_event(content, event))
             .map(|content| {
                 self.command_bus
                     .dispatch(ExecuteWorkflowCommand::new(
@@ -149,6 +154,13 @@ impl RunAllWorkflowsService {
             })
             .collect()
     }
+    fn filter_workflow_contents(&self, workflow_contents: Vec<String>, event: &str) -> Vec<String> {
+        workflow_contents
+            .into_iter()
+            .filter(|content| self.trigger_detector.triggers_on_event(content, event))
+            .collect()
+    }
+
     fn announce_run_completed(
         &self,
         run_id: &str,
