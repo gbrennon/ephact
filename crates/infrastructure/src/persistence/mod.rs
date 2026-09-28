@@ -1,3 +1,4 @@
+mod atomic_write;
 pub mod project_branding;
 pub mod settings;
 
