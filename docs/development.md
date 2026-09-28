@@ -40,10 +40,11 @@ The project uses `just` for task automation:
 | `just test`                    | Run all default-feature test targets with aggregate line-coverage enforcement at 80%; excludes feature-gated container integration | `COVERAGE_THRESHOLD=80 ./scripts/check_coverage.sh`                                    |
 | `just test --crate domain`     | Run coverage for one crate; supported names are `root`, `domain`, `application`, `infrastructure`, and `presentation` | `COVERAGE_THRESHOLD=80 ./scripts/check_coverage.sh --crate domain` |
 | `just test-local`              | Run all default-feature test targets without coverage; excludes feature-gated container integration                                | `cargo test`                                                                           |
-| `just lint`                    | Run Clippy and deny warnings                                                                                                       | `cargo clippy -- -D warnings`                                                          |
+| `just lint`                    | Run the same locked, all-target Clippy check used by CI                                                                             | `cargo clippy --all-targets --locked -- -D warnings`                                   |
 | `just lint-fix *args`          | Apply Clippy fixes; optional values are cargo-clippy arguments, not source-file filters                                            | `cargo clippy --fix --allow-dirty --allow-staged {{files}}`                            |
 | `just fmt`                    | Format the entire workspace                                                                                                          | `cargo fmt`                                                                            |
 | `just fmt-check`               | Check formatting without modifying files                                                                                           | `cargo fmt --check`                                                                    |
+| `just ci`                      | Run the local Validate, Test, and Lint checks in CI order                                                                          | `just fmt-check && just test && just lint`                                              |
 | `just tools`                   | Install `rustfmt`, `clippy`, and `cargo-llvm-cov`                                                                                  | `rustup component add rustfmt clippy && cargo install cargo-llvm-cov --locked --force` |
 | `just clean`                   | Remove Cargo build artifacts                                                                                                       | `cargo clean`                                                                          |
 | `just lint-workflows`          | Lint Forgejo Actions workflows                                                                                                     | `actionlint -config-file .actionlint.yaml .forgejo/workflows/*.yml`                    |
@@ -52,6 +53,23 @@ The project uses `just` for task automation:
 | `just install-hooks`           | Install the configured `lefthook` Git hooks                                                                                        | `lefthook install`                                                                     |
 | `just install-dev`             | Install a debug binary for local iteration                                                                                         | `cargo install --path . --debug`                                                       |
 | `just install`                 | Install a release binary to `~/.cargo/bin`                                                                                         | `cargo install --path .`                                                               |
+
+## Running Workflows Locally
+
+Use the existing `just` recipe names to run the checks that correspond to the
+Forgejo CI jobs:
+
+| Local command    | CI job              | What it checks |
+| ---------------- | ------------------- | -------------- |
+| `just fmt-check` | Validate            | Confirms the workspace is formatted with Rustfmt. |
+| `just test`      | Test                | Runs the default-feature test suite with the configured 80% coverage threshold. |
+| `just lint`      | Lint                | Runs locked Clippy checks for all targets with warnings denied. |
+| `just ci`        | Validate, Test, Lint | Runs the three local checks in the same order as CI. |
+
+Run `just ci` before opening a pull request when you want the local equivalent
+of the main CI checks. Install the tools from the [Setup](#setup) section
+first. The `Verify secrets` CI job is intentionally not part of `just ci`:
+it validates repository credentials and can only run reliably inside Forgejo.
 
 ## Testing
 

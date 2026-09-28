@@ -42,7 +42,11 @@ test-local:
 
 # Lint (zero warnings enforced)
 lint:
-	cargo clippy -- -D warnings
+	cargo clippy --all-targets --locked -- -D warnings
+
+# Run the local checks represented by the CI workflow
+ci:
+	just fmt-check && just test && just lint
 
 # Lint fixes (optionally specify files)
 lint-fix +files='':
