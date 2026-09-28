@@ -1,9 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::domain::{
-    InterfaceMode, Settings,
-    value_objects::{Marker, MarkerPreset},
-};
+use super::marker_serializer;
+use crate::domain::{InterfaceMode, Settings};
 
 #[derive(Debug, Clone, Copy, Default, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -34,7 +32,7 @@ pub(super) struct TomlSettings {
     interactive: bool,
     #[serde(skip_serializing_if = "Self::is_default_bool")]
     all_workflows: bool,
-    #[serde(default = "default_marker")]
+    #[serde(default = "marker_serializer::default_marker")]
     marker: String,
 }
 
@@ -63,7 +61,7 @@ impl From<&Settings> for TomlSettings {
             verbose: settings.verbose(),
             interactive: settings.interactive(),
             all_workflows: settings.all_workflows(),
-            marker: marker_to_toml(settings.marker()),
+            marker: marker_serializer::serialize(settings.marker()),
         }
     }
 }
@@ -84,38 +82,6 @@ impl From<TomlSettings> for Settings {
             .with_verbose(settings.verbose)
             .with_interactive(settings.interactive)
             .with_all_workflows(settings.all_workflows)
-            .with_marker(marker_from_toml(&settings.marker))
+            .with_marker(marker_serializer::deserialize(&settings.marker))
     }
-}
-
-fn default_marker() -> String {
-    Marker::default().value().to_string()
-}
-
-fn marker_to_toml(marker: &Marker) -> String {
-    match marker {
-        Marker::Preset(preset) => preset.as_text().to_string(),
-        Marker::CustomText(value) => format!("text:{value}"),
-        Marker::ImagePath(value) => format!("image:{value}"),
-        Marker::GifPath(value) => format!("gif:{value}"),
-    }
-}
-
-fn marker_from_toml(value: &str) -> Marker {
-    if let Some(value) = value.strip_prefix("text:") {
-        return Marker::custom_text(value);
-    }
-    if let Some(value) = value.strip_prefix("image:") {
-        return Marker::image_path(value);
-    }
-    if let Some(value) = value.strip_prefix("gif:") {
-        return Marker::gif_path(value);
-    }
-    if let Some(preset) = MarkerPreset::ALL
-        .into_iter()
-        .find(|preset| preset.as_text() == value)
-    {
-        return Marker::preset(preset);
-    }
-    Marker::custom_text(value)
 }
