@@ -10,7 +10,10 @@ use crate::{
     application::dtos::responses::RunInputDeclarationResponse,
     domain::value_objects::Marker,
     tui::{
-        components::run_configuration_input::{InputField, InputKind},
+        components::{
+            Renderable,
+            run_configuration_input::{InputField, InputKind},
+        },
         theme::Theme,
     },
 };
@@ -47,6 +50,14 @@ pub struct RunConfiguration {
     inputs: Vec<InputField>,
     editing: bool,
     error: Option<String>,
+}
+
+impl Renderable for RunConfiguration {
+    type Context = ();
+
+    fn render(&self, frame: &mut Frame<'_>, area: Rect, _context: &Self::Context) {
+        self.render(frame, area);
+    }
 }
 
 impl RunConfiguration {

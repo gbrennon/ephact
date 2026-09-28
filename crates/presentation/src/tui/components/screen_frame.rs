@@ -5,10 +5,19 @@ use ratatui::{
     widgets::{Block, Borders, Padding, Paragraph},
 };
 
+use super::Renderable;
 use crate::tui::theme::Theme;
 
 /// Renders the shared outer frame around each interactive TUI screen.
 pub struct ScreenFrame;
+
+impl Renderable for ScreenFrame {
+    type Context = str;
+
+    fn render(&self, frame: &mut Frame<'_>, _area: Rect, title: &Self::Context) {
+        Self::render(frame, title);
+    }
+}
 
 impl ScreenFrame {
     const BLOCK_TITLE: &'static str = "ephact";

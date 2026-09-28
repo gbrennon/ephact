@@ -8,6 +8,7 @@ use ratatui::{
     widgets::{List, ListItem, ListState},
 };
 
+use super::Renderable;
 use crate::{
     application::dtos::responses::{RunSummaryResponse, StepSummaryResponse},
     tui::theme::Theme,
@@ -40,6 +41,14 @@ pub struct RunDetailsView {
     cursor: usize,
     last_row_count: Cell<usize>,
     last_width: Cell<u16>,
+}
+
+impl Renderable for RunDetailsView {
+    type Context = RunSummaryResponse;
+
+    fn render(&self, frame: &mut Frame<'_>, area: Rect, summary: &Self::Context) {
+        self.render(frame, area, summary);
+    }
 }
 
 impl RunDetailsView {
