@@ -7,6 +7,6 @@ pub trait ResolveWorkflowFilesPort: Send + Sync {
     /// Resolves the run's workflow files from its configuration.
     fn execute(
         &self,
-        request: ResolveWorkflowFilesRequest<'_>,
+        request: ResolveWorkflowFilesRequest,
     ) -> Result<ResolveWorkflowFilesResponse, Box<dyn std::error::Error>>;
 }

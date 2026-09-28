@@ -71,22 +71,23 @@ impl ResolveWorkflowFilesService {
 
     fn resolve_files(
         &self,
-        request: &ResolveWorkflowFilesRequest<'_>,
+        request: &ResolveWorkflowFilesRequest,
     ) -> Result<Vec<std::path::PathBuf>, Box<dyn Error>> {
-        if request.config().all_workflows() {
-            return self.resolve_all(request.repo_path());
+        match (
+            request.config().all_workflows(),
+            request.config().workflow(),
+        ) {
+            (true, _) => self.resolve_all(request.repo_path()),
+            (false, Some(workflow)) => self.resolve_named(workflow.as_str(), request.repo_path()),
+            (false, None) => self.resolve_detected(request.repo_path()),
         }
-        if let Some(workflow) = request.config().workflow() {
-            return self.resolve_named(workflow.as_str(), request.repo_path());
-        }
-        self.resolve_detected(request.repo_path())
     }
 }
 
 impl ResolveWorkflowFilesPort for ResolveWorkflowFilesService {
     fn execute(
         &self,
-        request: ResolveWorkflowFilesRequest<'_>,
+        request: ResolveWorkflowFilesRequest,
     ) -> Result<ResolveWorkflowFilesResponse, Box<dyn Error>> {
         let workflow_files = self.resolve_files(&request)?;
         Ok(ResolveWorkflowFilesResponse::new(workflow_files))
