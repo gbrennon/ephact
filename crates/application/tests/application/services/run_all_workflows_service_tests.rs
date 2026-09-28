@@ -4,7 +4,10 @@ mod tests {
 
     use ephact::{
         application::{
-            dtos::{requests::RunAllWorkflowsRequest, responses::WorkflowExecutionResponse},
+            dtos::{
+                requests::RunAllWorkflowsRequest,
+                responses::{JobSummaryResponse, WorkflowExecutionResponse},
+            },
             ports::inbound::RunAllWorkflowsPort,
             services::run_all_workflows_service::{
                 ALL_WORKFLOWS_SUMMARY_NAME, RunAllWorkflowsService,
@@ -51,7 +54,12 @@ mod tests {
         let command_bus =
             FakeCommandBus::new().with_workflow_result(WorkflowExecutionResponse::new(
                 "TestWF".to_string(),
-                Vec::new(),
+                vec![JobSummaryResponse::new(
+                    "build",
+                    Some("build".to_string()),
+                    Vec::new(),
+                    true,
+                )],
                 vec!["c-all".to_string()],
                 true,
             ));
@@ -71,6 +79,7 @@ mod tests {
 
         assert!(summary.success());
         assert_eq!(summary.name(), ALL_WORKFLOWS_SUMMARY_NAME);
+        assert_eq!(summary.job_summaries()[0].name(), Some("TestWF / build"));
         assert_eq!(command_bus.dispatched_workflows.lock().len(), 2);
         assert_pull_request_workflows(&command_bus);
         assert_completed_events(&event_bus, run_id, &repository_path);
