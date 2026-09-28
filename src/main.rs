@@ -1,4 +1,5 @@
 mod app_runner;
+mod config_factory;
 
 use std::error::Error;
 
