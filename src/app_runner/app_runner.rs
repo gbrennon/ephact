@@ -8,19 +8,29 @@ use ephact::{
     },
 };
 
+use super::ConfigFactory;
+
 pub struct AppRunner {
-    _private: (),
+    config_factory: ConfigFactory,
+    exit: fn(i32),
 }
 
 impl AppRunner {
-    pub fn run_application() {
-        let stderr_filter = StderrFilter::install();
-        let result = Self::run_application_impl();
-        stderr_filter.restore();
-        Self::finish(result, Self::exit);
+    pub fn new() -> Self {
+        Self {
+            config_factory: ConfigFactory::from_environment(),
+            exit: Self::exit_process,
+        }
     }
 
-    fn run_application_impl() -> Result<(), Box<dyn Error>> {
+    pub fn run_application(&self) {
+        let stderr_filter = StderrFilter::install();
+        let result = self.run_application_impl();
+        stderr_filter.restore();
+        Self::finish(result, self.exit);
+    }
+
+    fn run_application_impl(&self) -> Result<(), Box<dyn Error>> {
         let verbose = std::env::args_os()
             .any(|arg| ephact::presentation::cli::RunArgs::is_verbose_flag(&arg));
         let (progress_reporter, progress_stream) = RunProgressHandler::with_tui_stream(verbose);
@@ -34,7 +44,7 @@ impl AppRunner {
             Some(Box::new(progress_reporter)),
             Box::new(branding_store),
         );
-        let settings_store = super::ConfigFactory::create_settings_store()?;
+        let settings_store = self.config_factory.create_settings_store()?;
         let settings = settings_store.read_settings()?;
         let app = CompositionRoot::compose_with_tui_progress_and_settings(
             container,
@@ -45,17 +55,17 @@ impl AppRunner {
         app.run(std::env::args_os())
     }
 
-    fn finish<F: Fn(i32)>(result: Result<(), Box<dyn Error>>, exit_strategy: F) {
+    fn finish(result: Result<(), Box<dyn Error>>, exit: fn(i32)) {
         match result {
-            Ok(()) => exit_strategy(0),
+            Ok(()) => exit(0),
             Err(error) => {
                 eprintln!("Error: {error}");
-                exit_strategy(1);
+                exit(1);
             }
         }
     }
 
-    fn exit(code: i32) {
+    fn exit_process(code: i32) {
         std::process::exit(code);
     }
 }

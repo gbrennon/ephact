@@ -3,18 +3,24 @@ use std::{env, ffi::OsString, path::PathBuf, sync::Arc};
 use ephact::{application::errors::SettingsStoreError, infrastructure::TomlSettingsStore};
 
 pub struct ConfigFactory {
-    _private: (),
+    home: Option<OsString>,
 }
 
 impl ConfigFactory {
-    pub fn create_settings_store() -> Result<Arc<TomlSettingsStore>, SettingsStoreError> {
-        Self::create_settings_store_from_home(env::var_os("HOME"))
+    pub fn from_environment() -> Self {
+        Self {
+            home: env::var_os("HOME"),
+        }
     }
 
-    fn create_settings_store_from_home(
-        home: Option<OsString>,
-    ) -> Result<Arc<TomlSettingsStore>, SettingsStoreError> {
-        let home = home
+    pub fn from_home(home: Option<OsString>) -> Self {
+        Self { home }
+    }
+
+    pub fn create_settings_store(&self) -> Result<Arc<TomlSettingsStore>, SettingsStoreError> {
+        let home = self
+            .home
+            .as_ref()
             .map(PathBuf::from)
             .ok_or_else(|| SettingsStoreError::Path("HOME is not set".to_string()))?;
         Ok(Arc::new(TomlSettingsStore::new(
