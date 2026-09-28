@@ -26,10 +26,8 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.merge_commit_sha }}
 
-      - name: Install dependencies
-        uses: ./.forgejo/actions/install-dependencies
-      - name: Cache Rust dependencies
-        uses: ./.forgejo/actions/cache-rust-deps
+      - name: Set up Rust environment
+        uses: ./.forgejo/actions/setup-rust-environment
         with:
           cache-key-prefix: ephact-release
           rustc-version: stable
