@@ -112,7 +112,7 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
 
         Ok(RunSummaryResponse::new(
             ALL_WORKFLOWS_SUMMARY_NAME,
-            collect_job_summaries(&executions),
+            self.collect_qualified_job_summaries(&executions),
             success,
             started_at.elapsed(),
         ))
@@ -176,26 +176,29 @@ impl RunAllWorkflowsService {
                 error.to_string(),
             )));
     }
-}
 
-fn collect_job_summaries(executions: &[WorkflowExecutionResponse]) -> Vec<JobSummaryResponse> {
-    executions
-        .iter()
-        .flat_map(|execution| {
-            execution
-                .job_summaries()
-                .iter()
-                .map(move |job| qualified_job_summary(execution, job))
-        })
-        .collect()
-}
+    fn collect_qualified_job_summaries(
+        &self,
+        executions: &[WorkflowExecutionResponse],
+    ) -> Vec<JobSummaryResponse> {
+        executions
+            .iter()
+            .flat_map(|execution| {
+                execution
+                    .job_summaries()
+                    .iter()
+                    .map(move |job| Self::qualify_job_summary(execution, job))
+            })
+            .collect()
+    }
 
-fn qualified_job_summary(
-    execution: &WorkflowExecutionResponse,
-    job: &JobSummaryResponse,
-) -> JobSummaryResponse {
-    let qualified = job
-        .name()
-        .map(|name| format!("{} / {}", execution.workflow_name(), name));
-    job.clone().with_name(qualified)
+    fn qualify_job_summary(
+        execution: &WorkflowExecutionResponse,
+        job: &JobSummaryResponse,
+    ) -> JobSummaryResponse {
+        let qualified = job
+            .name()
+            .map(|name| format!("{} / {}", execution.workflow_name(), name));
+        job.clone().with_name(qualified)
+    }
 }
