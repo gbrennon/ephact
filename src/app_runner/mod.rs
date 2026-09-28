@@ -1,5 +1,6 @@
-mod app_runner;
 mod config_factory;
+#[path = "app_runner.rs"]
+mod runner;
 
-pub use app_runner::AppRunner;
 pub use config_factory::ConfigFactory;
+pub use runner::AppRunner;
