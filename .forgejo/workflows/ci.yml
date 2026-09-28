@@ -22,8 +22,7 @@ jobs:
           cache-key-prefix: ephact
           rustc-version: stable
           include-sysroot: "false"
-      - name: Check formatting
-        run: cargo fmt --all -- --check
+      - uses: ./.forgejo/actions/ci-validate
 
   workflow-lint:
     name: Workflow lint
@@ -71,8 +70,7 @@ jobs:
           cache-key-prefix: ephact
           rustc-version: stable
           include-sysroot: "false"
-      - name: Clippy
-        run: cargo clippy --all-targets --locked -- -D warnings
+      - uses: ./.forgejo/actions/ci-lint
 
   verify-secrets:
     name: Verify secrets
