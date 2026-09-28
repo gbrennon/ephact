@@ -17,8 +17,7 @@ jobs:
     runs-on: codeberg-tiny
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.forgejo/actions/install-dependencies
-      - uses: ./.forgejo/actions/cache-rust-deps
+      - uses: ./.forgejo/actions/setup-rust-environment
         with:
           cache-key-prefix: ephact
           rustc-version: stable
@@ -32,8 +31,7 @@ jobs:
     needs: [validate]
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.forgejo/actions/install-dependencies
-      - uses: ./.forgejo/actions/cache-rust-deps
+      - uses: ./.forgejo/actions/setup-rust-environment
         with:
           cache-key-prefix: ephact
           rustc-version: stable
@@ -46,8 +44,7 @@ jobs:
     needs: [validate]
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.forgejo/actions/install-dependencies
-      - uses: ./.forgejo/actions/cache-rust-deps
+      - uses: ./.forgejo/actions/setup-rust-environment
         with:
           cache-key-prefix: ephact
           rustc-version: stable
