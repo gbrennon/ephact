@@ -47,6 +47,28 @@ enum ActionDirectoryResolution {
     Directory(PathBuf),
 }
 
+/// Groups the resolved action data required to execute an action.
+#[derive(Debug)]
+pub struct ActionExecutionContext {
+    action_directory: PathBuf,
+    definition: ActionDefinition,
+    inputs: HashMap<String, String>,
+}
+
+impl ActionExecutionContext {
+    pub fn new(
+        action_directory: PathBuf,
+        definition: ActionDefinition,
+        inputs: HashMap<String, String>,
+    ) -> Self {
+        Self {
+            action_directory,
+            definition,
+            inputs,
+        }
+    }
+}
+
 impl ExecuteActionService {
     pub fn new(
         container: Arc<dyn ContainerPort>,
@@ -79,7 +101,8 @@ impl ExecuteActionService {
         let definition = self.load_action_definition(request, &action_dir)?;
         let inputs = self.resolve_action_inputs(&definition, request)?;
 
-        self.execute_loaded_action(request, &definition, &inputs, &action_dir)
+        let context = ActionExecutionContext::new(action_dir, definition, inputs);
+        self.execute_loaded_action(request, &context)
     }
 
     fn resolve_action_directory(
@@ -130,13 +153,16 @@ impl ExecuteActionService {
     fn execute_loaded_action(
         &self,
         request: &ExecuteActionRequest,
-        definition: &ActionDefinition,
-        inputs: &HashMap<String, String>,
-        action_dir: &std::path::Path,
+        context: &ActionExecutionContext,
     ) -> Result<ExecuteActionResponse, StepError> {
-        match definition.runs() {
+        match context.definition.runs() {
             ActionRuntime::Composite { steps } => self.composite_runner.run(
-                RunCompositeActionRequest::new(steps.as_slice(), inputs, action_dir, request),
+                RunCompositeActionRequest::new(
+                    steps.as_slice(),
+                    &context.inputs,
+                    &context.action_directory,
+                    request,
+                ),
                 self.container.clone(),
             ),
             ActionRuntime::Node12 { main }
@@ -145,9 +171,9 @@ impl ExecuteActionService {
                 .node_runner
                 .run(
                     RunNodeActionRequest::new(
-                        action_dir,
+                        &context.action_directory,
                         main.as_str(),
-                        inputs.clone(),
+                        context.inputs.clone(),
                         request.env().clone(),
                     ),
                     self.container.clone(),
