@@ -119,6 +119,18 @@ requests targeting `main`, and manual dispatch:
 1. **Lint** runs `cargo clippy --all-targets --locked -- -D warnings`.
 1. **Verify secrets** verifies repository secrets for same-repository runs.
 
+The Validate, Test, and Lint jobs share the
+`.forgejo/actions/setup-rust-environment` composite action. It combines
+`install-dependencies` with `cache-rust-deps` and accepts the same cache inputs:
+
+```yaml
+- uses: ./.forgejo/actions/setup-rust-environment
+  with:
+    cache-key-prefix: ephact
+    rustc-version: stable
+    include-sysroot: "false"
+```
+
 Workflow linting is available locally through `just lint-workflows`, but it is
 not currently a CI step.
 
