@@ -54,6 +54,38 @@ The project uses `just` for task automation:
 | `just install-dev`             | Install a debug binary for local iteration                                                                                         | `cargo install --path . --debug`                                                       |
 | `just install`                 | Install a release binary to `~/.cargo/bin`                                                                                         | `cargo install --path .`                                                               |
 
+## Extending CLI Commands
+
+CLI commands are defined with `clap` in `crates/presentation/src/cli`.
+When adding a command, keep parsing and execution separate:
+
+1. Add an argument type in its own `*_args.rs` module using `#[derive(clap::Args)]`.
+2. Register the type as a variant in `cli/command.rs` with `#[derive(clap::Subcommand)]`.
+3. Add the corresponding match arm in `Cli::execute_command` in `cli/cli_app.rs`.
+4. Add parser and handler tests, then document the command in `README.md` and
+   `docs/usage.md` when it is user-facing.
+
+For example, a new `inspect` command would be registered alongside `run`:
+
+```rust
+#[derive(clap::Subcommand)]
+enum Command {
+    Run(Box<RunArgs>),
+    Inspect(InspectArgs), // define InspectArgs in inspect_args.rs
+}
+```
+
+The existing `run` command is invoked through Cargo's argument separator:
+
+```sh
+cargo run -- run --workflow CI
+```
+
+The first `--` passes arguments to `ephact`; `run` selects the application
+subcommand and `--workflow CI` is parsed by `RunArgs`. Follow the same pattern
+for a new command: register it in `Command`, add its arguments, and dispatch it
+from `Cli`.
+
 ## Running Workflows Locally
 
 Use the existing `just` recipe names to run the checks that correspond to the
