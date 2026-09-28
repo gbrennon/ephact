@@ -1,8 +1,6 @@
-use std::sync::Arc;
-
 use ephact::{
     application::ports::outbound::SettingsStorePort,
-    infrastructure::{CargoProjectBrandingStore, Container, TomlSettingsStore},
+    infrastructure::{CargoProjectBrandingStore, Container},
     presentation::{
         cli::run_progress_handler::RunProgressHandler, composition_root::CompositionRoot,
     },
@@ -20,7 +18,7 @@ pub(super) fn run_application() -> Result<(), Box<dyn std::error::Error>> {
     );
     let container =
         Container::build_with_branding(Some(Box::new(progress_reporter)), Box::new(branding_store));
-    let settings_store = Arc::new(TomlSettingsStore::from_environment()?);
+    let settings_store = super::config_factory::create_settings_store()?;
     let settings = settings_store.read_settings()?;
     let app = CompositionRoot::compose_with_tui_progress_and_settings(
         container,
