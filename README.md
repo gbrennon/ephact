@@ -10,7 +10,7 @@
 > [https://codeberg.org/gbrennon/ephact](https://codeberg.org/gbrennon/ephact).
 
 `ephact` is a Rust crate that runs supported Forgejo and GitHub workflows
-locally in Docker or Podman containers. The selected repository is bind-mounted
+locally in Linux containers using Docker or Podman. The selected repository is bind-mounted
 read-only at `/workspace` by default. Pass `--allow-repo-writes` to permit
 workflow steps to modify the host working tree. Runner-managed files are
 container-local, and failed runs write diagnostics under the system temporary
@@ -66,7 +66,7 @@ inputs discovered from the workflow and its local actions. For each value, enter
 a literal value or `env:VARIABLE`; a blank keeps an existing or default value,
 but an unresolved required input cannot be left blank.
 
-Once configured, the workflow runs in Docker or Podman containers and live
+Once configured, the workflow runs in Linux containers using Docker or Podman and live
 progress streams into the run view. Press `Esc` or `Backspace` to cancel a run
 in progress. When it finishes, a run summary reports the workflow status and
 each job result. Press `d` to open the step-by-step run details, and use the
