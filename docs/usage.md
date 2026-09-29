@@ -2,7 +2,7 @@
 
 `ephact` provides a terminal user interface by default and supports commands to
 inspect workflows, manage settings, and run supported pull-request workflows in
-Docker or Podman containers:
+Linux containers using Docker or Podman:
 
 - No subcommand: Open the TUI using the persisted default interface.
 - `run`: Execute pull-request workflows with the selected Git repository mounted
@@ -35,7 +35,7 @@ workflow and its local actions. For each value, enter a literal value or
 `env:VARIABLE`; a blank keeps an existing or default value and is rejected for an
 unresolved required input.
 
-The workflow then runs in Docker or Podman containers with live progress in the
+The workflow then runs in Linux containers using Docker or Podman with live progress in the
 run view. Press `Esc` or `Backspace` to cancel a run in progress. When it
 finishes, a run summary reports the workflow status and each job result; press
 `d` to open the step-by-step run details and scroll with the arrow keys. Only
@@ -111,7 +111,7 @@ or a worktree file.
 | `--preserve`             | None            | Accepted by the parser but currently has no effect                                                                                            | No effect                      |
 | `--allow-repo-writes`    | None            | Permit workflow steps to modify the host repository through the workspace mount | Disabled                       |
 | `--verbose`              | None            | Show workflow and job lifecycle details, live step output, and failure diagnostics in addition to step start/finish status                     | Step start/finish status       |
-| `--allow-real-container` | None            | Accepted but currently has no effect; a real Docker or Podman runtime is always auto-detected and used                                        | No effect                      |
+| `--allow-real-container` | None            | Accepted but currently has no effect; a real Docker or Podman runtime on Linux is always auto-detected and used                                        | No effect                      |
 | `--allow-real-fetcher`   | None            | Accepted but currently has no effect; uncached remote actions are fetched from their forge by default                                         | No effect                      |
 | `--allow-network`        | None            | Accepted but currently has no effect; containers use the runtime's default network behavior                                                   | No effect                      |
 
@@ -214,7 +214,7 @@ ephact list-actions /path/to/repo
 
 ## Runtime and Safety
 
-`ephact` requires and auto-detects a reachable Docker or Podman runtime. The
+`ephact` requires and auto-detects a reachable Docker or Podman runtime on Linux. The
 selected repository is bind-mounted read-only at `/workspace` by default.
 Pass `--allow-repo-writes` when workflow steps must modify the host working
 tree. Runner-managed files are container-local. Pulling job images and cloning

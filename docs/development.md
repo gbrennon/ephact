@@ -150,7 +150,7 @@ Neither command enables the feature-gated container integration target.
 ### Container Integration Tests
 
 The real container integration suite requires at least one available Docker or
-Podman daemon and is gated behind the `container-integration` feature:
+Podman daemon on Linux and is gated behind the `container-integration` feature:
 
 ```sh
 cargo test --features container-integration
