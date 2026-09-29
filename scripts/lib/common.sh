@@ -52,9 +52,11 @@ extract_coverage_totals_from_json() {
 normalize_path() {
   local path="$1"
   case "$path" in
-    */src/*) printf 'src/%s\n' "${path##*/src/}" ;;
+    crates/*|tests/*) printf '%s\n' "$path" ;;
+    */crates/*/src/*) printf 'crates/%s\n' "${path##*/crates/}" ;;
+    */src/*) printf 'ephact/src/%s\n' "${path##*/src/}" ;;
     */tests/*) printf 'tests/%s\n' "${path##*/tests/}" ;;
-    src/*|tests/*) printf '%s\n' "$path" ;;
+    src/*) printf 'ephact/%s\n' "$path" ;;
     *) printf '%s\n' "$path" ;;
   esac
 }
