@@ -1,3 +1,160 @@
+## [0.4.0] - 2026-09-29
+
+### Features
+
+- **domain**: Validate workflow run configuration
+
+### Bug Fixes
+
+- **coverage**: Support scoped workspace reports
+- **domain**: Provide workflow config default
+- **domain**: Keep context parsing helpers crate-visible
+- **coverage**: Preserve workspace crate paths
+
+### Refactor
+
+- **workspace**: Split application into crates
+- **domain**: Remove thiserror dependency
+- **domain**: Remove external dependencies
+- **domain**: Rename workflow run config
+- Move run identity out of domain
+- Use workflow-specific domain terminology
+- **presentation**: Use default workflow config
+- Isolate run config input type
+- Bind run ID generation to a type
+- **domain**: Split step into per-type submodules
+- **domain**: Extract builtin_function into own module
+- **domain**: Extract expression_cursor into own module
+- **domain**: Extract identifier_token into own module
+- **domain**: Extract number_literal into own module
+- **domain**: Extract operator_token into own module
+- **domain**: Extract string_literal into own module
+- **domain**: Extract step_network_policy into own module
+- **domain**: Split action_reference into per-type submodules
+- **domain**: Convert action_reference to re-exporting module
+- **domain**: Reduce context_value to single struct
+- **domain**: Reduce job_strategy to single struct
+- **domain**: Reduce json_text_reader to single struct
+- **domain**: Reduce project_description to single struct
+- **domain**: Reduce project_emblem to single struct
+- **domain**: Reduce project_name to single struct
+- **domain**: Reduce project_version to single struct
+- **domain**: Reduce remote_action_reference to single struct
+- **domain**: Reduce repo_path to single struct
+- **domain**: Reduce repository_name to single struct
+- **domain**: Reduce shell_command to single struct
+- **domain**: Declare per-type value object modules
+- **domain**: Reduce project_branding_error to single struct
+- **domain**: Reduce step_error to single struct
+- **domain**: Convert step to re-exporting module
+- **domain**: Reduce ephemeral_repository to single struct
+- **domain**: Reduce project_branding to single struct
+- **domain**: Reduce repository to single struct
+- **domain**: Reduce temp_dir_template to single struct
+- **domain**: Split execution_planner into per-type submodules
+- **domain**: Convert execution_planner to re-exporting module
+- **domain**: Split expression_evaluator into per-type submodules
+- **domain**: Convert expression_evaluator to re-exporting module
+- **domain**: Split expression_functions into per-type submodules
+- **domain**: Convert expression_functions to re-exporting module
+- **domain**: Split expression_lexer into per-type submodules
+- **domain**: Convert expression_lexer to re-exporting module
+- **domain**: Split expression_parser into per-type submodules
+- **domain**: Convert expression_parser to re-exporting module
+- **domain**: Reduce expression_resolver to single struct
+- **domain**: Reduce repository_factory to single struct
+- **domain**: Reduce step_interpolator to single struct
+- **infrastructure**: Use append_data for gnu tar paths
+- **domain**: Remove must-use and crate visibility
+- **domain**: Flatten string literal lexer control flow
+- **presentation**: Inject project emblem text from root crate
+- **application**: Name job summary collection behavior
+- **application**: Use workflow config validation
+- **application**: Use workflow config validation
+- **domain**: Flatten remote reference parts
+- **domain**: Wire configurable action references
+- **application**: Consolidate workflow errors
+- **application**: Extract workflow filtering
+- **cli**: Add application runner module
+- **presentation**: Extract emblem rendering
+- **domain**: Centralize network command policy
+- **cli**: Abstract process exit strategy
+- **cli**: Extract settings config factory
+- **domain**: Extract validatable trait
+- **application**: Extract execution aggregator
+- **application**: Own workflow resolution request
+- **infrastructure**: Extract marker serializer
+- **application**: Add run request builder
+- **presentation**: Add tui renderable trait
+- **application**: Group step responses
+- **application**: Bundle action execution context
+- **infrastructure**: Extract atomic writes
+- **application**: Add response builder
+- **app-runner**: Move runner into module
+- **config**: Move factory into app runner
+- **main**: Keep entrypoint minimal
+- **app-runner**: Bind runner behavior to struct
+- **app-runner**: Expose struct-based module API
+- **app-runner**: Simplify exit handling
+- **app-runner**: Avoid module inception
+- **app-runner**: Make dependencies explicit
+- **config**: Reuse explicit home constructor
+- **app-runner**: Remove test exit hook
+
+### Documentation
+
+- **contributing**: Document scoped coverage
+- **development**: Document scoped coverage
+- **development**: Remove staging registry secret
+- Document local ci checks
+- Document shared ci setup
+- Explain extending CLI commands
+- Clarify hypothetical CLI example
+- Explain local CI commands
+
+### Testing
+
+- **domain**: Update semantic names test for split modules
+- **config**: Move factory tests to integration tests
+- **main**: Move main tests to integration tests
+- **config**: Isolate command setup from scenarios
+- **cli**: Isolate main command scenarios
+- **config**: Add command process helper
+- **cli**: Add main process helper
+- **config**: Isolate child coverage output
+- **cli**: Isolate child coverage output
+- **config**: Use integration test functions
+- **cli**: Use integration test functions
+- Remove runtime-dependent process tests
+- Mirror integration test paths
+
+### Continuous Integration
+
+- **publish**: Publish workspace crates to staging in dependency order
+- **publish**: Publish workspace crates to production in dependency order
+- **publish**: Remove Publish staging job from build workflow
+- **publish**: Remove publish-crate-staging composite action
+- **secrets**: Drop staging token verification
+- Add shared rust setup action
+- Reuse shared rust setup
+- Validate workflow files with actionlint
+- Install actionlint without Go
+- Reuse validation and lint actions
+- Reuse Rust environment setup action
+- Retry pull request checks
+- Retry pull request checks
+- Retry secrets verification
+
+### Miscellaneous Tasks
+
+- **just**: Forward coverage scope arguments
+- **deps**: Remove unused application dependencies
+- **deps**: Move root test dependencies
+- **deps**: Update domain lockfile
+- **crates**: Add description and license to member crates
+- **domain**: Add remote reference defaults
+- **domain**: Export remote reference defaults
+- Align local ci lint recipe
 ## [0.3.1] - 2026-09-25
 
 ### Breaking Changes
