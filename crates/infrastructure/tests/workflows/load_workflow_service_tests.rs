@@ -1,0 +1,41 @@
+use ephact::{
+    application::{
+        dtos::requests::LoadWorkflowRequest,
+        ports::outbound::workflow_loader_port::WorkflowLoaderPort,
+    },
+    infrastructure::workflows::load_workflow_service::LoadWorkflowService,
+};
+
+const VALID_WORKFLOW: &str = "name: Ci\non: push\nenv:\n  MODE: staging\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n";
+
+#[test]
+fn load_parses_valid_workflow_content() {
+    let workflow = LoadWorkflowService::new()
+        .load(LoadWorkflowRequest::new(VALID_WORKFLOW.to_string()))
+        .unwrap();
+
+    assert_eq!(workflow.name(), Some("Ci"));
+    assert_eq!(
+        workflow.env().get("MODE").map(String::as_str),
+        Some("staging")
+    );
+    assert!(workflow.jobs().contains_key("build"));
+}
+
+#[test]
+fn load_errors_for_content_that_is_not_a_workflow_document() {
+    let result = LoadWorkflowService::new().load(LoadWorkflowRequest::new(
+        "- push\n- pull_request\n".to_string(),
+    ));
+
+    assert!(result.is_err());
+}
+
+#[test]
+fn load_errors_for_malformed_yaml() {
+    let result = LoadWorkflowService::new().load(LoadWorkflowRequest::new(
+        "name: [unterminated\n".to_string(),
+    ));
+
+    assert!(result.is_err());
+}

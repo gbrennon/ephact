@@ -2,6 +2,7 @@
 name = "ephact-application"
 version = "0.3.0"
 edition = "2024"
+autotests = false
 description = "Application layer of ephact: application services, ports and DTOs."
 license = "MIT OR Apache-2.0"
 
