@@ -1,6 +1,6 @@
 [package]
 name = "ephact-infrastructure"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 autotests = false
 description = "Infrastructure layer of ephact: container, workflow, persistence and messaging adapters."
@@ -21,10 +21,10 @@ thiserror = "2.0.18"
 serde = { version = "1", features = ["derive"] }
 
 # Dependencies on the domain layer
-ephact-domain = { path = "../domain", version = "0.3.0" }
+ephact-domain = { path = "../domain", version = "0.4.0" }
 
 # Dependencies on the application layer
-ephact-application = { path = "../application", version = "0.3.0" }
+ephact-application = { path = "../application", version = "0.4.0" }
 
 [dev-dependencies]
 serde_json = "1"

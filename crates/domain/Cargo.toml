@@ -1,6 +1,6 @@
 [package]
 name = "ephact-domain"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 autotests = false
 description = "Domain layer of ephact: aggregates, entities, value objects and domain services."
