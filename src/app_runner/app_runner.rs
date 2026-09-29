@@ -12,14 +12,12 @@ use super::ConfigFactory;
 
 pub struct AppRunner {
     config_factory: ConfigFactory,
-    exit: fn(i32),
 }
 
 impl AppRunner {
     pub fn new() -> Self {
         Self {
             config_factory: ConfigFactory::from_environment(),
-            exit: Self::exit_process,
         }
     }
 
@@ -27,7 +25,7 @@ impl AppRunner {
         let stderr_filter = StderrFilter::install();
         let result = self.run_application_impl();
         stderr_filter.restore();
-        Self::finish(result, self.exit);
+        Self::finish(result);
     }
 
     fn run_application_impl(&self) -> Result<(), Box<dyn Error>> {
@@ -55,17 +53,13 @@ impl AppRunner {
         app.run(std::env::args_os())
     }
 
-    fn finish(result: Result<(), Box<dyn Error>>, exit: fn(i32)) {
+    fn finish(result: Result<(), Box<dyn Error>>) {
         match result {
-            Ok(()) => exit(0),
+            Ok(()) => std::process::exit(0),
             Err(error) => {
                 eprintln!("Error: {error}");
-                exit(1);
+                std::process::exit(1);
             }
         }
-    }
-
-    fn exit_process(code: i32) {
-        std::process::exit(code);
     }
 }
