@@ -36,7 +36,7 @@ The connection to `ephact` is the project author's interpretation, not a claim
 made by Production I.G or the film's rights holders.
 
 `ephact` applies the same lens to workflow execution. Each job runs in a newly
-created Docker or Podman container with the selected repository bind-mounted at
+created Linux container through Docker or Podman with the selected repository bind-mounted at
 `/workspace`. When a run reaches completion, `ephact` attempts to stop, kill,
 and remove its job containers; cached images and changes written into the
 repository remain. **Variation** comes from executing the current workflow
