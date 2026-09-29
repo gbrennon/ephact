@@ -1,41 +1,36 @@
-use std::process::Command;
+#[path = "common/config_factory_process.rs"]
+mod cli_process;
 
-use tempfile::TempDir;
+#[cfg(test)]
+mod tests {
+    use tempfile::TempDir;
 
-fn ephact_command(home: Option<&std::path::Path>, args: &[&str]) -> std::process::Output {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ephact"));
-    command.args(args);
-    if let Some(home) = home {
-        command.env("HOME", home);
-    } else {
-        command.env_remove("HOME");
+    use super::cli_process::{run_with_home, run_without_home};
+
+    #[test]
+    fn settings_show_uses_config_path_under_home_directory() {
+        let home = TempDir::new().expect("temporary home directory");
+        let output = run_with_home(home.path(), &["settings", "show"]);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+
+        assert!(output.status.success());
+        assert!(
+            stdout.contains(
+                &home
+                    .path()
+                    .join(".config/ephact/config.toml")
+                    .display()
+                    .to_string()
+            )
+        );
     }
-    command.output().expect("ephact should start")
-}
 
-#[test]
-fn settings_show_uses_config_path_under_home_directory() {
-    let home = TempDir::new().expect("temporary home directory");
-    let output = ephact_command(Some(home.path()), &["settings", "show"]);
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    #[test]
+    fn missing_home_directory_returns_an_error() {
+        let output = run_without_home(&["settings", "show"]);
+        let stderr = String::from_utf8_lossy(&output.stderr);
 
-    assert!(output.status.success());
-    assert!(
-        stdout.contains(
-            &home
-                .path()
-                .join(".config/ephact/config.toml")
-                .display()
-                .to_string()
-        )
-    );
-}
-
-#[test]
-fn missing_home_directory_returns_an_error() {
-    let output = ephact_command(None, &["settings", "show"]);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-
-    assert_eq!(output.status.code(), Some(1));
-    assert!(stderr.contains("settings path could not be resolved: HOME is not set"));
+        assert_eq!(output.status.code(), Some(1));
+        assert!(stderr.contains("settings path could not be resolved: HOME is not set"));
+    }
 }
