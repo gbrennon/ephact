@@ -25,16 +25,20 @@ tokio = { version = "1.53.1", features = ["full"] }
 unicode-width = "0.2"
 
 [[test]]
+name = "domain"
+path = "crates/domain/tests/mod.rs"
+
+[[test]]
 name = "application"
-path = "crates/application/tests/application/mod.rs"
+path = "crates/application/tests/mod.rs"
 
 [[test]]
 name = "infrastructure"
-path = "crates/infrastructure/tests/infrastructure/mod.rs"
+path = "crates/infrastructure/tests/mod.rs"
 
 [[test]]
 name = "presentation"
-path = "crates/presentation/tests/presentation/mod.rs"
+path = "crates/presentation/tests/mod.rs"
 
 [[test]]
 name = "e2e"

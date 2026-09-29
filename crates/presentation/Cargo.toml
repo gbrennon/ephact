@@ -2,6 +2,7 @@
 name = "ephact-presentation"
 version = "0.3.0"
 edition = "2024"
+autotests = false
 description = "Presentation layer of ephact: CLI and terminal user interface."
 license = "MIT OR Apache-2.0"
 
