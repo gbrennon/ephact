@@ -3,8 +3,9 @@ use std::sync::Arc;
 use ephact::{
     application::ports::outbound::{ContainerRuntimePort, WorkflowSourcePort},
     infrastructure::{
-        actions::ActionFetcherPort,
+        actions::{ActionFetcherPort, GitActionFetcher},
         di::{Container, container::ContainerCollaborators},
+        images::PlatformImageMapper,
         persistence::CargoProjectBrandingStore,
     },
     presentation::composition_root::{Application, CompositionRoot},
@@ -31,6 +32,30 @@ impl EphactApplication {
                 runtime,
                 Box::new(FixedImageMapper),
                 fetcher,
+                workflow_source,
+            ),
+            None,
+            Box::new(branding_store),
+        );
+
+        CompositionRoot::compose(container)
+    }
+
+    pub fn compose_with_production_adapters(
+        runtime: Arc<dyn ContainerRuntimePort>,
+        workflow_source: Arc<dyn WorkflowSourcePort>,
+    ) -> Application {
+        let branding_store = CargoProjectBrandingStore::from_metadata(
+            env!("CARGO_PKG_NAME"),
+            env!("CARGO_PKG_DESCRIPTION"),
+            env!("CARGO_PKG_VERSION"),
+            ephact::PROJECT_EMBLEM,
+        );
+        let container = Container::with_collaborators_and_branding(
+            ContainerCollaborators::new(
+                runtime,
+                Box::new(PlatformImageMapper),
+                Box::new(GitActionFetcher::with_default_cache_root()),
                 workflow_source,
             ),
             None,
