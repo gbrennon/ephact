@@ -93,4 +93,40 @@ mod tests {
 
         assert_eq!(trigger.inputs(), Some(&inputs));
     }
+
+    #[test]
+    fn filter_is_returned_only_for_push_and_pull_request() {
+        let filter = TriggerFilter::default();
+
+        assert_eq!(
+            WorkflowTrigger::Push(Some(filter.clone())).filter(),
+            Some(&filter)
+        );
+        assert_eq!(
+            WorkflowTrigger::PullRequest(Some(filter.clone())).filter(),
+            Some(&filter)
+        );
+        assert!(
+            WorkflowTrigger::Manual {
+                inputs: HashMap::new()
+            }
+            .filter()
+            .is_none()
+        );
+    }
+
+    #[test]
+    fn inputs_are_absent_for_non_manual_triggers() {
+        assert!(WorkflowTrigger::Push(None).inputs().is_none());
+    }
+
+    #[test]
+    fn expressions_are_returned_only_for_schedule_triggers() {
+        let schedule = WorkflowTrigger::Schedule {
+            expressions: vec!["0 0 * * *".into()],
+        };
+
+        assert_eq!(schedule.expressions(), &["0 0 * * *".to_string()]);
+        assert!(WorkflowTrigger::Push(None).expressions().is_empty());
+    }
 }
