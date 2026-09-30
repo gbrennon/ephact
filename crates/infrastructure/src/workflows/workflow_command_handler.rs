@@ -75,6 +75,10 @@ impl WorkflowCommandHandler {
             cmd.allow_repo_writes(),
         )
         .with_allow_network(cmd.config().allow_network());
+        let req = match cmd.workflow_file_name() {
+            Some(file_name) => req.with_file_name(file_name),
+            None => req,
+        };
         Ok(self.executor.execute(req)?)
     }
 }

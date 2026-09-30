@@ -60,8 +60,9 @@ fn execute_runs_workflow_and_publishes_lifecycle_events() {
     let temp = tempfile::tempdir().unwrap();
     let repo = make_repo(temp.path());
 
-    let workflow_source =
-        FakeWorkflowSource::new().with_workflow_content("name: CI\non: pull_request\njobs: {}");
+    let workflow_source = FakeWorkflowSource::new()
+        .with_workflow_content("name: CI\non: pull_request\njobs: {}")
+        .with_workflow_file_name("ci.yml");
     let command_bus = FakeCommandBus::new().with_workflow_result(WorkflowExecutionResponse::new(
         "CI".to_string(),
         Vec::new(),
@@ -85,7 +86,9 @@ fn execute_runs_workflow_and_publishes_lifecycle_events() {
 
     assert_eq!(summary.name(), "CI");
     assert!(summary.success());
-    assert_eq!(command_bus.dispatched_workflows.lock().len(), 1);
+    let dispatched = command_bus.dispatched_workflows.lock();
+    assert_eq!(dispatched.len(), 1);
+    assert_eq!(dispatched[0].workflow_file_name(), Some("ci.yml"));
 
     let events = event_bus.events();
     assert_eq!(events.len(), 2);

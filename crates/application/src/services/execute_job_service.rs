@@ -291,7 +291,11 @@ impl ExecuteJobService {
     ) {
         self.event_bus
             .publish(DomainEvent::StepStarted(StepStartedPayload::new(
-                workflow.name().unwrap_or("unnamed").to_string(),
+                workflow
+                    .name()
+                    .or(workflow.file())
+                    .unwrap_or("unnamed")
+                    .to_string(),
                 run.job_id().to_string(),
                 step.display_name().to_string(),
             )));
@@ -309,7 +313,11 @@ impl ExecuteJobService {
             .publish(DomainEvent::StepFinished(StepFinishedPayload::new(
                 request.run_id().to_string(),
                 StepFinishedDetails::new(
-                    workflow.name().unwrap_or("unnamed").to_string(),
+                    workflow
+                        .name()
+                        .or(workflow.file())
+                        .unwrap_or("unnamed")
+                        .to_string(),
                     run.job_id().to_string(),
                     summary.name().to_string(),
                     step_success,

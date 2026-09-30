@@ -14,6 +14,7 @@ pub struct ExecuteWorkflowCommand {
     repository: Repository,
     run_id: String,
     allow_repo_writes: bool,
+    workflow_file_name: Option<String>,
 }
 
 impl ExecuteWorkflowCommand {
@@ -30,6 +31,7 @@ impl ExecuteWorkflowCommand {
             repository,
             run_id,
             allow_repo_writes,
+            workflow_file_name: None,
         }
     }
 
@@ -53,13 +55,32 @@ impl ExecuteWorkflowCommand {
         self.allow_repo_writes
     }
 
-    pub fn into_parts(self) -> (String, WorkflowRunConfig, Repository, String, bool) {
+    pub fn with_workflow_file_name(mut self, file_name: impl Into<String>) -> Self {
+        self.workflow_file_name = Some(file_name.into());
+        self
+    }
+
+    pub fn workflow_file_name(&self) -> Option<&str> {
+        self.workflow_file_name.as_deref()
+    }
+
+    pub fn into_parts(
+        self,
+    ) -> (
+        String,
+        WorkflowRunConfig,
+        Repository,
+        String,
+        bool,
+        Option<String>,
+    ) {
         (
             self.workflow_content,
             self.config,
             self.repository,
             self.run_id,
             self.allow_repo_writes,
+            self.workflow_file_name,
         )
     }
 }

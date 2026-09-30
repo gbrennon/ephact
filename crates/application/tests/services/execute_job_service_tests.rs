@@ -447,6 +447,47 @@ fn execute_announces_the_same_step_label_as_the_summary() {
 }
 
 #[test]
+fn execute_reports_the_source_filename_in_step_progress_events() {
+    let wf = workflow(
+        "on: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n",
+    )
+    .with_file("ci.yml");
+    let plan = ExecutionPlanner.plan(&wf).unwrap();
+    let run = &plan.stages()[0].runs()[0];
+    let event_bus = FakeEventBus::new();
+
+    service_with_event_bus(
+        FakeJobContainerPreparerPort::named("job-container"),
+        FakeCommandBus::new(),
+        FakeStepExportsReaderPort::new(),
+        event_bus.clone(),
+    )
+    .execute(
+        ExecuteJobRequest::new(
+            Path::new("/repo"),
+            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            "test-run",
+            false,
+        ),
+        run,
+        &wf,
+    )
+    .unwrap();
+
+    let events = event_bus.events();
+    let started = events.iter().find_map(|event| match event {
+        ephact::domain::messages::events::DomainEvent::StepStarted(payload) => Some(payload),
+        _ => None,
+    });
+    assert_eq!(started.unwrap().workflow_name(), "ci.yml");
+    let finished = events.iter().find_map(|event| match event {
+        ephact::domain::messages::events::DomainEvent::StepFinished(payload) => Some(payload),
+        _ => None,
+    });
+    assert_eq!(finished.unwrap().workflow_name(), "ci.yml");
+}
+
+#[test]
 fn execute_announces_the_prepared_container_as_started_for_the_run() {
     let wf = single_job_workflow("      - run: echo hi\n");
     let plan = ExecutionPlanner.plan(&wf).unwrap();

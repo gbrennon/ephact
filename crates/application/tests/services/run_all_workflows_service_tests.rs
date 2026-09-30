@@ -122,6 +122,13 @@ fn assert_pull_request_workflows(command_bus: &FakeCommandBus) {
     assert!(dispatched.iter().all(|command| {
         command.config().event().map(|event| event.as_str()) == Some("pull_request")
     }));
+    assert_eq!(
+        dispatched
+            .iter()
+            .map(|command| command.workflow_file_name())
+            .collect::<Vec<_>>(),
+        vec![Some("workflow-0.yml"), Some("workflow-1.yml")]
+    );
 }
 
 fn assert_completed_events(event_bus: &FakeEventBus, run_id: &str, repository_path: &str) {

@@ -91,9 +91,10 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
             .workflow_loader
             .load(LoadWorkflowRequest::new(
                 request.workflow_content().to_string(),
+                request.file_name().unwrap_or("unnamed").to_string(),
             ))
             .map_err(|error| ExecuteWorkflowError::Workflow(error.to_string()))?;
-        let workflow_name = workflow.name().unwrap_or("unnamed");
+        let workflow_name = workflow.name().or(workflow.file()).unwrap_or("unnamed");
         let plan = ExecutionPlanner
             .plan(&workflow)
             .map_err(|error| ExecuteWorkflowError::Workflow(format!("{error:?}")))?;
@@ -143,7 +144,12 @@ impl ExecuteWorkflowService {
         &self,
         input: JobExecutionInput<'_>,
     ) -> Result<crate::dtos::responses::JobExecutionResponse, Box<dyn Error>> {
-        self.announce_job_started(input.workflow.name().unwrap_or("unnamed"), input.run);
+        let workflow_name = input
+            .workflow
+            .name()
+            .or(input.workflow.file())
+            .unwrap_or("unnamed");
+        self.announce_job_started(workflow_name, input.run);
         let execution = self.command_bus.dispatch(
             ExecuteJobCommand::new(
                 input.run.job().clone(),
@@ -156,11 +162,7 @@ impl ExecuteWorkflowService {
             .with_allow_repo_writes(input.allow_repo_writes)
             .with_allow_network(input.allow_network),
         )?;
-        self.announce_job_finished(
-            input.workflow.name().unwrap_or("unnamed"),
-            input.run,
-            execution.job_summary().success(),
-        );
+        self.announce_job_finished(workflow_name, input.run, execution.job_summary().success());
         Ok(execution)
     }
 
