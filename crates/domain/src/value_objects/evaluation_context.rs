@@ -190,8 +190,12 @@ mod tests {
     #[test]
     fn get_known_context() {
         let ctx = EvaluationContext::new();
-        assert!(ctx.get("github").is_some());
-        assert!(ctx.get("env").is_some());
+        for name in [
+            "github", "env", "job", "steps", "runner", "secrets", "vars", "strategy", "matrix",
+            "needs", "inputs",
+        ] {
+            assert!(ctx.get(name).is_some(), "expected a context for {name}");
+        }
     }
 
     #[test]
