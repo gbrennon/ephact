@@ -1,6 +1,7 @@
 use crate::{
-    application::ports::outbound::DetectWorkflowTriggerPort, domain::value_objects::TriggerKind,
-    workflows::yaml::WorkflowYaml,
+    application::ports::outbound::DetectWorkflowTriggerPort,
+    domain::value_objects::TriggerKind,
+    workflows::{woodpecker::WoodpeckerPipelineYaml, yaml::WorkflowYaml},
 };
 
 /// Detects a workflow's declared events by parsing its YAML content.
@@ -29,6 +30,12 @@ impl DetectWorkflowTriggerPort for DetectWorkflowTriggerService {
             "schedule" => TriggerKind::Schedule,
             _ => return false,
         };
+        if WoodpeckerPipelineYaml::is_document(workflow_content) {
+            return WoodpeckerPipelineYaml::parse(workflow_content)
+                .map(|parsed| parsed.into_domain().triggers_on(kind))
+                .unwrap_or(false);
+        }
+
         serde_yaml::from_str::<WorkflowYaml>(workflow_content)
             .map(|parsed| parsed.into_domain().triggers_on(kind))
             .unwrap_or(false)
