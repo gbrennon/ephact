@@ -125,7 +125,7 @@ mod tests {
 
     #[test]
     fn into_parts_returns_owned_fields() {
-        let (content, config, repository, run_id, allow_repo_writes) =
+        let (content, config, repository, run_id, allow_repo_writes, workflow_file_name) =
             command_for_test().into_parts();
 
         assert_eq!(content, "content");
@@ -133,6 +133,7 @@ mod tests {
         assert_eq!(repository, repository_for_test());
         assert_eq!(run_id, "run-1");
         assert!(allow_repo_writes);
+        assert_eq!(workflow_file_name, None);
     }
 
     #[test]
