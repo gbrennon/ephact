@@ -13,7 +13,7 @@ use ephact::{
         services::evaluation_context_mapper::EvaluationContextMapper,
         value_objects::EvaluationContext,
     },
-    infrastructure::{steps::JsonStepTextCodec, workflows::yaml::StepYaml},
+    infrastructure::{steps::JsonStepTextCodec, workflows::actions::StepYaml},
 };
 
 use crate::common::fakes::{fake_command_bus::FakeCommandBus, stub_container::StubContainer};

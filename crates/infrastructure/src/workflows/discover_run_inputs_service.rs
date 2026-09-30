@@ -18,7 +18,7 @@ use crate::{
         entities::Step,
         value_objects::{ActionDefinition, ActionInput, ActionRuntime, WorkflowRunConfig},
     },
-    workflows::yaml::{ActionDefinitionYaml, WorkflowYaml},
+    workflows::{actions::ActionDefinitionYaml, workflow_document::WorkflowDocument},
 };
 
 pub struct FilesystemRunInputDiscoveryService {
@@ -232,8 +232,8 @@ impl FilesystemRunInputDiscoveryService {
         let mut declarations = Vec::new();
         let mut provided = HashSet::new();
         for source in sources {
-            let workflow = serde_yaml::from_str::<WorkflowYaml>(source.content())
-                .map(WorkflowYaml::into_domain)
+            let workflow = WorkflowDocument::parse(source.content())
+                .map(WorkflowDocument::into_domain)
                 .map(|workflow| workflow.with_file(source.file_name().to_owned()))
                 .map_err(|error| DiscoverRunInputsError::Discovery(error.to_string()))?;
             Self::add_workflow_inputs(&workflow, &mut declarations)?;

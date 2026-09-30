@@ -3,7 +3,9 @@ use std::sync::Arc;
 use ephact::{
     application::ports::outbound::{ContainerRuntimePort, WorkflowSourcePort},
     infrastructure::{
-        actions::ActionFetcherPort, di::Container, persistence::CargoProjectBrandingStore,
+        actions::ActionFetcherPort,
+        di::{Container, container::ContainerCollaborators},
+        persistence::CargoProjectBrandingStore,
     },
     presentation::composition_root::{Application, CompositionRoot},
 };
@@ -25,10 +27,12 @@ impl EphactApplication {
             ephact::PROJECT_EMBLEM,
         );
         let container = Container::with_collaborators_and_branding(
-            runtime,
-            Box::new(FixedImageMapper),
-            fetcher,
-            workflow_source,
+            ContainerCollaborators::new(
+                runtime,
+                Box::new(FixedImageMapper),
+                fetcher,
+                workflow_source,
+            ),
             None,
             Box::new(branding_store),
         );

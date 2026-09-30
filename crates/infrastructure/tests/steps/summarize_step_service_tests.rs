@@ -10,7 +10,7 @@ use ephact::{
     },
     domain::{entities::Step, errors::StepError},
     infrastructure::{
-        steps::summarize_step_service::SummarizeStepService, workflows::yaml::StepYaml,
+        steps::summarize_step_service::SummarizeStepService, workflows::actions::StepYaml,
     },
 };
 

@@ -1,4 +1,4 @@
-use ephact::{domain::entities::Step, infrastructure::workflows::yaml::StepYaml};
+use ephact::{domain::entities::Step, infrastructure::workflows::actions::StepYaml};
 
 fn step_from(yaml: &str) -> Step {
     serde_yaml::from_str::<StepYaml>(yaml)

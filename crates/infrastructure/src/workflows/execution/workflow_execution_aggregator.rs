@@ -1,4 +1,4 @@
-use crate::dtos::responses::{JobSummaryResponse, WorkflowExecutionResponse};
+use crate::application::dtos::responses::{JobSummaryResponse, WorkflowExecutionResponse};
 
 /// Collects job summaries from workflow executions and qualifies their names.
 #[derive(Debug, Default)]

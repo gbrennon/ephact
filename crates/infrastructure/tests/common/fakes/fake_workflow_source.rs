@@ -10,11 +10,11 @@ use ephact::{
 };
 use parking_lot::Mutex;
 
-#[derive(Default)]
 struct FakeWorkflowSourceState {
     workflows: Vec<WorkflowListItemResponse>,
     actions: Vec<String>,
     workflow_content: String,
+    workflow_file_name: String,
     all_workflow_contents: Vec<String>,
     read_workflow_error: Option<String>,
     read_all_workflows_error: Option<String>,
@@ -24,6 +24,26 @@ struct FakeWorkflowSourceState {
     read_all_workflows_calls: Vec<Repository>,
     list_actions_calls: Vec<Repository>,
     list_workflows_calls: Vec<Repository>,
+}
+
+impl Default for FakeWorkflowSourceState {
+    fn default() -> Self {
+        Self {
+            workflow_file_name: "workflow.yml".to_string(),
+            workflows: Vec::default(),
+            actions: Vec::default(),
+            workflow_content: String::default(),
+            all_workflow_contents: Vec::default(),
+            read_workflow_error: None,
+            read_all_workflows_error: None,
+            list_actions_error: None,
+            list_workflows_error: None,
+            read_workflow_calls: Vec::default(),
+            read_all_workflows_calls: Vec::default(),
+            list_actions_calls: Vec::default(),
+            list_workflows_calls: Vec::default(),
+        }
+    }
 }
 
 /// Canned [`WorkflowSourcePort`] keeping its state behind `Arc<Mutex<_>>` so the
@@ -51,6 +71,11 @@ impl FakeWorkflowSource {
 
     pub fn with_workflow_content(self, content: &str) -> Self {
         self.state.lock().workflow_content = content.to_string();
+        self
+    }
+
+    pub fn with_workflow_file_name(self, name: &str) -> Self {
+        self.state.lock().workflow_file_name = name.to_string();
         self
     }
 
@@ -113,7 +138,7 @@ impl WorkflowSourcePort for FakeWorkflowSource {
 
         Ok(WorkflowSourceFileResponse::new(
             state.workflow_content.clone(),
-            "workflow.yml".to_string(),
+            state.workflow_file_name.clone(),
         ))
     }
 

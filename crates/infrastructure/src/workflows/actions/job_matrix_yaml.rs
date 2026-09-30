@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
-use crate::{domain::value_objects::JobMatrix, workflows::yaml::context_value_from_yaml};
+use crate::{domain::value_objects::JobMatrix, workflows::actions::context_value_from_yaml};
 
 /// The `strategy.matrix:` entry of a job as authored in YAML.
 ///

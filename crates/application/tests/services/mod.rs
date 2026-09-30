@@ -1,11 +1,7 @@
 mod execute_action_service_tests;
 mod execute_job_service_tests;
 mod execute_step_service_tests;
-mod execute_workflow_service_tests;
 mod list_actions_service_tests;
 mod list_workflows_service_tests;
 mod run_action_service_tests;
-mod run_all_workflows_service_tests;
-mod run_workflow_service_tests;
 mod show_project_branding_info_service_tests;
-mod workflow_execution_aggregator_tests;

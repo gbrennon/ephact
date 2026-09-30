@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 use crate::{
     domain::value_objects::ActionDefinition,
-    workflows::yaml::{ActionInputYaml, ActionRuntimeYaml},
+    workflows::actions::{ActionInputYaml, ActionRuntimeYaml},
 };
 
 /// An action's `action.yml` as authored in YAML.

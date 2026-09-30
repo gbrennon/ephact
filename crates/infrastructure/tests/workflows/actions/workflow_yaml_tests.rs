@@ -1,6 +1,6 @@
 use ephact::{
     domain::{aggregates::Workflow, value_objects::TriggerKind},
-    infrastructure::workflows::yaml::WorkflowYaml,
+    infrastructure::workflows::actions::WorkflowYaml,
 };
 
 fn workflow_from(yaml: &str) -> Workflow {

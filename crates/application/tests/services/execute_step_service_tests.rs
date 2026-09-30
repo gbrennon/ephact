@@ -15,7 +15,7 @@ use ephact::{
         services::evaluation_context_mapper::EvaluationContextMapper,
         value_objects::{ContextValue, EvaluationContext},
     },
-    infrastructure::{steps::JsonStepTextCodec, workflows::yaml::StepYaml},
+    infrastructure::{steps::JsonStepTextCodec, workflows::actions::StepYaml},
 };
 
 use crate::common::fakes::{
