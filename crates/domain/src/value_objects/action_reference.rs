@@ -58,6 +58,16 @@ impl ActionReference {
         Self::parse_remote(reference, raw, defaults)
     }
 
+    /// Returns the remote reference when this value addresses a forge action.
+    ///
+    /// Returns `None` for local paths and container images.
+    pub fn as_remote(&self) -> Option<&RemoteActionReference> {
+        match self {
+            Self::Remote(remote) => Some(remote),
+            Self::Local(_) | Self::Docker(_) => None,
+        }
+    }
+
     fn parse_remote(
         reference: &str,
         raw: &str,
@@ -80,11 +90,21 @@ mod tests {
 
     impl ActionReference {
         fn remote_for_test(raw: &str) -> RemoteActionReference {
-            match Self::parse(raw, &github_defaults()).unwrap() {
-                Self::Remote(remote) => remote,
-                other => panic!("expected a remote action, got {other:?}"),
-            }
+            Self::parse(raw, &github_defaults())
+                .unwrap()
+                .as_remote()
+                .cloned()
+                .expect("expected a remote action reference")
         }
+    }
+
+    #[test]
+    fn as_remote_is_none_for_local_and_docker_references() {
+        let local = ActionReference::parse("./action", &github_defaults()).unwrap();
+        let docker = ActionReference::parse("docker://alpine:3.20", &github_defaults()).unwrap();
+
+        assert!(local.as_remote().is_none());
+        assert!(docker.as_remote().is_none());
     }
 
     #[test]
