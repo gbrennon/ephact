@@ -178,4 +178,23 @@ mod tests {
         assert!(workflow.job_named("build").is_some());
         assert!(workflow.job_named("missing").is_none());
     }
+    #[test]
+    fn builders_set_optional_sections() {
+        let workflow = Workflow::new(
+            Some("CI".into()),
+            Vec::new(),
+            HashMap::new(),
+            HashMap::new(),
+        )
+        .with_defaults(Some(ExecutionDefaults::new(None)))
+        .with_permissions(Some(TokenPermissions::new()))
+        .with_concurrency(Some(ConcurrencyGroup::new("ci", Some(true))));
+
+        assert_eq!(workflow.defaults(), Some(&ExecutionDefaults::new(None)));
+        assert_eq!(workflow.permissions(), Some(&TokenPermissions::new()));
+        assert_eq!(
+            workflow.concurrency(),
+            Some(&ConcurrencyGroup::new("ci", Some(true)))
+        );
+    }
 }
