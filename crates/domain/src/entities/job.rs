@@ -300,4 +300,25 @@ mod tests {
         assert!(!job.depends_on("build"));
         assert!(job.continues_after_failure());
     }
+
+    #[test]
+    fn builders_set_optional_infrastructure_sections() {
+        let container = ContainerSpecification::new("node:20");
+        let service = ContainerSpecification::new("postgres:16");
+        let job = Job::default()
+            .with_strategy(Some(JobStrategy::new(None, true, Some(2))))
+            .with_container(Some(container.clone()))
+            .with_services(HashMap::from([("db".into(), service.clone())]))
+            .with_permissions(Some(TokenPermissions::new()))
+            .with_concurrency(Some(ConcurrencyGroup::new("job", Some(false))));
+
+        assert_eq!(job.strategy(), Some(&JobStrategy::new(None, true, Some(2))));
+        assert_eq!(job.container(), Some(&container));
+        assert_eq!(job.services()["db"], service);
+        assert_eq!(job.permissions(), Some(&TokenPermissions::new()));
+        assert_eq!(
+            job.concurrency(),
+            Some(&ConcurrencyGroup::new("job", Some(false)))
+        );
+    }
 }
