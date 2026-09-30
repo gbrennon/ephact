@@ -7,12 +7,12 @@ mod tests {
     impl RemoteActionPipelineTests {
         fn a_workflow_using_a_remote_action_succeeds() {
             let run = RemoteActionPipelineRun::execute();
-            assert_eq!(run.outcome, Ok(()));
+            assert_eq!(run.outcome(), &Ok(()));
         }
 
         fn the_action_is_fetched_from_the_forge_named_in_the_reference() {
             let run = RemoteActionPipelineRun::execute();
-            let fetched = run.fetcher.fetched();
+            let fetched = run.fetcher().fetched();
             let reference = fetched.first().unwrap();
             assert_eq!(reference.host(), "data.forgejo.org");
             assert_eq!(reference.owner(), "actions");
@@ -23,7 +23,7 @@ mod tests {
         fn the_fetched_action_is_copied_into_the_container() {
             let run = RemoteActionPipelineRun::execute();
             assert!(
-                run.activity
+                run.activity()
                     .copied_to_path_containing(RemoteActionPipelineRun::CONTAINER_ACTIONS_ROOT)
             );
         }
@@ -31,7 +31,7 @@ mod tests {
         fn the_javascript_entry_point_is_executed_in_the_container() {
             let run = RemoteActionPipelineRun::execute();
             assert!(
-                run.activity
+                run.activity()
                     .ran_command_containing(RemoteActionPipelineRun::ENTRY_POINT_FILE)
             );
         }
@@ -39,7 +39,7 @@ mod tests {
         fn action_inputs_are_exposed_as_environment_variables() {
             let run = RemoteActionPipelineRun::execute();
             assert!(
-                run.activity
+                run.activity()
                     .ran_command_with_environment(RemoteActionPipelineRun::INPUT_VARIABLE, "20")
             );
         }
@@ -47,7 +47,7 @@ mod tests {
         fn the_step_after_the_remote_action_still_runs() {
             let run = RemoteActionPipelineRun::execute();
             assert!(
-                run.activity
+                run.activity()
                     .ran_script(RemoteActionPipelineRun::TOOLCHAIN_SCRIPT)
             );
         }
