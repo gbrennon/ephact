@@ -36,18 +36,17 @@ impl DetectWorkflowFileService {
 impl DetectWorkflowFilePort for DetectWorkflowFileService {
     fn execute(&self, request: DetectWorkflowFileRequest) -> Result<PathBuf, Box<dyn Error>> {
         let repo_path = request.repo_path();
-        WORKFLOW_DIRECTORIES
+        let Some(platform_dir) = WORKFLOW_DIRECTORIES
             .iter()
             .find(|platform_dir| repo_path.join(platform_dir).exists())
-            .map_or_else(
-                || {
-                    Err(format!(
-                        "no workflows directory found ({})",
-                        supported_workflows_display()
-                    )
-                    .into())
-                },
-                |platform_dir| self.first_workflow_file(repo_path.join(platform_dir), platform_dir),
+        else {
+            return Err(format!(
+                "no workflows directory found ({})",
+                supported_workflows_display()
             )
+            .into());
+        };
+
+        self.first_workflow_file(repo_path.join(platform_dir), platform_dir)
     }
 }
