@@ -38,4 +38,13 @@ mod tests {
             .unwrap();
         assert_eq!(result, ContextValue::text(""));
     }
+
+    #[test]
+    fn join_first_argument_must_be_an_array() {
+        let f = ExpressionFunctions::new();
+
+        let result = f.join(&ContextValue::text("nope"), &ContextValue::text(", "));
+
+        assert!(matches!(result.unwrap_err(), EvalError::TypeError(_)));
+    }
 }
