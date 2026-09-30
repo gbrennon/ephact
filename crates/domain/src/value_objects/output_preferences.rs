@@ -20,3 +20,32 @@ impl OutputPreferences {
         self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_disables_every_flag() {
+        let preferences = OutputPreferences::default();
+
+        assert!(!preferences.preserve());
+        assert!(!preferences.verbose());
+    }
+
+    #[test]
+    fn with_preserve_enables_preserve() {
+        let preferences = OutputPreferences::default().with_preserve(true);
+
+        assert!(preferences.preserve());
+        assert!(!preferences.verbose());
+    }
+
+    #[test]
+    fn with_verbose_enables_verbose() {
+        let preferences = OutputPreferences::default().with_verbose(true);
+
+        assert!(preferences.verbose());
+        assert!(!preferences.preserve());
+    }
+}
