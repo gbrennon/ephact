@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use ephact::{
     application::{
-        dtos::responses::WorkflowListItemResponse, errors::WorkflowSourceError,
+        dtos::responses::{WorkflowListItemResponse, WorkflowSourceFileResponse},
+        errors::WorkflowSourceError,
         ports::outbound::WorkflowSourcePort,
     },
     domain::Repository,
@@ -100,7 +101,7 @@ impl WorkflowSourcePort for FakeWorkflowSource {
         &self,
         repository: &Repository,
         workflow_name: Option<&str>,
-    ) -> Result<String, WorkflowSourceError> {
+    ) -> Result<WorkflowSourceFileResponse, WorkflowSourceError> {
         let mut state = self.state.lock();
         state
             .read_workflow_calls
@@ -110,13 +111,16 @@ impl WorkflowSourcePort for FakeWorkflowSource {
             return Err(WorkflowSourceError::NotFound(message));
         }
 
-        Ok(state.workflow_content.clone())
+        Ok(WorkflowSourceFileResponse::new(
+            state.workflow_content.clone(),
+            "workflow.yml".to_string(),
+        ))
     }
 
     fn read_all_workflows(
         &self,
         repository: &Repository,
-    ) -> Result<Vec<String>, WorkflowSourceError> {
+    ) -> Result<Vec<WorkflowSourceFileResponse>, WorkflowSourceError> {
         let mut state = self.state.lock();
         state.read_all_workflows_calls.push(repository.clone());
 
@@ -124,7 +128,14 @@ impl WorkflowSourcePort for FakeWorkflowSource {
             return Err(WorkflowSourceError::NotFound(message));
         }
 
-        Ok(state.all_workflow_contents.clone())
+        Ok(state
+            .all_workflow_contents
+            .iter()
+            .enumerate()
+            .map(|(index, content)| {
+                WorkflowSourceFileResponse::new(content.clone(), format!("workflow-{index}.yml"))
+            })
+            .collect())
     }
 
     fn list_actions(&self, repository: &Repository) -> Result<Vec<String>, WorkflowSourceError> {

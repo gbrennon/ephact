@@ -140,6 +140,10 @@ impl RunAllWorkflowsService {
             .workflow_source
             .read_all_workflows(repository)
             .map_err(|error| ApplicationError::Workflow(error.to_string()))?;
+        let workflow_contents = workflow_contents
+            .into_iter()
+            .map(|workflow| workflow.content().to_owned())
+            .collect();
         self.filter_workflow_contents(workflow_contents, event)
             .into_iter()
             .map(|content| {

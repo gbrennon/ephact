@@ -269,11 +269,12 @@ fn read_workflow_returns_the_content_of_the_workflow_with_the_requested_name() {
     let deploy = "name: Deploy\non: [release]\n";
     write_workflow(tmp.path(), "deploy.yml", deploy);
 
-    let content = source()
+    let workflow = source()
         .read_workflow(&repository(tmp.path()), Some("Deploy"))
         .unwrap();
 
-    assert_eq!(content, deploy);
+    assert_eq!(workflow.content(), deploy);
+    assert_eq!(workflow.file_name(), "deploy.yml");
 }
 
 #[test]
@@ -317,7 +318,8 @@ fn read_workflow_without_a_name_returns_the_first_workflow_by_path() {
         .read_workflow(&repository(tmp.path()), None)
         .unwrap();
 
-    assert_eq!(content, ci);
+    assert_eq!(content.content(), ci);
+    assert_eq!(content.file_name(), "ci.yml");
 }
 
 #[test]
@@ -340,11 +342,26 @@ fn read_workflow_without_a_name_reads_an_unnamed_workflow_file() {
     let body = "on: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n";
     write_workflow(tmp.path(), "ci.yml", body);
 
-    let content = source()
+    let workflow = source()
         .read_workflow(&repository(tmp.path()), None)
         .unwrap();
 
-    assert_eq!(content, body);
+    assert_eq!(workflow.content(), body);
+    assert_eq!(workflow.file_name(), "ci.yml");
+}
+
+#[test]
+fn read_workflow_selects_an_unnamed_workflow_by_filename() {
+    let tmp = git_repository_dir();
+    let body = "on: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n";
+    write_workflow(tmp.path(), "ci.yml", body);
+
+    let workflow = source()
+        .read_workflow(&repository(tmp.path()), Some("ci.yml"))
+        .unwrap();
+
+    assert_eq!(workflow.content(), body);
+    assert_eq!(workflow.file_name(), "ci.yml");
 }
 
 #[test]
@@ -361,7 +378,13 @@ fn read_all_workflows_returns_the_content_of_every_workflow_file() {
         .read_all_workflows(&repository(tmp.path()))
         .unwrap();
 
-    assert_eq!(contents, vec![ci, deploy, build]);
+    assert_eq!(contents.len(), 3);
+    assert_eq!(contents[0].content(), ci);
+    assert_eq!(contents[0].file_name(), "ci.yml");
+    assert_eq!(contents[1].content(), deploy);
+    assert_eq!(contents[1].file_name(), "deploy.yml");
+    assert_eq!(contents[2].content(), build);
+    assert_eq!(contents[2].file_name(), "build.yml");
 }
 
 #[test]
@@ -374,7 +397,9 @@ fn read_all_workflows_includes_workflow_files_without_a_name() {
         .read_all_workflows(&repository(tmp.path()))
         .unwrap();
 
-    assert_eq!(contents, vec![body]);
+    assert_eq!(contents.len(), 1);
+    assert_eq!(contents[0].content(), body);
+    assert_eq!(contents[0].file_name(), "ci.yml");
 }
 
 #[test]

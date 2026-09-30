@@ -1,8 +1,11 @@
 use std::{collections::BTreeSet, fs};
 
-use super::workflow_directories::WORKFLOW_DIRECTORIES;
+use super::{source_name::resolve_source_name, workflow_directories::WORKFLOW_DIRECTORIES};
 use crate::{
-    application::{errors::WorkflowSourceError, ports::outbound::WorkflowSourcePort},
+    application::{
+        dtos::responses::WorkflowSourceFileResponse, errors::WorkflowSourceError,
+        ports::outbound::WorkflowSourcePort,
+    },
     domain::{entities::repository::Repository, value_objects::TriggerKind},
     workflows::yaml::WorkflowYaml,
 };
@@ -97,18 +100,33 @@ impl FilesystemWorkflowSource {
             .collect()
     }
 
-    fn matches_workflow_name(content: &str, target_name: &str) -> bool {
-        Self::extract_name(content).as_deref() == Some(target_name)
+    fn workflow_response(
+        file: &std::path::Path,
+    ) -> Result<WorkflowSourceFileResponse, WorkflowSourceError> {
+        let content = Self::read_file_content(file)?;
+        let file_name = file
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or_default()
+            .to_owned();
+        Ok(WorkflowSourceFileResponse::new(content, file_name))
     }
 
     fn find_matching_workflow(
         files: &[std::path::PathBuf],
         name: &str,
-    ) -> Result<Option<String>, WorkflowSourceError> {
+    ) -> Result<Option<WorkflowSourceFileResponse>, WorkflowSourceError> {
         for file in files {
             let content = Self::read_file_content(file)?;
-            if Self::matches_workflow_name(&content, name) {
-                return Ok(Some(content));
+            if resolve_source_name(Self::extract_name(&content).as_deref(), file).as_deref()
+                == Some(name)
+            {
+                let file_name = file
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .unwrap_or_default()
+                    .to_owned();
+                return Ok(Some(WorkflowSourceFileResponse::new(content, file_name)));
             }
         }
         Ok(None)
@@ -135,9 +153,11 @@ impl FilesystemWorkflowSource {
         }
     }
 
-    fn read_first_workflow(files: &[std::path::PathBuf]) -> Result<String, WorkflowSourceError> {
+    fn read_first_workflow(
+        files: &[std::path::PathBuf],
+    ) -> Result<WorkflowSourceFileResponse, WorkflowSourceError> {
         match files.first() {
-            Some(file) => Self::read_file_content(file),
+            Some(file) => Self::workflow_response(file),
             None => Err(WorkflowSourceError::Empty),
         }
     }
@@ -145,7 +165,7 @@ impl FilesystemWorkflowSource {
     fn read_named_workflow(
         files: &[std::path::PathBuf],
         name: &str,
-    ) -> Result<String, WorkflowSourceError> {
+    ) -> Result<WorkflowSourceFileResponse, WorkflowSourceError> {
         match Self::find_matching_workflow(files, name)? {
             Some(content) => Ok(content),
             None => Err(WorkflowSourceError::NotFound(format!(
@@ -161,7 +181,7 @@ impl WorkflowSourcePort for FilesystemWorkflowSource {
         &self,
         repository: &Repository,
         workflow_name: Option<&str>,
-    ) -> Result<String, WorkflowSourceError> {
+    ) -> Result<WorkflowSourceFileResponse, WorkflowSourceError> {
         let files = self.find_workflow_files(repository)?;
         match workflow_name {
             Some(name) => Self::read_named_workflow(&files, name),
@@ -172,12 +192,12 @@ impl WorkflowSourcePort for FilesystemWorkflowSource {
     fn read_all_workflows(
         &self,
         repository: &Repository,
-    ) -> Result<Vec<String>, WorkflowSourceError> {
+    ) -> Result<Vec<WorkflowSourceFileResponse>, WorkflowSourceError> {
         let files = self.find_workflow_files(repository)?;
         let mut contents = Vec::new();
 
         for file in files {
-            contents.push(Self::read_file_content(&file)?);
+            contents.push(Self::workflow_response(&file)?);
         }
 
         Ok(contents)

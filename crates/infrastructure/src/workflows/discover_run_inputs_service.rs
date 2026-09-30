@@ -38,6 +38,12 @@ impl FilesystemRunInputDiscoveryService {
             return self
                 .workflow_source
                 .read_all_workflows(request.repository())
+                .map(|workflows| {
+                    workflows
+                        .into_iter()
+                        .map(|workflow| workflow.content().to_owned())
+                        .collect()
+                })
                 .map_err(DiscoverRunInputsError::WorkflowSource);
         }
         self.workflow_source
@@ -48,7 +54,7 @@ impl FilesystemRunInputDiscoveryService {
                     .workflow()
                     .map(|workflow| workflow.as_str()),
             )
-            .map(|workflow| vec![workflow])
+            .map(|workflow| vec![workflow.content().to_owned()])
             .map_err(DiscoverRunInputsError::WorkflowSource)
     }
 

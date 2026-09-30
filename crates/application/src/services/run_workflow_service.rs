@@ -140,7 +140,7 @@ impl RunWorkflowService {
             &context.repository,
             context.config.workflow().map(|workflow| workflow.as_str()),
         ) {
-            Ok(content) => Ok(content),
+            Ok(workflow) => Ok(workflow.content().to_owned()),
             Err(error) => {
                 let error: Box<dyn Error> = Box::new(error);
                 self.announce_run_failed(context, error.as_ref());
