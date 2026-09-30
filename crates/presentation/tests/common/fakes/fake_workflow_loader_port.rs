@@ -6,7 +6,7 @@ use ephact::{
         ports::outbound::workflow_loader_port::WorkflowLoaderPort,
     },
     domain::aggregates::Workflow,
-    infrastructure::workflows::yaml::WorkflowYaml,
+    infrastructure::workflows::actions::WorkflowYaml,
 };
 use parking_lot::Mutex;
 

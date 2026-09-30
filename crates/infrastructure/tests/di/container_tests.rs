@@ -6,7 +6,8 @@ use ephact::{
         run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
     },
     infrastructure::{
-        AppContainer, Container, actions::RunActionFactory, persistence::CargoProjectBrandingStore,
+        AppContainer, Container, actions::RunActionFactory, di::container::ContainerCollaborators,
+        persistence::CargoProjectBrandingStore,
     },
 };
 
@@ -20,10 +21,12 @@ fn build_result_contains_all_ports() {
     let runtime = Arc::new(FakeRuntime::new());
     let workflow_source = Arc::new(FakeWorkflowSource::new());
     let container: AppContainer = Container::with_collaborators_and_branding(
-        runtime,
-        Box::new(FakeImageMapper),
-        Box::new(FakeActionFetcher::returning(std::path::PathBuf::new())),
-        workflow_source,
+        ContainerCollaborators::new(
+            runtime,
+            Box::new(FakeImageMapper),
+            Box::new(FakeActionFetcher::returning(std::path::PathBuf::new())),
+            workflow_source,
+        ),
         None,
         Box::new(CargoProjectBrandingStore::from_metadata(
             "ephact",

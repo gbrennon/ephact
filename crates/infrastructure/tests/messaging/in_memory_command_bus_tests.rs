@@ -36,7 +36,7 @@ use ephact::{
         jobs::JobCommandHandler,
         messaging::InMemoryCommandBus,
         steps::{JsonStepTextCodec, StepCommandHandler},
-        workflows::{WorkflowCommandHandler, yaml::StepYaml},
+        workflows::{WorkflowCommandHandler, actions::StepYaml},
     },
 };
 

@@ -1,6 +1,21 @@
 use std::{error::Error, time::Instant};
 
 use crate::{
+    application::{
+        dtos::{
+            requests::RunAllWorkflowsRequest,
+            responses::{RunSummaryResponse, WorkflowExecutionResponse},
+        },
+        errors::ApplicationError,
+        ports::{
+            inbound::run_all_workflows_port::RunAllWorkflowsPort,
+            outbound::{
+                DetectWorkflowTriggerPort, WorkflowSourcePort,
+                domain_event_bus_port::DomainEventBusPort,
+                workflow_command_bus_port::WorkflowCommandBusPort,
+            },
+        },
+    },
     domain::{
         messages::{
             commands::ExecuteWorkflowCommand,
@@ -14,20 +29,7 @@ use crate::{
             workflow_run_config_input::WorkflowRunConfigInput,
         },
     },
-    dtos::{
-        requests::RunAllWorkflowsRequest,
-        responses::{RunSummaryResponse, WorkflowExecutionResponse},
-    },
-    errors::ApplicationError,
-    ports::{
-        inbound::run_all_workflows_port::RunAllWorkflowsPort,
-        outbound::{
-            DetectWorkflowTriggerPort, WorkflowSourcePort,
-            domain_event_bus_port::DomainEventBusPort,
-            workflow_command_bus_port::WorkflowCommandBusPort,
-        },
-    },
-    services::workflow_execution_aggregator::WorkflowExecutionAggregator,
+    workflows::execution::workflow_execution_aggregator::WorkflowExecutionAggregator,
 };
 
 /// Name reported for the aggregate summary of a full multi-workflow run.
@@ -160,9 +162,9 @@ impl RunAllWorkflowsService {
     }
     fn filter_workflow_sources(
         &self,
-        workflow_sources: Vec<crate::dtos::responses::WorkflowSourceFileResponse>,
+        workflow_sources: Vec<crate::application::dtos::responses::WorkflowSourceFileResponse>,
         event: &str,
-    ) -> Vec<crate::dtos::responses::WorkflowSourceFileResponse> {
+    ) -> Vec<crate::application::dtos::responses::WorkflowSourceFileResponse> {
         workflow_sources
             .into_iter()
             .filter(|workflow| {

@@ -1,6 +1,20 @@
 use std::error::Error;
 
 use crate::{
+    application::{
+        dtos::{
+            requests::{ExecuteWorkflowRequest, LoadWorkflowRequest},
+            responses::WorkflowExecutionResponse,
+        },
+        errors::ExecuteWorkflowError,
+        ports::{
+            inbound::execute_workflow_port::ExecuteWorkflowPort,
+            outbound::{
+                domain_event_bus_port::DomainEventBusPort, job_command_bus_port::JobCommandBusPort,
+                workflow_loader_port::WorkflowLoaderPort,
+            },
+        },
+    },
     domain::{
         entities::JobRun,
         messages::{
@@ -9,18 +23,6 @@ use crate::{
         },
         services::{ExecutionPlanner, evaluation_context_mapper::EvaluationContextMapper},
         value_objects::EvaluationContext,
-    },
-    dtos::{
-        requests::{ExecuteWorkflowRequest, LoadWorkflowRequest},
-        responses::WorkflowExecutionResponse,
-    },
-    errors::ExecuteWorkflowError,
-    ports::{
-        inbound::execute_workflow_port::ExecuteWorkflowPort,
-        outbound::{
-            domain_event_bus_port::DomainEventBusPort, job_command_bus_port::JobCommandBusPort,
-            workflow_loader_port::WorkflowLoaderPort,
-        },
     },
 };
 
@@ -128,7 +130,8 @@ impl ExecuteWorkflowService {
         plan: &crate::domain::value_objects::ExecutionPlan,
         context: &EvaluationContext,
         request: ExecuteWorkflowRequest,
-    ) -> Result<Vec<crate::dtos::responses::JobExecutionResponse>, Box<dyn Error>> {
+    ) -> Result<Vec<crate::application::dtos::responses::JobExecutionResponse>, Box<dyn Error>>
+    {
         let all_runs: Vec<&crate::domain::entities::JobRun> = plan
             .stages()
             .iter()
@@ -143,7 +146,7 @@ impl ExecuteWorkflowService {
     fn execute_run(
         &self,
         input: JobExecutionInput<'_>,
-    ) -> Result<crate::dtos::responses::JobExecutionResponse, Box<dyn Error>> {
+    ) -> Result<crate::application::dtos::responses::JobExecutionResponse, Box<dyn Error>> {
         let workflow_name = input
             .workflow
             .name()

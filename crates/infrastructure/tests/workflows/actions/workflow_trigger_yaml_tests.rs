@@ -1,6 +1,6 @@
 use ephact::{
     domain::value_objects::{TriggerKind, WorkflowTrigger},
-    infrastructure::workflows::yaml::WorkflowTriggerYaml,
+    infrastructure::workflows::actions::WorkflowTriggerYaml,
 };
 
 fn triggers_from(yaml: &str) -> Vec<WorkflowTrigger> {

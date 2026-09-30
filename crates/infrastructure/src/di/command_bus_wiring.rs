@@ -11,7 +11,6 @@ use crate::{
         services::{
             execute_job_service::{ExecuteJobDependencies, ExecuteJobService},
             execute_step_service::ExecuteStepService,
-            execute_workflow_service::ExecuteWorkflowService,
         },
     },
     containers::{
@@ -31,7 +30,9 @@ use crate::{
         read_step_path_exports_service::ReadStepPathExportsService,
         run_shell_step_service::RunShellStepService, summarize_step_service::SummarizeStepService,
     },
-    workflows::{WorkflowCommandHandler, load_workflow_service::LoadWorkflowService},
+    workflows::{
+        ExecuteWorkflowService, WorkflowCommandHandler, load_workflow_service::LoadWorkflowService,
+    },
 };
 
 /// Assembles the command bus and the handler graph behind it.
@@ -69,21 +70,7 @@ impl CommandBusWiring {
             Box::new(event_bus.clone()) as Box<dyn DomainEventBusPort>,
         )));
 
-        let step_codec: Arc<dyn StepTextCodecPort> = Arc::new(JsonStepTextCodec);
-        let shell_runner = Arc::new(RunShellStepService::new(
-            Box::new(event_bus.clone()) as Box<dyn DomainEventBusPort>
-        ));
-        let action_command_bus = Arc::new(shared_bus.clone()) as Arc<dyn ActionCommandBusPort>;
-        let step_codec_for_factory = step_codec.clone();
-        let step_factory: ExecuteStepFactory = Box::new(move |container| {
-            Box::new(ExecuteStepService::new(
-                container,
-                shell_runner.clone(),
-                action_command_bus.clone(),
-                step_codec_for_factory.clone(),
-            ))
-        });
-        let step_handler = StepCommandHandler::new(step_factory);
+        let (step_handler, step_codec) = Self::build_step_handler(&event_bus, &shared_bus);
 
         let action_factory = ActionExecutionWiring::build(
             action_fetcher,
@@ -101,6 +88,27 @@ impl CommandBusWiring {
         ));
 
         shared_bus
+    }
+
+    fn build_step_handler(
+        event_bus: &SharedEventBus,
+        shared_bus: &SharedCommandBus,
+    ) -> (StepCommandHandler, Arc<dyn StepTextCodecPort>) {
+        let step_codec: Arc<dyn StepTextCodecPort> = Arc::new(JsonStepTextCodec);
+        let shell_runner = Arc::new(RunShellStepService::new(
+            Box::new(event_bus.clone()) as Box<dyn DomainEventBusPort>
+        ));
+        let action_command_bus = Arc::new(shared_bus.clone()) as Arc<dyn ActionCommandBusPort>;
+        let step_codec_for_factory = step_codec.clone();
+        let step_factory: ExecuteStepFactory = Box::new(move |container| {
+            Box::new(ExecuteStepService::new(
+                container,
+                shell_runner.clone(),
+                action_command_bus.clone(),
+                step_codec_for_factory.clone(),
+            ))
+        });
+        (StepCommandHandler::new(step_factory), step_codec)
     }
 
     fn build_job_executor(

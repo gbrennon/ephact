@@ -19,7 +19,7 @@ use ephact::{
             prefix_step_path_service::PrefixStepPathService,
             summarize_step_service::SummarizeStepService,
         },
-        workflows::yaml::WorkflowYaml,
+        workflows::actions::WorkflowYaml,
     },
 };
 

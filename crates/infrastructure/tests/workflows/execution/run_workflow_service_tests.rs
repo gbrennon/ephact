@@ -11,13 +11,13 @@ use ephact::{
         },
         errors::ApplicationError,
         ports::inbound::RunWorkflowPort,
-        services::run_workflow_service::RunWorkflowService,
     },
     domain::{
         RepoPath, Repository, RepositoryName, WorkflowRunConfig,
         messages::events::DomainEvent,
         value_objects::{WorkflowEvent, WorkflowPath},
     },
+    infrastructure::workflows::execution::run_workflow_service::RunWorkflowService,
 };
 
 use crate::common::fakes::{
@@ -90,7 +90,20 @@ fn execute_runs_workflow_and_publishes_lifecycle_events() {
     assert_eq!(dispatched.len(), 1);
     assert_eq!(dispatched[0].workflow_file_name(), Some("ci.yml"));
 
-    let events = event_bus.events();
+    assert_run_lifecycle_events(
+        &event_bus.events(),
+        run_id,
+        &repository_path,
+        vec!["test-container-1".to_string()],
+    );
+}
+
+fn assert_run_lifecycle_events(
+    events: &[DomainEvent],
+    run_id: &str,
+    repository_path: &str,
+    container_names: Vec<String>,
+) {
     assert_eq!(events.len(), 2);
     let DomainEvent::RunStarted(payload) = &events[0] else {
         panic!("expected RunStarted event");
@@ -103,10 +116,7 @@ fn execute_runs_workflow_and_publishes_lifecycle_events() {
     assert_eq!(payload.run_id(), run_id);
     assert_eq!(payload.repository_path(), repository_path);
     assert!(payload.success());
-    assert_eq!(
-        payload.container_names(),
-        vec!["test-container-1".to_string()]
-    );
+    assert_eq!(payload.container_names(), container_names);
 }
 
 #[test]

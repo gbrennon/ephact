@@ -22,7 +22,7 @@ use ephact::{
             run_composite_step_service::RunCompositeStepService,
             run_shell_step_service::RunShellStepService,
         },
-        workflows::yaml::StepYaml,
+        workflows::actions::StepYaml,
     },
 };
 

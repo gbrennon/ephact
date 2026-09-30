@@ -6,7 +6,7 @@ use ephact::{
         ports::outbound::job_environment_builder_port::JobEnvironmentBuilderPort,
     },
     domain::aggregates::Workflow,
-    infrastructure::{jobs::RunnerEnvironmentAdapter, workflows::yaml::WorkflowYaml},
+    infrastructure::{jobs::RunnerEnvironmentAdapter, workflows::actions::WorkflowYaml},
 };
 
 const DEFAULT_PATH: &str = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";

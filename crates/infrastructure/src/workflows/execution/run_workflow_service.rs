@@ -1,6 +1,21 @@
 use std::{error::Error, future::Future, pin::Pin, time::Instant};
 
 use crate::{
+    application::{
+        dtos::{
+            requests::RunWorkflowRequest,
+            responses::{RunSummaryResponse, WorkflowExecutionResponse},
+        },
+        errors::ApplicationError,
+        ports::{
+            inbound::RunWorkflowPort,
+            outbound::{
+                DetectWorkflowTriggerPort, WorkflowSourcePort,
+                domain_event_bus_port::DomainEventBusPort,
+                workflow_command_bus_port::WorkflowCommandBusPort,
+            },
+        },
+    },
     domain::{
         Repository, Validatable,
         messages::{
@@ -15,19 +30,6 @@ use crate::{
             workflow_run_config_input::WorkflowRunConfigInput,
         },
         value_objects::workflow_run_config::WorkflowRunConfig,
-    },
-    dtos::{
-        requests::RunWorkflowRequest,
-        responses::{RunSummaryResponse, WorkflowExecutionResponse},
-    },
-    errors::ApplicationError,
-    ports::{
-        inbound::RunWorkflowPort,
-        outbound::{
-            DetectWorkflowTriggerPort, WorkflowSourcePort,
-            domain_event_bus_port::DomainEventBusPort,
-            workflow_command_bus_port::WorkflowCommandBusPort,
-        },
     },
 };
 ///
@@ -117,9 +119,9 @@ impl RunWorkflowPort for RunWorkflowService {
             let workflow_source = self
                 .read_workflow(&context)
                 .map_err(|error| ApplicationError::Workflow(error.to_string()))?;
-            if context.workflow_name.is_none() {
-                context.workflow_name = Some(workflow_source.file_name().to_owned());
-            }
+            context
+                .workflow_name
+                .get_or_insert(workflow_source.file_name().to_owned());
             self.ensure_requested_trigger(&context, workflow_source.content())
                 .map_err(|error| ApplicationError::Workflow(error.to_string()))?;
             let execution = self
@@ -141,7 +143,8 @@ impl RunWorkflowService {
     fn read_workflow(
         &self,
         context: &RunExecutionContext,
-    ) -> Result<crate::dtos::responses::WorkflowSourceFileResponse, Box<dyn Error>> {
+    ) -> Result<crate::application::dtos::responses::WorkflowSourceFileResponse, Box<dyn Error>>
+    {
         match self.workflow_source.read_workflow(
             &context.repository,
             context.config.workflow().map(|workflow| workflow.as_str()),
@@ -184,7 +187,7 @@ impl RunWorkflowService {
     fn dispatch_workflow(
         &self,
         context: &RunExecutionContext,
-        workflow_source: crate::dtos::responses::WorkflowSourceFileResponse,
+        workflow_source: crate::application::dtos::responses::WorkflowSourceFileResponse,
     ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
         match self.command_bus.dispatch(
             ExecuteWorkflowCommand::new(

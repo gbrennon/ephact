@@ -7,12 +7,14 @@ use ephact::{
             responses::{JobSummaryResponse, WorkflowExecutionResponse},
         },
         ports::inbound::RunAllWorkflowsPort,
-        services::run_all_workflows_service::{ALL_WORKFLOWS_SUMMARY_NAME, RunAllWorkflowsService},
     },
     domain::{
         RepoPath, Repository, RepositoryName, WorkflowRunConfig,
         messages::events::DomainEvent,
         value_objects::{WorkflowEvent, WorkflowPath},
+    },
+    infrastructure::workflows::execution::run_all_workflows_service::{
+        ALL_WORKFLOWS_SUMMARY_NAME, RunAllWorkflowsService,
     },
 };
 

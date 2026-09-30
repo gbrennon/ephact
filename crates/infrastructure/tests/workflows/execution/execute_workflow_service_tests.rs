@@ -4,13 +4,13 @@ use ephact::{
     application::{
         dtos::{requests::ExecuteWorkflowRequest, responses::WorkflowExecutionResponse},
         ports::inbound::execute_workflow_port::ExecuteWorkflowPort,
-        services::execute_workflow_service::ExecuteWorkflowService,
     },
     domain::{
         messages::events::DomainEvent,
         services::evaluation_context_mapper::EvaluationContextMapper,
         value_objects::EvaluationContext,
     },
+    infrastructure::workflows::execution::execute_workflow_service::ExecuteWorkflowService,
 };
 
 use crate::common::fakes::{

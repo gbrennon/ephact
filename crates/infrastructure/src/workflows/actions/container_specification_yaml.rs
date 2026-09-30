@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::Deserialize;
 
 use crate::{
-    domain::value_objects::ContainerSpecification, workflows::yaml::ContainerCredentialsYaml,
+    domain::value_objects::ContainerSpecification, workflows::actions::ContainerCredentialsYaml,
 };
 
 /// A job `container:` or `services:` entry as authored in YAML.

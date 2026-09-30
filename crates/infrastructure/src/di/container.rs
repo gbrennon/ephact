@@ -11,8 +11,6 @@ use crate::{
         services::{
             list_actions_service::ListActionsService, list_workflows_service::ListWorkflowsService,
             run_action_service::RunActionService,
-            run_all_workflows_service::RunAllWorkflowsService,
-            run_workflow_service::RunWorkflowService,
             show_project_branding_info_service::ShowProjectBrandingInfoService,
         },
     },
@@ -27,9 +25,34 @@ use crate::{
     steps::JsonStepTextCodec,
     workflows::{
         DetectWorkflowTriggerService, FilesystemRunInputDiscoveryService, FilesystemWorkflowSource,
-        SharedWorkflowSource,
+        RunAllWorkflowsService, RunWorkflowService, SharedWorkflowSource,
     },
 };
+
+/// Groups the pluggable infrastructure components required to assemble a container.
+pub struct ContainerCollaborators {
+    runtime: Arc<dyn ContainerRuntimePort>,
+    image_mapper: Box<dyn ImageMapperPort>,
+    action_fetcher: Box<dyn ActionFetcherPort>,
+    workflow_source: Arc<dyn WorkflowSourcePort>,
+}
+
+impl ContainerCollaborators {
+    /// Creates a set of collaborators from the supplied ports.
+    pub fn new(
+        runtime: Arc<dyn ContainerRuntimePort>,
+        image_mapper: Box<dyn ImageMapperPort>,
+        action_fetcher: Box<dyn ActionFetcherPort>,
+        workflow_source: Arc<dyn WorkflowSourcePort>,
+    ) -> Self {
+        Self {
+            runtime,
+            image_mapper,
+            action_fetcher,
+            workflow_source,
+        }
+    }
+}
 
 pub struct Container {}
 
@@ -43,23 +66,28 @@ impl Container {
                 .expect("no container runtime available (Docker or Podman required)"),
         );
         Self::with_collaborators_and_branding(
-            runtime,
-            Box::new(PlatformImageMapper),
-            Box::new(GitActionFetcher::with_default_cache_root()),
-            Arc::new(FilesystemWorkflowSource::default()),
+            ContainerCollaborators::new(
+                runtime,
+                Box::new(PlatformImageMapper),
+                Box::new(GitActionFetcher::with_default_cache_root()),
+                Arc::new(FilesystemWorkflowSource::default()),
+            ),
             progress_reporter,
             branding_store,
         )
     }
 
     pub fn with_collaborators_and_branding(
-        runtime: Arc<dyn ContainerRuntimePort>,
-        image_mapper: Box<dyn ImageMapperPort>,
-        action_fetcher: Box<dyn ActionFetcherPort>,
-        workflow_source: Arc<dyn WorkflowSourcePort>,
+        collaborators: ContainerCollaborators,
         progress_reporter: Option<Box<dyn DomainEventHandler>>,
         branding_store: Box<dyn ProjectBrandingStorePort>,
     ) -> AppContainer {
+        let ContainerCollaborators {
+            runtime,
+            image_mapper,
+            action_fetcher,
+            workflow_source,
+        } = collaborators;
         let (shared_event_bus, failure_log_stores) =
             Self::build_event_bus(runtime.clone(), progress_reporter);
         let shared_workflow_source = SharedWorkflowSource::new(workflow_source);

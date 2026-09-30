@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::{domain::value_objects::ExecutionDefaults, workflows::yaml::RunStepDefaultsYaml};
+use crate::{domain::value_objects::ExecutionDefaults, workflows::actions::RunStepDefaultsYaml};
 
 /// The `defaults:` entry of a workflow or job as authored in YAML.
 #[derive(Debug, Clone, Deserialize, PartialEq, Default)]

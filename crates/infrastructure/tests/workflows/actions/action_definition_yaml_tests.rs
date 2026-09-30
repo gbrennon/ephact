@@ -1,6 +1,6 @@
 use ephact::{
     domain::value_objects::{ActionDefinition, ActionRuntime},
-    infrastructure::workflows::yaml::ActionDefinitionYaml,
+    infrastructure::workflows::actions::ActionDefinitionYaml,
 };
 
 fn action_from(yaml: &str) -> ActionDefinition {

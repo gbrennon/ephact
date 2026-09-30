@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::{domain::value_objects::JobStrategy, workflows::yaml::JobMatrixYaml};
+use crate::{domain::value_objects::JobStrategy, workflows::actions::JobMatrixYaml};
 
 /// The `strategy:` entry of a job as authored in YAML.
 #[derive(Debug, Clone, Deserialize, PartialEq)]

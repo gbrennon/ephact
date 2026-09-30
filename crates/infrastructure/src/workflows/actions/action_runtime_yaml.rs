@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::{domain::value_objects::ActionRuntime, workflows::yaml::StepYaml};
+use crate::{domain::value_objects::ActionRuntime, workflows::actions::StepYaml};
 
 /// The `runs:` entry of an action definition as authored in YAML.
 #[derive(Debug, Clone, Deserialize, PartialEq)]

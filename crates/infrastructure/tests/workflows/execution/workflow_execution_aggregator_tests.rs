@@ -1,6 +1,6 @@
-use ephact_application::{
-    dtos::responses::{JobSummaryResponse, WorkflowExecutionResponse},
-    services::WorkflowExecutionAggregator,
+use ephact::{
+    application::dtos::responses::{JobSummaryResponse, WorkflowExecutionResponse},
+    infrastructure::workflows::execution::WorkflowExecutionAggregator,
 };
 
 #[test]

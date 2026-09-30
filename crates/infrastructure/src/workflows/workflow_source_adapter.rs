@@ -6,8 +6,8 @@ use crate::{
         dtos::responses::WorkflowSourceFileResponse, errors::WorkflowSourceError,
         ports::outbound::WorkflowSourcePort,
     },
-    domain::{entities::repository::Repository, value_objects::TriggerKind},
-    workflows::yaml::WorkflowYaml,
+    domain::entities::repository::Repository,
+    workflows::workflow_document::WorkflowDocument,
 };
 
 /// Infrastructure adapter that reads workflow definitions from the filesystem.
@@ -70,29 +70,13 @@ impl FilesystemWorkflowSource {
     }
 
     fn extract_name(content: &str) -> Option<String> {
-        serde_yaml::from_str::<WorkflowYaml>(content)
-            .ok()?
-            .into_domain()
-            .name()
-            .map(str::to_owned)
+        WorkflowDocument::parse(content).ok()?.name()
     }
 
     fn extrworkflow_events(content: &str) -> Vec<String> {
-        let Ok(parsed) = serde_yaml::from_str::<WorkflowYaml>(content) else {
-            return Vec::new();
-        };
-        let workflow = parsed.into_domain();
-        workflow
-            .trigger()
-            .iter()
-            .map(|trigger| match trigger.kind() {
-                TriggerKind::Push => "push",
-                TriggerKind::PullRequest => "pull_request",
-                TriggerKind::Manual => "workflow_dispatch",
-                TriggerKind::Schedule => "schedule",
-            })
-            .map(str::to_owned)
-            .collect()
+        WorkflowDocument::parse(content)
+            .map(|doc| doc.trigger_names())
+            .unwrap_or_default()
     }
 
     fn workflow_response(

@@ -1,6 +1,6 @@
 use ephact::{
     domain::value_objects::{ContextValue, JobStrategy},
-    infrastructure::workflows::yaml::JobStrategyYaml,
+    infrastructure::workflows::actions::JobStrategyYaml,
 };
 
 fn strategy_from(yaml: &str) -> JobStrategy {

@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 use crate::{
     domain::entities::Job,
-    workflows::yaml::{
+    workflows::actions::{
         ConcurrencyGroupYaml, ContainerSpecificationYaml, JobStrategyYaml, StepYaml,
         TokenPermissionsYaml, context_value_from_yaml, job_needs_from_yaml,
     },
