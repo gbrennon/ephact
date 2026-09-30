@@ -1,12 +1,15 @@
 use std::{collections::HashMap, error::Error, time::Instant};
 
 use crate::{
-    domain::messages::{
-        commands::ExecuteStepCommand,
-        events::{
-            ContainerStartedPayload, DomainEvent, StepFinishedDetails, StepFinishedPayload,
-            StepStartedPayload,
+    domain::{
+        messages::{
+            commands::ExecuteStepCommand,
+            events::{
+                ContainerStartedPayload, DomainEvent, StepFinishedDetails, StepFinishedPayload,
+                StepStartedPayload,
+            },
         },
+        traits::NetworkCommandClassifier,
     },
     dtos::{
         requests::{
@@ -51,6 +54,7 @@ pub struct ExecuteJobService {
     step_exports_reader: Box<dyn StepExportsReaderPort>,
     command_bus: Box<dyn StepCommandBusPort>,
     event_bus: Box<dyn DomainEventBusPort>,
+    network_command_classifier: Box<dyn NetworkCommandClassifier>,
 }
 
 pub type ExecuteJobStepDependencies = (
@@ -71,12 +75,14 @@ pub struct ExecuteJobDependencies {
     step_exports_reader: Box<dyn StepExportsReaderPort>,
     command_bus: Box<dyn StepCommandBusPort>,
     event_bus: Box<dyn DomainEventBusPort>,
+    network_command_classifier: Box<dyn NetworkCommandClassifier>,
 }
 
 impl ExecuteJobDependencies {
     pub fn new(
         job_environment_builder: Box<dyn JobEnvironmentBuilderPort>,
         container_preparer: Box<dyn JobContainerPreparerPort>,
+        network_command_classifier: Box<dyn NetworkCommandClassifier>,
         step_dependencies: ExecuteJobStepDependencies,
         messaging_dependencies: ExecuteJobMessagingDependencies,
     ) -> Self {
@@ -92,6 +98,7 @@ impl ExecuteJobDependencies {
             step_exports_reader,
             command_bus,
             event_bus,
+            network_command_classifier,
         }
     }
 }
@@ -127,6 +134,7 @@ impl ExecuteJobService {
             step_exports_reader: dependencies.step_exports_reader,
             command_bus: dependencies.command_bus,
             event_bus: dependencies.event_bus,
+            network_command_classifier: dependencies.network_command_classifier,
         }
     }
 }
@@ -228,11 +236,14 @@ impl ExecuteJobService {
         step_context: crate::domain::value_objects::EvaluationContext,
         started_at: Instant,
     ) -> crate::dtos::responses::SummarizedStepResponse {
-        if let Some(reason) = step.network_policy_violation() {
+        if let Some(reason) =
+            step.network_policy_violation(self.network_command_classifier.as_ref())
+        {
             return self.skipped_step(step, started_at.elapsed(), reason);
         }
         if !request.allow_network()
-            && let Some(reason) = step.network_access_reason()
+            && let Some(reason) =
+                step.network_access_reason(self.network_command_classifier.as_ref())
         {
             return self.skipped_step(step, started_at.elapsed(), reason);
         }
