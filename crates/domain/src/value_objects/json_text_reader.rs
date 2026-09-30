@@ -226,3 +226,77 @@ impl<'a> JsonTextReader<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn read(text: &str) -> Result<ContextValue, JsonTextError> {
+        JsonTextReader::new(text).read_document()
+    }
+
+    #[test]
+    fn empty_and_blank_input_is_rejected() {
+        assert!(read("").is_err());
+        assert!(read("   ").is_err());
+    }
+
+    #[test]
+    fn non_value_leading_character_is_rejected() {
+        assert!(read("@").is_err());
+    }
+
+    #[test]
+    fn unterminated_string_is_rejected() {
+        assert!(read("\"abc").is_err());
+    }
+
+    #[test]
+    fn dangling_escape_is_rejected() {
+        assert!(read("\"\\").is_err());
+    }
+
+    #[test]
+    fn short_escapes_decode_to_control_characters() {
+        let decoded = read(r#""\"\\\/\b\f\n\r\t""#).unwrap();
+
+        assert_eq!(decoded, ContextValue::text("\"\\/\u{08}\u{0c}\n\r\t"));
+    }
+
+    #[test]
+    fn invalid_escape_marker_is_rejected() {
+        assert!(read(r#""\x""#).is_err());
+    }
+
+    #[test]
+    fn basic_unicode_escape_decodes() {
+        let decoded = read(r#""\u0041""#).unwrap();
+
+        assert_eq!(decoded, ContextValue::text("A"));
+    }
+
+    #[test]
+    fn lone_low_surrogate_is_rejected() {
+        assert!(read(r#""\uDC00""#).is_err());
+    }
+
+    #[test]
+    fn high_surrogate_without_low_surrogate_is_rejected() {
+        assert!(read(r#""\uD800\u0041""#).is_err());
+    }
+
+    #[test]
+    fn non_hexadecimal_unicode_escape_is_rejected() {
+        assert!(read(r#""\uZZZZ""#).is_err());
+    }
+
+    #[test]
+    fn missing_closing_brace_is_rejected() {
+        assert!(read(r#"{"a":1"#).is_err());
+    }
+
+    #[test]
+    fn missing_entry_colon_is_rejected() {
+        assert!(read(r#"{"a" 1}"#).is_err());
+    }
+}
