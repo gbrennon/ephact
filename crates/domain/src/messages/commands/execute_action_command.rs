@@ -107,3 +107,66 @@ impl<C: ?Sized + Send + Sync> fmt::Debug for ExecuteActionCommand<C> {
 }
 
 impl<C: ?Sized + Send + Sync> Command for ExecuteActionCommand<C> {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn command_for_test() -> ExecuteActionCommand<()> {
+        ExecuteActionCommand::new(
+            "owner/action@v1".into(),
+            Step::new(None, None, None, Some("owner/action@v1".into())),
+            PathBuf::from("/repo"),
+            HashMap::from([("KEY".into(), "value".into())]),
+            Arc::new(()),
+        )
+    }
+
+    #[test]
+    fn new_defaults_context_and_exposes_fields() {
+        let command = command_for_test();
+
+        assert_eq!(command.action_ref(), "owner/action@v1");
+        assert_eq!(command.step().uses(), Some("owner/action@v1"));
+        assert_eq!(command.repo_path(), &PathBuf::from("/repo"));
+        assert_eq!(command.env()["KEY"], "value");
+        assert!(command.context().env().as_text().is_none());
+        assert_eq!(command.container(), &());
+    }
+
+    #[test]
+    fn with_context_replaces_the_context() {
+        let context =
+            EvaluationContext::new().with_env(crate::value_objects::ContextValue::text("v"));
+
+        let command = command_for_test().with_context(context.clone());
+
+        assert_eq!(command.context().env().as_text(), Some("v"));
+    }
+
+    #[test]
+    fn into_parts_returns_owned_fields() {
+        let (action_ref, step, repo_path, env, context, _container) =
+            command_for_test().into_parts();
+
+        assert_eq!(action_ref, "owner/action@v1");
+        assert_eq!(step.uses(), Some("owner/action@v1"));
+        assert_eq!(repo_path, PathBuf::from("/repo"));
+        assert_eq!(env["KEY"], "value");
+        assert!(context.env().as_text().is_none());
+    }
+
+    #[test]
+    fn clone_preserves_fields() {
+        let command = command_for_test().clone();
+
+        assert_eq!(command.action_ref(), "owner/action@v1");
+    }
+
+    #[test]
+    fn debug_names_the_command() {
+        let rendered = format!("{:?}", command_for_test());
+
+        assert!(rendered.contains("ExecuteActionCommand"));
+    }
+}
