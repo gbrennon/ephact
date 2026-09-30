@@ -109,4 +109,42 @@ mod tests {
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), EvalError::TypeError(_)));
     }
+
+    #[test]
+    fn eval_index_access_non_integer_index_errors() {
+        let arr = Expression::FunctionCall(
+            "fromJson".into(),
+            vec![Expression::Literal(ExpressionLiteral::String(
+                "[1,2,3]".into(),
+            ))],
+        );
+        let idx = Expression::Literal(ExpressionLiteral::Float(1.5));
+        let expr = Expression::IndexAccess(Box::new(arr), Box::new(idx));
+        let result = eval(&expr);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), EvalError::TypeError(_)));
+    }
+
+    #[test]
+    fn eval_index_access_object_missing_key_errors() {
+        let json_str = Expression::Literal(ExpressionLiteral::String(r#"{"key": "val"}"#.into()));
+        let from_json = Expression::FunctionCall("fromJson".into(), vec![json_str]);
+        let idx = Expression::IndexAccess(
+            Box::new(from_json),
+            Box::new(Expression::Literal(ExpressionLiteral::String(
+                "missing".into(),
+            ))),
+        );
+        let result = eval(&idx);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), EvalError::TypeError(_)));
+    }
+
+    #[test]
+    fn eval_non_finite_float_literal_errors() {
+        let expr = Expression::Literal(ExpressionLiteral::Float(f64::INFINITY));
+        let result = eval(&expr);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), EvalError::TypeError(_)));
+    }
 }
