@@ -2,7 +2,6 @@
 name = "ephact-domain"
 version = "0.4.0"
 edition = "2024"
-autotests = false
 description = "Domain layer of ephact: aggregates, entities, value objects and domain services."
 license = "MIT OR Apache-2.0"
 

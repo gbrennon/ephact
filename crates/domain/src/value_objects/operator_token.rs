@@ -9,9 +9,9 @@ impl OperatorToken {
     ) -> Result<Option<ExpressionToken>, LexerError> {
         let start = cursor.position();
         let token = match cursor.current() {
-            Some('!' | '=') => Some(Self::not_or_equal(cursor, start)?),
-            Some('<' | '>') => Some(Self::optional_operator(cursor)),
-            Some('&' | '|') => Some(Self::required_operator(cursor, start)?),
+            Some(ch @ ('!' | '=')) => Some(Self::not_or_equal(cursor, ch, start)?),
+            Some(ch @ ('<' | '>')) => Some(Self::optional_operator(cursor, ch)),
+            Some(ch @ ('&' | '|')) => Some(Self::required_operator(cursor, ch, start)?),
             Some(ch) => Self::single(cursor, ch),
             None => None,
         };
@@ -20,17 +20,17 @@ impl OperatorToken {
 
     fn not_or_equal(
         cursor: &mut ExpressionCursor<'_>,
+        operator: char,
         start: usize,
     ) -> Result<ExpressionToken, LexerError> {
-        match cursor.current() {
-            Some('!') => Ok(Self::compound(
+        match operator {
+            '!' => Ok(Self::compound(
                 cursor,
                 '=',
                 ExpressionToken::NotEqual,
                 ExpressionToken::Not,
             )),
-            Some('=') => Self::required_compound(cursor, '=', '=', ExpressionToken::Equal, start),
-            _ => unreachable!("not_or_equal called for another operator"),
+            _ => Self::required_compound(cursor, '=', '=', ExpressionToken::Equal, start),
         }
     }
 
@@ -51,32 +51,31 @@ impl OperatorToken {
         token
     }
 
-    fn optional_operator(cursor: &mut ExpressionCursor<'_>) -> ExpressionToken {
-        match cursor.current() {
-            Some('<') => Self::compound(
+    fn optional_operator(cursor: &mut ExpressionCursor<'_>, operator: char) -> ExpressionToken {
+        match operator {
+            '<' => Self::compound(
                 cursor,
                 '=',
                 ExpressionToken::LessThanOrEqual,
                 ExpressionToken::LessThan,
             ),
-            Some('>') => Self::compound(
+            _ => Self::compound(
                 cursor,
                 '=',
                 ExpressionToken::GreaterThanOrEqual,
                 ExpressionToken::GreaterThan,
             ),
-            _ => unreachable!("optional_operator called for a non-optional operator"),
         }
     }
 
     fn required_operator(
         cursor: &mut ExpressionCursor<'_>,
+        operator: char,
         start: usize,
     ) -> Result<ExpressionToken, LexerError> {
-        match cursor.current() {
-            Some('&') => Self::required_compound(cursor, '&', '&', ExpressionToken::And, start),
-            Some('|') => Self::required_compound(cursor, '|', '|', ExpressionToken::Or, start),
-            _ => unreachable!("required_operator called for a non-required operator"),
+        match operator {
+            '&' => Self::required_compound(cursor, '&', '&', ExpressionToken::And, start),
+            _ => Self::required_compound(cursor, '|', '|', ExpressionToken::Or, start),
         }
     }
 
@@ -140,5 +139,40 @@ mod tests {
             OperatorToken::recognize(&mut cursor),
             Err(LexerError::UnexpectedChar('&', 0))
         );
+    }
+
+    #[test]
+    fn recognizes_every_compound_and_single_variant() {
+        for (input, expected) in [
+            ("==", ExpressionToken::Equal),
+            (">=", ExpressionToken::GreaterThanOrEqual),
+            ("||", ExpressionToken::Or),
+            (">", ExpressionToken::GreaterThan),
+            ("<", ExpressionToken::LessThan),
+            ("!", ExpressionToken::Not),
+        ] {
+            let mut cursor = ExpressionCursor::new(input);
+            assert_eq!(
+                OperatorToken::recognize(&mut cursor).unwrap(),
+                Some(expected)
+            );
+        }
+    }
+
+    #[test]
+    fn reports_incomplete_required_operators() {
+        let mut cursor = ExpressionCursor::new("=");
+
+        assert_eq!(
+            OperatorToken::recognize(&mut cursor),
+            Err(LexerError::UnexpectedChar('=', 0))
+        );
+    }
+
+    #[test]
+    fn recognizes_no_token_for_an_empty_cursor() {
+        let mut cursor = ExpressionCursor::new("");
+
+        assert_eq!(OperatorToken::recognize(&mut cursor).unwrap(), None);
     }
 }

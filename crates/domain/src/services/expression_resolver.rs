@@ -160,6 +160,17 @@ mod tests {
     }
 
     #[test]
+    fn resolve_text_renders_a_null_context_value_as_empty_string() {
+        let secrets = ContextValue::mapping([("TOKEN".to_owned(), ContextValue::Null)]);
+        let context = EvaluationContext::new().with_secrets(secrets);
+
+        let resolved =
+            ExpressionResolver::resolve_text("token=${{ secrets.TOKEN }}", &context).unwrap();
+
+        assert_eq!(resolved, "token=");
+    }
+
+    #[test]
     fn resolve_text_renders_function_results() {
         let resolved = ExpressionResolver::resolve_text(
             "${{ format('{0}-{1}', 'a', 'b') }}",

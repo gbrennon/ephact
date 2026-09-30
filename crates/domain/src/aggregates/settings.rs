@@ -127,3 +127,108 @@ impl Settings {
         self.with_operation_mode(mode)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_exposes_default_collaborators() {
+        let settings = Settings::default();
+
+        assert_eq!(settings.default_interface(), InterfaceMode::Tui);
+        assert_eq!(settings.permissions(), &Permissions::default());
+        assert_eq!(settings.operation_mode(), &OperationMode::default());
+        assert_eq!(settings.output_preferences(), &OutputPreferences::default());
+        assert_eq!(settings.marker(), &Marker::default());
+    }
+
+    #[test]
+    fn default_disables_every_derived_flag() {
+        let settings = Settings::default();
+
+        assert!(!settings.allow_repo_writes());
+        assert!(!settings.allow_real_container());
+        assert!(!settings.allow_real_fetcher());
+        assert!(!settings.allow_network());
+        assert!(!settings.preserve());
+        assert!(!settings.verbose());
+        assert!(!settings.interactive());
+        assert!(!settings.all_workflows());
+    }
+
+    #[test]
+    fn with_default_interface_replaces_interface() {
+        let settings = Settings::default().with_default_interface(InterfaceMode::Cli);
+
+        assert_eq!(settings.default_interface(), InterfaceMode::Cli);
+    }
+
+    #[test]
+    fn with_permissions_replaces_permissions() {
+        let permissions = Permissions::default().with_allow_network(true);
+
+        let settings = Settings::default().with_permissions(permissions.clone());
+
+        assert_eq!(settings.permissions(), &permissions);
+    }
+
+    #[test]
+    fn with_operation_mode_replaces_operation_mode() {
+        let mode = OperationMode::default().with_interactive(true);
+
+        let settings = Settings::default().with_operation_mode(mode.clone());
+
+        assert_eq!(settings.operation_mode(), &mode);
+    }
+
+    #[test]
+    fn with_output_preferences_replaces_output_preferences() {
+        let preferences = OutputPreferences::default().with_verbose(true);
+
+        let settings = Settings::default().with_output_preferences(preferences.clone());
+
+        assert_eq!(settings.output_preferences(), &preferences);
+    }
+
+    #[test]
+    fn with_marker_replaces_marker() {
+        let marker = Marker::custom_text("ready");
+
+        let settings = Settings::default().with_marker(marker.clone());
+
+        assert_eq!(settings.marker(), &marker);
+    }
+
+    #[test]
+    fn permission_builders_toggle_derived_flags() {
+        let settings = Settings::default()
+            .with_allow_repo_writes(true)
+            .with_allow_real_container(true)
+            .with_allow_real_fetcher(true)
+            .with_allow_network(true);
+
+        assert!(settings.allow_repo_writes());
+        assert!(settings.allow_real_container());
+        assert!(settings.allow_real_fetcher());
+        assert!(settings.allow_network());
+    }
+
+    #[test]
+    fn output_builders_toggle_derived_flags() {
+        let settings = Settings::default().with_preserve(true).with_verbose(true);
+
+        assert!(settings.preserve());
+        assert!(settings.verbose());
+    }
+
+    #[test]
+    fn operation_builders_toggle_derived_flags() {
+        let settings = Settings::default()
+            .with_interactive(true)
+            .with_all_workflows(true);
+
+        assert!(settings.interactive());
+        assert!(settings.all_workflows());
+    }
+}

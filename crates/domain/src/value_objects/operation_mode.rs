@@ -20,3 +20,32 @@ impl OperationMode {
         self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_disables_every_flag() {
+        let mode = OperationMode::default();
+
+        assert!(!mode.interactive());
+        assert!(!mode.all_workflows());
+    }
+
+    #[test]
+    fn with_interactive_enables_interactive() {
+        let mode = OperationMode::default().with_interactive(true);
+
+        assert!(mode.interactive());
+        assert!(!mode.all_workflows());
+    }
+
+    #[test]
+    fn with_all_workflows_enables_all_workflows() {
+        let mode = OperationMode::default().with_all_workflows(true);
+
+        assert!(mode.all_workflows());
+        assert!(!mode.interactive());
+    }
+}

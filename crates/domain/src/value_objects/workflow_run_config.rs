@@ -176,6 +176,11 @@ mod tests {
     }
 
     #[test]
+    fn default_matches_new() {
+        assert_eq!(WorkflowRunConfig::default(), WorkflowRunConfig::new());
+    }
+
+    #[test]
     fn config_without_event_is_invalid() {
         assert!(!WorkflowRunConfig::new().is_valid());
     }

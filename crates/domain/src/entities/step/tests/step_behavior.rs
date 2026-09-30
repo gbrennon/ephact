@@ -36,6 +36,14 @@ mod tests {
     }
 
     #[test]
+    fn a_step_without_run_or_uses_is_invalid() {
+        assert_eq!(
+            Step::for_test(None, None, None).step_type(),
+            StepType::Invalid
+        );
+    }
+
+    #[test]
     fn effective_shell_uses_step_shell_when_set() {
         assert_eq!(
             Step::for_test(Some("echo hello"), Some("pwsh"), None).effective_shell("bash"),
@@ -86,47 +94,123 @@ mod tests {
             "unnamed step"
         );
     }
-    #[test]
-    fn package_manager_network_access_is_allowed_by_default() {
-        for command in [
-            "apt-get install curl",
-            "dnf install curl",
-            "npm install",
-            "pip install requests",
-            "cargo fetch",
-            "go mod download",
-        ] {
-            let step = Step::for_test(Some(command), None, None);
+    #[derive(Default)]
+    struct StubClassifier {
+        package_registry: bool,
+        http_request: bool,
+        network_command: bool,
+        remote_mutation: bool,
+    }
 
-            assert_eq!(step.network_access_reason(), None);
-            assert_eq!(step.network_policy_violation(), None);
+    impl crate::traits::NetworkCommandClassifier for StubClassifier {
+        fn accesses_package_registry(&self, _script: &str) -> bool {
+            self.package_registry
+        }
+
+        fn issues_http_request(&self, _script: &str) -> bool {
+            self.http_request
+        }
+
+        fn uses_network_command(&self, _script: &str) -> bool {
+            self.network_command
+        }
+
+        fn mutates_remote_environment(&self, _script: &str) -> bool {
+            self.remote_mutation
         }
     }
 
     #[test]
-    fn remote_mutations_are_blocked_even_when_network_is_enabled() {
-        for command in [
-            "git push origin main",
-            "npm publish",
-            "curl --request POST https://example.com",
-            "curl --data payload https://example.com",
-        ] {
-            let step = Step::for_test(Some(command), None, None);
+    fn package_manager_access_is_allowed_over_other_signals() {
+        let step = Step::for_test(Some("echo hi"), None, None);
+        let classifier = StubClassifier {
+            package_registry: true,
+            http_request: true,
+            network_command: true,
+            ..StubClassifier::default()
+        };
 
-            assert_eq!(
-                step.network_policy_violation(),
-                Some("network operation blocked; the step would modify a remote environment")
-            );
-        }
+        assert_eq!(step.network_access_reason(&classifier), None);
     }
+
     #[test]
-    fn compiler_flags_are_not_remote_mutations() {
-        let step = Step::for_test(
-            Some("cargo clippy --all-targets --locked -- -D warnings"),
-            None,
-            None,
+    fn network_policy_violation_delegates_remote_mutation_message() {
+        let step = Step::for_test(Some("echo hi"), None, None);
+        let classifier = StubClassifier {
+            remote_mutation: true,
+            ..StubClassifier::default()
+        };
+
+        assert_eq!(
+            step.network_policy_violation(&classifier),
+            Some("network operation blocked; the step would modify a remote environment")
         );
+    }
 
-        assert_eq!(step.network_policy_violation(), None);
+    #[test]
+    fn absence_of_remote_mutation_is_no_violation() {
+        let step = Step::for_test(Some("echo hi"), None, None);
+        let classifier = StubClassifier::default();
+
+        assert_eq!(step.network_policy_violation(&classifier), None);
+    }
+
+    #[test]
+    fn if_condition_accessors_expose_the_condition() {
+        let step =
+            Step::for_test(Some("echo"), None, None).with_if_condition(Some("always()".into()));
+
+        assert_eq!(step.r#if(), Some("always()"));
+        assert_eq!(step.if_condition(), Some("always()"));
+    }
+
+    #[test]
+    fn http_requests_report_disabled_network_access() {
+        let step = Step::for_test(Some("echo hi"), None, None);
+        let classifier = StubClassifier {
+            http_request: true,
+            network_command: true,
+            ..StubClassifier::default()
+        };
+
+        assert_eq!(
+            step.network_access_reason(&classifier),
+            Some("network access is disabled; the step would send an HTTP request")
+        );
+    }
+
+    #[test]
+    fn network_commands_report_disabled_network_access() {
+        let step = Step::for_test(Some("echo hi"), None, None);
+        let classifier = StubClassifier {
+            network_command: true,
+            ..StubClassifier::default()
+        };
+
+        assert_eq!(
+            step.network_access_reason(&classifier),
+            Some("network access is disabled; the step would use a network command")
+        );
+    }
+
+    #[test]
+    fn network_access_reason_without_any_signal_is_none() {
+        let step = Step::for_test(Some("echo hi"), None, None);
+        let classifier = StubClassifier::default();
+
+        assert_eq!(step.network_access_reason(&classifier), None);
+    }
+
+    #[test]
+    fn network_methods_are_none_without_a_script() {
+        let step = Step::for_test(None, None, Some("actions/checkout@v4"));
+        let classifier = StubClassifier {
+            http_request: true,
+            remote_mutation: true,
+            ..StubClassifier::default()
+        };
+
+        assert_eq!(step.network_access_reason(&classifier), None);
+        assert_eq!(step.network_policy_violation(&classifier), None);
     }
 }

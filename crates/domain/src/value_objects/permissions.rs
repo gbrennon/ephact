@@ -36,3 +36,46 @@ impl Permissions {
         self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_disables_every_permission() {
+        let permissions = Permissions::default();
+
+        assert!(!permissions.allow_repo_writes());
+        assert!(!permissions.allow_real_container());
+        assert!(!permissions.allow_real_fetcher());
+        assert!(!permissions.allow_network());
+    }
+
+    #[test]
+    fn with_allow_repo_writes_enables_repo_writes() {
+        let permissions = Permissions::default().with_allow_repo_writes(true);
+
+        assert!(permissions.allow_repo_writes());
+    }
+
+    #[test]
+    fn with_allow_real_container_enables_real_container() {
+        let permissions = Permissions::default().with_allow_real_container(true);
+
+        assert!(permissions.allow_real_container());
+    }
+
+    #[test]
+    fn with_allow_real_fetcher_enables_real_fetcher() {
+        let permissions = Permissions::default().with_allow_real_fetcher(true);
+
+        assert!(permissions.allow_real_fetcher());
+    }
+
+    #[test]
+    fn with_allow_network_enables_network() {
+        let permissions = Permissions::default().with_allow_network(true);
+
+        assert!(permissions.allow_network());
+    }
+}

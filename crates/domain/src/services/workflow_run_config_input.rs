@@ -95,3 +95,54 @@ impl WorkflowRunConfigInput {
             .with_allow_network(self.allow_network)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_input_builds_default_config() {
+        let config = WorkflowRunConfigInput::default().into_config();
+
+        assert!(config.workflow().is_none());
+        assert!(config.job().is_none());
+        assert!(config.event().is_none());
+        assert!(config.inputs().is_empty());
+        assert!(config.secrets().is_empty());
+        assert!(!config.all_workflows());
+        assert!(!config.allow_repo_writes());
+        assert!(!config.allow_real_container());
+        assert!(!config.allow_real_fetcher());
+        assert!(!config.allow_network());
+    }
+
+    #[test]
+    fn fully_populated_input_builds_matching_config() {
+        let config = WorkflowRunConfigInput::default()
+            .with_workflow(Some(".github/workflows/ci.yml".into()))
+            .with_job(Some("test".into()))
+            .with_event(Some("push".into()))
+            .with_inputs(vec![("environment".into(), "staging".into())])
+            .with_secrets(vec![("TOKEN".into(), "value".into())])
+            .with_all_workflows(true)
+            .with_allow_repo_writes(true)
+            .with_allow_real_container(true)
+            .with_allow_real_fetcher(true)
+            .with_allow_network(true)
+            .into_config();
+
+        assert_eq!(
+            config.workflow().unwrap().as_str(),
+            ".github/workflows/ci.yml"
+        );
+        assert_eq!(config.job().unwrap().as_str(), "test");
+        assert_eq!(config.event().unwrap().as_str(), "push");
+        assert_eq!(config.inputs().len(), 1);
+        assert_eq!(config.secrets().len(), 1);
+        assert!(config.all_workflows());
+        assert!(config.allow_repo_writes());
+        assert!(config.allow_real_container());
+        assert!(config.allow_real_fetcher());
+        assert!(config.allow_network());
+    }
+}

@@ -15,6 +15,7 @@ use ephact::{
         jobs::RunnerEnvironmentAdapter,
         steps::{
             build_step_context_service::BuildStepContextService,
+            fragment_network_command_classifier::FragmentNetworkCommandClassifier,
             prefix_step_path_service::PrefixStepPathService,
             summarize_step_service::SummarizeStepService,
         },
@@ -51,6 +52,7 @@ fn service_with_event_bus(
     ExecuteJobService::new(ExecuteJobDependencies::new(
         Box::new(RunnerEnvironmentAdapter::new()),
         Box::new(preparer),
+        Box::new(FragmentNetworkCommandClassifier::new()),
         (
             Box::new(PrefixStepPathService::new()),
             Box::new(BuildStepContextService::new()),
