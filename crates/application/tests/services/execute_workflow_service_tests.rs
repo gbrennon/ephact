@@ -148,6 +148,20 @@ fn execute_names_a_content_only_workflow_after_loading_from_its_file() {
 }
 
 #[test]
+fn execute_uses_the_filename_when_the_loaded_workflow_name_is_blank() {
+    let execution = execute_with_file_name(
+        FakeWorkflowLoaderPort::holding(
+            "name: \"  \"\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: build\n",
+        ),
+        FakeCommandBus::new(),
+        Some("ci.yml"),
+    )
+    .unwrap();
+
+    assert_eq!(execution.workflow_name(), "ci.yml");
+}
+
+#[test]
 fn execute_names_an_unnamed_workflow_unnamed() {
     let execution = execute(
         FakeWorkflowLoaderPort::holding(

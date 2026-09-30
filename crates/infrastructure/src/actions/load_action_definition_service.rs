@@ -45,9 +45,9 @@ impl ActionDefinitionLoaderPort for LoadActionDefinitionService {
         })?;
         serde_yaml::from_str::<ActionDefinitionYaml>(&contents)
             .map_err(|error| StepError::new(format!("failed to parse {}: {error}", path.display())))
-            .and_then(|parsed| {
+            .map(|parsed| {
                 let name = resolve_source_name(parsed.name(), path).unwrap_or_default();
-                Ok(parsed.into_domain_with_name(name))
+                parsed.into_domain_with_name(name)
             })
     }
 }

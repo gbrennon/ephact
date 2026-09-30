@@ -70,16 +70,11 @@ impl FilesystemWorkflowSource {
     }
 
     fn extract_name(content: &str) -> Option<String> {
-        for line in content.lines() {
-            let trimmed = line.trim();
-            if let Some(rest) = trimmed.strip_prefix("name:") {
-                let name = rest.trim().trim_matches(|c| c == '"' || c == '\'');
-                if !name.is_empty() {
-                    return Some(name.to_string());
-                }
-            }
-        }
-        None
+        serde_yaml::from_str::<WorkflowYaml>(content)
+            .ok()?
+            .into_domain()
+            .name()
+            .map(str::to_owned)
     }
 
     fn extrworkflow_events(content: &str) -> Vec<String> {
@@ -227,15 +222,14 @@ impl WorkflowSourcePort for FilesystemWorkflowSource {
 
         for file in files {
             let content = Self::read_file_content(&file)?;
-            if let Some(name) = Self::extract_name(&content) {
-                items.push(
-                    crate::application::dtos::responses::WorkflowListItemResponse::new(
-                        Some(name),
-                        Some(file.to_string_lossy().to_string()),
-                        Self::extrworkflow_events(&content),
-                    ),
-                );
-            }
+            let name = resolve_source_name(Self::extract_name(&content).as_deref(), &file);
+            items.push(
+                crate::application::dtos::responses::WorkflowListItemResponse::new(
+                    name,
+                    Some(file.to_string_lossy().to_string()),
+                    Self::extrworkflow_events(&content),
+                ),
+            );
         }
 
         Ok(items)

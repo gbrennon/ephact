@@ -125,7 +125,7 @@ fn list_workflows_strips_quotes_from_the_workflow_name() {
 }
 
 #[test]
-fn list_workflows_skips_workflow_file_without_a_name_key() {
+fn list_workflows_uses_the_filename_when_a_workflow_has_no_name_key() {
     let tmp = git_repository_dir();
     write_workflow(
         tmp.path(),
@@ -135,7 +135,17 @@ fn list_workflows_skips_workflow_file_without_a_name_key() {
 
     let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
 
-    assert!(workflows.is_empty());
+    assert_eq!(names(&workflows), vec!["ci.yml"]);
+}
+
+#[test]
+fn list_workflows_uses_the_filename_when_a_workflow_name_is_blank() {
+    let tmp = git_repository_dir();
+    write_workflow(tmp.path(), "ci.yml", "name: \"  \"\non: [push]\n");
+
+    let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
+
+    assert_eq!(names(&workflows), vec!["ci.yml"]);
 }
 
 #[test]
@@ -146,7 +156,7 @@ fn list_workflows_keeps_named_workflow_when_a_sibling_file_has_no_name() {
 
     let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
 
-    assert_eq!(names(&workflows), vec!["Deploy"]);
+    assert_eq!(names(&workflows), vec!["anonymous.yml", "Deploy"]);
 }
 
 #[test]
@@ -362,6 +372,23 @@ fn read_workflow_selects_an_unnamed_workflow_by_filename() {
 
     assert_eq!(workflow.content(), body);
     assert_eq!(workflow.file_name(), "ci.yml");
+}
+
+#[test]
+fn read_workflow_uses_only_the_top_level_name_for_selection() {
+    let tmp = git_repository_dir();
+    let body = "on: [push]\njobs:\n  build:\n    name: Nested build\n    runs-on: ubuntu-latest\n";
+    write_workflow(tmp.path(), "ci.yml", body);
+
+    let workflow = source()
+        .read_workflow(&repository(tmp.path()), Some("ci.yml"))
+        .unwrap();
+    assert_eq!(workflow.file_name(), "ci.yml");
+
+    let error = source()
+        .read_workflow(&repository(tmp.path()), Some("Nested build"))
+        .unwrap_err();
+    assert!(error.to_string().contains("not found"));
 }
 
 #[test]
