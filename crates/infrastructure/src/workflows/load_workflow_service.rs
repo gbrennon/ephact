@@ -4,7 +4,7 @@ use crate::{
         ports::outbound::workflow_loader_port::WorkflowLoaderPort,
     },
     domain::aggregates::Workflow,
-    workflows::yaml::WorkflowYaml,
+    workflows::{woodpecker::WoodpeckerPipelineYaml, yaml::WorkflowYaml},
 };
 
 pub struct LoadWorkflowService;
@@ -23,6 +23,14 @@ impl Default for LoadWorkflowService {
 
 impl WorkflowLoaderPort for LoadWorkflowService {
     fn load(&self, request: LoadWorkflowRequest) -> Result<Workflow, LoadWorkflowError> {
+        if WoodpeckerPipelineYaml::is_document(request.workflow_content()) {
+            let parsed = WoodpeckerPipelineYaml::parse(request.workflow_content())
+                .map_err(|error| LoadWorkflowError::Parse(error.to_string()))?;
+            return Ok(parsed
+                .into_domain()
+                .with_file(request.file_name().to_string()));
+        }
+
         let parsed: WorkflowYaml = serde_yaml::from_str(request.workflow_content())
             .map_err(|error| LoadWorkflowError::Parse(error.to_string()))?;
         Ok(parsed

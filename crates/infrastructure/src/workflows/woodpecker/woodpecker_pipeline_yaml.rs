@@ -23,6 +23,14 @@ pub struct WoodpeckerPipelineYaml {
 }
 
 impl WoodpeckerPipelineYaml {
+    /// Returns whether YAML content has the Woodpecker pipeline shape.
+    pub fn is_document(content: &str) -> bool {
+        let Ok(document) = serde_yaml::from_str::<serde_yaml::Value>(content) else {
+            return false;
+        };
+        document.get("when").is_some() && document.get("steps").is_some()
+    }
+
     /// Parses a Woodpecker pipeline from its YAML source.
     pub fn parse(content: &str) -> Result<Self, serde_yaml::Error> {
         serde_yaml::from_str(content)

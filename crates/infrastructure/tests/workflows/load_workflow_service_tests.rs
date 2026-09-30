@@ -3,10 +3,20 @@ use ephact::{
         dtos::requests::LoadWorkflowRequest,
         ports::outbound::workflow_loader_port::WorkflowLoaderPort,
     },
+    domain::value_objects::TriggerKind,
     infrastructure::workflows::load_workflow_service::LoadWorkflowService,
 };
 
 const VALID_WORKFLOW: &str = "name: Ci\non: push\nenv:\n  MODE: staging\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n";
+const WOODPECKER_WORKFLOW: &str = r"name: Demo
+when:
+  - event: pull_request
+steps:
+  - name: verify
+    image: alpine:3.20
+    commands:
+      - printf demo
+";
 
 #[test]
 fn load_parses_valid_workflow_content() {
@@ -24,6 +34,21 @@ fn load_parses_valid_workflow_content() {
         Some("staging")
     );
     assert!(workflow.jobs().contains_key("build"));
+}
+
+#[test]
+fn load_parses_woodpecker_pipeline_content() {
+    let workflow = LoadWorkflowService::new()
+        .load(LoadWorkflowRequest::new(
+            WOODPECKER_WORKFLOW.to_string(),
+            "demo.yml".to_string(),
+        ))
+        .unwrap();
+
+    assert_eq!(workflow.name(), Some("Demo"));
+    assert_eq!(workflow.file(), Some("demo.yml"));
+    assert!(workflow.jobs().contains_key("step-0"));
+    assert!(workflow.triggers_on(TriggerKind::PullRequest));
 }
 
 #[test]
