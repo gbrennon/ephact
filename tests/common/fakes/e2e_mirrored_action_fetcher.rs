@@ -6,8 +6,6 @@ use ephact::{
 };
 use parking_lot::Mutex;
 
-/// Action fetcher that resolves every remote reference to one checkout already
-/// present on disk, recording what the application asked it to fetch.
 #[derive(Clone)]
 pub struct MirroredActionFetcher {
     action_directory: PathBuf,
@@ -20,10 +18,6 @@ impl MirroredActionFetcher {
             action_directory,
             fetched: Arc::new(Mutex::new(Vec::new())),
         }
-    }
-
-    pub fn fetched(&self) -> Vec<RemoteActionReference> {
-        self.fetched.lock().clone()
     }
 }
 

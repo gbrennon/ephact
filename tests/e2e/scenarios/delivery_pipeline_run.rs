@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use ephact::{
     application::{
@@ -10,15 +10,19 @@ use ephact::{
             container_port::{ContainerPort, ExecOptions},
         },
     },
-    domain::{entities::FileEntry, errors::ContainerError, messages::events::OutputStream},
-};
-
-use crate::{
-    e2e_mirrored_action_fetcher::MirroredActionFetcher,
-    support::{
-        container_activity::ContainerActivity, ephact_application::EphactApplication,
-        workflow_repository::WorkflowRepository,
+    domain::{
+        entities::FileEntry,
+        errors::{ActionError, ContainerError},
+        messages::events::OutputStream,
+        value_objects::RemoteActionReference,
     },
+    infrastructure::actions::ActionFetcherPort,
+};
+use parking_lot::Mutex;
+
+use crate::support::{
+    container_activity::ContainerActivity, ephact_application::EphactApplication,
+    workflow_repository::WorkflowRepository,
 };
 
 const PIPELINE_WORKFLOW: &str = r#"
@@ -80,6 +84,36 @@ runs:
   steps:
     - run: echo "checksum for ${{ inputs.artifact }} signed with ${{ secrets.REGISTRY_TOKEN }}"
 "#;
+
+#[derive(Clone)]
+pub struct DeliveryPipelineFetcherFake {
+    action_directory: PathBuf,
+    fetched: Arc<Mutex<Vec<RemoteActionReference>>>,
+}
+
+impl DeliveryPipelineFetcherFake {
+    fn mirroring(action_directory: PathBuf) -> Self {
+        Self {
+            action_directory,
+            fetched: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+
+    pub fn fetched(&self) -> Vec<RemoteActionReference> {
+        self.fetched.lock().clone()
+    }
+}
+
+impl ActionFetcherPort for DeliveryPipelineFetcherFake {
+    fn fetch(&self, reference: &RemoteActionReference) -> Result<PathBuf, ActionError> {
+        self.fetched.lock().push(reference.clone());
+        Ok(self.action_directory.clone())
+    }
+
+    fn clone_box(&self) -> Box<dyn ActionFetcherPort> {
+        Box::new(self.clone())
+    }
+}
 
 #[derive(Clone)]
 struct DeliveryPipelineScenarioFake {
@@ -180,7 +214,7 @@ impl ContainerPort for DeliveryPipelineScenarioFake {
 pub struct DeliveryPipelineRun {
     outcome: Result<(), String>,
     activity: ContainerActivity,
-    fetcher: MirroredActionFetcher,
+    fetcher: DeliveryPipelineFetcherFake,
 }
 
 impl DeliveryPipelineRun {
@@ -198,7 +232,7 @@ impl DeliveryPipelineRun {
             .with_action(".forgejo/actions/package", PACKAGE_ACTION)
             .with_action(".forgejo/actions/checksum", CHECKSUM_ACTION);
         let activity = ContainerActivity::new();
-        let fetcher = MirroredActionFetcher::mirroring(repository.path());
+        let fetcher = DeliveryPipelineFetcherFake::mirroring(repository.path());
         let workflow_source = Arc::new(
             crate::common::fakes::fake_workflow_source::FakeWorkflowSource::new()
                 .with_workflow_content(PIPELINE_WORKFLOW),
@@ -240,7 +274,7 @@ impl DeliveryPipelineRun {
         &self.activity
     }
 
-    pub fn fetcher(&self) -> &MirroredActionFetcher {
+    pub fn fetcher(&self) -> &DeliveryPipelineFetcherFake {
         &self.fetcher
     }
 }

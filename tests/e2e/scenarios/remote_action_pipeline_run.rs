@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use ephact::{
     application::{
@@ -10,15 +10,19 @@ use ephact::{
             container_port::{ContainerPort, ExecOptions},
         },
     },
-    domain::{entities::FileEntry, errors::ContainerError, messages::events::OutputStream},
-};
-
-use crate::{
-    e2e_mirrored_action_fetcher::MirroredActionFetcher,
-    support::{
-        container_activity::ContainerActivity, ephact_application::EphactApplication,
-        remote_action_mirror::RemoteActionMirror, workflow_repository::WorkflowRepository,
+    domain::{
+        entities::FileEntry,
+        errors::{ActionError, ContainerError},
+        messages::events::OutputStream,
+        value_objects::RemoteActionReference,
     },
+    infrastructure::actions::ActionFetcherPort,
+};
+use parking_lot::Mutex;
+
+use crate::support::{
+    container_activity::ContainerActivity, ephact_application::EphactApplication,
+    remote_action_mirror::RemoteActionMirror, workflow_repository::WorkflowRepository,
 };
 
 const TOOLCHAIN_WORKFLOW: &str = r#"
@@ -47,6 +51,36 @@ runs:
 "#;
 
 const SETUP_NODE_ENTRY_POINT: &str = "console.log('setup-node');\n";
+
+#[derive(Clone)]
+pub struct RemoteActionFetcherFake {
+    action_directory: PathBuf,
+    fetched: Arc<Mutex<Vec<RemoteActionReference>>>,
+}
+
+impl RemoteActionFetcherFake {
+    fn mirroring(action_directory: PathBuf) -> Self {
+        Self {
+            action_directory,
+            fetched: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+
+    pub fn fetched(&self) -> Vec<RemoteActionReference> {
+        self.fetched.lock().clone()
+    }
+}
+
+impl ActionFetcherPort for RemoteActionFetcherFake {
+    fn fetch(&self, reference: &RemoteActionReference) -> Result<PathBuf, ActionError> {
+        self.fetched.lock().push(reference.clone());
+        Ok(self.action_directory.clone())
+    }
+
+    fn clone_box(&self) -> Box<dyn ActionFetcherPort> {
+        Box::new(self.clone())
+    }
+}
 
 #[derive(Clone)]
 struct RemoteActionScenarioFake {
@@ -142,7 +176,7 @@ impl ContainerPort for RemoteActionScenarioFake {
 pub struct RemoteActionPipelineRun {
     outcome: Result<(), String>,
     activity: ContainerActivity,
-    fetcher: MirroredActionFetcher,
+    fetcher: RemoteActionFetcherFake,
 }
 
 impl RemoteActionPipelineRun {
@@ -158,7 +192,7 @@ impl RemoteActionPipelineRun {
             .with_definition(SETUP_NODE_ACTION)
             .with_file(Self::ENTRY_POINT_FILE, SETUP_NODE_ENTRY_POINT);
         let activity = ContainerActivity::new();
-        let fetcher = MirroredActionFetcher::mirroring(mirror.path());
+        let fetcher = RemoteActionFetcherFake::mirroring(mirror.path());
         let workflow_source = Arc::new(
             crate::common::fakes::fake_workflow_source::FakeWorkflowSource::new()
                 .with_workflow_content(TOOLCHAIN_WORKFLOW),
@@ -196,7 +230,7 @@ impl RemoteActionPipelineRun {
         &self.activity
     }
 
-    pub fn fetcher(&self) -> &MirroredActionFetcher {
+    pub fn fetcher(&self) -> &RemoteActionFetcherFake {
         &self.fetcher
     }
 }
