@@ -7,6 +7,7 @@ use ephact::{
         services::execute_workflow_service::ExecuteWorkflowService,
     },
     domain::{
+        messages::events::DomainEvent,
         services::evaluation_context_mapper::EvaluationContextMapper,
         value_objects::EvaluationContext,
     },
@@ -25,18 +26,29 @@ fn execute(
     loader: FakeWorkflowLoaderPort,
     command_bus: FakeCommandBus,
 ) -> Result<WorkflowExecutionResponse, ephact::application::errors::ExecuteWorkflowError> {
+    execute_with_file_name(loader, command_bus, None)
+}
+
+fn execute_with_file_name(
+    loader: FakeWorkflowLoaderPort,
+    command_bus: FakeCommandBus,
+    file_name: Option<&str>,
+) -> Result<WorkflowExecutionResponse, ephact::application::errors::ExecuteWorkflowError> {
     ExecuteWorkflowService::new(
         Box::new(loader),
         Box::new(command_bus),
         Box::new(FakeEventBus::new()),
     )
-    .execute(ExecuteWorkflowRequest::new(
-        REQUESTED_CONTENT.to_string(),
-        Path::new("/repo").to_path_buf(),
-        EvaluationContextMapper::to_parts(&EvaluationContext::new()),
-        "test-run".to_string(),
-        false,
-    ))
+    .execute(
+        ExecuteWorkflowRequest::new(
+            REQUESTED_CONTENT.to_string(),
+            Path::new("/repo").to_path_buf(),
+            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            "test-run".to_string(),
+            false,
+        )
+        .with_file_name_opt(file_name),
+    )
 }
 
 #[test]
@@ -78,6 +90,75 @@ fn execute_reports_the_workflow_name() {
     .unwrap();
 
     assert_eq!(execution.workflow_name(), "Ci");
+}
+
+#[test]
+fn execute_reports_the_source_filename_in_progress_events_and_summary() {
+    let event_bus = FakeEventBus::new();
+    let execution = ExecuteWorkflowService::new(
+        Box::new(FakeWorkflowLoaderPort::holding(
+            "on: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: build\n",
+        )),
+        Box::new(FakeCommandBus::new()),
+        Box::new(event_bus.clone()),
+    )
+    .execute(
+        ExecuteWorkflowRequest::new(
+            REQUESTED_CONTENT.to_string(),
+            Path::new("/repo").to_path_buf(),
+            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            "test-run".to_string(),
+            false,
+        )
+        .with_file_name("ci.yml"),
+    )
+    .unwrap();
+
+    assert_eq!(execution.workflow_name(), "ci.yml");
+    let events = event_bus.events();
+    let workflow_started = events.iter().find_map(|event| match event {
+        DomainEvent::WorkflowStarted(payload) => Some(payload),
+        _ => None,
+    });
+    assert_eq!(workflow_started.unwrap().workflow_name(), "ci.yml");
+    let job_started = events.iter().find_map(|event| match event {
+        DomainEvent::JobStarted(payload) => Some(payload),
+        _ => None,
+    });
+    assert_eq!(job_started.unwrap().workflow_name(), "ci.yml");
+    let job_finished = events.iter().find_map(|event| match event {
+        DomainEvent::JobFinished(payload) => Some(payload),
+        _ => None,
+    });
+    assert_eq!(job_finished.unwrap().workflow_name(), "ci.yml");
+}
+
+#[test]
+fn execute_names_a_content_only_workflow_after_loading_from_its_file() {
+    let execution = execute_with_file_name(
+        FakeWorkflowLoaderPort::holding(
+            "on: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: build\n",
+        ),
+        FakeCommandBus::new(),
+        Some("ci.yml"),
+    )
+    .unwrap();
+
+    assert_eq!(execution.workflow_name(), "ci.yml");
+}
+
+#[test]
+fn execute_uses_the_filename_when_the_loaded_workflow_name_is_blank() {
+    let execution = execute_with_file_name(
+        FakeWorkflowLoaderPort::holding(
+            "name: \"  \"\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: build\n",
+        ),
+        FakeCommandBus::new(),
+        Some("ci.yml"),
+    )
+    .unwrap();
+
+    assert_eq!(execution.workflow_name(), "ci.yml");
 }
 
 #[test]

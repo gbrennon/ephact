@@ -49,6 +49,13 @@ fn the_name_and_environment_reach_the_domain_workflow() {
 }
 
 #[test]
+fn a_blank_name_is_normalized_to_absence() {
+    let workflow = workflow_from("name: \"  \"\non: push\njobs: {}\n");
+
+    assert_eq!(workflow.name(), None);
+}
+
+#[test]
 fn run_defaults_reach_the_domain_workflow() {
     let yaml =
         "on: push\ndefaults:\n  run:\n    shell: bash\n    working-directory: ./src\njobs: {}\n";

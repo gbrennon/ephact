@@ -6,7 +6,7 @@ use crate::{
         ports::outbound::action_definition_loader_port::ActionDefinitionLoaderPort,
     },
     domain::{errors::StepError, value_objects::ActionDefinition},
-    workflows::yaml::ActionDefinitionYaml,
+    workflows::{source_name::resolve_source_name, yaml::ActionDefinitionYaml},
 };
 
 /// Service that reads an action's `action.yml` (or `action.yaml`) and parses it.
@@ -44,7 +44,10 @@ impl ActionDefinitionLoaderPort for LoadActionDefinitionService {
             StepError::new(format!("failed to read {}: {error}", path.display()))
         })?;
         serde_yaml::from_str::<ActionDefinitionYaml>(&contents)
-            .map(ActionDefinitionYaml::into_domain)
             .map_err(|error| StepError::new(format!("failed to parse {}: {error}", path.display())))
+            .map(|parsed| {
+                let name = resolve_source_name(parsed.name(), path).unwrap_or_default();
+                parsed.into_domain_with_name(name)
+            })
     }
 }

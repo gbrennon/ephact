@@ -8,6 +8,7 @@ pub struct ExecuteWorkflowRequest {
     run_id: String,
     allow_repo_writes: bool,
     allow_network: bool,
+    file_name: Option<String>,
 }
 
 impl ExecuteWorkflowRequest {
@@ -26,12 +27,29 @@ impl ExecuteWorkflowRequest {
             run_id,
             allow_repo_writes,
             allow_network: false,
+            file_name: None,
         }
     }
 
     /// Returns the workflow content.
     pub fn workflow_content(&self) -> &str {
         &self.workflow_content
+    }
+
+    /// Sets the source filename used when the workflow has no YAML name.
+    pub fn with_file_name(mut self, file_name: impl Into<String>) -> Self {
+        self.file_name = Some(file_name.into());
+        self
+    }
+
+    /// Sets or clears the source filename.
+    pub fn with_file_name_opt(mut self, file_name: Option<&str>) -> Self {
+        self.file_name = file_name.map(str::to_owned);
+        self
+    }
+
+    pub fn file_name(&self) -> Option<&str> {
+        self.file_name.as_deref()
     }
 
     /// Returns the repository path.

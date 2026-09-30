@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use crate::{
     application::{
-        dtos::responses::WorkflowListItemResponse, errors::WorkflowSourceError,
+        dtos::responses::{WorkflowListItemResponse, WorkflowSourceFileResponse},
+        errors::WorkflowSourceError,
         ports::outbound::WorkflowSourcePort,
     },
     domain::entities::repository::Repository,
@@ -24,14 +25,14 @@ impl WorkflowSourcePort for SharedWorkflowSource {
         &self,
         repository: &Repository,
         workflow_name: Option<&str>,
-    ) -> Result<String, WorkflowSourceError> {
+    ) -> Result<WorkflowSourceFileResponse, WorkflowSourceError> {
         self.inner.read_workflow(repository, workflow_name)
     }
 
     fn read_all_workflows(
         &self,
         repository: &Repository,
-    ) -> Result<Vec<String>, WorkflowSourceError> {
+    ) -> Result<Vec<WorkflowSourceFileResponse>, WorkflowSourceError> {
         self.inner.read_all_workflows(repository)
     }
 

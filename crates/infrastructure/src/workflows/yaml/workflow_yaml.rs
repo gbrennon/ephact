@@ -43,12 +43,16 @@ impl WorkflowYaml {
     /// Builds the domain workflow this YAML describes.
     #[must_use]
     pub fn into_domain(self) -> Workflow {
+        let name = self
+            .name
+            .map(|name| name.trim().to_owned())
+            .filter(|name| !name.is_empty());
         let jobs = self
             .jobs
             .into_iter()
             .map(|(id, job)| (id, job.into_domain()))
             .collect();
-        Workflow::new(self.name, self.trigger.into_domain(), self.env, jobs)
+        Workflow::new(name, self.trigger.into_domain(), self.env, jobs)
             .with_defaults(self.defaults.map(ExecutionDefaultsYaml::into_domain))
             .with_permissions(self.permissions.map(TokenPermissionsYaml::into_domain))
             .with_concurrency(self.concurrency.map(ConcurrencyGroupYaml::into_domain))

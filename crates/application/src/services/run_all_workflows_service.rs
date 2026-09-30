@@ -140,25 +140,35 @@ impl RunAllWorkflowsService {
             .workflow_source
             .read_all_workflows(repository)
             .map_err(|error| ApplicationError::Workflow(error.to_string()))?;
-        self.filter_workflow_contents(workflow_contents, event)
+        self.filter_workflow_sources(workflow_contents, event)
             .into_iter()
-            .map(|content| {
+            .map(|workflow| {
                 self.command_bus
-                    .dispatch(ExecuteWorkflowCommand::new(
-                        content,
-                        config.clone(),
-                        repository.clone(),
-                        run_id.to_string(),
-                        config.allow_repo_writes(),
-                    ))
+                    .dispatch(
+                        ExecuteWorkflowCommand::new(
+                            workflow.content().to_owned(),
+                            config.clone(),
+                            repository.clone(),
+                            run_id.to_string(),
+                            config.allow_repo_writes(),
+                        )
+                        .with_workflow_file_name(workflow.file_name()),
+                    )
                     .map_err(|error| ApplicationError::Workflow(error.to_string()))
             })
             .collect()
     }
-    fn filter_workflow_contents(&self, workflow_contents: Vec<String>, event: &str) -> Vec<String> {
-        workflow_contents
+    fn filter_workflow_sources(
+        &self,
+        workflow_sources: Vec<crate::dtos::responses::WorkflowSourceFileResponse>,
+        event: &str,
+    ) -> Vec<crate::dtos::responses::WorkflowSourceFileResponse> {
+        workflow_sources
             .into_iter()
-            .filter(|content| self.trigger_detector.triggers_on_event(content, event))
+            .filter(|workflow| {
+                self.trigger_detector
+                    .triggers_on_event(workflow.content(), event)
+            })
             .collect()
     }
 

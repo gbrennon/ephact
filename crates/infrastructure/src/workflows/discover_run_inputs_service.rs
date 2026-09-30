@@ -33,7 +33,10 @@ impl FilesystemRunInputDiscoveryService {
     fn workflow_contents(
         &self,
         request: &DiscoverRunInputsRequest,
-    ) -> Result<Vec<String>, DiscoverRunInputsError> {
+    ) -> Result<
+        Vec<crate::application::dtos::responses::WorkflowSourceFileResponse>,
+        DiscoverRunInputsError,
+    > {
         if request.config().all_workflows() {
             return self
                 .workflow_source
@@ -223,14 +226,15 @@ impl FilesystemRunInputDiscoveryService {
     }
 
     fn process_workflows(
-        contents: &[String],
+        sources: &[crate::application::dtos::responses::WorkflowSourceFileResponse],
         repository: &Path,
     ) -> Result<(Vec<RunInputDeclarationResponse>, HashSet<String>), DiscoverRunInputsError> {
         let mut declarations = Vec::new();
         let mut provided = HashSet::new();
-        for content in contents {
-            let workflow = serde_yaml::from_str::<WorkflowYaml>(content)
+        for source in sources {
+            let workflow = serde_yaml::from_str::<WorkflowYaml>(source.content())
                 .map(WorkflowYaml::into_domain)
+                .map(|workflow| workflow.with_file(source.file_name().to_owned()))
                 .map_err(|error| DiscoverRunInputsError::Discovery(error.to_string()))?;
             Self::add_workflow_inputs(&workflow, &mut declarations)?;
             Self::add_actions(&workflow, repository, &mut declarations, &mut provided)?;
@@ -259,10 +263,10 @@ impl RunInputsDiscovererPort for FilesystemRunInputDiscoveryService {
         &self,
         request: DiscoverRunInputsRequest,
     ) -> Result<Vec<RunInputDeclarationResponse>, DiscoverRunInputsError> {
-        let contents = self.workflow_contents(&request)?;
+        let sources = self.workflow_contents(&request)?;
         let supplied = Self::collect_supplied_inputs(request.config());
         let repo_path = request.repository().path().as_path();
-        let (declarations, provided) = Self::process_workflows(&contents, repo_path)?;
+        let (declarations, provided) = Self::process_workflows(&sources, repo_path)?;
         Ok(Self::resolve_declarations(declarations, supplied, provided))
     }
 }

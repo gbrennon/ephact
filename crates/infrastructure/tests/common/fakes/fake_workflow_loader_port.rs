@@ -44,7 +44,7 @@ impl WorkflowLoaderPort for FakeWorkflowLoaderPort {
             .push(request.workflow_content().to_string());
         match &self.yaml {
             Ok(yaml) => serde_yaml::from_str::<WorkflowYaml>(yaml)
-                .map(|workflow| workflow.into_domain())
+                .map(|workflow| workflow.into_domain().with_file(request.file_name()))
                 .map_err(|error| LoadWorkflowError::Parse(error.to_string())),
             Err(message) => Err(LoadWorkflowError::Message(message.clone())),
         }

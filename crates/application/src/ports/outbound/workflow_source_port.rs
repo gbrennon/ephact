@@ -1,5 +1,6 @@
 use crate::{
-    domain::entities::repository::Repository, dtos::responses::WorkflowListItemResponse,
+    domain::entities::repository::Repository,
+    dtos::responses::{WorkflowListItemResponse, WorkflowSourceFileResponse},
     errors::WorkflowSourceError,
 };
 
@@ -8,12 +9,12 @@ pub trait WorkflowSourcePort: Send + Sync {
         &self,
         repository: &Repository,
         workflow_name: Option<&str>,
-    ) -> Result<String, WorkflowSourceError>;
+    ) -> Result<WorkflowSourceFileResponse, WorkflowSourceError>;
 
     fn read_all_workflows(
         &self,
         repository: &Repository,
-    ) -> Result<Vec<String>, WorkflowSourceError>;
+    ) -> Result<Vec<WorkflowSourceFileResponse>, WorkflowSourceError>;
 
     fn list_actions(&self, repository: &Repository) -> Result<Vec<String>, WorkflowSourceError>;
 

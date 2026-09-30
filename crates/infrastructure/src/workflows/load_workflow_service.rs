@@ -25,6 +25,8 @@ impl WorkflowLoaderPort for LoadWorkflowService {
     fn load(&self, request: LoadWorkflowRequest) -> Result<Workflow, LoadWorkflowError> {
         let parsed: WorkflowYaml = serde_yaml::from_str(request.workflow_content())
             .map_err(|error| LoadWorkflowError::Parse(error.to_string()))?;
-        Ok(parsed.into_domain())
+        Ok(parsed
+            .into_domain()
+            .with_file(request.file_name().to_string()))
     }
 }

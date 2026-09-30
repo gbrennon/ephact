@@ -111,16 +111,19 @@ impl RunWorkflowPort for RunWorkflowService {
     ) -> Pin<Box<dyn Future<Output = Result<RunSummaryResponse, ApplicationError>> + Send + '_>>
     {
         Box::pin(async move {
-            let context = RunExecutionContext::new(request)
+            let mut context = RunExecutionContext::new(request)
                 .map_err(|error| ApplicationError::Workflow(error.to_string()))?;
             self.announce_run_started(&context);
-            let workflow_content = self
+            let workflow_source = self
                 .read_workflow(&context)
                 .map_err(|error| ApplicationError::Workflow(error.to_string()))?;
-            self.ensure_requested_trigger(&context, &workflow_content)
+            if context.workflow_name.is_none() {
+                context.workflow_name = Some(workflow_source.file_name().to_owned());
+            }
+            self.ensure_requested_trigger(&context, workflow_source.content())
                 .map_err(|error| ApplicationError::Workflow(error.to_string()))?;
             let execution = self
-                .dispatch_workflow(&context, workflow_content)
+                .dispatch_workflow(&context, workflow_source)
                 .map_err(|error| ApplicationError::Workflow(error.to_string()))?;
             Ok(self.complete_run(&context, execution))
         })
@@ -135,12 +138,15 @@ impl RunWorkflowService {
             )));
     }
 
-    fn read_workflow(&self, context: &RunExecutionContext) -> Result<String, Box<dyn Error>> {
+    fn read_workflow(
+        &self,
+        context: &RunExecutionContext,
+    ) -> Result<crate::dtos::responses::WorkflowSourceFileResponse, Box<dyn Error>> {
         match self.workflow_source.read_workflow(
             &context.repository,
             context.config.workflow().map(|workflow| workflow.as_str()),
         ) {
-            Ok(content) => Ok(content),
+            Ok(workflow) => Ok(workflow),
             Err(error) => {
                 let error: Box<dyn Error> = Box::new(error);
                 self.announce_run_failed(context, error.as_ref());
@@ -178,15 +184,18 @@ impl RunWorkflowService {
     fn dispatch_workflow(
         &self,
         context: &RunExecutionContext,
-        workflow_content: String,
+        workflow_source: crate::dtos::responses::WorkflowSourceFileResponse,
     ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
-        match self.command_bus.dispatch(ExecuteWorkflowCommand::new(
-            workflow_content,
-            context.config.clone(),
-            context.repository.clone(),
-            context.run_id.clone(),
-            context.config.allow_repo_writes(),
-        )) {
+        match self.command_bus.dispatch(
+            ExecuteWorkflowCommand::new(
+                workflow_source.content().to_owned(),
+                context.config.clone(),
+                context.repository.clone(),
+                context.run_id.clone(),
+                context.config.allow_repo_writes(),
+            )
+            .with_workflow_file_name(workflow_source.file_name()),
+        ) {
             Ok(execution) => Ok(execution),
             Err(error) => {
                 let error: Box<dyn Error> = Box::new(error);

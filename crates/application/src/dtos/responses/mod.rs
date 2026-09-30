@@ -30,6 +30,7 @@ pub mod step;
 pub mod workflow_execution_response;
 pub mod workflow_input_source_response;
 pub mod workflow_list_item_response;
+pub mod workflow_source_file_response;
 
 pub use build_action_input_environment_response::BuildActionInputEnvironmentResponse;
 pub use build_job_environment_response::BuildJobEnvironmentResponse;
@@ -65,3 +66,4 @@ pub use step::{
 pub use workflow_execution_response::WorkflowExecutionResponse;
 pub use workflow_input_source_response::WorkflowInputSourceResponse;
 pub use workflow_list_item_response::WorkflowListItemResponse;
+pub use workflow_source_file_response::WorkflowSourceFileResponse;

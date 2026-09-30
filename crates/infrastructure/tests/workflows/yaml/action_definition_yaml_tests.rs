@@ -46,6 +46,24 @@ fn the_using_tag_selects_the_runtime() {
 }
 
 #[test]
+fn an_action_name_is_optional_at_the_yaml_boundary() {
+    assert!(
+        serde_yaml::from_str::<ActionDefinitionYaml>("runs:\n  using: composite\n  steps: []\n")
+            .is_ok()
+    );
+}
+
+#[test]
+fn a_blank_action_name_is_preserved_at_the_yaml_boundary() {
+    let parsed = serde_yaml::from_str::<ActionDefinitionYaml>(
+        "name: \"  \"\nruns:\n  using: composite\n  steps: []\n",
+    )
+    .unwrap();
+
+    assert_eq!(parsed.name(), Some("  "));
+}
+
+#[test]
 fn an_unknown_using_tag_is_rejected() {
     assert!(
         serde_yaml::from_str::<ActionDefinitionYaml>(
