@@ -14,7 +14,7 @@ pub mod resolve_named_workflow_file_service;
 pub mod resolve_workflow_files_port;
 pub mod resolve_workflow_files_service;
 pub mod shared_workflow_source;
-mod source_name;
+pub(crate) mod source_name;
 pub mod woodpecker;
 pub mod workflow_command_handler;
 pub mod workflow_directories;
