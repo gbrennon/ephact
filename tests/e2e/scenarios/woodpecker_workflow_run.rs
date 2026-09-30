@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
-use ephact::infrastructure::FilesystemWorkflowSource;
+use ephact::infrastructure::{FilesystemWorkflowSource, actions::GitActionFetcher};
 
 use crate::{
-    e2e_mirrored_action_fetcher::MirroredActionFetcher,
     e2e_succeeding_runtime::SucceedingRuntime,
     support::{
         container_activity::ContainerActivity, ephact_application::EphactApplication,
@@ -39,7 +38,7 @@ impl WoodpeckerWorkflowRun {
         let activity = ContainerActivity::new();
         let application = EphactApplication::compose(
             Arc::new(SucceedingRuntime::recording(activity.clone())),
-            Box::new(MirroredActionFetcher::mirroring(repository.path())),
+            Box::new(GitActionFetcher::with_default_cache_root()),
             Arc::new(FilesystemWorkflowSource::default()),
         );
 
