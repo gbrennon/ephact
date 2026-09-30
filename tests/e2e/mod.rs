@@ -9,10 +9,6 @@ mod e2e_failing_runtime;
 mod e2e_fixed_image_mapper;
 #[path = "../common/fakes/e2e_mirrored_action_fetcher.rs"]
 mod e2e_mirrored_action_fetcher;
-#[path = "../common/fakes/e2e_succeeding_container.rs"]
-mod e2e_succeeding_container;
-#[path = "../common/fakes/e2e_succeeding_runtime.rs"]
-mod e2e_succeeding_runtime;
 mod scenarios;
 mod support;
 
