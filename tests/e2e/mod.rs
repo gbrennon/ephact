@@ -22,3 +22,4 @@ mod delivery_pipeline_tests;
 mod every_workflow_tests;
 mod failing_pipeline_tests;
 mod remote_action_pipeline_tests;
+mod workflow_platform_detection_tests;
