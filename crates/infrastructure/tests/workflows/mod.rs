@@ -7,4 +7,6 @@ mod load_workflow_service_tests;
 mod merge_run_executions_service_tests;
 mod resolve_named_workflow_file_service_tests;
 mod resolve_workflow_files_service_tests;
+mod woodpecker;
+mod workflow_directories_tests;
 mod yaml;
