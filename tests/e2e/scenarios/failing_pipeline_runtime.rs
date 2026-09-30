@@ -6,24 +6,21 @@ use ephact::{
     domain::errors::ContainerError,
 };
 
-use crate::{
-    e2e_failing_container::FailingContainer, support::container_activity::ContainerActivity,
-};
+use super::failing_pipeline_container::FailingPipelineContainer;
+use crate::support::container_activity::ContainerActivity;
 
-/// Container runtime of the scenario where containers start normally but every
-/// command inside them exits with a failure status.
 #[derive(Clone)]
-pub struct FailingRuntime {
+pub struct FailingPipelineRuntime {
     activity: ContainerActivity,
 }
 
-impl FailingRuntime {
+impl FailingPipelineRuntime {
     pub fn recording(activity: ContainerActivity) -> Self {
         Self { activity }
     }
 }
 
-impl ContainerRuntimePort for FailingRuntime {
+impl ContainerRuntimePort for FailingPipelineRuntime {
     fn pull_image(&self, image: &str, _platform: Option<&str>) -> Result<(), ContainerError> {
         self.activity.record_pulled_image(image);
         Ok(())
@@ -33,7 +30,9 @@ impl ContainerRuntimePort for FailingRuntime {
         &self,
         _config: &ContainerConfigResponse,
     ) -> Result<Box<dyn ContainerPort>, ContainerError> {
-        Ok(Box::new(FailingContainer::recording(self.activity.clone())))
+        Ok(Box::new(FailingPipelineContainer::recording(
+            self.activity.clone(),
+        )))
     }
 
     fn remove_container(&self, _name: &str) -> Result<(), ContainerError> {

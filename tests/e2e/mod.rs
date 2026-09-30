@@ -1,14 +1,8 @@
 #[path = "../common/mod.rs"]
 pub mod common;
 
-#[path = "../common/fakes/e2e_failing_container.rs"]
-mod e2e_failing_container;
-#[path = "../common/fakes/e2e_failing_runtime.rs"]
-mod e2e_failing_runtime;
 #[path = "../common/fakes/e2e_fixed_image_mapper.rs"]
 mod e2e_fixed_image_mapper;
-#[path = "../common/fakes/e2e_mirrored_action_fetcher.rs"]
-mod e2e_mirrored_action_fetcher;
 mod scenarios;
 mod support;
 

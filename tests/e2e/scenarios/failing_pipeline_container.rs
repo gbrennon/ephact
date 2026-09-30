@@ -10,19 +10,17 @@ use ephact::{
 
 use crate::support::container_activity::ContainerActivity;
 
-/// Container of the scenario where every command the runner issues exits with
-/// a failure status.
-pub struct FailingContainer {
+pub struct FailingPipelineContainer {
     activity: ContainerActivity,
 }
 
-impl FailingContainer {
+impl FailingPipelineContainer {
     pub fn recording(activity: ContainerActivity) -> Self {
         Self { activity }
     }
 }
 
-impl ContainerPort for FailingContainer {
+impl ContainerPort for FailingPipelineContainer {
     fn exec(
         &self,
         cmd: &[String],
@@ -53,24 +51,8 @@ impl ContainerPort for FailingContainer {
     fn exec_streaming(
         &self,
         options: ephact::application::ports::outbound::ExecOptions<'_>,
-        on_output: &mut dyn FnMut(ephact::domain::messages::events::OutputStream, &str),
-    ) -> Result<
-        ephact::application::dtos::responses::ExecResultResponse,
-        ephact::domain::errors::ContainerError,
-    > {
-        let result = self.exec(options.cmd(), options.workdir(), options.env())?;
-        if !result.stdout().is_empty() {
-            on_output(
-                ephact::domain::messages::events::OutputStream::StandardOutput,
-                result.stdout(),
-            );
-        }
-        if !result.stderr().is_empty() {
-            on_output(
-                ephact::domain::messages::events::OutputStream::StandardError,
-                result.stderr(),
-            );
-        }
-        Ok(result)
+        _on_output: &mut dyn FnMut(ephact::domain::messages::events::OutputStream, &str),
+    ) -> Result<ExecResultResponse, ContainerError> {
+        self.exec(options.cmd(), options.workdir(), options.env())
     }
 }

@@ -8,25 +8,28 @@ mod tests {
         fn a_workflow_whose_steps_fail_reports_a_failed_run() {
             let run = FailingPipelineRun::execute();
             assert_eq!(
-                run.outcome,
-                Err("workflow failed; see the run summary for failed steps".to_string())
+                run.outcome(),
+                &Err("workflow failed; see the run summary for failed steps".to_string())
             );
         }
 
         fn the_failing_shell_step_was_executed() {
             let run = FailingPipelineRun::execute();
-            assert!(run.activity.ran_script(FailingPipelineRun::SUITE_SCRIPT));
+            assert!(run.activity().ran_script(FailingPipelineRun::SUITE_SCRIPT));
         }
 
         fn the_failing_composite_action_step_was_executed() {
             let run = FailingPipelineRun::execute();
-            assert!(run.activity.ran_script(FailingPipelineRun::RELEASE_SCRIPT));
+            assert!(
+                run.activity()
+                    .ran_script(FailingPipelineRun::RELEASE_SCRIPT)
+            );
         }
 
         fn containers_are_stopped_even_when_the_run_fails() {
             let run = FailingPipelineRun::execute();
-            assert_eq!(run.activity.stopped_containers().len(), 2);
-            assert_eq!(run.activity.killed_containers().len(), 2);
+            assert_eq!(run.activity().stopped_containers().len(), 2);
+            assert_eq!(run.activity().killed_containers().len(), 2);
         }
     }
 
