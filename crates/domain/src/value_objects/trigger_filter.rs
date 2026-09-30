@@ -94,6 +94,19 @@ mod tests {
     }
 
     #[test]
+    fn ref_patterns_render_their_kind_and_pattern() {
+        assert_eq!(RefPattern::branch("main").to_string(), "branch:main");
+        assert_eq!(RefPattern::tag("v*").to_string(), "tag:v*");
+        assert_eq!(RefPattern::path("docs/**").to_string(), "path:docs/**");
+    }
+
+    #[test]
+    fn ref_pattern_exposes_the_raw_pattern_for_each_kind() {
+        assert_eq!(RefPattern::tag("v*").pattern(), "v*");
+        assert_eq!(RefPattern::path("docs/**").pattern(), "docs/**");
+    }
+
+    #[test]
     fn stores_generic_event_types() {
         let filter = TriggerFilter::new().with_event_types(vec!["opened".into()]);
 

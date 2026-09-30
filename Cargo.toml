@@ -25,10 +25,6 @@ tokio = { version = "1.53.1", features = ["full"] }
 unicode-width = "0.2"
 
 [[test]]
-name = "domain"
-path = "crates/domain/tests/mod.rs"
-
-[[test]]
 name = "application"
 path = "crates/application/tests/mod.rs"
 

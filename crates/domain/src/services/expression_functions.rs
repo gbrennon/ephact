@@ -200,47 +200,17 @@ impl ExpressionFunctions {
 
     fn invoke(&self, function: BuiltinFunction, args: FunctionArgs<'_>) -> FunctionResult {
         match function {
-            BuiltinFunction::Contains | BuiltinFunction::StartsWith | BuiltinFunction::EndsWith => {
-                self.predicate(function, args)
-            }
-            BuiltinFunction::Format | BuiltinFunction::Join => self.transform(function, args),
-            BuiltinFunction::ToJson | BuiltinFunction::FromJson => self.json(function, args),
-            _ => self.status(function),
-        }
-    }
-
-    fn predicate(&self, function: BuiltinFunction, args: FunctionArgs<'_>) -> FunctionResult {
-        match function {
             BuiltinFunction::Contains => self.contains(&args[0], &args[1]),
             BuiltinFunction::StartsWith => self.starts_with(&args[0], &args[1]),
             BuiltinFunction::EndsWith => self.ends_with(&args[0], &args[1]),
-            _ => unreachable!(),
-        }
-    }
-
-    fn transform(&self, function: BuiltinFunction, args: FunctionArgs<'_>) -> FunctionResult {
-        match function {
             BuiltinFunction::Format => self.format(&args[0], &args[1..]),
             BuiltinFunction::Join => self.join(&args[0], &args[1]),
-            _ => unreachable!(),
-        }
-    }
-
-    fn json(&self, function: BuiltinFunction, args: FunctionArgs<'_>) -> FunctionResult {
-        match function {
             BuiltinFunction::ToJson => self.to_json(&args[0]),
             BuiltinFunction::FromJson => self.from_json(&args[0]),
-            _ => unreachable!(),
-        }
-    }
-
-    fn status(&self, function: BuiltinFunction) -> FunctionResult {
-        match function {
             BuiltinFunction::Success => self.success(),
             BuiltinFunction::Always => self.always(),
             BuiltinFunction::Cancelled => self.cancelled(),
             BuiltinFunction::Failure => self.failure(),
-            _ => unreachable!(),
         }
     }
 

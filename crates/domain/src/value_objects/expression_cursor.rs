@@ -46,4 +46,14 @@ mod tests {
         assert_eq!(cursor.current(), Some('x'));
         assert_eq!(cursor.peek_next(), None);
     }
+
+    #[test]
+    fn advancing_an_exhausted_cursor_is_a_no_op() {
+        let mut cursor = ExpressionCursor::new("");
+
+        cursor.advance();
+
+        assert_eq!(cursor.position(), 0);
+        assert_eq!(cursor.current(), None);
+    }
 }

@@ -144,6 +144,20 @@ mod tests {
     }
 
     #[test]
+    fn preset_marker_exposes_kind_text_and_preset_value() {
+        let marker = Marker::preset(MarkerPreset::Dollar);
+
+        assert_eq!(marker.kind(), MarkerKind::Preset);
+        assert_eq!(marker.value(), "$");
+        assert_eq!(marker.preset_value(), Some(MarkerPreset::Dollar));
+    }
+
+    #[test]
+    fn non_preset_markers_have_no_preset_value() {
+        assert_eq!(Marker::custom_text("x").preset_value(), None);
+    }
+
+    #[test]
     fn marker_values_compare_by_kind_and_value() {
         assert_eq!(
             Marker::preset(MarkerPreset::Dollar),

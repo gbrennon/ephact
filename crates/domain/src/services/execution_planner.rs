@@ -229,11 +229,12 @@ impl ExecutionPlanner {
         queue: &mut VecDeque<&'a str>,
     ) {
         for &dep_id in deps {
-            if let Some(deg) = in_degree.get_mut(dep_id) {
-                *deg -= 1;
-                if *deg == 0 {
-                    queue.push_back(dep_id);
-                }
+            let remaining = in_degree
+                .get_mut(dep_id)
+                .expect("every dependent job has an in-degree entry");
+            *remaining -= 1;
+            if *remaining == 0 {
+                queue.push_back(dep_id);
             }
         }
     }

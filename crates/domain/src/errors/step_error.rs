@@ -80,6 +80,13 @@ mod tests {
     }
 
     #[test]
+    fn display_renders_the_message() {
+        let err = StepError::new("boom");
+
+        assert_eq!(err.to_string(), "boom");
+    }
+
+    #[test]
     fn debug_impl() {
         let err = StepError::new("debug test");
         let debug_str = format!("{err:?}");

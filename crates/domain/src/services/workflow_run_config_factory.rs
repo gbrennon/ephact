@@ -9,3 +9,17 @@ impl WorkflowRunConfigFactory {
         input.into_config()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn create_builds_config_from_input() {
+        let input = WorkflowRunConfigInput::default().with_event(Some("push".into()));
+
+        let config = WorkflowRunConfigFactory::create(input);
+
+        assert_eq!(config.event().unwrap().as_str(), "push");
+    }
+}

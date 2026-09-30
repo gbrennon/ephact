@@ -79,21 +79,13 @@ impl ExpressionParser {
 
     fn parse_postfix(&mut self) -> Result<Expression, ParseError> {
         let mut expr = self.parse_primary()?;
-        while self.has_postfix_token() {
+        loop {
+            let before = self.pos;
             expr = self.parse_next_postfix(expr)?;
+            if self.pos == before {
+                return Ok(expr);
+            }
         }
-        Ok(expr)
-    }
-
-    fn has_postfix_token(&self) -> bool {
-        matches!(
-            self.peek(),
-            Some(
-                ExpressionToken::Dot
-                    | ExpressionToken::LeftBracket
-                    | ExpressionToken::LeftParenthesis
-            )
-        )
     }
 
     fn parse_next_postfix(&mut self, expr: Expression) -> Result<Expression, ParseError> {
@@ -138,12 +130,6 @@ impl ExpressionParser {
         match self.peek().cloned() {
             Some(ExpressionToken::Identifier(name)) => {
                 self.advance();
-                match name.as_str() {
-                    "true" => return Ok(Expression::Literal(ExpressionLiteral::Boolean(true))),
-                    "false" => return Ok(Expression::Literal(ExpressionLiteral::Boolean(false))),
-                    "null" => return Ok(Expression::Literal(ExpressionLiteral::Null)),
-                    _ => {}
-                }
                 Ok(Expression::Variable(name))
             }
             Some(ExpressionToken::String(s)) => {
@@ -198,9 +184,7 @@ impl ExpressionParser {
     }
 
     fn advance(&mut self) {
-        if self.pos < self.tokens.len() {
-            self.pos += 1;
-        }
+        self.pos += 1;
     }
 
     fn expect(&mut self, expected: ExpressionToken, msg: &str) -> Result<(), ParseError> {

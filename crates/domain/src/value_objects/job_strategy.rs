@@ -114,6 +114,22 @@ mod tests {
     }
 
     #[test]
+    fn matrix_accessor_exposes_the_configured_matrix() {
+        let matrix = JobStrategy::matrix_for_test(&[("os", 2)]);
+
+        let strategy = JobStrategy::new(Some(matrix.clone()), false, None);
+
+        assert_eq!(strategy.matrix(), Some(&matrix));
+    }
+
+    #[test]
+    fn a_strategy_without_a_matrix_has_no_matrix_reference() {
+        let strategy = JobStrategy::new(None, false, None);
+
+        assert!(strategy.matrix().is_none());
+    }
+
+    #[test]
     fn an_empty_matrix_has_no_combinations() {
         let strategy = JobStrategy::new(Some(JobStrategy::matrix_for_test(&[])), true, None);
 

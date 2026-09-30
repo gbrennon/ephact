@@ -111,3 +111,81 @@ impl ExecuteJobCommand {
 }
 
 impl Command for ExecuteJobCommand {}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use super::*;
+    use crate::value_objects::WorkflowTrigger;
+
+    fn workflow_for_test() -> Workflow {
+        Workflow::new(
+            Some("CI".into()),
+            vec![WorkflowTrigger::Push(None)],
+            HashMap::new(),
+            HashMap::new(),
+        )
+    }
+
+    fn command_for_test() -> ExecuteJobCommand {
+        ExecuteJobCommand::new(
+            Job::new(
+                Some("Build".into()),
+                Some("ubuntu".into()),
+                Vec::new(),
+                Vec::new(),
+            ),
+            "build".into(),
+            workflow_for_test(),
+            PathBuf::from("/repo"),
+            EvaluationContext::new(),
+        )
+    }
+
+    #[test]
+    fn new_defaults_optional_fields() {
+        let command = command_for_test();
+
+        assert_eq!(command.job_id(), "build");
+        assert_eq!(command.workflow(), &workflow_for_test());
+        assert_eq!(command.repo_path(), &PathBuf::from("/repo"));
+        assert!(command.context().github().as_text().is_none());
+        assert_eq!(command.run_id(), "");
+        assert!(!command.allow_repo_writes());
+        assert!(!command.allow_network());
+        assert_eq!(command.job().runs_on(), Some("ubuntu"));
+    }
+
+    #[test]
+    fn builders_set_optional_fields() {
+        let command = command_for_test()
+            .with_run_id("run-1".into())
+            .with_allow_repo_writes(true)
+            .with_allow_network(true);
+
+        assert_eq!(command.run_id(), "run-1");
+        assert!(command.allow_repo_writes());
+        assert!(command.allow_network());
+    }
+
+    #[test]
+    fn into_parts_returns_owned_fields() {
+        let (_job, job_id, workflow, repo_path, context, run_id, allow_repo_writes) =
+            command_for_test().with_run_id("run-1".into()).into_parts();
+
+        assert_eq!(job_id, "build");
+        assert_eq!(workflow, workflow_for_test());
+        assert_eq!(repo_path, PathBuf::from("/repo"));
+        assert!(context.github().as_text().is_none());
+        assert_eq!(run_id, "run-1");
+        assert!(!allow_repo_writes);
+    }
+
+    #[test]
+    fn clone_preserves_fields() {
+        let command = command_for_test().clone();
+
+        assert_eq!(command.job_id(), "build");
+    }
+}

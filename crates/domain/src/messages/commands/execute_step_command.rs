@@ -94,3 +94,53 @@ impl<C: ?Sized + Send + Sync> fmt::Debug for ExecuteStepCommand<C> {
 }
 
 impl<C: ?Sized + Send + Sync> Command for ExecuteStepCommand<C> {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn command_for_test() -> ExecuteStepCommand<()> {
+        ExecuteStepCommand::new(
+            Step::new(None, None, Some("echo hi".into()), None),
+            HashMap::from([("KEY".into(), "value".into())]),
+            EvaluationContext::new(),
+            Arc::new(()),
+            PathBuf::from("/repo"),
+        )
+    }
+
+    #[test]
+    fn new_exposes_every_field() {
+        let command = command_for_test();
+
+        assert_eq!(command.step().run(), Some("echo hi"));
+        assert_eq!(command.env()["KEY"], "value");
+        assert!(command.context().github().as_text().is_none());
+        assert_eq!(command.container(), &());
+        assert_eq!(command.repo_path(), &PathBuf::from("/repo"));
+    }
+
+    #[test]
+    fn into_parts_returns_owned_fields() {
+        let (step, env, context, _container, repo_path) = command_for_test().into_parts();
+
+        assert_eq!(step.run(), Some("echo hi"));
+        assert_eq!(env["KEY"], "value");
+        assert!(context.github().as_text().is_none());
+        assert_eq!(repo_path, PathBuf::from("/repo"));
+    }
+
+    #[test]
+    fn clone_preserves_fields() {
+        let command = command_for_test().clone();
+
+        assert_eq!(command.repo_path(), &PathBuf::from("/repo"));
+    }
+
+    #[test]
+    fn debug_names_the_command() {
+        let rendered = format!("{:?}", command_for_test());
+
+        assert!(rendered.contains("ExecuteStepCommand"));
+    }
+}

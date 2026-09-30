@@ -27,18 +27,20 @@ impl RepoPath {
     /// assert!(repo.is_standalone() || repo.is_worktree());
     /// ```
     pub fn new(path: impl Into<PathBuf>) -> Result<Self, CoreError> {
-        let path: PathBuf = path.into();
+        Self::validate_git_repository(path.into())
+    }
 
-        if !path.is_dir() {
-            return Err(CoreError::InvalidRepositoryPath(format!(
-                "'{}' is not a directory",
-                path.display()
-            )));
-        }
-
+    fn validate_git_repository(path: PathBuf) -> Result<Self, CoreError> {
         let canonical = path.canonicalize().map_err(|e| {
             CoreError::InvalidRepositoryPath(format!("cannot resolve '{}': {}", path.display(), e))
         })?;
+
+        if !canonical.is_dir() {
+            return Err(CoreError::InvalidRepositoryPath(format!(
+                "'{}' is not a directory",
+                canonical.display()
+            )));
+        }
 
         let git_dir = canonical.join(".git");
         let git_dir_kind = if git_dir.is_dir() {
@@ -146,6 +148,26 @@ mod tests {
             repo_path.is_standalone(),
             repo_path.git_dir_kind() == GitDirKind::Standalone
         );
+    }
+
+    #[test]
+    fn new_with_git_file_detects_a_worktree() {
+        let path = env::temp_dir().join(format!(
+            "ephact-domain-worktree-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
+        ));
+        std::fs::create_dir_all(&path).unwrap();
+        std::fs::write(path.join(".git"), "gitdir: /elsewhere\n").unwrap();
+
+        let repo_path = RepoPath::new(path.clone()).unwrap();
+
+        assert!(repo_path.is_worktree());
+        assert_eq!(repo_path.git_dir_kind(), GitDirKind::Worktree);
+        std::fs::remove_dir_all(path).unwrap();
     }
 
     #[test]

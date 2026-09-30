@@ -31,3 +31,36 @@ impl fmt::Display for CoreError {
 }
 
 impl std::error::Error for CoreError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn invalid_repository_path_displays_message() {
+        let error = CoreError::InvalidRepositoryPath("bad path".into());
+
+        assert_eq!(error.to_string(), "bad path");
+    }
+
+    #[test]
+    fn not_a_git_repository_displays_path() {
+        let error = CoreError::NotAGitRepository("/tmp/x".into());
+
+        assert_eq!(error.to_string(), "'/tmp/x' is not a Git repository");
+    }
+
+    #[test]
+    fn empty_repository_name_displays_message() {
+        let error = CoreError::EmptyRepositoryName;
+
+        assert_eq!(error.to_string(), "repository name cannot be empty");
+    }
+
+    #[test]
+    fn unknown_container_engine_displays_engine() {
+        let error = CoreError::UnknownContainerEngine("rkt".into());
+
+        assert_eq!(error.to_string(), "unsupported container engine 'rkt'");
+    }
+}

@@ -23,8 +23,8 @@ use crate::{
     jobs::{JobCommandHandler, RunnerEnvironmentAdapter},
     messaging::{DeferredCommandBus, InMemoryCommandBus, SharedCommandBus, SharedEventBus},
     steps::{
-        ExecuteStepFactory, JsonStepTextCodec, StepCommandHandler,
-        build_step_context_service::BuildStepContextService,
+        ExecuteStepFactory, FragmentNetworkCommandClassifier, JsonStepTextCodec,
+        StepCommandHandler, build_step_context_service::BuildStepContextService,
         prefix_step_path_service::PrefixStepPathService,
         read_step_env_exports_service::ReadStepEnvExportsService,
         read_step_exports_service::ReadStepExportsService,
@@ -119,6 +119,7 @@ impl CommandBusWiring {
                 Box::new(CreateJobContainerService::new(runtime.clone())),
                 Box::new(RepositoryContainerCopyAdapter::new()),
             )),
+            Box::new(FragmentNetworkCommandClassifier::new()),
             (
                 Box::new(PrefixStepPathService::new()),
                 Box::new(BuildStepContextService::new()),

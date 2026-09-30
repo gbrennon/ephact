@@ -406,4 +406,47 @@ mod tests {
             Some([ContextValue::Null].as_slice())
         );
     }
+
+    #[test]
+    fn scalar_accessors_return_none_for_mismatched_variants() {
+        assert_eq!(ContextValue::Integer(1).property("a"), None);
+        assert_eq!(ContextValue::text("x").as_list(), None);
+    }
+
+    #[test]
+    fn boolean_false_is_rendered_as_json() {
+        assert_eq!(ContextValue::Boolean(false).to_json_text(), "false");
+    }
+
+    #[test]
+    fn control_characters_use_short_json_escapes() {
+        let value = ContextValue::text("\r\u{08}\u{0c}");
+
+        assert_eq!(value.to_json_text(), r#""\r\b\f""#);
+    }
+
+    #[test]
+    fn number_characters_are_recognized() {
+        assert!(ContextValue::is_number_character('3'));
+        assert!(ContextValue::is_number_character('e'));
+        assert!(!ContextValue::is_number_character('z'));
+    }
+
+    #[test]
+    fn number_literals_parse_into_integers_and_decimals() {
+        assert_eq!(
+            ContextValue::parse_number_literal("42").unwrap(),
+            ContextValue::Integer(42)
+        );
+        assert_eq!(
+            ContextValue::parse_number_literal("2.5").unwrap(),
+            ContextValue::Decimal(2.5)
+        );
+    }
+
+    #[test]
+    fn invalid_number_literals_are_rejected() {
+        assert!(ContextValue::parse_number_literal("1.2.3").is_err());
+        assert!(ContextValue::parse_number_literal("nan-int").is_err());
+    }
 }

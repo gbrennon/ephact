@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::value_objects::{StepType, step_network_policy::StepNetworkPolicy};
+use crate::{
+    traits::NetworkCommandClassifier,
+    value_objects::{StepType, step_network_policy::StepNetworkPolicy},
+};
 
 /// A step in a workflow job.
 ///
@@ -220,14 +223,20 @@ impl Step {
             .is_some_and(|v| v.eq_ignore_ascii_case("true"))
     }
 
-    pub fn network_access_reason(&self) -> Option<&'static str> {
+    pub fn network_access_reason(
+        &self,
+        classifier: &dyn NetworkCommandClassifier,
+    ) -> Option<&'static str> {
         let script = self.run()?;
-        StepNetworkPolicy::new(script).network_access_reason()
+        StepNetworkPolicy::new(script).network_access_reason(classifier)
     }
 
-    pub fn network_policy_violation(&self) -> Option<&'static str> {
+    pub fn network_policy_violation(
+        &self,
+        classifier: &dyn NetworkCommandClassifier,
+    ) -> Option<&'static str> {
         let script = self.run()?;
-        StepNetworkPolicy::new(script).network_policy_violation()
+        StepNetworkPolicy::new(script).network_policy_violation(classifier)
     }
 }
 
