@@ -1,7 +1,7 @@
 use clap::Parser;
 
-const SUPPORTED_PLATFORMS: &str = "Forgejo, GitHub";
-const SUPPORTED_WORKFLOWS: &str = ".forgejo/workflows, .github/workflows";
+const SUPPORTED_PLATFORMS: &str = "Forgejo, GitHub, Woodpecker";
+const SUPPORTED_WORKFLOWS: &str = ".forgejo/workflows, .github/workflows, .woodpecker";
 
 #[derive(Parser)]
 #[command(

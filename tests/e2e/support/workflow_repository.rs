@@ -29,7 +29,13 @@ impl WorkflowRepository {
     }
 
     pub fn with_workflow(self, file_name: &str, body: &str) -> Self {
-        let directory = self.path().join(".forgejo/workflows");
+        self.with_workflow_in(".forgejo/workflows", file_name, body)
+    }
+
+    /// Writes a workflow file inside an arbitrary platform directory
+    /// (for example `.github/workflows`, `.forgejo/workflows`, or `.woodpecker`).
+    pub fn with_workflow_in(self, platform_dir: &str, file_name: &str, body: &str) -> Self {
+        let directory = self.path().join(platform_dir);
         create_dir_all(&directory).unwrap();
         write(directory.join(file_name), body).unwrap();
         self

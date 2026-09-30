@@ -90,3 +90,18 @@ fn no_args_selects_tui_by_default() {
     assert!(!cli.has_explicit_command());
     assert!(matches!(cli.command(), Command::Tui));
 }
+
+#[test]
+fn help_describes_woodpecker_support() {
+    let command = CliParser::build_command();
+
+    assert!(
+        command
+            .get_about()
+            .is_some_and(|about| about.to_string().contains("Woodpecker"))
+    );
+    assert!(command.get_long_about().is_some_and(|long_about| {
+        let long_about = long_about.to_string();
+        long_about.contains("Woodpecker") && long_about.contains(".woodpecker")
+    }));
+}
