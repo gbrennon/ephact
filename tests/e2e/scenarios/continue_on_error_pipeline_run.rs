@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use ephact::{
     application::{
@@ -10,15 +10,18 @@ use ephact::{
             container_port::{ContainerPort, ExecOptions},
         },
     },
-    domain::{entities::FileEntry, errors::ContainerError, messages::events::OutputStream},
+    domain::{
+        entities::FileEntry,
+        errors::{ActionError, ContainerError},
+        messages::events::OutputStream,
+        value_objects::RemoteActionReference,
+    },
+    infrastructure::actions::ActionFetcherPort,
 };
 
-use crate::{
-    e2e_mirrored_action_fetcher::MirroredActionFetcher,
-    support::{
-        container_activity::ContainerActivity, ephact_application::EphactApplication,
-        workflow_repository::WorkflowRepository,
-    },
+use crate::support::{
+    container_activity::ContainerActivity, ephact_application::EphactApplication,
+    workflow_repository::WorkflowRepository,
 };
 
 const AUDIT_WORKFLOW: &str = r#"
@@ -33,6 +36,26 @@ jobs:
       - run: echo "auditing licenses"
         continue-on-error: true
 "#;
+
+pub struct ContinueOnErrorFetcherFake {
+    action_directory: PathBuf,
+}
+
+impl ContinueOnErrorFetcherFake {
+    fn mirroring(action_directory: PathBuf) -> Self {
+        Self { action_directory }
+    }
+}
+
+impl ActionFetcherPort for ContinueOnErrorFetcherFake {
+    fn fetch(&self, _reference: &RemoteActionReference) -> Result<PathBuf, ActionError> {
+        Ok(self.action_directory.clone())
+    }
+
+    fn clone_box(&self) -> Box<dyn ActionFetcherPort> {
+        Box::new(Self::mirroring(self.action_directory.clone()))
+    }
+}
 
 #[derive(Clone)]
 struct ContinueOnErrorScenarioFake {
@@ -148,7 +171,7 @@ impl ContinueOnErrorPipelineRun {
         );
         let application = EphactApplication::compose(
             Arc::new(ContinueOnErrorScenarioFake::new(activity.clone())),
-            Box::new(MirroredActionFetcher::mirroring(repository.path())),
+            Box::new(ContinueOnErrorFetcherFake::mirroring(repository.path())),
             workflow_source,
         );
 

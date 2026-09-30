@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use ephact::{
     application::{
@@ -10,15 +10,18 @@ use ephact::{
             container_port::{ContainerPort, ExecOptions},
         },
     },
-    domain::{entities::FileEntry, errors::ContainerError, messages::events::OutputStream},
+    domain::{
+        entities::FileEntry,
+        errors::{ActionError, ContainerError},
+        messages::events::OutputStream,
+        value_objects::RemoteActionReference,
+    },
+    infrastructure::actions::ActionFetcherPort,
 };
 
-use crate::{
-    e2e_mirrored_action_fetcher::MirroredActionFetcher,
-    support::{
-        container_activity::ContainerActivity, ephact_application::EphactApplication,
-        workflow_repository::WorkflowRepository,
-    },
+use crate::support::{
+    container_activity::ContainerActivity, ephact_application::EphactApplication,
+    workflow_repository::WorkflowRepository,
 };
 
 const LINT_WORKFLOW: &str = r#"
@@ -30,6 +33,27 @@ jobs:
     steps:
       - run: echo "linting ${{ github.repository }}"
 "#;
+
+#[derive(Clone)]
+pub struct EveryWorkflowFetcherFake {
+    action_directory: PathBuf,
+}
+
+impl EveryWorkflowFetcherFake {
+    fn mirroring(action_directory: PathBuf) -> Self {
+        Self { action_directory }
+    }
+}
+
+impl ActionFetcherPort for EveryWorkflowFetcherFake {
+    fn fetch(&self, _reference: &RemoteActionReference) -> Result<PathBuf, ActionError> {
+        Ok(self.action_directory.clone())
+    }
+
+    fn clone_box(&self) -> Box<dyn ActionFetcherPort> {
+        Box::new(Self::mirroring(self.action_directory.clone()))
+    }
+}
 
 #[derive(Clone)]
 struct EveryWorkflowScenarioFake {
@@ -157,7 +181,7 @@ impl EveryWorkflowRun {
         );
         let application = EphactApplication::compose(
             Arc::new(EveryWorkflowScenarioFake::new(activity.clone())),
-            Box::new(MirroredActionFetcher::mirroring(repository.path())),
+            Box::new(EveryWorkflowFetcherFake::mirroring(repository.path())),
             workflow_source,
         );
 
