@@ -1,0 +1,3 @@
+mod woodpecker_pipeline_yaml_tests;
+mod woodpecker_step_yaml_tests;
+mod woodpecker_when_yaml_tests;
