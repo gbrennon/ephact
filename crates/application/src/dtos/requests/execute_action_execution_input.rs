@@ -17,7 +17,7 @@ impl ExecuteActionExecutionInput {
         Self {
             repo_path: repo_path.into(),
             env,
-            context: context.into(),
+            context,
         }
     }
 
