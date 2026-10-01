@@ -1,12 +1,12 @@
 use std::path::Path;
 
 use ephact::{
-    application::dtos::requests::BuildRunContextRequest,
+    application::{dtos::requests::BuildRunContextRequest, ports::outbound::BuildRunContextPort},
     domain::{
         RepoPath, Repository, RepositoryName, WorkflowRunConfig,
         value_objects::{ContextValue, Secret, WorkflowEvent, WorkflowInput},
     },
-    infrastructure::containers::{BuildRunContextPort, BuildRunContextService},
+    infrastructure::containers::BuildRunContextService,
 };
 
 fn repository(path: &Path) -> Repository {
@@ -21,7 +21,7 @@ fn context(config: WorkflowRunConfig) -> ephact::domain::value_objects::Evaluati
     std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
     let repo = repository(tmp.path());
     BuildRunContextService::new()
-        .execute(BuildRunContextRequest::new(config, repo))
+        .build(BuildRunContextRequest::new(config, repo))
         .context()
         .clone()
 }

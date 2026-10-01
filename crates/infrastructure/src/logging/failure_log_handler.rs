@@ -6,11 +6,11 @@ use std::{
 };
 
 use crate::{
+    application::ports::outbound::DomainEventHandlerPort,
     domain::{
         messages::events::{DomainEvent, StepFinishedPayload},
         value_objects::RepositoryName,
     },
-    messaging::DomainEventHandler,
 };
 
 /// Shared status for filesystem failures encountered while writing diagnostics.
@@ -302,7 +302,7 @@ impl Default for FailureLogHandler {
     }
 }
 
-impl DomainEventHandler for FailureLogHandler {
+impl DomainEventHandlerPort for FailureLogHandler {
     fn handle(&self, event: &DomainEvent) {
         match event {
             DomainEvent::RunStarted(payload) => {

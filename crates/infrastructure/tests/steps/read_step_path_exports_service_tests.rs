@@ -1,10 +1,8 @@
 use ephact::{
     application::dtos::requests::ReadStepPathExportsRequest,
-    infrastructure::steps::{
-        read_step_path_exports_port::ReadStepPathExportsPort,
-        read_step_path_exports_service::ReadStepPathExportsService,
-    },
+    infrastructure::steps::read_step_path_exports_service::ReadStepPathExportsService,
 };
+use ephact_application::ports::outbound::ReadStepPathExportsPort;
 
 use crate::common::fakes::stub_exporting_container::StubExportingContainer;
 
@@ -16,7 +14,7 @@ fn execute_returns_the_non_empty_trimmed_lines_of_the_path_file() {
     )]);
 
     let additions =
-        ReadStepPathExportsService::new().execute(ReadStepPathExportsRequest::new(), &container);
+        ReadStepPathExportsService::new().read(ReadStepPathExportsRequest::new(), &container);
 
     assert_eq!(additions, vec!["/opt/bin", "/opt/tools"]);
 }
@@ -26,7 +24,7 @@ fn execute_returns_no_additions_when_the_file_was_never_written() {
     let container = StubExportingContainer::empty();
 
     let additions =
-        ReadStepPathExportsService::new().execute(ReadStepPathExportsRequest::new(), &container);
+        ReadStepPathExportsService::new().read(ReadStepPathExportsRequest::new(), &container);
 
     assert!(additions.is_empty());
 }

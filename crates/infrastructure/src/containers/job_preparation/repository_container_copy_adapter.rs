@@ -4,11 +4,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use super::copy_repository_to_container_port::CopyRepositoryToContainerPort;
 use crate::{
     application::{
-        dtos::requests::CopyRepositoryToContainerRequest, errors::CopyRepositoryToContainerError,
-        ports::outbound::container_port::ContainerPort,
+        dtos::requests::CopyRepositoryToContainerRequest,
+        errors::CopyRepositoryToContainerError,
+        ports::outbound::{ContainerPort, CopyRepositoryToContainerPort},
     },
     domain::entities::FileEntry,
 };
@@ -98,7 +98,7 @@ impl Default for RepositoryContainerCopyAdapter {
 }
 
 impl CopyRepositoryToContainerPort for RepositoryContainerCopyAdapter {
-    fn execute(
+    fn copy(
         &self,
         request: CopyRepositoryToContainerRequest,
         container: &dyn ContainerPort,

@@ -9,7 +9,7 @@ use ephact::{
             responses::ExecuteActionResponse,
         },
         ports::outbound::{
-            StepTextCodecPort, action_command_bus_port::ActionCommandBusPort,
+            StepTextCodecPort, action_command_publisher_port::ActionCommandPublisherPort,
             container_port::ContainerPort,
         },
     },
@@ -36,8 +36,8 @@ impl FakeActionRoutingCommandBus {
         );
     }
 }
-impl ActionCommandBusPort for FakeActionRoutingCommandBus {
-    fn dispatch(
+impl ActionCommandPublisherPort for FakeActionRoutingCommandBus {
+    fn publish(
         &self,
         cmd: ExecuteActionCommand<dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {

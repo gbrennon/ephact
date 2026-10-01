@@ -3,9 +3,8 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 
-use ephact::{
-    application::dtos::requests::ReadStepPathExportsRequest,
-    infrastructure::steps::read_step_path_exports_port::ReadStepPathExportsPort,
+use ephact::application::{
+    dtos::requests::ReadStepPathExportsRequest, ports::outbound::ReadStepPathExportsPort,
 };
 
 /// Returns prepared path additions, recording that it was consulted.
@@ -29,7 +28,7 @@ impl FakeReadStepPathExportsPort {
 }
 
 impl ReadStepPathExportsPort for FakeReadStepPathExportsPort {
-    fn execute(
+    fn read(
         &self,
         _request: ReadStepPathExportsRequest,
         _container: &dyn ephact::application::ports::outbound::ContainerPort,

@@ -18,13 +18,13 @@ use ephact::{
     domain::{entities::Step, value_objects::EvaluationContext},
     infrastructure::{
         steps::{
-            JsonStepTextCodec, run_composite_step_port::RunCompositeStepPort,
-            run_composite_step_service::RunCompositeStepService,
+            JsonStepTextCodec, run_composite_step_service::RunCompositeStepService,
             run_shell_step_service::RunShellStepService,
         },
         workflows::actions::StepYaml,
     },
 };
+use ephact_application::ports::outbound::RunCompositeStepPort;
 
 use crate::common::fakes::{
     fake_command_bus::FakeCommandBus, fake_event_bus::FakeEventBus,
@@ -72,7 +72,7 @@ fn execute_runs_a_run_step_with_the_action_path_exposed() {
     let service = service(FakeCommandBus::new());
 
     service
-        .execute(
+        .run(
             RunCompositeStepRequest::new(
                 &step,
                 Path::new("/repo/actions/outer"),
@@ -100,7 +100,7 @@ fn execute_publishes_an_action_command_for_a_uses_step() {
     let service = service(command_bus.clone());
 
     let result = service
-        .execute(
+        .run(
             RunCompositeStepRequest::new(
                 &step,
                 Path::new("/repo/actions/outer"),
@@ -127,7 +127,7 @@ fn execute_propagates_a_shell_runner_failure() {
     let service = service(FakeCommandBus::new());
 
     let error = service
-        .execute(
+        .run(
             RunCompositeStepRequest::new(
                 &step,
                 Path::new("/repo/actions/outer"),

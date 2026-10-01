@@ -1,12 +1,15 @@
 use std::sync::Arc;
 
 use crate::{
-    actions::{ActionCommandHandler, ActionFetcherPort},
+    actions::ActionCommandHandler,
     application::{
         ports::outbound::{
-            ContainerRuntimePort, action_command_bus_port::ActionCommandBusPort,
-            domain_event_bus_port::DomainEventBusPort, job_command_bus_port::JobCommandBusPort,
-            step_command_bus_port::StepCommandBusPort, step_text_codec_port::StepTextCodecPort,
+            ActionFetcherPort, ContainerRuntimePort, ImageMapperPort,
+            action_command_publisher_port::ActionCommandPublisherPort,
+            domain_event_publisher_port::DomainEventPublisherPort,
+            job_command_publisher_port::JobCommandPublisherPort,
+            step_command_publisher_port::StepCommandPublisherPort,
+            step_text_codec_port::StepTextCodecPort,
         },
         services::{
             execute_job_service::{ExecuteJobDependencies, ExecuteJobService},
@@ -18,9 +21,11 @@ use crate::{
         RepositoryContainerCopyAdapter,
     },
     di::action_execution_wiring::ActionExecutionWiring,
-    images::ImageMapperPort,
     jobs::{JobCommandHandler, RunnerEnvironmentAdapter},
-    messaging::{DeferredCommandBus, InMemoryCommandBus, SharedCommandBus, SharedEventBus},
+    messaging::{
+        CommandPublisherAdapter, DeferredCommandBus, DomainEventPublisherAdapter,
+        InMemoryCommandBus,
+    },
     steps::{
         ExecuteStepFactory, FragmentNetworkCommandClassifier, JsonStepTextCodec,
         StepCommandHandler, build_step_context_service::BuildStepContextService,
@@ -41,8 +46,9 @@ use crate::{
 /// publishes job commands, the job service publishes step commands, and the
 /// step service publishes action commands. Handlers are the only components
 /// that know both a command and the application service handling it, so the
-/// services are handed a [`DeferredCommandBus`] and the assembled bus is bound
-/// into it once the graph is complete.
+/// services are handed a [`CommandPublisherAdapter`] over a
+/// [`DeferredCommandBus`] and the assembled bus is bound into it once the graph
+/// is complete.
 pub struct CommandBusWiring;
 
 impl CommandBusWiring {
@@ -51,31 +57,31 @@ impl CommandBusWiring {
         runtime: Arc<dyn ContainerRuntimePort>,
         image_mapper: Box<dyn ImageMapperPort>,
         action_fetcher: Box<dyn ActionFetcherPort>,
-        event_bus: SharedEventBus,
-    ) -> SharedCommandBus {
+        event_bus: DomainEventPublisherAdapter,
+    ) -> CommandPublisherAdapter {
         let image_mapper: Arc<dyn ImageMapperPort> = Arc::from(image_mapper);
         let deferred = Arc::new(DeferredCommandBus::new());
-        let shared_bus = SharedCommandBus::new(deferred.clone());
+        let publisher = CommandPublisherAdapter::new(deferred.clone());
 
         let workflow_handler = WorkflowCommandHandler::new(Box::new(ExecuteWorkflowService::new(
             Box::new(LoadWorkflowService::new()),
-            Box::new(shared_bus.clone()) as Box<dyn JobCommandBusPort>,
-            Box::new(event_bus.clone()) as Box<dyn DomainEventBusPort>,
+            Box::new(publisher.clone()) as Box<dyn JobCommandPublisherPort>,
+            Box::new(event_bus.clone()) as Box<dyn DomainEventPublisherPort>,
         )));
 
         let job_handler = JobCommandHandler::new(Box::new(Self::build_job_executor(
             runtime.clone(),
             image_mapper,
-            Box::new(shared_bus.clone()) as Box<dyn StepCommandBusPort>,
-            Box::new(event_bus.clone()) as Box<dyn DomainEventBusPort>,
+            Box::new(publisher.clone()) as Box<dyn StepCommandPublisherPort>,
+            Box::new(event_bus.clone()) as Box<dyn DomainEventPublisherPort>,
         )));
 
-        let (step_handler, step_codec) = Self::build_step_handler(&event_bus, &shared_bus);
+        let (step_handler, step_codec) = Self::build_step_handler(&event_bus, &publisher);
 
         let action_factory = ActionExecutionWiring::build(
             action_fetcher,
-            Box::new(shared_bus.clone()) as Box<dyn ActionCommandBusPort>,
-            Box::new(event_bus) as Box<dyn DomainEventBusPort>,
+            Box::new(publisher.clone()) as Box<dyn ActionCommandPublisherPort>,
+            Box::new(event_bus) as Box<dyn DomainEventPublisherPort>,
             step_codec,
         );
         let action_handler = ActionCommandHandler::new(action_factory);
@@ -87,24 +93,24 @@ impl CommandBusWiring {
             Box::new(action_handler),
         ));
 
-        shared_bus
+        publisher
     }
 
     fn build_step_handler(
-        event_bus: &SharedEventBus,
-        shared_bus: &SharedCommandBus,
+        event_bus: &DomainEventPublisherAdapter,
+        publisher: &CommandPublisherAdapter,
     ) -> (StepCommandHandler, Arc<dyn StepTextCodecPort>) {
         let step_codec: Arc<dyn StepTextCodecPort> = Arc::new(JsonStepTextCodec);
         let shell_runner = Arc::new(RunShellStepService::new(
-            Box::new(event_bus.clone()) as Box<dyn DomainEventBusPort>
+            Box::new(event_bus.clone()) as Box<dyn DomainEventPublisherPort>
         ));
-        let action_command_bus = Arc::new(shared_bus.clone()) as Arc<dyn ActionCommandBusPort>;
+        let action_publisher = Arc::new(publisher.clone()) as Arc<dyn ActionCommandPublisherPort>;
         let step_codec_for_factory = step_codec.clone();
         let step_factory: ExecuteStepFactory = Box::new(move |container| {
             Box::new(ExecuteStepService::new(
                 container,
                 shell_runner.clone(),
-                action_command_bus.clone(),
+                action_publisher.clone(),
                 step_codec_for_factory.clone(),
             ))
         });
@@ -114,8 +120,8 @@ impl CommandBusWiring {
     fn build_job_executor(
         runtime: Arc<dyn ContainerRuntimePort>,
         image_mapper: Arc<dyn ImageMapperPort>,
-        command_bus: Box<dyn StepCommandBusPort>,
-        event_bus: Box<dyn DomainEventBusPort>,
+        command_bus: Box<dyn StepCommandPublisherPort>,
+        event_bus: Box<dyn DomainEventPublisherPort>,
     ) -> ExecuteJobService {
         ExecuteJobService::new(ExecuteJobDependencies::new(
             Box::new(RunnerEnvironmentAdapter::new()),

@@ -7,12 +7,12 @@ use crate::{
             responses::ExecResultResponse,
         },
         ports::outbound::{
-            action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
+            action_command_publisher_port::ActionCommandPublisherPort,
+            container_port::ContainerPort, run_composite_step_port::RunCompositeStepPort,
             shell_step_runner_port::ShellStepRunnerPort,
         },
     },
     domain::{errors::StepError, messages::commands::ExecuteActionCommand},
-    steps::run_composite_step_port::RunCompositeStepPort,
 };
 
 /// Runs one step of a composite action: shell steps go straight to the shell
@@ -20,13 +20,13 @@ use crate::{
 /// [`ExecuteActionCommand`] so the action command handler executes them.
 pub struct RunCompositeStepService {
     shell_runner: Box<dyn ShellStepRunnerPort>,
-    command_bus: Box<dyn ActionCommandBusPort>,
+    command_bus: Box<dyn ActionCommandPublisherPort>,
 }
 
 impl RunCompositeStepService {
     pub fn new(
         shell_runner: Box<dyn ShellStepRunnerPort>,
-        command_bus: Box<dyn ActionCommandBusPort>,
+        command_bus: Box<dyn ActionCommandPublisherPort>,
     ) -> Self {
         Self {
             shell_runner,
@@ -36,7 +36,7 @@ impl RunCompositeStepService {
 }
 
 impl RunCompositeStepPort for RunCompositeStepService {
-    fn execute(
+    fn run(
         &self,
         request: RunCompositeStepRequest<'_>,
         container: Arc<dyn ContainerPort>,
@@ -45,7 +45,7 @@ impl RunCompositeStepPort for RunCompositeStepService {
         match request.step().uses() {
             Some(nested) => self
                 .command_bus
-                .dispatch(
+                .publish(
                     ExecuteActionCommand::new(
                         nested.to_string(),
                         request.step().clone(),

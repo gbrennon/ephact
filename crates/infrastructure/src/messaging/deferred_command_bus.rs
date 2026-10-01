@@ -7,11 +7,7 @@ use crate::{
             WorkflowExecutionResponse,
         },
         errors::{ExecuteJobError, ExecuteWorkflowError},
-        ports::outbound::{
-            action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
-            job_command_bus_port::JobCommandBusPort, step_command_bus_port::StepCommandBusPort,
-            workflow_command_bus_port::WorkflowCommandBusPort,
-        },
+        ports::outbound::container_port::ContainerPort,
     },
     domain::{
         errors::StepError,
@@ -41,7 +37,7 @@ impl DeferredCommandBus {
         }
     }
 
-    /// Binds the bus every dispatch is forwarded to.
+    /// Binds the bus every command is forwarded to.
     ///
     /// # Panics
     ///
@@ -58,49 +54,42 @@ impl DeferredCommandBus {
     fn unbound() -> StepError {
         StepError::new("command bus used before it was bound".to_string())
     }
-}
-impl WorkflowCommandBusPort for DeferredCommandBus {
-    fn dispatch(
+
+    pub fn route_workflow(
         &self,
         command: ExecuteWorkflowCommand,
     ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
         let bus = self
             .bound()
             .ok_or_else(|| ExecuteWorkflowError::Workflow(Self::unbound().message().to_string()))?;
-        WorkflowCommandBusPort::dispatch(bus, command)
+        bus.handle_workflow(command)
             .map_err(|error| ExecuteWorkflowError::Workflow(error.to_string()))
     }
-}
 
-impl JobCommandBusPort for DeferredCommandBus {
-    fn dispatch(
+    pub fn route_job(
         &self,
         command: ExecuteJobCommand,
     ) -> Result<JobExecutionResponse, ExecuteJobError> {
         let bus = self
             .bound()
             .ok_or_else(|| ExecuteJobError::Preparation(Self::unbound().message().to_string()))?;
-        JobCommandBusPort::dispatch(bus, command)
+        bus.handle_job(command)
             .map_err(|error| ExecuteJobError::Preparation(error.to_string()))
     }
-}
 
-impl StepCommandBusPort for DeferredCommandBus {
-    fn dispatch(
+    pub fn route_step(
         &self,
         command: ExecuteStepCommand<dyn ContainerPort>,
     ) -> Result<ExecutedStepResponse, StepError> {
         let bus = self.bound().ok_or_else(Self::unbound)?;
-        StepCommandBusPort::dispatch(bus, command)
+        bus.handle_step(command)
     }
-}
 
-impl ActionCommandBusPort for DeferredCommandBus {
-    fn dispatch(
+    pub fn route_action(
         &self,
         command: ExecuteActionCommand<dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {
         let bus = self.bound().ok_or_else(Self::unbound)?;
-        ActionCommandBusPort::dispatch(bus, command)
+        bus.handle_action(command)
     }
 }

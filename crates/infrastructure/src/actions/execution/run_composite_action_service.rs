@@ -8,6 +8,7 @@ use crate::{
         },
         ports::outbound::{
             composite_action_runner_port::CompositeActionRunnerPort, container_port::ContainerPort,
+            run_composite_step_port::RunCompositeStepPort,
         },
         services::StepInterpolator,
     },
@@ -15,7 +16,6 @@ use crate::{
         errors::StepError,
         value_objects::{ContextValue, EvaluationContext},
     },
-    steps::run_composite_step_port::RunCompositeStepPort,
 };
 
 /// Service that runs a composite action's steps in order, accumulating their
@@ -75,7 +75,7 @@ impl RunCompositeActionService {
                     .with_stderr(output.stderr.clone())
             })?;
 
-            let outcome = self.step_runner.execute(
+            let outcome = self.step_runner.run(
                 RunCompositeStepRequest::new(
                     &interpolated,
                     request.action_dir(),

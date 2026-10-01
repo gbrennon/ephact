@@ -2,16 +2,16 @@ use std::sync::Arc;
 
 use crate::{
     actions::{
-        ActionFetcherPort, CollectActionFilesService, CopyActionToContainerService,
-        ExecuteActionFactory, FetchRemoteActionService, GitHubActionInputEnvironmentAdapter,
-        LoadActionDefinitionService, ResolveActionDirectoryService, ResolveActionInputsService,
-        ResolveNodeBinaryService, RunCompositeActionService, RunNodeActionService,
+        CollectActionFilesService, CopyActionToContainerService, ExecuteActionFactory,
+        FetchRemoteActionService, GitHubActionInputEnvironmentAdapter, LoadActionDefinitionService,
+        ResolveActionDirectoryService, ResolveActionInputsService, ResolveNodeBinaryService,
+        RunCompositeActionService, RunNodeActionService,
     },
     application::{
         ports::outbound::{
-            ActionCommandBusPort, ActionDefinitionLoaderPort, ActionDirectoryResolverPort,
-            ActionInputsResolverPort, CompositeActionRunnerPort, DomainEventBusPort,
-            NodeActionRunnerPort, StepTextCodecPort,
+            ActionCommandPublisherPort, ActionDefinitionLoaderPort, ActionDirectoryResolverPort,
+            ActionFetcherPort, ActionInputsResolverPort, CompositeActionRunnerPort,
+            DomainEventPublisherPort, NodeActionRunnerPort, StepTextCodecPort,
         },
         services::execute_action_service::ExecuteActionService,
     },
@@ -23,8 +23,8 @@ pub struct ActionExecutionWiring;
 impl ActionExecutionWiring {
     pub fn build(
         fetcher: Box<dyn ActionFetcherPort>,
-        command_bus: Box<dyn ActionCommandBusPort>,
-        event_bus: Box<dyn DomainEventBusPort>,
+        command_bus: Box<dyn ActionCommandPublisherPort>,
+        event_bus: Box<dyn DomainEventPublisherPort>,
         step_codec: Arc<dyn StepTextCodecPort>,
     ) -> ExecuteActionFactory {
         let directory_resolver: Arc<dyn ActionDirectoryResolverPort> = Arc::new(

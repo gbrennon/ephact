@@ -3,10 +3,9 @@ use std::sync::Arc;
 use ephact::{
     application::{
         dtos::{requests::RunCompositeStepRequest, responses::ExecResultResponse},
-        ports::outbound::ContainerPort,
+        ports::outbound::{ContainerPort, RunCompositeStepPort},
     },
     domain::{entities::Step, errors::StepError},
-    infrastructure::steps::run_composite_step_port::RunCompositeStepPort,
 };
 use parking_lot::Mutex;
 
@@ -46,7 +45,7 @@ impl FakeRunCompositeStepPort {
 }
 
 impl RunCompositeStepPort for FakeRunCompositeStepPort {
-    fn execute(
+    fn run(
         &self,
         request: RunCompositeStepRequest<'_>,
         _container: std::sync::Arc<dyn ContainerPort>,

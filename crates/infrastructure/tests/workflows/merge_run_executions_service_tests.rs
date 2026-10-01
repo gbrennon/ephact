@@ -9,11 +9,9 @@ use ephact::{
         },
     },
     domain::value_objects::StepType,
-    infrastructure::workflows::{
-        merge_run_executions_port::MergeRunExecutionsPort,
-        merge_run_executions_service::MergeRunExecutionsService,
-    },
+    infrastructure::workflows::merge_run_executions_service::MergeRunExecutionsService,
 };
+use ephact_application::ports::outbound::MergeRunExecutionsPort;
 
 fn job(job_id: &str, name: Option<&str>, success: bool) -> JobSummaryResponse {
     JobSummaryResponse::new(
@@ -51,7 +49,7 @@ fn execution(
 #[test]
 fn execute_returns_a_single_run_unchanged() {
     let merged = MergeRunExecutionsService::new()
-        .execute(MergeRunExecutionsRequest::new(
+        .merge(MergeRunExecutionsRequest::new(
             vec![execution(
                 "ci",
                 vec![job("build", Some("Build"), true)],
@@ -71,7 +69,7 @@ fn execute_returns_a_single_run_unchanged() {
 #[test]
 fn execute_errors_for_a_single_run_with_no_execution() {
     let Err(error) =
-        MergeRunExecutionsService::new().execute(MergeRunExecutionsRequest::new(Vec::new(), false))
+        MergeRunExecutionsService::new().merge(MergeRunExecutionsRequest::new(Vec::new(), false))
     else {
         panic!("merging no executions should fail");
     };
@@ -82,7 +80,7 @@ fn execute_errors_for_a_single_run_with_no_execution() {
 #[test]
 fn execute_names_an_all_workflows_run_and_prefixes_every_job_name() {
     let merged = MergeRunExecutionsService::new()
-        .execute(MergeRunExecutionsRequest::new(
+        .merge(MergeRunExecutionsRequest::new(
             vec![
                 execution(
                     "ci",
@@ -123,7 +121,7 @@ fn execute_names_an_all_workflows_run_and_prefixes_every_job_name() {
 #[test]
 fn execute_fails_an_all_workflows_run_when_any_execution_failed() {
     let merged = MergeRunExecutionsService::new()
-        .execute(MergeRunExecutionsRequest::new(
+        .merge(MergeRunExecutionsRequest::new(
             vec![
                 execution(
                     "ci",
@@ -148,7 +146,7 @@ fn execute_fails_an_all_workflows_run_when_any_execution_failed() {
 #[test]
 fn execute_leaves_an_unnamed_job_unnamed() {
     let merged = MergeRunExecutionsService::new()
-        .execute(MergeRunExecutionsRequest::new(
+        .merge(MergeRunExecutionsRequest::new(
             vec![execution(
                 "ci",
                 vec![job("build", None, true)],

@@ -2,11 +2,9 @@ use std::fs;
 
 use ephact::{
     application::dtos::requests::ListWorkflowDirectoryRequest,
-    infrastructure::workflows::{
-        list_workflow_directory_port::ListWorkflowDirectoryPort,
-        list_workflow_directory_service::ListWorkflowDirectoryService,
-    },
+    infrastructure::workflows::list_workflow_directory_service::ListWorkflowDirectoryService,
 };
+use ephact_application::ports::outbound::ListWorkflowDirectoryPort;
 
 #[test]
 fn execute_returns_yml_and_yaml_files_sorted_by_path() {
@@ -16,7 +14,7 @@ fn execute_returns_yml_and_yaml_files_sorted_by_path() {
     let service = ListWorkflowDirectoryService::new();
 
     let response = service
-        .execute(ListWorkflowDirectoryRequest::new(tmp.path().to_path_buf()))
+        .list(ListWorkflowDirectoryRequest::new(tmp.path().to_path_buf()))
         .unwrap();
 
     assert_eq!(
@@ -34,7 +32,7 @@ fn execute_excludes_other_extensions_and_subdirectories() {
     let service = ListWorkflowDirectoryService::new();
 
     let response = service
-        .execute(ListWorkflowDirectoryRequest::new(tmp.path().to_path_buf()))
+        .list(ListWorkflowDirectoryRequest::new(tmp.path().to_path_buf()))
         .unwrap();
 
     assert_eq!(response.workflow_files(), vec![tmp.path().join("ci.yml")]);
@@ -45,7 +43,7 @@ fn execute_errors_when_the_directory_is_missing() {
     let tmp = tempfile::tempdir().unwrap();
     let service = ListWorkflowDirectoryService::new();
 
-    let result = service.execute(ListWorkflowDirectoryRequest::new(tmp.path().join("absent")));
+    let result = service.list(ListWorkflowDirectoryRequest::new(tmp.path().join("absent")));
 
     assert!(result.is_err());
 }
@@ -56,7 +54,7 @@ fn execute_returns_no_files_for_an_empty_directory() {
     let service = ListWorkflowDirectoryService::new();
 
     let response = service
-        .execute(ListWorkflowDirectoryRequest::new(tmp.path().to_path_buf()))
+        .list(ListWorkflowDirectoryRequest::new(tmp.path().to_path_buf()))
         .unwrap();
 
     assert!(response.workflow_files().is_empty());

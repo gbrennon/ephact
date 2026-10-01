@@ -8,9 +8,8 @@ use crate::{
         },
         errors::{ExecuteJobError, ExecuteWorkflowError},
         ports::outbound::{
-            action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
-            job_command_bus_port::JobCommandBusPort, step_command_bus_port::StepCommandBusPort,
-            workflow_command_bus_port::WorkflowCommandBusPort,
+            ActionCommandPublisherPort, JobCommandPublisherPort, StepCommandPublisherPort,
+            WorkflowCommandPublisherPort, container_port::ContainerPort,
         },
     },
     domain::{
@@ -22,49 +21,49 @@ use crate::{
     messaging::deferred_command_bus::DeferredCommandBus,
 };
 
+/// The only application-facing command publisher. It routes each application
+/// command publisher port onto the infrastructure [`DeferredCommandBus`]; the
+/// buses themselves never implement an application port.
 #[derive(Clone)]
-pub struct SharedCommandBus {
+pub struct CommandPublisherAdapter {
     inner: Arc<DeferredCommandBus>,
 }
 
-impl SharedCommandBus {
+impl CommandPublisherAdapter {
     pub fn new(inner: Arc<DeferredCommandBus>) -> Self {
         Self { inner }
     }
 }
 
-impl WorkflowCommandBusPort for SharedCommandBus {
-    fn dispatch(
+impl WorkflowCommandPublisherPort for CommandPublisherAdapter {
+    fn publish(
         &self,
         command: ExecuteWorkflowCommand,
     ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
-        WorkflowCommandBusPort::dispatch(&*self.inner, command)
+        self.inner.route_workflow(command)
     }
 }
 
-impl JobCommandBusPort for SharedCommandBus {
-    fn dispatch(
-        &self,
-        command: ExecuteJobCommand,
-    ) -> Result<JobExecutionResponse, ExecuteJobError> {
-        JobCommandBusPort::dispatch(&*self.inner, command)
+impl JobCommandPublisherPort for CommandPublisherAdapter {
+    fn publish(&self, command: ExecuteJobCommand) -> Result<JobExecutionResponse, ExecuteJobError> {
+        self.inner.route_job(command)
     }
 }
 
-impl StepCommandBusPort for SharedCommandBus {
-    fn dispatch(
+impl StepCommandPublisherPort for CommandPublisherAdapter {
+    fn publish(
         &self,
         command: ExecuteStepCommand<dyn ContainerPort>,
     ) -> Result<ExecutedStepResponse, StepError> {
-        StepCommandBusPort::dispatch(&*self.inner, command)
+        self.inner.route_step(command)
     }
 }
 
-impl ActionCommandBusPort for SharedCommandBus {
-    fn dispatch(
+impl ActionCommandPublisherPort for CommandPublisherAdapter {
+    fn publish(
         &self,
         command: ExecuteActionCommand<dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {
-        ActionCommandBusPort::dispatch(&*self.inner, command)
+        self.inner.route_action(command)
     }
 }

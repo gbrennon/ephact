@@ -1,9 +1,8 @@
 use std::{error::Error, sync::Arc};
 
-use super::pull_job_image_port::PullJobImagePort;
-use crate::{
-    application::{dtos::requests::PullJobImageRequest, ports::outbound::ContainerRuntimePort},
-    images::ImageMapperPort,
+use crate::application::{
+    dtos::requests::PullJobImageRequest,
+    ports::outbound::{ContainerRuntimePort, ImageMapperPort, PullJobImagePort},
 };
 
 /// Runner label assumed when a job declares none.
@@ -29,7 +28,7 @@ impl PullJobImageService {
 }
 
 impl PullJobImagePort for PullJobImageService {
-    fn execute(&self, request: PullJobImageRequest) -> Result<String, Box<dyn Error>> {
+    fn pull(&self, request: PullJobImageRequest) -> Result<String, Box<dyn Error>> {
         let runs_on = request.runs_on().unwrap_or(DEFAULT_RUNNER_LABEL);
         let mut image = self.image_mapper.map(runs_on);
 

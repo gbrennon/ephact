@@ -9,10 +9,10 @@ use std::{
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::{
+    application::ports::outbound::DomainEventHandlerPort,
     domain::messages::events::{
         DomainEvent, JobStartedPayload, StepFinishedPayload, StepOutputPayload,
     },
-    infrastructure::messaging::DomainEventHandler,
 };
 /// Presentation handler that renders workflow run progress to the terminal.
 ///
@@ -160,7 +160,7 @@ impl RunProgressHandler {
     }
 }
 
-impl DomainEventHandler for RunProgressHandler {
+impl DomainEventHandlerPort for RunProgressHandler {
     fn handle(&self, event: &DomainEvent) {
         self.stream_progress(event);
         if self.output_suppressed.load(Ordering::Relaxed) {

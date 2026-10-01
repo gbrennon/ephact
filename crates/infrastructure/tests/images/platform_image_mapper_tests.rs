@@ -1,4 +1,4 @@
-use ephact::infrastructure::{PlatformImageMapper, images::ImageMapperPort};
+use ephact::{application::ports::outbound::ImageMapperPort, infrastructure::PlatformImageMapper};
 
 #[test]
 fn map_platform_ubuntu_latest_returns_act_latest() {

@@ -3,11 +3,9 @@ use std::path::PathBuf;
 use ephact::{
     application::dtos::requests::FetchRemoteActionRequest,
     domain::value_objects::RemoteActionReference,
-    infrastructure::actions::acquisition::{
-        fetch_remote_action_port::FetchRemoteActionPort,
-        fetch_remote_action_service::FetchRemoteActionService,
-    },
+    infrastructure::actions::acquisition::fetch_remote_action_service::FetchRemoteActionService,
 };
+use ephact_application::ports::outbound::FetchRemoteActionPort;
 
 use crate::common::fakes::{
     fake_action_fetcher::FakeActionFetcher, stub_failing_action_fetcher::StubFailingActionFetcher,
@@ -31,7 +29,7 @@ fn execute_returns_the_fetched_directory() {
         FetchRemoteActionService::new(Box::new(FakeActionFetcher::returning(fetched.clone())));
 
     let directory = service
-        .execute(FetchRemoteActionRequest::new(reference(None)))
+        .fetch(FetchRemoteActionRequest::new(reference(None)))
         .unwrap();
 
     assert_eq!(directory, fetched);
@@ -44,7 +42,7 @@ fn execute_narrows_to_the_referenced_subdirectory() {
         FetchRemoteActionService::new(Box::new(FakeActionFetcher::returning(fetched.clone())));
 
     let directory = service
-        .execute(FetchRemoteActionRequest::new(reference(Some("save"))))
+        .fetch(FetchRemoteActionRequest::new(reference(Some("save"))))
         .unwrap();
 
     assert_eq!(directory, fetched.join("save"));
@@ -55,7 +53,7 @@ fn execute_propagates_a_fetch_failure() {
     let service = FetchRemoteActionService::new(Box::new(StubFailingActionFetcher));
 
     let error = service
-        .execute(FetchRemoteActionRequest::new(reference(None)))
+        .fetch(FetchRemoteActionRequest::new(reference(None)))
         .unwrap_err()
         .to_string();
 

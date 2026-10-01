@@ -1,10 +1,8 @@
 use std::path::PathBuf;
 
-use ephact::{
-    application::dtos::{
-        requests::ListAllWorkflowFilesRequest, responses::ListAllWorkflowFilesResponse,
-    },
-    infrastructure::workflows::list_all_workflow_files_port::ListAllWorkflowFilesPort,
+use ephact::application::{
+    dtos::{requests::ListAllWorkflowFilesRequest, responses::ListAllWorkflowFilesResponse},
+    ports::outbound::ListAllWorkflowFilesPort,
 };
 use parking_lot::Mutex;
 
@@ -31,7 +29,7 @@ impl FakeListAllWorkflowFilesPort {
 }
 
 impl ListAllWorkflowFilesPort for FakeListAllWorkflowFilesPort {
-    fn execute(
+    fn list(
         &self,
         request: ListAllWorkflowFilesRequest,
     ) -> Result<ListAllWorkflowFilesResponse, Box<dyn std::error::Error>> {

@@ -1,4 +1,4 @@
-use ephact::infrastructure::images::ImageMapperPort;
+use ephact_application::ports::outbound::ImageMapperPort;
 
 pub struct FakeImageMapper;
 

@@ -1,16 +1,11 @@
-use crate::{
-    application::{
-        dtos::{
-            requests::{
-                ReadStepEnvExportsRequest, ReadStepExportsRequest, ReadStepPathExportsRequest,
-            },
-            responses::StepExportsResponse,
-        },
-        ports::outbound::step_exports_reader_port::StepExportsReaderPort,
+use crate::application::{
+    dtos::{
+        requests::{ReadStepEnvExportsRequest, ReadStepExportsRequest, ReadStepPathExportsRequest},
+        responses::StepExportsResponse,
     },
-    steps::{
-        read_step_env_exports_port::ReadStepEnvExportsPort,
-        read_step_path_exports_port::ReadStepPathExportsPort,
+    ports::outbound::{
+        ReadStepEnvExportsPort, ReadStepPathExportsPort,
+        step_exports_reader_port::StepExportsReaderPort,
     },
 };
 
@@ -40,9 +35,9 @@ impl StepExportsReaderPort for ReadStepExportsService {
     ) -> StepExportsResponse {
         StepExportsResponse::new(
             self.path_reader
-                .execute(ReadStepPathExportsRequest::new(), container),
+                .read(ReadStepPathExportsRequest::new(), container),
             self.env_reader
-                .execute(ReadStepEnvExportsRequest::new(), container),
+                .read(ReadStepEnvExportsRequest::new(), container),
         )
     }
 }

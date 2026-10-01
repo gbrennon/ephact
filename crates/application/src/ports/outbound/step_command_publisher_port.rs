@@ -4,14 +4,9 @@ use crate::{
     ports::outbound::container_port::ContainerPort,
 };
 
-/// Dispatches a step execution command and returns its outcome.
-pub trait StepCommandBusPort: Send + Sync {
-    /// Dispatches a step command and returns its execution outcome.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`StepError`] when dispatching or step execution fails.
-    fn dispatch(
+/// Publishes a step command to the bound infrastructure command transport.
+pub trait StepCommandPublisherPort: Send + Sync {
+    fn publish(
         &self,
         command: ExecuteStepCommand<dyn ContainerPort>,
     ) -> Result<ExecutedStepResponse, StepError>;

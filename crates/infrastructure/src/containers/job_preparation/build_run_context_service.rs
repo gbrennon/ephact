@@ -1,8 +1,11 @@
 use std::collections::BTreeMap;
 
-use super::{super::workspace::CONTAINER_WORKSPACE, build_run_context_port::BuildRunContextPort};
 use crate::{
-    application::dtos::{requests::BuildRunContextRequest, responses::BuildRunContextResponse},
+    application::{
+        dtos::{requests::BuildRunContextRequest, responses::BuildRunContextResponse},
+        ports::outbound::BuildRunContextPort,
+    },
+    containers::workspace::CONTAINER_WORKSPACE,
     domain::value_objects::{ContextValue, EvaluationContext},
 };
 
@@ -30,7 +33,7 @@ impl Default for BuildRunContextService {
 }
 
 impl BuildRunContextPort for BuildRunContextService {
-    fn execute(&self, request: BuildRunContextRequest) -> BuildRunContextResponse {
+    fn build(&self, request: BuildRunContextRequest) -> BuildRunContextResponse {
         let secrets = ContextValue::mapping(request.config().secrets().iter().map(|secret| {
             (
                 secret.name().to_string(),

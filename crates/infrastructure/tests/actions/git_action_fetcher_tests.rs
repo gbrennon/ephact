@@ -1,8 +1,8 @@
 use std::{path::Path, process::Command};
 
 use ephact::{
-    domain::value_objects::RemoteActionReference,
-    infrastructure::{GitActionFetcher, actions::ActionFetcherPort},
+    application::ports::outbound::ActionFetcherPort, domain::value_objects::RemoteActionReference,
+    infrastructure::GitActionFetcher,
 };
 
 fn git(args: &[&str], cwd: &Path) {

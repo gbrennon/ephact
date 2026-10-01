@@ -26,10 +26,10 @@ use crate::{
     ports::{
         inbound::execute_job_port::ExecuteJobPort,
         outbound::{
-            domain_event_bus_port::DomainEventBusPort,
+            domain_event_publisher_port::DomainEventPublisherPort,
             job_container_preparer_port::JobContainerPreparerPort,
             job_environment_builder_port::JobEnvironmentBuilderPort,
-            step_command_bus_port::StepCommandBusPort,
+            step_command_publisher_port::StepCommandPublisherPort,
             step_context_builder_port::StepContextBuilderPort,
             step_exports_reader_port::StepExportsReaderPort,
             step_path_prefixer_port::StepPathPrefixerPort,
@@ -44,7 +44,7 @@ use crate::{
 /// publishes one [`ExecuteStepCommand`] per step: the step command handler
 /// runs each step, so this service never depends on the step entrypoint.
 /// Progress facts for every step are announced as domain events on the
-/// outbound [`DomainEventBusPort`].
+/// outbound [`DomainEventPublisherPort`].
 pub struct ExecuteJobService {
     job_environment_builder: Box<dyn JobEnvironmentBuilderPort>,
     container_preparer: Box<dyn JobContainerPreparerPort>,
@@ -52,8 +52,8 @@ pub struct ExecuteJobService {
     step_context_builder: Box<dyn StepContextBuilderPort>,
     step_summarizer: Box<dyn StepSummarizerPort>,
     step_exports_reader: Box<dyn StepExportsReaderPort>,
-    command_bus: Box<dyn StepCommandBusPort>,
-    event_bus: Box<dyn DomainEventBusPort>,
+    command_bus: Box<dyn StepCommandPublisherPort>,
+    event_bus: Box<dyn DomainEventPublisherPort>,
     network_command_classifier: Box<dyn NetworkCommandClassifier>,
 }
 
@@ -63,8 +63,10 @@ pub type ExecuteJobStepDependencies = (
     Box<dyn StepSummarizerPort>,
     Box<dyn StepExportsReaderPort>,
 );
-pub type ExecuteJobMessagingDependencies =
-    (Box<dyn StepCommandBusPort>, Box<dyn DomainEventBusPort>);
+pub type ExecuteJobMessagingDependencies = (
+    Box<dyn StepCommandPublisherPort>,
+    Box<dyn DomainEventPublisherPort>,
+);
 
 pub struct ExecuteJobDependencies {
     job_environment_builder: Box<dyn JobEnvironmentBuilderPort>,
@@ -73,8 +75,8 @@ pub struct ExecuteJobDependencies {
     step_context_builder: Box<dyn StepContextBuilderPort>,
     step_summarizer: Box<dyn StepSummarizerPort>,
     step_exports_reader: Box<dyn StepExportsReaderPort>,
-    command_bus: Box<dyn StepCommandBusPort>,
-    event_bus: Box<dyn DomainEventBusPort>,
+    command_bus: Box<dyn StepCommandPublisherPort>,
+    event_bus: Box<dyn DomainEventPublisherPort>,
     network_command_classifier: Box<dyn NetworkCommandClassifier>,
 }
 
@@ -247,7 +249,7 @@ impl ExecuteJobService {
         {
             return self.skipped_step(step, started_at.elapsed(), reason);
         }
-        let outcome = self.command_bus.dispatch(ExecuteStepCommand::new(
+        let outcome = self.command_bus.publish(ExecuteStepCommand::new(
             step.clone(),
             state.step_env.clone(),
             step_context,
