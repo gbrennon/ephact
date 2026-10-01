@@ -5,16 +5,12 @@ use ephact::{
     infrastructure::actions::ActionFetcherPort,
 };
 
-/// Fails every fetch, standing in for an unreachable forge.
 #[derive(Clone)]
 pub struct StubFailingActionFetcher;
 
 impl ActionFetcherPort for StubFailingActionFetcher {
-    fn fetch(&self, reference: &RemoteActionReference) -> Result<PathBuf, ActionError> {
-        Err(ActionError::FetchFailed(format!(
-            "{} is unreachable",
-            reference.clone_url()
-        )))
+    fn fetch(&self, _reference: &RemoteActionReference) -> Result<PathBuf, ActionError> {
+        Err(ActionError::FetchFailed("source is unreachable".to_owned()))
     }
 
     fn clone_box(&self) -> Box<dyn ActionFetcherPort> {

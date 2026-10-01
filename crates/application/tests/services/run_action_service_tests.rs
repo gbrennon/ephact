@@ -9,10 +9,7 @@ use ephact::{
         ports::{inbound::RunActionPort, outbound::StepTextCodecPort},
         services::run_action_service::RunActionService,
     },
-    domain::{
-        services::evaluation_context_mapper::EvaluationContextMapper,
-        value_objects::EvaluationContext,
-    },
+    domain::value_objects::EvaluationContext,
     infrastructure::{steps::JsonStepTextCodec, workflows::actions::StepYaml},
 };
 
@@ -42,7 +39,7 @@ fn execute_delegates_action_execution_to_command_bus() {
         RunActionExecutionInput::new(
             PathBuf::from("/repo"),
             HashMap::new(),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
         ),
     ));
     let response = service.execute(request).unwrap();

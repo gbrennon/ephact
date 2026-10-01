@@ -34,7 +34,7 @@ fn execute_exposes_configured_secrets_under_the_secrets_context() {
     let context = context(config);
 
     assert_eq!(
-        context.secrets().property("TOKEN"),
+        context.get("secrets").unwrap().property("TOKEN"),
         Some(&ContextValue::text("secret-value"))
     );
 }
@@ -47,12 +47,13 @@ fn execute_exposes_inputs_under_both_inputs_and_the_github_event() {
     let context = context(config);
 
     assert_eq!(
-        context.inputs().property("mode"),
+        context.get("inputs").unwrap().property("mode"),
         Some(&ContextValue::text("staging"))
     );
     assert_eq!(
         context
-            .github()
+            .get("github")
+            .unwrap()
             .property("event")
             .and_then(|value| value.property("inputs"))
             .and_then(|value| value.property("mode")),
@@ -65,7 +66,7 @@ fn execute_defaults_the_event_name_to_workflow_dispatch() {
     let context = context(WorkflowRunConfig::new());
 
     assert_eq!(
-        context.github().property("event_name"),
+        context.get("github").unwrap().property("event_name"),
         Some(&ContextValue::text("workflow_dispatch"))
     );
 }
@@ -77,7 +78,7 @@ fn execute_honours_the_configured_event_name() {
     let context = context(config);
 
     assert_eq!(
-        context.github().property("event_name"),
+        context.get("github").unwrap().property("event_name"),
         Some(&ContextValue::text("pull_request"))
     );
 }
@@ -87,11 +88,11 @@ fn execute_reports_the_repository_name_and_mounted_workspace() {
     let context = context(WorkflowRunConfig::new());
 
     assert_eq!(
-        context.github().property("repository"),
+        context.get("github").unwrap().property("repository"),
         Some(&ContextValue::text("test-repo"))
     );
     assert_eq!(
-        context.github().property("workspace"),
+        context.get("github").unwrap().property("workspace"),
         Some(&ContextValue::text("/workspace"))
     );
 }
@@ -101,15 +102,15 @@ fn execute_reports_the_runner_platform() {
     let context = context(WorkflowRunConfig::new());
 
     assert_eq!(
-        context.runner().property("os"),
+        context.get("runner").unwrap().property("os"),
         Some(&ContextValue::text("Linux"))
     );
     assert_eq!(
-        context.runner().property("arch"),
+        context.get("runner").unwrap().property("arch"),
         Some(&ContextValue::text("X64"))
     );
     assert_eq!(
-        context.runner().property("temp"),
+        context.get("runner").unwrap().property("temp"),
         Some(&ContextValue::text("/tmp"))
     );
 }

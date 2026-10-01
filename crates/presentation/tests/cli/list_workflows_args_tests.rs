@@ -1,17 +1,10 @@
 use ephact::{
-    application::dtos::requests::ListWorkflowsRequest,
-    domain::{RepoPath, Repository, RepositoryName},
+    application::dtos::requests::ListWorkflowsRequest, infrastructure::RepositoryResolver,
     presentation::cli::parse_list_workflows_test_args,
 };
 
-/// Mirrors how `ListWorkflowsArgs::to_domain` builds its repository from the default `.`
-/// argument. `RepoPath::new` canonicalizes, so the expected value must go through the
-/// same domain constructors. Cargo runs integration tests from the crate root, which
-/// contains a `.git` entry.
-fn current_dir_repository() -> Repository {
-    let repo_path = RepoPath::new(".").unwrap();
-    let name = RepositoryName::from_repo_path(&repo_path).unwrap();
-    Repository::new(repo_path, name)
+fn current_dir_repository() -> ephact::domain::Repository {
+    RepositoryResolver::resolve_from_path(".").unwrap()
 }
 
 #[test]
