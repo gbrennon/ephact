@@ -5,10 +5,7 @@ use ephact::{
         dtos::requests::BuildStepContextRequest,
         ports::outbound::step_context_builder_port::StepContextBuilderPort,
     },
-    domain::{
-        services::evaluation_context_mapper::EvaluationContextMapper,
-        value_objects::{ContextValue, EvaluationContext},
-    },
+    domain::value_objects::{ContextValue, EvaluationContext},
     infrastructure::steps::build_step_context_service::BuildStepContextService,
 };
 
@@ -18,12 +15,12 @@ fn execute_mirrors_the_environment_into_the_env_context() {
     env.insert("MODE".to_string(), "staging".to_string());
 
     let context = BuildStepContextService::new().build(BuildStepContextRequest::new(
-        EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+        EvaluationContext::new(),
         env.clone(),
     ));
 
     assert_eq!(
-        context.env().property("MODE"),
+        context.get("env").unwrap().property("MODE"),
         Some(&ContextValue::text("staging"))
     );
 }
@@ -31,18 +28,16 @@ fn execute_mirrors_the_environment_into_the_env_context() {
 #[test]
 fn execute_carries_every_other_context_field_over_unchanged() {
     let source = EvaluationContext::new()
-        .with_secrets(ContextValue::text("secrets"))
-        .with_github(ContextValue::text("github"))
-        .with_runner(ContextValue::text("runner"))
-        .with_inputs(ContextValue::text("inputs"));
+        .with_root("secrets", ContextValue::text("secrets"))
+        .with_root("github", ContextValue::text("github"))
+        .with_root("runner", ContextValue::text("runner"))
+        .with_root("inputs", ContextValue::text("inputs"));
 
-    let context = BuildStepContextService::new().build(BuildStepContextRequest::new(
-        EvaluationContextMapper::to_parts(&source),
-        HashMap::new(),
-    ));
+    let context = BuildStepContextService::new()
+        .build(BuildStepContextRequest::new(source.clone(), HashMap::new()));
 
-    assert_eq!(context.secrets(), source.secrets());
-    assert_eq!(context.github(), source.github());
-    assert_eq!(context.runner(), source.runner());
-    assert_eq!(context.inputs(), source.inputs());
+    assert_eq!(context.get("secrets"), source.get("secrets"));
+    assert_eq!(context.get("github"), source.get("github"));
+    assert_eq!(context.get("runner"), source.get("runner"));
+    assert_eq!(context.get("inputs"), source.get("inputs"));
 }

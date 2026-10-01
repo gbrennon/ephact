@@ -130,18 +130,21 @@ mod tests {
         assert_eq!(command.step().uses(), Some("owner/action@v1"));
         assert_eq!(command.repo_path(), &PathBuf::from("/repo"));
         assert_eq!(command.env()["KEY"], "value");
-        assert!(command.context().env().as_text().is_none());
+        assert!(command.context().get("environment").is_none());
         assert_eq!(command.container(), &());
     }
 
     #[test]
     fn with_context_replaces_the_context() {
-        let context =
-            EvaluationContext::new().with_env(crate::value_objects::ContextValue::text("v"));
+        let context = EvaluationContext::new()
+            .with_root("environment", crate::value_objects::ContextValue::text("v"));
 
         let command = command_for_test().with_context(context.clone());
 
-        assert_eq!(command.context().env().as_text(), Some("v"));
+        assert_eq!(
+            command.context().get("environment"),
+            Some(&crate::value_objects::ContextValue::text("v"))
+        );
     }
 
     #[test]
@@ -153,7 +156,7 @@ mod tests {
         assert_eq!(step.uses(), Some("owner/action@v1"));
         assert_eq!(repo_path, PathBuf::from("/repo"));
         assert_eq!(env["KEY"], "value");
-        assert!(context.env().as_text().is_none());
+        assert!(context.get("environment").is_none());
     }
 
     #[test]

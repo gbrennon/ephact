@@ -17,7 +17,7 @@ mod tests {
             assert_eq!(reference.host(), "data.forgejo.org");
             assert_eq!(reference.owner(), "actions");
             assert_eq!(reference.repo(), "setup-node");
-            assert_eq!(reference.git_ref(), "v4");
+            assert_eq!(reference.revision(), "v4");
         }
 
         fn the_fetched_action_is_copied_into_the_container() {

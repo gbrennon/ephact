@@ -6,12 +6,9 @@ rules:
     severity: ERROR
     paths:
       include:
-        - "/src/domain/**"
+        - "/crates/domain/src/**"
     patterns:
-      - pattern: use $MODULE;
-      - metavariable-regex:
-          metavariable: $MODULE
-          regex: "^crate::infrastructure"
+      - pattern-regex: '(?m)^\s*use\s+(?:crate::infrastructure|ephact_infrastructure)\b'
 
   - id: rust-domain-no-presentation-dependencies
     languages:
@@ -20,9 +17,50 @@ rules:
     severity: ERROR
     paths:
       include:
-        - "/src/domain/**"
+        - "/crates/domain/src/**"
     patterns:
-      - pattern: use $MODULE;
-      - metavariable-regex:
-          metavariable: $MODULE
-          regex: "^crate::presentation"
+      - pattern-regex: '(?m)^\s*use\s+(?:crate::presentation|ephact_presentation)\b'
+
+  - id: rust-domain-no-application-dependencies
+    languages:
+      - rust
+    message: "Domain layer must not depend on the application layer; dependencies point inward only"
+    severity: ERROR
+    paths:
+      include:
+        - "/crates/domain/src/**"
+    patterns:
+      - pattern-regex: '(?m)^\s*use\s+(?:crate::application|ephact_application)\b'
+
+  - id: rust-domain-service-no-sibling-service-dependencies
+    languages:
+      - rust
+    message: "A domain service must not depend on another domain service; keep shared implementation private to one service (a submodule) or model it as a value object the service uses"
+    severity: ERROR
+    paths:
+      include:
+        - "/crates/domain/src/services/**"
+    patterns:
+      - pattern-regex: '(?m)^\s*use\s+(?:crate|ephact_domain)::(?:services::|\{[^;]*\bservices::)'
+
+  - id: rust-application-service-constructor-depends-only-on-outbound-ports
+    languages:
+      - rust
+    message: "An application service must depend only on outbound ports: an inbound port must never be injected (as a `dyn` field or constructor parameter). The single inbound port a service implements appears only in its `impl <Port> for` block, never behind `dyn`."
+    severity: ERROR
+    paths:
+      include:
+        - "/crates/application/src/services/**"
+    patterns:
+      - pattern-regex: '\bdyn\s+(?:ExecuteActionPort|ExecuteJobPort|ExecuteNestedActionPort|ExecuteStepPort|ExecuteWorkflowPort|ListActionsPort|ListWorkflowsPort|RunActionPort|RunAllWorkflowsPort|RunWorkflowPort|ShowProjectBrandingInfoPort)\b'
+
+  - id: rust-application-service-no-sibling-service-dependencies
+    languages:
+      - rust
+    message: "An application service must not import another application service; collaborate through outbound ports and let the composition root wire concrete services together"
+    severity: ERROR
+    paths:
+      include:
+        - "/crates/application/src/services/**"
+    patterns:
+      - pattern-regex: '(?m)^\s*use\s+(?:crate|ephact_application)::(?:(?:application::)?services::|\{\s*(?:application::)?services::)'

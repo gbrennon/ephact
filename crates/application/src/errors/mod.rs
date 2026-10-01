@@ -1,3 +1,11 @@
+pub mod eval_error;
+pub mod lexer_error;
+pub mod parse_error;
+
+pub use eval_error::EvalError;
+pub use lexer_error::LexerError;
+pub use parse_error::ParseError;
+
 macro_rules! impl_application_error {
     ($error_type:ty, $display:expr $(,)?) => {
         impl std::fmt::Display for $error_type {

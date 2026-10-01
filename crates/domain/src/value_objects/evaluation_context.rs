@@ -1,177 +1,35 @@
-/// Evaluation context for `${{ }}` expressions.
-///
-/// Mirrors the workflow expression context hierarchy. Each field is a
-/// [`ContextValue`] so the evaluator can traverse property and
-/// index accesses naturally. Callers populate these from workflow
-/// state before evaluation.
+use std::collections::BTreeMap;
+
 use crate::value_objects::ContextValue;
 
-/// Holds all context data available during expression evaluation.
+/// Values available to expression evaluation.
 ///
-/// # Example
-///
-/// ```rust
-/// use ephact_domain::value_objects::EvaluationContext;
-///
-/// let ctx = EvaluationContext::new();
-/// assert!(ctx.github().is_mapping());
-/// ```
-#[derive(Debug, Clone)]
+/// Root names are supplied by the workflow dialect adapter. The domain keeps
+/// the context generic so it does not depend on a particular forge or runner.
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct EvaluationContext {
-    github: ContextValue,
-    env: ContextValue,
-    job: ContextValue,
-    steps: ContextValue,
-    runner: ContextValue,
-    secrets: ContextValue,
-    vars: ContextValue,
-    strategy: ContextValue,
-    matrix: ContextValue,
-    needs: ContextValue,
-    inputs: ContextValue,
-}
-
-impl Default for EvaluationContext {
-    fn default() -> Self {
-        Self::new()
-    }
+    roots: BTreeMap<String, ContextValue>,
 }
 
 impl EvaluationContext {
-    /// Creates a new evaluation context with empty objects for every field.
+    /// Creates an empty evaluation context.
     pub fn new() -> Self {
-        let empty_obj = ContextValue::empty_mapping();
-        Self {
-            github: empty_obj.clone(),
-            env: empty_obj.clone(),
-            job: empty_obj.clone(),
-            steps: empty_obj.clone(),
-            runner: empty_obj.clone(),
-            secrets: empty_obj.clone(),
-            vars: empty_obj.clone(),
-            strategy: empty_obj.clone(),
-            matrix: empty_obj.clone(),
-            needs: empty_obj.clone(),
-            inputs: empty_obj,
-        }
+        Self::default()
     }
 
-    /// Looks up a top-level context variable by name.
-    ///
-    /// Returns `None` if the name does not match any known context.
+    /// Looks up a context root by its caller-defined name.
     pub fn get(&self, name: &str) -> Option<&ContextValue> {
-        match name {
-            "github" => Some(&self.github),
-            "env" => Some(&self.env),
-            "job" => Some(&self.job),
-            "steps" => Some(&self.steps),
-            "runner" => Some(&self.runner),
-            "secrets" => Some(&self.secrets),
-            "vars" => Some(&self.vars),
-            "strategy" => Some(&self.strategy),
-            "matrix" => Some(&self.matrix),
-            "needs" => Some(&self.needs),
-            "inputs" => Some(&self.inputs),
-            _ => None,
-        }
+        self.roots.get(name)
     }
 
-    pub fn github(&self) -> &ContextValue {
-        &self.github
+    /// Returns all context roots.
+    pub fn roots(&self) -> &BTreeMap<String, ContextValue> {
+        &self.roots
     }
 
-    pub fn env(&self) -> &ContextValue {
-        &self.env
-    }
-
-    pub fn job(&self) -> &ContextValue {
-        &self.job
-    }
-
-    pub fn steps(&self) -> &ContextValue {
-        &self.steps
-    }
-
-    pub fn runner(&self) -> &ContextValue {
-        &self.runner
-    }
-
-    pub fn secrets(&self) -> &ContextValue {
-        &self.secrets
-    }
-
-    pub fn vars(&self) -> &ContextValue {
-        &self.vars
-    }
-
-    pub fn strategy(&self) -> &ContextValue {
-        &self.strategy
-    }
-
-    pub fn matrix(&self) -> &ContextValue {
-        &self.matrix
-    }
-
-    pub fn needs(&self) -> &ContextValue {
-        &self.needs
-    }
-
-    pub fn inputs(&self) -> &ContextValue {
-        &self.inputs
-    }
-
-    pub fn with_github(mut self, github: ContextValue) -> Self {
-        self.github = github;
-        self
-    }
-
-    pub fn with_env(mut self, env: ContextValue) -> Self {
-        self.env = env;
-        self
-    }
-
-    pub fn with_job(mut self, job: ContextValue) -> Self {
-        self.job = job;
-        self
-    }
-
-    pub fn with_steps(mut self, steps: ContextValue) -> Self {
-        self.steps = steps;
-        self
-    }
-
-    pub fn with_runner(mut self, runner: ContextValue) -> Self {
-        self.runner = runner;
-        self
-    }
-
-    pub fn with_secrets(mut self, secrets: ContextValue) -> Self {
-        self.secrets = secrets;
-        self
-    }
-
-    pub fn with_vars(mut self, vars: ContextValue) -> Self {
-        self.vars = vars;
-        self
-    }
-
-    pub fn with_strategy(mut self, strategy: ContextValue) -> Self {
-        self.strategy = strategy;
-        self
-    }
-
-    pub fn with_matrix(mut self, matrix: ContextValue) -> Self {
-        self.matrix = matrix;
-        self
-    }
-
-    pub fn with_needs(mut self, needs: ContextValue) -> Self {
-        self.needs = needs;
-        self
-    }
-
-    pub fn with_inputs(mut self, inputs: ContextValue) -> Self {
-        self.inputs = inputs;
+    /// Adds or replaces a context root.
+    pub fn with_root(mut self, name: impl Into<String>, value: ContextValue) -> Self {
+        self.roots.insert(name.into(), value);
         self
     }
 }
@@ -181,61 +39,33 @@ mod tests {
     use super::*;
 
     #[test]
-    fn new_creates_empty_objects() {
-        let ctx = EvaluationContext::new();
-        assert!(ctx.github().is_mapping());
-        assert!(ctx.env().is_mapping());
+    fn new_creates_an_empty_context() {
+        assert!(EvaluationContext::new().roots().is_empty());
     }
 
     #[test]
-    fn get_known_context() {
-        let ctx = EvaluationContext::new();
-        for name in [
-            "github", "env", "job", "steps", "runner", "secrets", "vars", "strategy", "matrix",
-            "needs", "inputs",
-        ] {
-            assert!(ctx.get(name).is_some(), "expected a context for {name}");
-        }
+    fn get_known_root() {
+        let context = EvaluationContext::new().with_root("source", ContextValue::text("value"));
+
+        assert_eq!(context.get("source"), Some(&ContextValue::text("value")));
     }
 
     #[test]
-    fn get_unknown_context() {
-        let ctx = EvaluationContext::new();
-        assert!(ctx.get("nonexistent").is_none());
+    fn get_unknown_root() {
+        assert!(EvaluationContext::new().get("missing").is_none());
     }
 
     #[test]
     fn default_equals_new() {
-        let ctx1 = EvaluationContext::new();
-        let ctx2 = EvaluationContext::default();
-        assert_eq!(ctx1.github, ctx2.github);
+        assert_eq!(EvaluationContext::new(), EvaluationContext::default());
     }
-    #[test]
-    fn accessors_and_builders_preserve_values() {
-        let value = ContextValue::text("value");
-        let context = EvaluationContext::new()
-            .with_github(value.clone())
-            .with_env(value.clone())
-            .with_job(value.clone())
-            .with_steps(value.clone())
-            .with_runner(value.clone())
-            .with_secrets(value.clone())
-            .with_vars(value.clone())
-            .with_strategy(value.clone())
-            .with_matrix(value.clone())
-            .with_needs(value.clone())
-            .with_inputs(value.clone());
 
-        assert_eq!(context.github(), &value);
-        assert_eq!(context.env(), &value);
-        assert_eq!(context.job(), &value);
-        assert_eq!(context.steps(), &value);
-        assert_eq!(context.runner(), &value);
-        assert_eq!(context.secrets(), &value);
-        assert_eq!(context.vars(), &value);
-        assert_eq!(context.strategy(), &value);
-        assert_eq!(context.matrix(), &value);
-        assert_eq!(context.needs(), &value);
-        assert_eq!(context.inputs(), &value);
+    #[test]
+    fn with_root_replaces_a_value() {
+        let context = EvaluationContext::new()
+            .with_root("source", ContextValue::text("first"))
+            .with_root("source", ContextValue::text("second"));
+
+        assert_eq!(context.get("source"), Some(&ContextValue::text("second")));
     }
 }

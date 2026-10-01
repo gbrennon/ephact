@@ -1,6 +1,6 @@
+use super::expression_lexer::ExpressionLexer;
 use crate::{
     errors::ParseError,
-    services::ExpressionLexer,
     value_objects::{
         ComparisonOperator, Expression, ExpressionLiteral, ExpressionToken, LogicalOperator,
     },
@@ -351,8 +351,8 @@ mod tests {
 
     #[test]
     fn parse_variable() {
-        let expr = ExpressionParser::parse_text("github").unwrap();
-        assert_eq!(expr, Expression::Variable("github".into()));
+        let expr = ExpressionParser::parse_text("source").unwrap();
+        assert_eq!(expr, Expression::Variable("source".into()));
     }
 
     #[test]
@@ -363,11 +363,11 @@ mod tests {
 
     #[test]
     fn parse_property_access() {
-        let expr = ExpressionParser::parse_text("github.ref").unwrap();
+        let expr = ExpressionParser::parse_text("source.ref").unwrap();
         assert_eq!(
             expr,
             Expression::PropertyAccess(
-                Box::new(Expression::Variable("github".into())),
+                Box::new(Expression::Variable("source".into())),
                 "ref".into()
             )
         );
@@ -375,11 +375,11 @@ mod tests {
 
     #[test]
     fn parse_nested_property_access() {
-        let expr = ExpressionParser::parse_text("github.event_name").unwrap();
+        let expr = ExpressionParser::parse_text("source.event_name").unwrap();
         assert_eq!(
             expr,
             Expression::PropertyAccess(
-                Box::new(Expression::Variable("github".into())),
+                Box::new(Expression::Variable("source".into())),
                 "event_name".into()
             )
         );
@@ -675,7 +675,7 @@ mod tests {
     #[test]
     fn parse_complex_expression() {
         let expr =
-            ExpressionParser::parse_text("github.ref == 'refs/heads/main' && success()").unwrap();
+            ExpressionParser::parse_text("source.ref == 'refs/heads/main' && success()").unwrap();
         assert_eq!(
             expr,
             Expression::Logical(
@@ -683,7 +683,7 @@ mod tests {
                 Box::new(Expression::Comparison(
                     ComparisonOperator::Equal,
                     Box::new(Expression::PropertyAccess(
-                        Box::new(Expression::Variable("github".into())),
+                        Box::new(Expression::Variable("source".into())),
                         "ref".into()
                     )),
                     Box::new(Expression::Literal(ExpressionLiteral::String(

@@ -42,11 +42,11 @@ mod tests {
 
     #[test]
     fn display_fetch_failed_includes_details() {
-        let error = ActionError::FetchFailed("git clone exited with 128".into());
+        let error = ActionError::FetchFailed("source retrieval failed".into());
 
         assert_eq!(
             error.to_string(),
-            "failed to fetch action: git clone exited with 128"
+            "failed to fetch action: source retrieval failed"
         );
     }
 

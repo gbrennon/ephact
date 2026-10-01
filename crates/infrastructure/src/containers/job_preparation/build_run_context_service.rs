@@ -65,10 +65,10 @@ impl BuildRunContextPort for BuildRunContextService {
         ]);
 
         let context = EvaluationContext::new()
-            .with_secrets(secrets)
-            .with_inputs(ContextValue::Mapping(inputs))
-            .with_github(github)
-            .with_runner(self.runner_context());
+            .with_root("secrets", secrets)
+            .with_root("inputs", ContextValue::Mapping(inputs))
+            .with_root("github", github)
+            .with_root("runner", self.runner_context());
         BuildRunContextResponse::new(context)
     }
 }

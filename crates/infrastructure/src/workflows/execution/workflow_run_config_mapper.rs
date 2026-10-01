@@ -1,9 +1,9 @@
-use crate::value_objects::{
+use crate::domain::value_objects::{
     JobName, Secret, WorkflowEvent, WorkflowInput, WorkflowPath, WorkflowRunConfig,
 };
 
 #[derive(Default)]
-pub struct WorkflowRunConfigInput {
+pub struct WorkflowRunConfigMapper {
     workflow: Option<String>,
     job: Option<String>,
     event: Option<String>,
@@ -16,7 +16,7 @@ pub struct WorkflowRunConfigInput {
     allow_network: bool,
 }
 
-impl WorkflowRunConfigInput {
+impl WorkflowRunConfigMapper {
     pub fn with_workflow(mut self, workflow: Option<String>) -> Self {
         self.workflow = workflow;
         self
@@ -67,7 +67,7 @@ impl WorkflowRunConfigInput {
         self
     }
 
-    /// Consumes the input and builds its domain workflow configuration.
+    /// Consumes the mapper and builds the domain workflow configuration.
     pub fn into_config(self) -> WorkflowRunConfig {
         let mut config = WorkflowRunConfig::new();
 
@@ -101,8 +101,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn empty_input_builds_default_config() {
-        let config = WorkflowRunConfigInput::default().into_config();
+    fn into_config_builds_default_config() {
+        let config = WorkflowRunConfigMapper::default().into_config();
 
         assert!(config.workflow().is_none());
         assert!(config.job().is_none());
@@ -117,9 +117,9 @@ mod tests {
     }
 
     #[test]
-    fn fully_populated_input_builds_matching_config() {
-        let config = WorkflowRunConfigInput::default()
-            .with_workflow(Some(".github/workflows/ci.yml".into()))
+    fn into_config_builds_populated_config() {
+        let config = WorkflowRunConfigMapper::default()
+            .with_workflow(Some(".ci/workflows/ci.yml".into()))
             .with_job(Some("test".into()))
             .with_event(Some("push".into()))
             .with_inputs(vec![("environment".into(), "staging".into())])
@@ -131,10 +131,7 @@ mod tests {
             .with_allow_network(true)
             .into_config();
 
-        assert_eq!(
-            config.workflow().unwrap().as_str(),
-            ".github/workflows/ci.yml"
-        );
+        assert_eq!(config.workflow().unwrap().as_str(), ".ci/workflows/ci.yml");
         assert_eq!(config.job().unwrap().as_str(), "test");
         assert_eq!(config.event().unwrap().as_str(), "push");
         assert_eq!(config.inputs().len(), 1);

@@ -1,10 +1,10 @@
 use std::path::{Path, PathBuf};
 
-/// Primitive request for executing a parsed workflow.
+use crate::domain::value_objects::EvaluationContext;
 pub struct ExecuteWorkflowRequest {
     workflow_content: String,
     repo_path: PathBuf,
-    context: Vec<(String, String)>,
+    context: EvaluationContext,
     run_id: String,
     allow_repo_writes: bool,
     allow_network: bool,
@@ -16,7 +16,7 @@ impl ExecuteWorkflowRequest {
     pub fn new(
         workflow_content: String,
         repo_path: PathBuf,
-        context: Vec<(String, String)>,
+        context: EvaluationContext,
         run_id: String,
         allow_repo_writes: bool,
     ) -> Self {
@@ -57,8 +57,8 @@ impl ExecuteWorkflowRequest {
         &self.repo_path
     }
 
-    /// Returns named JSON-text context roots.
-    pub fn context(&self) -> &[(String, String)] {
+    /// Returns the workflow evaluation context.
+    pub fn context(&self) -> &EvaluationContext {
         &self.context
     }
 

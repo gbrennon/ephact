@@ -5,11 +5,7 @@ use ephact::{
         dtos::{requests::ExecuteWorkflowRequest, responses::WorkflowExecutionResponse},
         ports::inbound::execute_workflow_port::ExecuteWorkflowPort,
     },
-    domain::{
-        messages::events::DomainEvent,
-        services::evaluation_context_mapper::EvaluationContextMapper,
-        value_objects::EvaluationContext,
-    },
+    domain::{messages::events::DomainEvent, value_objects::EvaluationContext},
     infrastructure::workflows::execution::execute_workflow_service::ExecuteWorkflowService,
 };
 
@@ -43,7 +39,7 @@ fn execute_with_file_name(
         ExecuteWorkflowRequest::new(
             REQUESTED_CONTENT.to_string(),
             Path::new("/repo").to_path_buf(),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             "test-run".to_string(),
             false,
         )
@@ -106,7 +102,7 @@ fn execute_reports_the_source_filename_in_progress_events_and_summary() {
         ExecuteWorkflowRequest::new(
             REQUESTED_CONTENT.to_string(),
             Path::new("/repo").to_path_buf(),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             "test-run".to_string(),
             false,
         )

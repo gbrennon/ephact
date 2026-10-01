@@ -1,7 +1,4 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::Path};
 
 use ephact::{
     application::ports::outbound::WorkflowSourcePort,
@@ -9,7 +6,7 @@ use ephact::{
         entities::repository::Repository,
         value_objects::{RepoPath, RepositoryName},
     },
-    infrastructure::workflows::FilesystemWorkflowSource,
+    infrastructure::{repositories::RepositoryResolver, workflows::FilesystemWorkflowSource},
 };
 use tempfile::TempDir;
 
@@ -181,11 +178,11 @@ fn list_workflows_is_empty_when_the_workflow_directory_disappeared() {
 }
 
 #[test]
-fn repository_cannot_be_built_for_a_nonexistent_path() {
+fn repository_resolver_rejects_nonexistent_paths() {
     let tmp = git_repository_dir();
 
-    assert!(RepoPath::new(tmp.path().join("nonexistent")).is_err());
-    assert!(RepoPath::new(PathBuf::from("/nonexistent")).is_err());
+    assert!(RepositoryResolver::resolve_from_path(tmp.path().join("nonexistent")).is_err());
+    assert!(RepositoryResolver::resolve_from_path("/nonexistent").is_err());
 }
 
 #[test]

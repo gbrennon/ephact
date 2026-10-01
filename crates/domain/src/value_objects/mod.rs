@@ -3,11 +3,8 @@ pub mod action_execution_context;
 pub mod action_input;
 pub mod action_reference;
 pub mod action_runtime;
-pub mod builtin_function;
 pub mod cleanup_policy;
-pub mod comparison_operator;
 pub mod concurrency_group;
-pub mod container_credentials;
 pub mod container_engine;
 pub mod container_specification;
 pub mod context_value;
@@ -15,22 +12,13 @@ pub mod evaluation_context;
 pub mod execution_defaults;
 pub mod execution_plan;
 pub mod execution_stage;
-pub mod expression;
-pub mod expression_cursor;
-pub mod expression_literal;
-pub mod expression_token;
-pub mod git_dir_kind;
-pub mod identifier_token;
 pub mod interface_mode;
 pub mod job_matrix;
 pub mod job_name;
 pub mod job_strategy;
 pub mod json_text_reader;
-pub mod logical_operator;
 pub mod marker;
-pub mod number_literal;
 pub mod operation_mode;
-pub mod operator_token;
 pub mod output_preferences;
 pub mod permissions;
 pub mod project_description;
@@ -47,7 +35,6 @@ pub mod secret;
 pub mod shell_command;
 pub mod step_network_policy;
 pub mod step_type;
-pub mod string_literal;
 pub mod token_permissions;
 pub mod trigger_filter;
 pub mod trigger_input;
@@ -63,11 +50,8 @@ pub use self::{
     action_input::ActionInput,
     action_reference::ActionReference,
     action_runtime::ActionRuntime,
-    builtin_function::BuiltinFunction,
     cleanup_policy::CleanupPolicy,
-    comparison_operator::ComparisonOperator,
     concurrency_group::ConcurrencyGroup,
-    container_credentials::ContainerCredentials,
     container_engine::ContainerEngine,
     container_specification::ContainerSpecification,
     context_value::ContextValue,
@@ -75,21 +59,12 @@ pub use self::{
     execution_defaults::ExecutionDefaults,
     execution_plan::ExecutionPlan,
     execution_stage::ExecutionStage,
-    expression::Expression,
-    expression_cursor::ExpressionCursor,
-    expression_literal::ExpressionLiteral,
-    expression_token::ExpressionToken,
-    git_dir_kind::GitDirKind,
-    identifier_token::IdentifierToken,
     interface_mode::InterfaceMode,
     job_matrix::JobMatrix,
     job_name::JobName,
     job_strategy::JobStrategy,
-    logical_operator::LogicalOperator,
     marker::{Marker, MarkerKind, MarkerPreset},
-    number_literal::NumberLiteral,
     operation_mode::OperationMode,
-    operator_token::OperatorToken,
     output_preferences::OutputPreferences,
     permissions::Permissions,
     project_description::ProjectDescription,
@@ -103,9 +78,7 @@ pub use self::{
     run_step_defaults::RunStepDefaults,
     secret::Secret,
     shell_command::ShellCommand,
-    step_network_policy::StepNetworkPolicy,
     step_type::StepType,
-    string_literal::StringLiteral,
     token_permissions::TokenPermissions,
     trigger_filter::{RefPattern, TriggerFilter},
     trigger_input::TriggerInput,

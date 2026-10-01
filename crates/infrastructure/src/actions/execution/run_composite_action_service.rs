@@ -9,10 +9,10 @@ use crate::{
         ports::outbound::{
             composite_action_runner_port::CompositeActionRunnerPort, container_port::ContainerPort,
         },
+        services::StepInterpolator,
     },
     domain::{
         errors::StepError,
-        services::{StepInterpolator, evaluation_context_mapper::EvaluationContextMapper},
         value_objects::{ContextValue, EvaluationContext},
     },
     steps::run_composite_step_port::RunCompositeStepPort,
@@ -58,7 +58,7 @@ impl RunCompositeActionService {
                 .iter()
                 .map(|(name, value)| (name.clone(), ContextValue::text(value.clone()))),
         );
-        context.clone().with_inputs(input_values)
+        context.clone().with_root("inputs", input_values)
     }
 
     fn execute_steps(
@@ -123,9 +123,7 @@ impl CompositeActionRunnerPort for RunCompositeActionService {
         request: RunCompositeActionRequest<'_>,
         container: Arc<dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {
-        let base_context =
-            EvaluationContextMapper::from_parts(request.action_request().context().to_vec())
-                .map_err(|error| StepError::new(error.to_string()))?;
+        let base_context = request.action_request().context().clone();
         let context = Self::context_with_inputs(&base_context, request.inputs());
         let mut output = ActionOutput::new();
 

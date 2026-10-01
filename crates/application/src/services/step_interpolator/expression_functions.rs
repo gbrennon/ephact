@@ -167,7 +167,7 @@ impl ExpressionFunctions {
         Ok(ContextValue::Text(value.to_json_text()))
     }
 
-    pub fn from_json(&self, value: &ContextValue) -> Result<ContextValue, EvalError> {
+    pub fn parse_json(&self, value: &ContextValue) -> Result<ContextValue, EvalError> {
         let s = Self::expect_string(value, "fromJson", "value")?;
         ContextValue::from_json_text(s)
             .map_err(|error| EvalError::JsonError(format!("fromJson: {error}")))
@@ -206,7 +206,7 @@ impl ExpressionFunctions {
             BuiltinFunction::Format => self.format(&args[0], &args[1..]),
             BuiltinFunction::Join => self.join(&args[0], &args[1]),
             BuiltinFunction::ToJson => self.to_json(&args[0]),
-            BuiltinFunction::FromJson => self.from_json(&args[0]),
+            BuiltinFunction::FromJson => self.parse_json(&args[0]),
             BuiltinFunction::Success => self.success(),
             BuiltinFunction::Always => self.always(),
             BuiltinFunction::Cancelled => self.cancelled(),
@@ -585,14 +585,16 @@ mod tests {
             ("num".to_owned(), ContextValue::Integer(42)),
         ]);
         let json_str = f.to_json(&original).unwrap();
-        let parsed = f.from_json(&json_str).unwrap();
+        let parsed = f.parse_json(&json_str).unwrap();
         assert_eq!(original, parsed);
     }
 
     #[test]
-    fn from_json_invalid() {
+    fn parse_json() {
         let f = ExpressionFunctions::new();
-        let err = f.from_json(&ContextValue::text("not json")).unwrap_err();
+        let err = f
+            .parse_json(&ContextValue::Text("not json".into()))
+            .unwrap_err();
         assert!(matches!(err, EvalError::JsonError(_)));
     }
 

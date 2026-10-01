@@ -1,25 +1,27 @@
 use std::{collections::HashMap, path::PathBuf};
 
+use crate::domain::value_objects::EvaluationContext;
+
 pub struct RunActionExecutionInput {
     repo_path: PathBuf,
     env: HashMap<String, String>,
-    context: Vec<(String, String)>,
+    context: EvaluationContext,
 }
 
 impl RunActionExecutionInput {
     pub fn new(
         repo_path: impl Into<PathBuf>,
         env: HashMap<String, String>,
-        context: impl Into<Vec<(String, String)>>,
+        context: EvaluationContext,
     ) -> Self {
         Self {
             repo_path: repo_path.into(),
             env,
-            context: context.into(),
+            context,
         }
     }
 
-    pub fn into_parts(self) -> (PathBuf, HashMap<String, String>, Vec<(String, String)>) {
+    pub fn into_parts(self) -> (PathBuf, HashMap<String, String>, EvaluationContext) {
         (self.repo_path, self.env, self.context)
     }
 }

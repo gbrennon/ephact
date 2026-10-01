@@ -5,7 +5,7 @@ pub mod list_actions_service;
 pub mod list_workflows_service;
 pub mod run_action_service;
 pub mod show_project_branding_info_service;
-
+pub mod step_interpolator;
 pub use execute_action_service::ExecuteActionService;
 pub use execute_job_service::ExecuteJobService;
 pub use execute_step_service::ExecuteStepService;
@@ -13,3 +13,4 @@ pub use list_actions_service::ListActionsService;
 pub use list_workflows_service::ListWorkflowsService;
 pub use run_action_service::RunActionService;
 pub use show_project_branding_info_service::ShowProjectBrandingInfoService;
+pub use step_interpolator::StepInterpolator;

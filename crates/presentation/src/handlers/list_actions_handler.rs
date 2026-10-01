@@ -5,23 +5,18 @@ use crate::{
         dtos::{requests::ListActionsRequest, responses::ListActionsResponse},
         ports::inbound::list_actions_port::ListActionsPort,
     },
-    domain::{RepoPath, Repository, RepositoryName},
+    infrastructure::RepositoryResolver,
 };
 
 pub struct ListActionsHandler;
 
 impl ListActionsHandler {
     /// Lists the actions referenced by the workflows under `repository_path`.
-    ///
-    /// Converts the path into a [`Repository`], asks the port to list its
-    /// actions, and returns the raw response for the caller to render.
     pub fn handle(
         port: &dyn ListActionsPort,
         repository_path: PathBuf,
     ) -> Result<ListActionsResponse, Box<dyn std::error::Error>> {
-        let repo_path = RepoPath::new(repository_path)?;
-        let repo_name = RepositoryName::from_repo_path(&repo_path)?;
-        let repository = Repository::new(repo_path, repo_name);
+        let repository = RepositoryResolver::resolve_from_path(repository_path)?;
         let request = ListActionsRequest::new(
             repository.path().as_path().to_path_buf(),
             repository.name().as_str().to_string(),

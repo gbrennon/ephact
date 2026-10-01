@@ -12,7 +12,6 @@ use ephact::{
     domain::{
         entities::Step,
         errors::StepError,
-        services::evaluation_context_mapper::EvaluationContextMapper,
         value_objects::{ContextValue, EvaluationContext},
     },
     infrastructure::{steps::JsonStepTextCodec, workflows::actions::StepYaml},
@@ -59,7 +58,7 @@ fn execute_runs_a_run_step_through_the_shell_runner() {
     let executed = service
         .execute(ExecuteStepRequest::new(
             JsonStepTextCodec.encode(&step).unwrap(),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             Path::new("/repo"),
             HashMap::new(),
         ))
@@ -84,7 +83,7 @@ fn execute_publishes_an_action_command_for_a_uses_step() {
     let executed = service
         .execute(ExecuteStepRequest::new(
             JsonStepTextCodec.encode(&step).unwrap(),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             Path::new("/repo"),
             env.clone(),
         ))
@@ -109,7 +108,7 @@ fn execute_does_not_publish_an_action_command_for_a_run_step() {
     service
         .execute(ExecuteStepRequest::new(
             JsonStepTextCodec.encode(&step).unwrap(),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             Path::new("/repo"),
             HashMap::new(),
         ))
@@ -124,11 +123,11 @@ fn execute_resolves_expressions_before_running_the_step() {
     let service = service(shell.clone(), FakeCommandBus::new());
     let step = step_from("run: deploy ${{ inputs.mode }}\n");
     let inputs = ContextValue::mapping([("mode".to_string(), ContextValue::text("staging"))]);
-    let context = EvaluationContext::new().with_inputs(inputs);
+    let context = EvaluationContext::new().with_root("inputs", inputs);
     service
         .execute(ExecuteStepRequest::new(
             JsonStepTextCodec.encode(&step).unwrap(),
-            EvaluationContextMapper::to_parts(&context),
+            context,
             Path::new("/repo"),
             HashMap::new(),
         ))
@@ -147,7 +146,7 @@ fn execute_reports_an_interpolation_failure() {
     let error = service
         .execute(ExecuteStepRequest::new(
             JsonStepTextCodec.encode(&step).unwrap(),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             Path::new("/repo"),
             HashMap::new(),
         ))
@@ -176,7 +175,7 @@ fn execute_propagates_a_collaborator_error_unchanged() {
     let error = service
         .execute(ExecuteStepRequest::new(
             JsonStepTextCodec.encode(&step).unwrap(),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             Path::new("/repo"),
             HashMap::new(),
         ))

@@ -206,7 +206,7 @@ impl ExecuteJobService {
         let step_context = self
             .step_context_builder
             .build(BuildStepContextRequest::new(
-                request.context().to_vec(),
+                request.context().clone(),
                 state.step_env.clone(),
             ));
         self.announce_step_started(request, workflow, run, step);

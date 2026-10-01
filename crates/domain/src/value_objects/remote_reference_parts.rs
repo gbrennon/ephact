@@ -5,83 +5,76 @@ pub struct RemoteReferenceParts<'a> {
     host: String,
     owner: &'a str,
     repo: &'a str,
-    git_ref: String,
-    directory: Vec<&'a str>,
+    directory: Option<String>,
+    revision: String,
 }
 
 impl<'a> RemoteReferenceParts<'a> {
-    /// Parses a remote action reference into its component parts, filling any
-    /// omitted scheme, host, or git ref from `defaults`.
     pub fn parse(reference: &'a str, defaults: &RemoteReferenceDefaults) -> Option<Self> {
-        let (location, git_ref) = Self::split_git_ref(reference, defaults)?;
-        let (scheme, host, path) = Self::parse_scheme_host_path(location, defaults)?;
-        let (owner, repo, directory) = Self::parse_segments(path)?;
-
+        let (location, revision) = Self::split_revision(reference, defaults)?;
+        let (scheme, host, path) = Self::split_location(location, defaults);
+        let (owner, repo, directory) = Self::split_repository_path(path)?;
         Some(Self {
             scheme,
             host,
             owner,
             repo,
-            git_ref,
             directory,
+            revision,
         })
     }
 
-    /// Converts parsed reference parts into a remote action reference.
     pub fn into_remote(self) -> RemoteActionReference {
-        let Self {
-            scheme,
-            host,
-            owner,
-            repo,
-            git_ref,
-            directory,
-        } = self;
-        let directory = (!directory.is_empty()).then(|| directory.join("/"));
-        RemoteActionReference::new(scheme, host, owner.to_string(), repo.to_string(), git_ref)
-            .with_directory(directory)
+        RemoteActionReference::new(
+            self.scheme,
+            self.host,
+            self.owner.to_owned(),
+            self.repo.to_owned(),
+            self.revision,
+        )
+        .with_directory(self.directory)
     }
 
-    fn split_git_ref(
+    fn split_revision(
         reference: &'a str,
         defaults: &RemoteReferenceDefaults,
     ) -> Option<(&'a str, String)> {
-        match reference.rsplit_once('@') {
-            Some((location, git_ref)) if !location.is_empty() && !git_ref.is_empty() => {
-                Some((location, git_ref.to_string()))
+        match reference.split_once('@') {
+            Some((location, revision)) if !location.is_empty() && !revision.is_empty() => {
+                Some((location, revision.to_owned()))
             }
-            Some(_) => None,
-            None => Some((reference, defaults.git_ref().to_string())),
+            None => Some((reference, defaults.revision().to_owned())),
+            _ => None,
         }
     }
-
-    fn parse_scheme_host_path(
-        location: &'a str,
+    fn split_location<'b>(
+        location: &'b str,
         defaults: &RemoteReferenceDefaults,
-    ) -> Option<(String, String, &'a str)> {
-        match location.split_once("://") {
-            Some((scheme, remainder)) => {
-                let (host, path) = remainder.split_once('/')?;
-                (!scheme.is_empty() && !host.is_empty()).then_some((
-                    scheme.to_string(),
-                    host.to_string(),
-                    path,
-                ))
-            }
-            None => Some((
-                defaults.scheme().to_string(),
-                defaults.host().to_string(),
+    ) -> (String, String, &'b str) {
+        if let Some((scheme, rest)) = location.split_once("://") {
+            let (host, path) = rest.split_once('/').unwrap_or((rest, ""));
+            (scheme.to_owned(), host.to_owned(), path)
+        } else {
+            (
+                defaults.scheme().to_owned(),
+                defaults.host().to_owned(),
                 location,
-            )),
+            )
         }
     }
 
-    fn parse_segments(path: &'a str) -> Option<(&'a str, &'a str, Vec<&'a str>)> {
+    fn split_repository_path(path: &'a str) -> Option<(&'a str, &'a str, Option<String>)> {
         let mut segments = path.split('/').filter(|segment| !segment.is_empty());
         let owner = segments.next()?;
         let repo = segments.next()?;
-        let directory = segments.collect();
-
-        Some((owner, repo, directory))
+        if repo.is_empty() {
+            return None;
+        }
+        let directory = segments.collect::<Vec<_>>();
+        Some((
+            owner,
+            repo,
+            (!directory.is_empty()).then(|| directory.join("/")),
+        ))
     }
 }

@@ -173,7 +173,7 @@ fn execute_resolves_secrets_from_the_run_context() {
     );
     let runtime = FakeRuntime::new();
     let secrets = ContextValue::mapping([("TOKEN".to_string(), ContextValue::text("abc123"))]);
-    let context = EvaluationContext::new().with_secrets(secrets);
+    let context = EvaluationContext::new().with_root("secrets", secrets);
     let container = container(&runtime);
     let service =
         wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());

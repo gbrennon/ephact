@@ -2,7 +2,6 @@ pub mod action_definition_yaml;
 pub mod action_input_yaml;
 pub mod action_runtime_yaml;
 pub mod concurrency_group_yaml;
-pub mod container_credentials_yaml;
 pub mod container_specification_yaml;
 pub mod execution_defaults_yaml;
 pub mod job_matrix_yaml;
@@ -24,7 +23,6 @@ pub use self::{
     action_input_yaml::ActionInputYaml,
     action_runtime_yaml::ActionRuntimeYaml,
     concurrency_group_yaml::ConcurrencyGroupYaml,
-    container_credentials_yaml::ContainerCredentialsYaml,
     container_specification_yaml::ContainerSpecificationYaml,
     execution_defaults_yaml::ExecutionDefaultsYaml,
     job_matrix_yaml::JobMatrixYaml,

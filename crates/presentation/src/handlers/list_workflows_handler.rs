@@ -5,23 +5,17 @@ use crate::{
         dtos::{requests::ListWorkflowsRequest, responses::ListWorkflowsResponse},
         ports::inbound::list_workflows_port::ListWorkflowsPort,
     },
-    domain::{RepoPath, Repository, RepositoryName},
+    infrastructure::RepositoryResolver,
 };
 
 pub struct ListWorkflowsHandler;
 
 impl ListWorkflowsHandler {
-    /// Lists the workflows discovered under `repository_path`.
-    ///
-    /// Converts the path into a [`Repository`], asks the port to list its
-    /// workflows, and returns the raw response for the caller to render.
     pub fn handle(
         port: &dyn ListWorkflowsPort,
         repository_path: PathBuf,
     ) -> Result<ListWorkflowsResponse, Box<dyn std::error::Error>> {
-        let repo_path = RepoPath::new(repository_path)?;
-        let repo_name = RepositoryName::from_repo_path(&repo_path)?;
-        let repository = Repository::new(repo_path, repo_name);
+        let repository = RepositoryResolver::resolve_from_path(repository_path)?;
         let request = ListWorkflowsRequest::new(
             repository.path().as_path().to_path_buf(),
             repository.name().as_str().to_string(),
@@ -29,7 +23,6 @@ impl ListWorkflowsHandler {
         Ok(port.execute(request)?)
     }
 
-    /// Formats the workflow names as a newline-separated list.
     pub fn render(response: &ListWorkflowsResponse) -> String {
         response
             .workflows()
