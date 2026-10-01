@@ -3,8 +3,9 @@ use crate::{
     errors::ExecuteWorkflowError,
 };
 
-pub trait WorkflowCommandBusPort: Send + Sync {
-    fn dispatch(
+/// Handles a workflow command routed by the infrastructure command transport.
+pub trait WorkflowCommandHandlerPort: Send + Sync {
+    fn handle(
         &self,
         command: ExecuteWorkflowCommand,
     ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError>;

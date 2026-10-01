@@ -7,21 +7,21 @@ use crate::{
     ports::{
         inbound::RunActionPort,
         outbound::{
-            action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
-            step_text_codec_port::StepTextCodecPort,
+            action_command_publisher_port::ActionCommandPublisherPort,
+            container_port::ContainerPort, step_text_codec_port::StepTextCodecPort,
         },
     },
 };
 
 pub struct RunActionService {
-    command_bus: Box<dyn ActionCommandBusPort>,
+    command_bus: Box<dyn ActionCommandPublisherPort>,
     container: Arc<dyn ContainerPort>,
     step_codec: Arc<dyn StepTextCodecPort>,
 }
 
 impl RunActionService {
     pub fn new(
-        command_bus: Box<dyn ActionCommandBusPort>,
+        command_bus: Box<dyn ActionCommandPublisherPort>,
         container: Arc<dyn ContainerPort>,
         step_codec: Arc<dyn StepTextCodecPort>,
     ) -> Self {
@@ -48,6 +48,6 @@ impl RunActionPort for RunActionService {
             self.container.clone(),
         )
         .with_context(context);
-        self.command_bus.dispatch(cmd).map_err(RunActionError::Step)
+        self.command_bus.publish(cmd).map_err(RunActionError::Step)
     }
 }
