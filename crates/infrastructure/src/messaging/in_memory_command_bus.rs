@@ -1,5 +1,4 @@
 use crate::{
-    actions::ActionCommandHandler,
     application::{
         dtos::responses::{
             ExecuteActionResponse, ExecutedStepResponse, JobExecutionResponse,
@@ -7,9 +6,8 @@ use crate::{
         },
         errors::{ExecuteJobError, ExecuteWorkflowError},
         ports::outbound::{
-            action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
-            job_command_bus_port::JobCommandBusPort, step_command_bus_port::StepCommandBusPort,
-            workflow_command_bus_port::WorkflowCommandBusPort,
+            ActionCommandHandlerPort, JobCommandHandlerPort, StepCommandHandlerPort,
+            WorkflowCommandHandlerPort, container_port::ContainerPort,
         },
     },
     domain::{
@@ -18,27 +16,25 @@ use crate::{
             ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
         },
     },
-    jobs::JobCommandHandler,
-    steps::StepCommandHandler,
-    workflows::WorkflowCommandHandler,
 };
 
-/// In-memory implementation of the CommandBusPort.
-///
-/// Routes commands to their corresponding infrastructure command handlers.
+/// Infrastructure command transport that routes each command kind to the
+/// handler bound for it. The handlers implement the application's command
+/// handler ports, so the bus is a pure routing detail that no application code
+/// depends on.
 pub struct InMemoryCommandBus {
-    workflow_handler: Box<WorkflowCommandHandler>,
-    job_handler: Box<JobCommandHandler>,
-    step_handler: Box<StepCommandHandler>,
-    action_handler: Box<ActionCommandHandler>,
+    workflow_handler: Box<dyn WorkflowCommandHandlerPort>,
+    job_handler: Box<dyn JobCommandHandlerPort>,
+    step_handler: Box<dyn StepCommandHandlerPort>,
+    action_handler: Box<dyn ActionCommandHandlerPort>,
 }
 
 impl InMemoryCommandBus {
     pub fn new(
-        workflow_handler: Box<WorkflowCommandHandler>,
-        job_handler: Box<JobCommandHandler>,
-        step_handler: Box<StepCommandHandler>,
-        action_handler: Box<ActionCommandHandler>,
+        workflow_handler: Box<dyn WorkflowCommandHandlerPort>,
+        job_handler: Box<dyn JobCommandHandlerPort>,
+        step_handler: Box<dyn StepCommandHandlerPort>,
+        action_handler: Box<dyn ActionCommandHandlerPort>,
     ) -> Self {
         Self {
             workflow_handler,
@@ -47,41 +43,29 @@ impl InMemoryCommandBus {
             action_handler,
         }
     }
-}
 
-impl WorkflowCommandBusPort for InMemoryCommandBus {
-    fn dispatch(
+    pub fn handle_workflow(
         &self,
         command: ExecuteWorkflowCommand,
     ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
-        self.workflow_handler
-            .handle(command)
-            .map_err(|error| ExecuteWorkflowError::Workflow(error.to_string()))
+        self.workflow_handler.handle(command)
     }
-}
 
-impl JobCommandBusPort for InMemoryCommandBus {
-    fn dispatch(
+    pub fn handle_job(
         &self,
         command: ExecuteJobCommand,
     ) -> Result<JobExecutionResponse, ExecuteJobError> {
-        self.job_handler
-            .handle(command)
-            .map_err(|error| ExecuteJobError::Preparation(error.to_string()))
+        self.job_handler.handle(command)
     }
-}
 
-impl StepCommandBusPort for InMemoryCommandBus {
-    fn dispatch(
+    pub fn handle_step(
         &self,
         command: ExecuteStepCommand<dyn ContainerPort>,
     ) -> Result<ExecutedStepResponse, StepError> {
         self.step_handler.handle(command)
     }
-}
 
-impl ActionCommandBusPort for InMemoryCommandBus {
-    fn dispatch(
+    pub fn handle_action(
         &self,
         command: ExecuteActionCommand<dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {

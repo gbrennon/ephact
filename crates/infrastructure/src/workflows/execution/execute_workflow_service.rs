@@ -10,7 +10,8 @@ use crate::{
         ports::{
             inbound::execute_workflow_port::ExecuteWorkflowPort,
             outbound::{
-                domain_event_bus_port::DomainEventBusPort, job_command_bus_port::JobCommandBusPort,
+                domain_event_publisher_port::DomainEventPublisherPort,
+                job_command_publisher_port::JobCommandPublisherPort,
                 workflow_loader_port::WorkflowLoaderPort,
             },
         },
@@ -31,11 +32,11 @@ use crate::{
 /// stages, and publishes one [`ExecuteJobCommand`] per planned run. The job
 /// command handler is what turns each command into an execution, so this
 /// service never depends on the job entrypoint itself. Progress facts are
-/// announced as domain events on the outbound [`DomainEventBusPort`].
+/// announced as domain events on the outbound [`DomainEventPublisherPort`].
 pub struct ExecuteWorkflowService {
     workflow_loader: Box<dyn WorkflowLoaderPort>,
-    command_bus: Box<dyn JobCommandBusPort>,
-    event_bus: Box<dyn DomainEventBusPort>,
+    command_bus: Box<dyn JobCommandPublisherPort>,
+    event_bus: Box<dyn DomainEventPublisherPort>,
 }
 
 struct JobExecutionInput<'a> {
@@ -70,8 +71,8 @@ impl<'a> JobExecutionInput<'a> {
 impl ExecuteWorkflowService {
     pub fn new(
         workflow_loader: Box<dyn WorkflowLoaderPort>,
-        command_bus: Box<dyn JobCommandBusPort>,
-        event_bus: Box<dyn DomainEventBusPort>,
+        command_bus: Box<dyn JobCommandPublisherPort>,
+        event_bus: Box<dyn DomainEventPublisherPort>,
     ) -> Self {
         Self {
             workflow_loader,
@@ -151,7 +152,7 @@ impl ExecuteWorkflowService {
             .or(input.workflow.file())
             .unwrap_or("unnamed");
         self.announce_job_started(workflow_name, input.run);
-        let execution = self.command_bus.dispatch(
+        let execution = self.command_bus.publish(
             ExecuteJobCommand::new(
                 input.run.job().clone(),
                 input.run.job_id().to_string(),

@@ -2,7 +2,7 @@ use crate::{
     application::{
         dtos::{requests::RunShellStepRequest, responses::ExecResultResponse},
         ports::outbound::{
-            container_port::ExecOptions, domain_event_bus_port::DomainEventBusPort,
+            container_port::ExecOptions, domain_event_publisher_port::DomainEventPublisherPort,
             shell_step_runner_port::ShellStepRunnerPort,
         },
     },
@@ -17,11 +17,11 @@ use crate::{
 /// relaying the step's output as [`DomainEvent::StepOutput`] events while it
 /// runs.
 pub struct RunShellStepService {
-    event_bus: Box<dyn DomainEventBusPort>,
+    event_bus: Box<dyn DomainEventPublisherPort>,
 }
 
 impl RunShellStepService {
-    pub fn new(event_bus: Box<dyn DomainEventBusPort>) -> Self {
+    pub fn new(event_bus: Box<dyn DomainEventPublisherPort>) -> Self {
         Self { event_bus }
     }
 

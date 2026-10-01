@@ -1,17 +1,14 @@
 use std::sync::{Arc, Mutex};
 
 use ephact::{
-    application::ports::outbound::ContainerRuntimePort,
+    application::ports::outbound::{ContainerRuntimePort, DomainEventHandlerPort},
     domain::{
         errors::ContainerError,
         messages::events::{
             ContainerStartedPayload, DomainEvent, RunFailedPayload, WorkflowRunCompletedPayload,
         },
     },
-    infrastructure::{
-        containers::container_cleanup_handler::ContainerCleanupHandler,
-        messaging::domain_event_handler::DomainEventHandler,
-    },
+    infrastructure::containers::container_cleanup_handler::ContainerCleanupHandler,
 };
 
 /// Test that verifies container cleanup handler attempts to remove containers

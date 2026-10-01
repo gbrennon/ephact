@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use ephact::{
-    application::ports::outbound::domain_event_bus_port::DomainEventBusPort,
+    application::ports::outbound::domain_event_publisher_port::DomainEventPublisherPort,
     domain::messages::events::DomainEvent,
 };
 use parking_lot::Mutex;
@@ -23,7 +23,7 @@ impl FakeEventBus {
     }
 }
 
-impl DomainEventBusPort for FakeEventBus {
+impl DomainEventPublisherPort for FakeEventBus {
     fn publish(&self, event: DomainEvent) {
         self.published_events.lock().push(event);
     }
