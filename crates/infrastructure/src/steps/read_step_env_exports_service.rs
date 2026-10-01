@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
-use super::{
-    super::containers::workspace::RUNNER_ENV_FILE,
-    read_step_env_exports_port::ReadStepEnvExportsPort,
+use super::super::containers::workspace::RUNNER_ENV_FILE;
+use crate::application::{
+    dtos::requests::ReadStepEnvExportsRequest, ports::outbound::ReadStepEnvExportsPort,
 };
-use crate::application::dtos::requests::ReadStepEnvExportsRequest;
 
 /// Service that reads the environment variables a step exported through
 /// `GITHUB_ENV`.
@@ -26,7 +25,7 @@ impl Default for ReadStepEnvExportsService {
 }
 
 impl ReadStepEnvExportsPort for ReadStepEnvExportsService {
-    fn execute(
+    fn read(
         &self,
         _request: ReadStepEnvExportsRequest,
         container: &dyn crate::application::ports::outbound::container_port::ContainerPort,

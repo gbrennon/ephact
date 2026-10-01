@@ -1,8 +1,7 @@
 use std::path::PathBuf;
 
-use ephact::{
-    application::dtos::requests::ResolveNamedWorkflowFileRequest,
-    infrastructure::workflows::resolve_named_workflow_file_port::ResolveNamedWorkflowFilePort,
+use ephact::application::{
+    dtos::requests::ResolveNamedWorkflowFileRequest, ports::outbound::ResolveNamedWorkflowFilePort,
 };
 use parking_lot::Mutex;
 
@@ -29,7 +28,7 @@ impl FakeResolveNamedWorkflowFilePort {
 }
 
 impl ResolveNamedWorkflowFilePort for FakeResolveNamedWorkflowFilePort {
-    fn execute(
+    fn resolve(
         &self,
         request: ResolveNamedWorkflowFileRequest,
     ) -> Result<PathBuf, Box<dyn std::error::Error>> {

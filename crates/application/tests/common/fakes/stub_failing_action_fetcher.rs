@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use ephact::{
+    application::ports::outbound::ActionFetcherPort,
     domain::{errors::ActionError, value_objects::RemoteActionReference},
-    infrastructure::actions::ActionFetcherPort,
 };
 
 #[derive(Clone)]

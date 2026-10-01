@@ -1,9 +1,5 @@
 use std::{process, time::SystemTime};
 
-use super::{
-    copy_repository_to_container_port::CopyRepositoryToContainerPort,
-    create_job_container_port::CreateJobContainerPort, pull_job_image_port::PullJobImagePort,
-};
 use crate::application::{
     dtos::{
         requests::{
@@ -13,7 +9,10 @@ use crate::application::{
         responses::PreparedJobContainerResponse,
     },
     errors::PrepareJobContainerError,
-    ports::outbound::job_container_preparer_port::JobContainerPreparerPort,
+    ports::outbound::{
+        CopyRepositoryToContainerPort, CreateJobContainerPort, JobContainerPreparerPort,
+        PullJobImagePort,
+    },
 };
 
 pub struct PrepareJobContainerService {
@@ -43,7 +42,7 @@ impl JobContainerPreparerPort for PrepareJobContainerService {
     ) -> Result<PreparedJobContainerResponse, PrepareJobContainerError> {
         let image = self
             .image_puller
-            .execute(PullJobImageRequest::new(
+            .pull(PullJobImageRequest::new(
                 request.runs_on().map(str::to_string),
             ))
             .map_err(|error| PrepareJobContainerError::Image(error.to_string()))?;
@@ -60,7 +59,7 @@ impl JobContainerPreparerPort for PrepareJobContainerService {
         let legacy_container_name = format!("ephact-{}", request.job_id());
         let container = self
             .container_creator
-            .execute(CreateJobContainerRequest::new(
+            .create(CreateJobContainerRequest::new(
                 image.clone(),
                 container_name.clone(),
                 legacy_container_name,
@@ -71,7 +70,7 @@ impl JobContainerPreparerPort for PrepareJobContainerService {
 
         if !request.allow_repo_writes() {
             self.repository_copier
-                .execute(
+                .copy(
                     CopyRepositoryToContainerRequest::new(
                         request.repo_path().to_path_buf(),
                         "/workspace".to_string(),

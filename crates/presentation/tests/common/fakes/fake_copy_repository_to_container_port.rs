@@ -1,9 +1,7 @@
-use ephact::{
-    application::{
-        dtos::requests::CopyRepositoryToContainerRequest, errors::CopyRepositoryToContainerError,
-        ports::outbound::container_port::ContainerPort,
-    },
-    infrastructure::containers::CopyRepositoryToContainerPort,
+use ephact::application::{
+    dtos::requests::CopyRepositoryToContainerRequest,
+    errors::CopyRepositoryToContainerError,
+    ports::outbound::{CopyRepositoryToContainerPort, container_port::ContainerPort},
 };
 use parking_lot::Mutex;
 
@@ -31,7 +29,7 @@ impl FakeCopyRepositoryToContainerPort {
 }
 
 impl CopyRepositoryToContainerPort for FakeCopyRepositoryToContainerPort {
-    fn execute(
+    fn copy(
         &self,
         request: CopyRepositoryToContainerRequest,
         _container: &dyn ContainerPort,

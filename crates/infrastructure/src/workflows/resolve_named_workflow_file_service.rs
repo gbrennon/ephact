@@ -1,10 +1,9 @@
 use std::{error::Error, path::PathBuf};
 
-use super::{
-    resolve_named_workflow_file_port::ResolveNamedWorkflowFilePort,
-    workflow_directories::WORKFLOW_DIRECTORIES,
+use super::workflow_directories::WORKFLOW_DIRECTORIES;
+use crate::application::{
+    dtos::requests::ResolveNamedWorkflowFileRequest, ports::outbound::ResolveNamedWorkflowFilePort,
 };
-use crate::application::dtos::requests::ResolveNamedWorkflowFileRequest;
 
 /// Service that resolves the file of a workflow the caller named.
 ///
@@ -25,7 +24,7 @@ impl Default for ResolveNamedWorkflowFileService {
 }
 
 impl ResolveNamedWorkflowFilePort for ResolveNamedWorkflowFileService {
-    fn execute(&self, request: ResolveNamedWorkflowFileRequest) -> Result<PathBuf, Box<dyn Error>> {
+    fn resolve(&self, request: ResolveNamedWorkflowFileRequest) -> Result<PathBuf, Box<dyn Error>> {
         let direct = request.repo_path().join(request.workflow_name());
         if direct.exists() {
             return Ok(direct);

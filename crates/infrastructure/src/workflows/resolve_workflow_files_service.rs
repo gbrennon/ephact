@@ -1,17 +1,17 @@
 use std::error::Error;
 
-use super::{
-    detect_workflow_file_port::DetectWorkflowFilePort,
-    list_all_workflow_files_port::ListAllWorkflowFilesPort,
-    resolve_named_workflow_file_port::ResolveNamedWorkflowFilePort,
-    resolve_workflow_files_port::ResolveWorkflowFilesPort,
-};
-use crate::application::dtos::{
-    requests::{
-        DetectWorkflowFileRequest, ListAllWorkflowFilesRequest, ResolveNamedWorkflowFileRequest,
-        ResolveWorkflowFilesRequest,
+use crate::application::{
+    dtos::{
+        requests::{
+            DetectWorkflowFileRequest, ListAllWorkflowFilesRequest,
+            ResolveNamedWorkflowFileRequest, ResolveWorkflowFilesRequest,
+        },
+        responses::ResolveWorkflowFilesResponse,
     },
-    responses::ResolveWorkflowFilesResponse,
+    ports::outbound::{
+        DetectWorkflowFilePort, ListAllWorkflowFilesPort, ResolveNamedWorkflowFilePort,
+        ResolveWorkflowFilesPort,
+    },
 };
 
 /// Service that decides which workflow files a run executes: every workflow of
@@ -41,7 +41,7 @@ impl ResolveWorkflowFilesService {
     ) -> Result<Vec<std::path::PathBuf>, Box<dyn Error>> {
         let response = self
             .all_lister
-            .execute(ListAllWorkflowFilesRequest::new(repo_path.to_path_buf()))?;
+            .list(ListAllWorkflowFilesRequest::new(repo_path.to_path_buf()))?;
         Ok(response.workflow_files().to_vec().to_vec())
     }
 
@@ -52,7 +52,7 @@ impl ResolveWorkflowFilesService {
     ) -> Result<Vec<std::path::PathBuf>, Box<dyn Error>> {
         let file = self
             .named_resolver
-            .execute(ResolveNamedWorkflowFileRequest::new(
+            .resolve(ResolveNamedWorkflowFileRequest::new(
                 workflow.to_string(),
                 repo_path.to_path_buf(),
             ))?;
@@ -65,7 +65,7 @@ impl ResolveWorkflowFilesService {
     ) -> Result<Vec<std::path::PathBuf>, Box<dyn Error>> {
         let file = self
             .detector
-            .execute(DetectWorkflowFileRequest::new(repo_path.to_path_buf()))?;
+            .detect(DetectWorkflowFileRequest::new(repo_path.to_path_buf()))?;
         Ok(vec![file])
     }
 
@@ -85,7 +85,7 @@ impl ResolveWorkflowFilesService {
 }
 
 impl ResolveWorkflowFilesPort for ResolveWorkflowFilesService {
-    fn execute(
+    fn resolve(
         &self,
         request: ResolveWorkflowFilesRequest,
     ) -> Result<ResolveWorkflowFilesResponse, Box<dyn Error>> {

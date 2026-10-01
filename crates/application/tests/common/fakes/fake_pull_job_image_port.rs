@@ -1,6 +1,4 @@
-use ephact::{
-    application::dtos::requests::PullJobImageRequest, infrastructure::containers::PullJobImagePort,
-};
+use ephact::application::{dtos::requests::PullJobImageRequest, ports::outbound::PullJobImagePort};
 use parking_lot::Mutex;
 
 /// Returns a prepared image, recording the runner labels it was asked about.
@@ -26,7 +24,7 @@ impl FakePullJobImagePort {
 }
 
 impl PullJobImagePort for FakePullJobImagePort {
-    fn execute(&self, request: PullJobImageRequest) -> Result<String, Box<dyn std::error::Error>> {
+    fn pull(&self, request: PullJobImageRequest) -> Result<String, Box<dyn std::error::Error>> {
         self.requested_labels
             .lock()
             .push(request.runs_on().map(str::to_string));

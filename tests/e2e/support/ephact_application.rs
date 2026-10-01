@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use ephact::{
-    application::ports::outbound::{ContainerRuntimePort, WorkflowSourcePort},
+    application::ports::outbound::{ActionFetcherPort, ContainerRuntimePort, WorkflowSourcePort},
     infrastructure::{
-        actions::{ActionFetcherPort, GitActionFetcher},
+        actions::GitActionFetcher,
         di::{Container, container::ContainerCollaborators},
         images::PlatformImageMapper,
         persistence::CargoProjectBrandingStore,

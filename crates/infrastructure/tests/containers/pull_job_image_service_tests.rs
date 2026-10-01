@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use ephact::{
-    application::dtos::requests::PullJobImageRequest,
-    infrastructure::containers::{PullJobImagePort, PullJobImageService},
+    application::{dtos::requests::PullJobImageRequest, ports::outbound::PullJobImagePort},
+    infrastructure::containers::PullJobImageService,
 };
 
 use crate::common::fakes::{
@@ -17,7 +17,7 @@ fn execute_pulls_and_returns_the_mapped_image() {
     let service = PullJobImageService::new(runtime.clone(), Arc::new(FakeImageMapper));
 
     let image = service
-        .execute(PullJobImageRequest::new(Some("ubuntu-22.04".to_string())))
+        .pull(PullJobImageRequest::new(Some("ubuntu-22.04".to_string())))
         .unwrap();
 
     assert_eq!(image, "ubuntu-22.04");
@@ -29,7 +29,7 @@ fn execute_maps_ubuntu_latest_when_the_job_declares_no_runner() {
     let runtime = Arc::new(FakeRuntime::new());
     let service = PullJobImageService::new(runtime.clone(), Arc::new(FakeImageMapper));
 
-    let image = service.execute(PullJobImageRequest::new(None)).unwrap();
+    let image = service.pull(PullJobImageRequest::new(None)).unwrap();
 
     assert_eq!(image, "ubuntu-latest");
     assert_eq!(runtime.pulled_images.lock().clone(), vec!["ubuntu-latest"]);
@@ -42,7 +42,7 @@ fn execute_falls_back_to_the_mappers_default_image_when_the_first_pull_fails() {
     ]));
     let service = PullJobImageService::new(runtime.clone(), Arc::new(FakeImageMapper));
 
-    let image = service.execute(PullJobImageRequest::new(None)).unwrap();
+    let image = service.pull(PullJobImageRequest::new(None)).unwrap();
 
     assert_eq!(image, "fake-image:latest");
     assert_eq!(
@@ -58,7 +58,7 @@ fn execute_errors_when_both_pulls_fail() {
         Arc::new(FakeImageMapper),
     );
 
-    let result = service.execute(PullJobImageRequest::new(None));
+    let result = service.pull(PullJobImageRequest::new(None));
 
     assert!(result.is_err());
 }

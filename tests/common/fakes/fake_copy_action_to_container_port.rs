@@ -1,8 +1,10 @@
 use std::{path::PathBuf, sync::Arc};
 
 use ephact::{
-    application::dtos::requests::CopyActionToContainerRequest, domain::errors::StepError,
-    infrastructure::actions::preparation::copy_action_to_container_port::CopyActionToContainerPort,
+    application::{
+        dtos::requests::CopyActionToContainerRequest, ports::outbound::CopyActionToContainerPort,
+    },
+    domain::errors::StepError,
 };
 use parking_lot::Mutex;
 
@@ -34,7 +36,7 @@ impl FakeCopyActionToContainerPort {
 }
 
 impl CopyActionToContainerPort for FakeCopyActionToContainerPort {
-    fn execute(&self, request: CopyActionToContainerRequest) -> Result<String, StepError> {
+    fn copy(&self, request: CopyActionToContainerRequest) -> Result<String, StepError> {
         self.copied.lock().push(request.action_dir().to_path_buf());
         self.result.clone().map_err(StepError::new)
     }

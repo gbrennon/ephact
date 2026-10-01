@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
 use crate::{
-    actions::{ActionCommandHandler, ActionFetcherPort},
+    actions::ActionCommandHandler,
     application::{
         ports::outbound::{
-            ContainerRuntimePort, action_command_bus_port::ActionCommandBusPort,
+            ActionFetcherPort, ContainerRuntimePort, ImageMapperPort,
+            action_command_bus_port::ActionCommandBusPort,
             domain_event_bus_port::DomainEventBusPort, job_command_bus_port::JobCommandBusPort,
             step_command_bus_port::StepCommandBusPort, step_text_codec_port::StepTextCodecPort,
         },
@@ -18,7 +19,6 @@ use crate::{
         RepositoryContainerCopyAdapter,
     },
     di::action_execution_wiring::ActionExecutionWiring,
-    images::ImageMapperPort,
     jobs::{JobCommandHandler, RunnerEnvironmentAdapter},
     messaging::{DeferredCommandBus, InMemoryCommandBus, SharedCommandBus, SharedEventBus},
     steps::{

@@ -1,4 +1,4 @@
-use ephact::infrastructure::images::ImageMapperPort;
+use ephact_application::ports::outbound::ImageMapperPort;
 
 /// Image every runner label maps to during an end-to-end scenario.
 pub const RUNNER_IMAGE: &str = "e2e-runner:latest";

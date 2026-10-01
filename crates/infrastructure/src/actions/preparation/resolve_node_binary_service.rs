@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use super::resolve_node_binary_port::ResolveNodeBinaryPort;
-use crate::application::dtos::requests::ResolveNodeBinaryRequest;
+use crate::application::{
+    dtos::requests::ResolveNodeBinaryRequest, ports::outbound::ResolveNodeBinaryPort,
+};
 
 /// Interpreter used for JavaScript actions when the container exposes no
 /// absolute path for it.
@@ -28,7 +29,7 @@ impl Default for ResolveNodeBinaryService {
 }
 
 impl ResolveNodeBinaryPort for ResolveNodeBinaryService {
-    fn execute(&self, request: ResolveNodeBinaryRequest) -> String {
+    fn resolve(&self, request: ResolveNodeBinaryRequest) -> String {
         request
             .container()
             .exec(

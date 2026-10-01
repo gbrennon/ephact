@@ -6,9 +6,8 @@ use std::{
     },
 };
 
-use ephact::{
-    application::dtos::requests::ReadStepEnvExportsRequest,
-    infrastructure::steps::read_step_env_exports_port::ReadStepEnvExportsPort,
+use ephact::application::{
+    dtos::requests::ReadStepEnvExportsRequest, ports::outbound::ReadStepEnvExportsPort,
 };
 
 /// Returns prepared environment exports, recording that it was consulted.
@@ -32,7 +31,7 @@ impl FakeReadStepEnvExportsPort {
 }
 
 impl ReadStepEnvExportsPort for FakeReadStepEnvExportsPort {
-    fn execute(
+    fn read(
         &self,
         _request: ReadStepEnvExportsRequest,
         _container: &dyn ephact::application::ports::outbound::ContainerPort,

@@ -1,6 +1,9 @@
-use super::build_action_input_environment_port::BuildActionInputEnvironmentPort;
-use crate::application::dtos::{
-    requests::BuildActionInputEnvironmentRequest, responses::BuildActionInputEnvironmentResponse,
+use crate::application::{
+    dtos::{
+        requests::BuildActionInputEnvironmentRequest,
+        responses::BuildActionInputEnvironmentResponse,
+    },
+    ports::outbound::BuildActionInputEnvironmentPort,
 };
 
 /// Infrastructure adapter that prepares an action's execution environment
@@ -26,7 +29,7 @@ impl Default for GitHubActionInputEnvironmentAdapter {
 }
 
 impl BuildActionInputEnvironmentPort for GitHubActionInputEnvironmentAdapter {
-    fn execute(
+    fn build(
         &self,
         request: BuildActionInputEnvironmentRequest,
     ) -> BuildActionInputEnvironmentResponse {

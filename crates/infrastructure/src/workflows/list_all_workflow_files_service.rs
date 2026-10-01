@@ -1,13 +1,12 @@
 use std::error::Error;
 
-use super::{
-    list_all_workflow_files_port::ListAllWorkflowFilesPort,
-    list_workflow_directory_port::ListWorkflowDirectoryPort,
-    workflow_directories::{WORKFLOW_DIRECTORIES, supported_workflows_display},
-};
-use crate::application::dtos::{
-    requests::{ListAllWorkflowFilesRequest, ListWorkflowDirectoryRequest},
-    responses::ListAllWorkflowFilesResponse,
+use super::workflow_directories::{WORKFLOW_DIRECTORIES, supported_workflows_display};
+use crate::application::{
+    dtos::{
+        requests::{ListAllWorkflowFilesRequest, ListWorkflowDirectoryRequest},
+        responses::ListAllWorkflowFilesResponse,
+    },
+    ports::outbound::{ListAllWorkflowFilesPort, ListWorkflowDirectoryPort},
 };
 
 /// Service that lists every workflow file of a repository, `.forgejo` first.
@@ -35,7 +34,7 @@ impl ListAllWorkflowFilesService {
 }
 
 impl ListAllWorkflowFilesPort for ListAllWorkflowFilesService {
-    fn execute(
+    fn list(
         &self,
         request: ListAllWorkflowFilesRequest,
     ) -> Result<ListAllWorkflowFilesResponse, Box<dyn Error>> {
@@ -48,7 +47,7 @@ impl ListAllWorkflowFilesPort for ListAllWorkflowFilesService {
             })
             .map(|workflows_dir| {
                 self.directory_lister
-                    .execute(ListWorkflowDirectoryRequest::new(workflows_dir))
+                    .list(ListWorkflowDirectoryRequest::new(workflows_dir))
             })
             .collect::<Result<Vec<_>, _>>()
             .map(|responses| {

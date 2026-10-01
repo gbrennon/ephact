@@ -1,10 +1,8 @@
 use std::{error::Error, sync::Arc};
 
-use ephact::{
-    application::{
-        dtos::requests::CreateJobContainerRequest, ports::outbound::container_port::ContainerPort,
-    },
-    infrastructure::containers::CreateJobContainerPort,
+use ephact::application::{
+    dtos::requests::CreateJobContainerRequest,
+    ports::outbound::{CreateJobContainerPort, container_port::ContainerPort},
 };
 use parking_lot::Mutex;
 
@@ -40,7 +38,7 @@ impl FakeCreateJobContainerPort {
 }
 
 impl CreateJobContainerPort for FakeCreateJobContainerPort {
-    fn execute(
+    fn create(
         &self,
         request: CreateJobContainerRequest,
     ) -> Result<Box<dyn ContainerPort>, Box<dyn Error>> {

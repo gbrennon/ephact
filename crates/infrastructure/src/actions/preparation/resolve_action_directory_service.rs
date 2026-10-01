@@ -1,11 +1,12 @@
 use crate::{
-    actions::acquisition::FetchRemoteActionPort,
     application::{
         dtos::{
             requests::{FetchRemoteActionRequest, ResolveActionDirectoryRequest},
             responses::{ExecuteActionResponse, ResolvedActionDirectoryResponse},
         },
-        ports::outbound::action_directory_resolver_port::ActionDirectoryResolverPort,
+        ports::outbound::{
+            FetchRemoteActionPort, action_directory_resolver_port::ActionDirectoryResolverPort,
+        },
     },
     containers::workspace::CONTAINER_WORKSPACE,
     domain::{
@@ -72,7 +73,7 @@ impl ActionDirectoryResolverPort for ResolveActionDirectoryService {
             ),
             ActionReference::Remote(remote) => Ok(ResolvedActionDirectoryResponse::Directory(
                 self.remote_fetcher
-                    .execute(FetchRemoteActionRequest::new(remote.clone()))
+                    .fetch(FetchRemoteActionRequest::new(remote.clone()))
                     .map_err(|error| StepError::new(error.to_string()))?,
             )),
         }

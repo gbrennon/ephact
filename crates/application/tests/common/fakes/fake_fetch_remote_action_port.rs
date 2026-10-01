@@ -1,9 +1,10 @@
 use std::{path::PathBuf, sync::Arc};
 
 use ephact::{
-    application::dtos::requests::FetchRemoteActionRequest,
+    application::{
+        dtos::requests::FetchRemoteActionRequest, ports::outbound::FetchRemoteActionPort,
+    },
     domain::{errors::ActionError, value_objects::RemoteActionReference},
-    infrastructure::actions::acquisition::fetch_remote_action_port::FetchRemoteActionPort,
 };
 use parking_lot::Mutex;
 
@@ -35,7 +36,7 @@ impl FakeFetchRemoteActionPort {
 }
 
 impl FetchRemoteActionPort for FakeFetchRemoteActionPort {
-    fn execute(&self, request: FetchRemoteActionRequest) -> Result<PathBuf, ActionError> {
+    fn fetch(&self, request: FetchRemoteActionRequest) -> Result<PathBuf, ActionError> {
         self.fetched.lock().push(request.reference().clone());
         self.result.clone().map_err(ActionError::FetchFailed)
     }

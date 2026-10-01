@@ -1,16 +1,13 @@
 use std::sync::Arc;
 
 use crate::{
-    application::{
-        dtos::{requests::RunCompositeStepRequest, responses::ExecResultResponse},
-        ports::outbound::container_port::ContainerPort,
-    },
     domain::errors::StepError,
+    dtos::{requests::RunCompositeStepRequest, responses::ExecResultResponse},
+    ports::outbound::ContainerPort,
 };
 
-/// Inbound port for running one step of a composite action.
 pub trait RunCompositeStepPort: Send + Sync {
-    fn execute(
+    fn run(
         &self,
         request: RunCompositeStepRequest<'_>,
         container: Arc<dyn ContainerPort>,

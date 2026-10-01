@@ -1,8 +1,9 @@
 use std::{path::PathBuf, sync::Arc};
 
 use ephact::{
+    application::ports::outbound::ActionFetcherPort,
     domain::{errors::ActionError, value_objects::RemoteActionReference},
-    infrastructure::actions::ActionFetcherPort,
+
 };
 use parking_lot::Mutex;
 

@@ -1,11 +1,9 @@
-use crate::application::dtos::{
+use crate::dtos::{
     requests::ListWorkflowDirectoryRequest, responses::ListWorkflowDirectoryResponse,
 };
 
-/// Inbound port for listing the workflow files held directly by one directory.
 pub trait ListWorkflowDirectoryPort: Send + Sync {
-    /// Lists the `.yml`/`.yaml` files of the requested directory, sorted by path.
-    fn execute(
+    fn list(
         &self,
         request: ListWorkflowDirectoryRequest,
     ) -> Result<ListWorkflowDirectoryResponse, Box<dyn std::error::Error>>;
