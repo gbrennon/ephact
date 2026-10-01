@@ -20,8 +20,8 @@ use ephact::{
     },
     domain::{entities::Step, errors::StepError, value_objects::EvaluationContext},
     infrastructure::{
-        actions::run_composite_action_service::RunCompositeActionService, steps::JsonStepTextCodec,
-        workflows::actions::StepYaml,
+        actions::execution::run_composite_action_service::RunCompositeActionService,
+        steps::JsonStepTextCodec, workflows::actions::StepYaml,
     },
 };
 

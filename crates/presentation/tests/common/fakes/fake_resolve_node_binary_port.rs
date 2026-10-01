@@ -1,6 +1,6 @@
 use ephact::{
     application::dtos::requests::ResolveNodeBinaryRequest,
-    infrastructure::actions::resolve_node_binary_port::ResolveNodeBinaryPort,
+    infrastructure::actions::preparation::resolve_node_binary_port::ResolveNodeBinaryPort,
 };
 
 /// Reports a prepared node interpreter.

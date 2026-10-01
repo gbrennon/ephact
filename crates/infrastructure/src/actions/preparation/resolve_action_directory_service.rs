@@ -1,5 +1,5 @@
 use crate::{
-    actions::fetch_remote_action_port::FetchRemoteActionPort,
+    actions::acquisition::FetchRemoteActionPort,
     application::{
         dtos::{
             requests::{FetchRemoteActionRequest, ResolveActionDirectoryRequest},

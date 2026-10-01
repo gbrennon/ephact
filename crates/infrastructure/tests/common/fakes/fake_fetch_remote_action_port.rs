@@ -3,7 +3,7 @@ use std::{path::PathBuf, sync::Arc};
 use ephact::{
     application::dtos::requests::FetchRemoteActionRequest,
     domain::{errors::ActionError, value_objects::RemoteActionReference},
-    infrastructure::actions::fetch_remote_action_port::FetchRemoteActionPort,
+    infrastructure::actions::acquisition::fetch_remote_action_port::FetchRemoteActionPort,
 };
 use parking_lot::Mutex;
 

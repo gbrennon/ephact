@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use super::super::steps::run_composite_step_port::RunCompositeStepPort;
+use crate::steps::run_composite_step_port::RunCompositeStepPort;
 use crate::{
     application::{
         dtos::{
