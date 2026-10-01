@@ -115,7 +115,7 @@ mod tests {
 
         assert_eq!(command.step().run(), Some("echo hi"));
         assert_eq!(command.env()["KEY"], "value");
-        assert!(command.context().github().as_text().is_none());
+        assert!(command.context().get("source").is_none());
         assert_eq!(command.container(), &());
         assert_eq!(command.repo_path(), &PathBuf::from("/repo"));
     }
@@ -126,7 +126,7 @@ mod tests {
 
         assert_eq!(step.run(), Some("echo hi"));
         assert_eq!(env["KEY"], "value");
-        assert!(context.github().as_text().is_none());
+        assert!(context.get("source").is_none());
         assert_eq!(repo_path, PathBuf::from("/repo"));
     }
 

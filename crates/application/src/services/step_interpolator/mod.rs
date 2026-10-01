@@ -1,9 +1,13 @@
+mod expression_evaluator;
+mod expression_functions;
+mod expression_lexer;
+mod expression_parser;
+mod expression_resolver;
+
 use std::collections::HashMap;
 
-use crate::{
-    entities::Step, errors::EvalError, services::ExpressionResolver,
-    value_objects::EvaluationContext,
-};
+use self::expression_resolver::ExpressionResolver;
+use crate::{domain::entities::Step, errors::EvalError, value_objects::EvaluationContext};
 
 /// Produces a copy of a step with every `${{ }}` expression in its
 /// user-supplied fields replaced by its evaluated value.
@@ -92,7 +96,7 @@ mod tests {
                 name.to_owned(),
                 crate::value_objects::ContextValue::text(value),
             )]);
-            EvaluationContext::new().with_secrets(secrets)
+            EvaluationContext::new().with_root("credentials", secrets)
         }
 
         fn context_with_input_for_test(name: &str, value: &str) -> EvaluationContext {
@@ -100,7 +104,7 @@ mod tests {
                 name.to_owned(),
                 crate::value_objects::ContextValue::text(value),
             )]);
-            EvaluationContext::new().with_inputs(inputs)
+            EvaluationContext::new().with_root("parameters", inputs)
         }
 
         fn run_step_for_test(script: &str) -> Step {
@@ -115,7 +119,7 @@ mod tests {
     #[test]
     fn interpolate_resolves_secrets_in_run_script() {
         let step =
-            StepInterpolator::run_step_for_test("cargo publish --token ${{ secrets.TOKEN }}");
+            StepInterpolator::run_step_for_test("cargo publish --token ${{ credentials.TOKEN }}");
 
         let interpolated = StepInterpolator::interpolate(
             &step,
@@ -128,7 +132,7 @@ mod tests {
     #[test]
     fn interpolate_resolves_env_values() {
         let step = Step::new(None, None, Some("publish".to_owned()), None).with_env(HashMap::from(
-            [("TOKEN".to_owned(), "${{ secrets.TOKEN }}".to_owned())],
+            [("TOKEN".to_owned(), "${{ credentials.TOKEN }}".to_owned())],
         ));
 
         let interpolated = StepInterpolator::interpolate(
@@ -147,7 +151,7 @@ mod tests {
     fn interpolate_resolves_with_values() {
         let step = StepInterpolator::action_step_for_test(
             "./action",
-            HashMap::from([("mode".to_owned(), "${{ inputs.mode }}".to_owned())]),
+            HashMap::from([("mode".to_owned(), "${{ parameters.mode }}".to_owned())]),
         );
 
         let interpolated = StepInterpolator::interpolate(
@@ -165,7 +169,7 @@ mod tests {
     #[test]
     fn interpolate_resolves_action_reference() {
         let step = StepInterpolator::action_step_for_test(
-            "actions/cache@${{ inputs.version }}",
+            "actions/cache@${{ parameters.version }}",
             HashMap::new(),
         );
 
@@ -190,7 +194,7 @@ mod tests {
 
     #[test]
     fn interpolate_errors_on_unparsable_expression() {
-        let step = StepInterpolator::run_step_for_test("echo ${{ secrets. }}");
+        let step = StepInterpolator::run_step_for_test("echo ${{ credentials. }}");
 
         assert!(StepInterpolator::interpolate(&step, &EvaluationContext::new()).is_err());
     }

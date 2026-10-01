@@ -1,8 +1,9 @@
 use std::path::{Path, PathBuf};
 
+use crate::domain::value_objects::EvaluationContext;
 pub struct ExecuteJobRequest {
     repo_path: PathBuf,
-    context: Vec<(String, String)>,
+    context: EvaluationContext,
     run_id: String,
     allow_repo_writes: bool,
     allow_network: bool,
@@ -11,7 +12,7 @@ pub struct ExecuteJobRequest {
 impl ExecuteJobRequest {
     pub fn new(
         repo_path: impl Into<PathBuf>,
-        context: Vec<(String, String)>,
+        context: EvaluationContext,
         run_id: impl Into<String>,
         allow_repo_writes: bool,
     ) -> Self {
@@ -27,7 +28,7 @@ impl ExecuteJobRequest {
     pub fn repo_path(&self) -> &Path {
         &self.repo_path
     }
-    pub fn context(&self) -> &[(String, String)] {
+    pub fn context(&self) -> &EvaluationContext {
         &self.context
     }
     pub fn run_id(&self) -> &str {

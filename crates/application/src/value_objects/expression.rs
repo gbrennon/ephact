@@ -12,7 +12,7 @@ use crate::value_objects::{ComparisonOperator, ExpressionLiteral, LogicalOperato
 pub enum Expression {
     /// A literal value: string, number, boolean, or null.
     Literal(ExpressionLiteral),
-    /// A top-level context variable: `github`, `env`, `job`, `steps`, etc.
+    /// A top-level context variable such as `source`, `env`, `job`, or `steps`.
     Variable(String),
     /// Property access: `foo.bar`
     PropertyAccess(Box<Expression>, String),
@@ -87,16 +87,16 @@ mod tests {
 
     #[test]
     fn display_variable() {
-        assert_eq!(Expression::Variable("github".into()).to_string(), "github");
+        assert_eq!(Expression::Variable("source".into()).to_string(), "source");
     }
 
     #[test]
     fn display_property_access() {
         let expr = Expression::PropertyAccess(
-            Box::new(Expression::Variable("github".into())),
+            Box::new(Expression::Variable("source".into())),
             "event_name".into(),
         );
-        assert_eq!(expr.to_string(), "github.event_name");
+        assert_eq!(expr.to_string(), "source.event_name");
     }
 
     #[test]
@@ -115,12 +115,12 @@ mod tests {
     fn display_compare() {
         let expr = Expression::Comparison(
             ComparisonOperator::Equal,
-            Box::new(Expression::Variable("github".into())),
+            Box::new(Expression::Variable("source".into())),
             Box::new(Expression::Literal(ExpressionLiteral::String(
                 "push".into(),
             ))),
         );
-        assert_eq!(expr.to_string(), "github == 'push'");
+        assert_eq!(expr.to_string(), "source == 'push'");
     }
 
     #[test]

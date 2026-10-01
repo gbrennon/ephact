@@ -195,14 +195,11 @@ mod tests {
     #[test]
     fn builder_adds_workflow_job_and_event() {
         let config = WorkflowRunConfig::new()
-            .with_workflow(WorkflowPath::new(".github/workflows/ci.yml".into()))
+            .with_workflow(WorkflowPath::new(".ci/workflows/ci.yml".into()))
             .with_job(JobName::new("test".into()))
             .with_event(WorkflowEvent::new("push".into()));
 
-        assert_eq!(
-            config.workflow().unwrap().as_str(),
-            ".github/workflows/ci.yml"
-        );
+        assert_eq!(config.workflow().unwrap().as_str(), ".ci/workflows/ci.yml");
         assert_eq!(config.job().unwrap().as_str(), "test");
         assert_eq!(config.event().unwrap().as_str(), "push");
     }
