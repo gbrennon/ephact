@@ -238,4 +238,460 @@ impl ExpressionParser {
     }
 }
 #[cfg(test)]
-mod tests;
+mod tests {
+    use super::*;
+    use crate::value_objects::{
+        ComparisonOperator, Expression, ExpressionLiteral, LogicalOperator,
+    };
+
+    #[test]
+    fn parse_error_empty() {
+        let result = ExpressionParser::parse_text("");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_error_trailing_tokens() {
+        let result = ExpressionParser::parse_text("a b");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_error_unclosed_paren() {
+        let result = ExpressionParser::parse_text("(a");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_error_unclosed_bracket() {
+        let result = ExpressionParser::parse_text("a[0");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_error_func_call_on_non_variable() {
+        let result = ExpressionParser::parse_text("(true)(x)");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_error_unexpected_token_in_primary() {
+        let result = ExpressionParser::parse_text("&&");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_error_mismatched_delimiter() {
+        let result = ExpressionParser::parse_text("a[1 2]");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_error_expect_ident_mismatch() {
+        let result = ExpressionParser::parse_text("a.1");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_error_expect_ident_end() {
+        let result = ExpressionParser::parse_text("a.");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_expression_reports_lexer_error() {
+        let result = ExpressionParser::parse_text("'");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_bool_true() {
+        let expr = ExpressionParser::parse_text("true").unwrap();
+        assert_eq!(expr, Expression::Literal(ExpressionLiteral::Boolean(true)));
+    }
+
+    #[test]
+    fn parse_bool_false() {
+        let expr = ExpressionParser::parse_text("false").unwrap();
+        assert_eq!(expr, Expression::Literal(ExpressionLiteral::Boolean(false)));
+    }
+
+    #[test]
+    fn parse_null() {
+        let expr = ExpressionParser::parse_text("null").unwrap();
+        assert_eq!(expr, Expression::Literal(ExpressionLiteral::Null));
+    }
+
+    #[test]
+    fn parse_int() {
+        let expr = ExpressionParser::parse_text("42").unwrap();
+        assert_eq!(expr, Expression::Literal(ExpressionLiteral::Integer(42)));
+    }
+
+    #[test]
+    fn parse_negative_int() {
+        let expr = ExpressionParser::parse_text("7").unwrap();
+        assert_eq!(expr, Expression::Literal(ExpressionLiteral::Integer(7)));
+    }
+
+    #[test]
+    fn parse_float() {
+        let expr = ExpressionParser::parse_text("2.71").unwrap();
+        assert_eq!(expr, Expression::Literal(ExpressionLiteral::Float(2.71)));
+    }
+
+    #[test]
+    fn parse_string() {
+        let expr = ExpressionParser::parse_text("'hello'").unwrap();
+        assert_eq!(
+            expr,
+            Expression::Literal(ExpressionLiteral::String("hello".into()))
+        );
+    }
+
+    #[test]
+    fn parse_variable() {
+        let expr = ExpressionParser::parse_text("github").unwrap();
+        assert_eq!(expr, Expression::Variable("github".into()));
+    }
+
+    #[test]
+    fn parse_variable_env() {
+        let expr = ExpressionParser::parse_text("env").unwrap();
+        assert_eq!(expr, Expression::Variable("env".into()));
+    }
+
+    #[test]
+    fn parse_property_access() {
+        let expr = ExpressionParser::parse_text("github.ref").unwrap();
+        assert_eq!(
+            expr,
+            Expression::PropertyAccess(
+                Box::new(Expression::Variable("github".into())),
+                "ref".into()
+            )
+        );
+    }
+
+    #[test]
+    fn parse_nested_property_access() {
+        let expr = ExpressionParser::parse_text("github.event_name").unwrap();
+        assert_eq!(
+            expr,
+            Expression::PropertyAccess(
+                Box::new(Expression::Variable("github".into())),
+                "event_name".into()
+            )
+        );
+    }
+
+    #[test]
+    fn parse_deep_property_access() {
+        let expr = ExpressionParser::parse_text("a.b.c").unwrap();
+        assert_eq!(
+            expr,
+            Expression::PropertyAccess(
+                Box::new(Expression::PropertyAccess(
+                    Box::new(Expression::Variable("a".into())),
+                    "b".into()
+                )),
+                "c".into()
+            )
+        );
+    }
+
+    #[test]
+    fn parse_index_access() {
+        let expr = ExpressionParser::parse_text("arr[0]").unwrap();
+        assert_eq!(
+            expr,
+            Expression::IndexAccess(
+                Box::new(Expression::Variable("arr".into())),
+                Box::new(Expression::Literal(ExpressionLiteral::Integer(0)))
+            )
+        );
+    }
+
+    #[test]
+    fn parse_index_access_string_key() {
+        let expr = ExpressionParser::parse_text("obj['key']").unwrap();
+        assert_eq!(
+            expr,
+            Expression::IndexAccess(
+                Box::new(Expression::Variable("obj".into())),
+                Box::new(Expression::Literal(ExpressionLiteral::String("key".into())))
+            )
+        );
+    }
+
+    #[test]
+    fn parse_array_deref() {
+        let expr = ExpressionParser::parse_text("foo.*").unwrap();
+        assert_eq!(
+            expr,
+            Expression::ArrayDereference(Box::new(Expression::Variable("foo".into())))
+        );
+    }
+
+    #[test]
+    fn parse_func_call_no_args() {
+        let expr = ExpressionParser::parse_text("success()").unwrap();
+        assert_eq!(expr, Expression::FunctionCall("success".into(), vec![]));
+    }
+
+    #[test]
+    fn parse_func_call_one_arg() {
+        let expr = ExpressionParser::parse_text("always()").unwrap();
+        assert_eq!(expr, Expression::FunctionCall("always".into(), vec![]));
+    }
+
+    #[test]
+    fn parse_func_call_two_args() {
+        let expr = ExpressionParser::parse_text("contains('hello', 'll')").unwrap();
+        assert_eq!(
+            expr,
+            Expression::FunctionCall(
+                "contains".into(),
+                vec![
+                    Expression::Literal(ExpressionLiteral::String("hello".into())),
+                    Expression::Literal(ExpressionLiteral::String("ll".into()))
+                ]
+            )
+        );
+    }
+
+    #[test]
+    fn parse_chained_postfix() {
+        let expr = ExpressionParser::parse_text("foo.bar[0].baz").unwrap();
+        assert_eq!(
+            expr,
+            Expression::PropertyAccess(
+                Box::new(Expression::IndexAccess(
+                    Box::new(Expression::PropertyAccess(
+                        Box::new(Expression::Variable("foo".into())),
+                        "bar".into()
+                    )),
+                    Box::new(Expression::Literal(ExpressionLiteral::Integer(0)))
+                )),
+                "baz".into()
+            )
+        );
+    }
+
+    #[test]
+    fn parse_eq() {
+        let expr = ExpressionParser::parse_text("a == b").unwrap();
+        assert_eq!(
+            expr,
+            Expression::Comparison(
+                ComparisonOperator::Equal,
+                Box::new(Expression::Variable("a".into())),
+                Box::new(Expression::Variable("b".into()))
+            )
+        );
+    }
+
+    #[test]
+    fn parse_neq() {
+        let expr = ExpressionParser::parse_text("a != b").unwrap();
+        assert_eq!(
+            expr,
+            Expression::Comparison(
+                ComparisonOperator::NotEqual,
+                Box::new(Expression::Variable("a".into())),
+                Box::new(Expression::Variable("b".into()))
+            )
+        );
+    }
+
+    #[test]
+    fn parse_lt() {
+        let expr = ExpressionParser::parse_text("a < b").unwrap();
+        assert_eq!(
+            expr,
+            Expression::Comparison(
+                ComparisonOperator::LessThan,
+                Box::new(Expression::Variable("a".into())),
+                Box::new(Expression::Variable("b".into()))
+            )
+        );
+    }
+
+    #[test]
+    fn parse_gt() {
+        let expr = ExpressionParser::parse_text("a > b").unwrap();
+        assert_eq!(
+            expr,
+            Expression::Comparison(
+                ComparisonOperator::GreaterThan,
+                Box::new(Expression::Variable("a".into())),
+                Box::new(Expression::Variable("b".into()))
+            )
+        );
+    }
+
+    #[test]
+    fn parse_lte() {
+        let expr = ExpressionParser::parse_text("a <= b").unwrap();
+        assert_eq!(
+            expr,
+            Expression::Comparison(
+                ComparisonOperator::LessThanOrEqual,
+                Box::new(Expression::Variable("a".into())),
+                Box::new(Expression::Variable("b".into()))
+            )
+        );
+    }
+
+    #[test]
+    fn parse_gte() {
+        let expr = ExpressionParser::parse_text("a >= b").unwrap();
+        assert_eq!(
+            expr,
+            Expression::Comparison(
+                ComparisonOperator::GreaterThanOrEqual,
+                Box::new(Expression::Variable("a".into())),
+                Box::new(Expression::Variable("b".into()))
+            )
+        );
+    }
+
+    #[test]
+    fn parse_and() {
+        let expr = ExpressionParser::parse_text("a && b").unwrap();
+        assert_eq!(
+            expr,
+            Expression::Logical(
+                LogicalOperator::And,
+                Box::new(Expression::Variable("a".into())),
+                Box::new(Expression::Variable("b".into()))
+            )
+        );
+    }
+
+    #[test]
+    fn parse_or() {
+        let expr = ExpressionParser::parse_text("a || b").unwrap();
+        assert_eq!(
+            expr,
+            Expression::Logical(
+                LogicalOperator::Or,
+                Box::new(Expression::Variable("a".into())),
+                Box::new(Expression::Variable("b".into()))
+            )
+        );
+    }
+
+    #[test]
+    fn parse_and_or_left_assoc() {
+        let expr = ExpressionParser::parse_text("a && b || c").unwrap();
+        assert_eq!(
+            expr,
+            Expression::Logical(
+                LogicalOperator::Or,
+                Box::new(Expression::Logical(
+                    LogicalOperator::And,
+                    Box::new(Expression::Variable("a".into())),
+                    Box::new(Expression::Variable("b".into()))
+                )),
+                Box::new(Expression::Variable("c".into()))
+            )
+        );
+    }
+
+    #[test]
+    fn parse_or_and_left_assoc() {
+        let expr = ExpressionParser::parse_text("a || b && c").unwrap();
+        assert_eq!(
+            expr,
+            Expression::Logical(
+                LogicalOperator::And,
+                Box::new(Expression::Logical(
+                    LogicalOperator::Or,
+                    Box::new(Expression::Variable("a".into())),
+                    Box::new(Expression::Variable("b".into()))
+                )),
+                Box::new(Expression::Variable("c".into()))
+            )
+        );
+    }
+
+    #[test]
+    fn parse_not() {
+        let expr = ExpressionParser::parse_text("!a").unwrap();
+        assert_eq!(
+            expr,
+            Expression::Not(Box::new(Expression::Variable("a".into())))
+        );
+    }
+
+    #[test]
+    fn parse_double_not() {
+        let expr = ExpressionParser::parse_text("!!a").unwrap();
+        assert_eq!(
+            expr,
+            Expression::Not(Box::new(Expression::Not(Box::new(Expression::Variable(
+                "a".into()
+            )))))
+        );
+    }
+
+    #[test]
+    fn parse_not_compare() {
+        let expr = ExpressionParser::parse_text("!a == b").unwrap();
+        assert_eq!(
+            expr,
+            Expression::Comparison(
+                ComparisonOperator::Equal,
+                Box::new(Expression::Not(Box::new(Expression::Variable("a".into())))),
+                Box::new(Expression::Variable("b".into()))
+            )
+        );
+    }
+
+    #[test]
+    fn parse_parens() {
+        let expr = ExpressionParser::parse_text("(a)").unwrap();
+        assert_eq!(expr, Expression::Variable("a".into()));
+    }
+
+    #[test]
+    fn parse_parens_override_precedence() {
+        let expr = ExpressionParser::parse_text("(a || b) && c").unwrap();
+        assert_eq!(
+            expr,
+            Expression::Logical(
+                LogicalOperator::And,
+                Box::new(Expression::Logical(
+                    LogicalOperator::Or,
+                    Box::new(Expression::Variable("a".into())),
+                    Box::new(Expression::Variable("b".into()))
+                )),
+                Box::new(Expression::Variable("c".into()))
+            )
+        );
+    }
+
+    #[test]
+    fn parse_complex_expression() {
+        let expr =
+            ExpressionParser::parse_text("github.ref == 'refs/heads/main' && success()").unwrap();
+        assert_eq!(
+            expr,
+            Expression::Logical(
+                LogicalOperator::And,
+                Box::new(Expression::Comparison(
+                    ComparisonOperator::Equal,
+                    Box::new(Expression::PropertyAccess(
+                        Box::new(Expression::Variable("github".into())),
+                        "ref".into()
+                    )),
+                    Box::new(Expression::Literal(ExpressionLiteral::String(
+                        "refs/heads/main".into()
+                    )))
+                )),
+                Box::new(Expression::FunctionCall("success".into(), vec![]))
+            )
+        );
+    }
+}

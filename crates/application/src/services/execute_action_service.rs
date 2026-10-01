@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc};
 use crate::{
     domain::{
         errors::{ActionError, StepError},
-        value_objects::{ActionDefinition, ActionRuntime},
+        value_objects::{ActionDefinition, ActionExecutionContext, ActionRuntime},
     },
     dtos::{
         requests::{
@@ -45,28 +45,6 @@ pub struct ExecuteActionService {
 enum ActionDirectoryResolution {
     Skipped(ExecuteActionResponse),
     Directory(PathBuf),
-}
-
-/// Groups the resolved action data required to execute an action.
-#[derive(Debug)]
-pub struct ActionExecutionContext {
-    action_directory: PathBuf,
-    definition: ActionDefinition,
-    inputs: HashMap<String, String>,
-}
-
-impl ActionExecutionContext {
-    pub fn new(
-        action_directory: PathBuf,
-        definition: ActionDefinition,
-        inputs: HashMap<String, String>,
-    ) -> Self {
-        Self {
-            action_directory,
-            definition,
-            inputs,
-        }
-    }
 }
 
 impl ExecuteActionService {
@@ -155,12 +133,12 @@ impl ExecuteActionService {
         request: &ExecuteActionRequest,
         context: &ActionExecutionContext,
     ) -> Result<ExecuteActionResponse, StepError> {
-        match context.definition.runs() {
+        match context.definition().runs() {
             ActionRuntime::Composite { steps } => self.composite_runner.run(
                 RunCompositeActionRequest::new(
                     steps.as_slice(),
-                    &context.inputs,
-                    &context.action_directory,
+                    context.inputs(),
+                    context.action_directory(),
                     request,
                 ),
                 self.container.clone(),
@@ -171,9 +149,9 @@ impl ExecuteActionService {
                 .node_runner
                 .run(
                     RunNodeActionRequest::new(
-                        &context.action_directory,
+                        context.action_directory(),
                         main.as_str(),
-                        context.inputs.clone(),
+                        context.inputs().clone(),
                         request.env().clone(),
                     ),
                     self.container.clone(),
