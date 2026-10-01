@@ -207,6 +207,9 @@ impl ExpressionFunctions {
             BuiltinFunction::Join => self.join(&args[0], &args[1]),
             BuiltinFunction::ToJson => self.to_json(&args[0]),
             BuiltinFunction::FromJson => self.parse_json(&args[0]),
+            BuiltinFunction::Success => self.success(),
+            BuiltinFunction::Always => self.always(),
+            BuiltinFunction::Cancelled => self.cancelled(),
             BuiltinFunction::Failure => self.failure(),
         }
     }
