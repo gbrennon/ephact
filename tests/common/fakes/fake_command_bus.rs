@@ -12,9 +12,10 @@ use ephact::{
         },
         errors::{ExecuteJobError, ExecuteWorkflowError},
         ports::outbound::{
-            action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
-            job_command_bus_port::JobCommandBusPort, step_command_bus_port::StepCommandBusPort,
-            workflow_command_bus_port::WorkflowCommandBusPort,
+            action_command_publisher_port::ActionCommandPublisherPort,
+            container_port::ContainerPort, job_command_publisher_port::JobCommandPublisherPort,
+            step_command_publisher_port::StepCommandPublisherPort,
+            workflow_command_publisher_port::WorkflowCommandPublisherPort,
         },
     },
     domain::{
@@ -115,7 +116,7 @@ impl DispatchedActionSnapshot {
     }
 }
 
-/// Records every dispatched command and answers it with a prepared outcome, so
+/// Records every published command and answers it with a prepared outcome, so
 /// a coordination service can be tested on what it publishes instead of on
 /// what the next service does. Shares its recordings across clones.
 #[derive(Clone, Default)]
@@ -153,25 +154,25 @@ impl FakeCommandBus {
         self
     }
 
-    /// Answers every job dispatch with an error.
+    /// Answers every job publish with an error.
     pub fn failing_job_dispatch(mut self, message: &str) -> Self {
         self.job_error = Some(message.to_string());
         self
     }
 
-    /// Answers every step dispatch with an error.
+    /// Answers every step publish with an error.
     pub fn failing_step_dispatch(mut self, message: &str) -> Self {
         self.step_error = Some(message.to_string());
         self
     }
 
-    /// Answers step dispatches with the queued exit codes, in order.
+    /// Answers step publishes with the queued exit codes, in order.
     pub fn queueing_step_exit_codes(self, exit_codes: Vec<i64>) -> Self {
         *self.step_exit_codes.lock() = exit_codes.into_iter().rev().collect();
         self
     }
 
-    /// Environments carried by the dispatched step commands, in order.
+    /// Environments carried by the published step commands, in order.
     pub fn dispatched_step_environments(&self) -> Vec<HashMap<String, String>> {
         self.dispatched_steps
             .lock()
@@ -197,8 +198,8 @@ impl FakeCommandBus {
     }
 }
 
-impl WorkflowCommandBusPort for FakeCommandBus {
-    fn dispatch(
+impl WorkflowCommandPublisherPort for FakeCommandBus {
+    fn publish(
         &self,
         cmd: ExecuteWorkflowCommand,
     ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
@@ -215,8 +216,8 @@ impl WorkflowCommandBusPort for FakeCommandBus {
     }
 }
 
-impl JobCommandBusPort for FakeCommandBus {
-    fn dispatch(&self, cmd: ExecuteJobCommand) -> Result<JobExecutionResponse, ExecuteJobError> {
+impl JobCommandPublisherPort for FakeCommandBus {
+    fn publish(&self, cmd: ExecuteJobCommand) -> Result<JobExecutionResponse, ExecuteJobError> {
         let job_id = cmd.job_id().to_owned();
         let name = cmd.job().name().map(|s| s.to_owned());
         self.dispatched_jobs.lock().push(cmd);
@@ -235,8 +236,8 @@ impl JobCommandBusPort for FakeCommandBus {
     }
 }
 
-impl StepCommandBusPort for FakeCommandBus {
-    fn dispatch(
+impl StepCommandPublisherPort for FakeCommandBus {
+    fn publish(
         &self,
         cmd: ExecuteStepCommand<dyn ContainerPort>,
     ) -> Result<ExecutedStepResponse, StepError> {
@@ -263,8 +264,8 @@ impl StepCommandBusPort for FakeCommandBus {
     }
 }
 
-impl ActionCommandBusPort for FakeCommandBus {
-    fn dispatch(
+impl ActionCommandPublisherPort for FakeCommandBus {
+    fn publish(
         &self,
         cmd: ExecuteActionCommand<dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {

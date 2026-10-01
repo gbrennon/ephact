@@ -1,18 +1,22 @@
 use std::sync::Arc;
 
 use ephact::{
-    application::ports::outbound::DomainEventBusPort,
+    application::ports::outbound::DomainEventPublisherPort,
     domain::messages::events::{DomainEvent, WorkflowRunCompletedPayload},
-    infrastructure::{containers::ContainerCleanupHandler, messaging::InMemoryEventBus},
+    infrastructure::{
+        containers::ContainerCleanupHandler,
+        messaging::{DomainEventPublisherAdapter, InMemoryEventBus},
+    },
 };
 
 use crate::common::fakes::fake_runtime::FakeRuntime;
 
 #[test]
-fn publish_workflow_run_completed_stops_kills_and_removes_containers() {
+fn publish_workflow_run_completed_reaches_bound_handler_and_cleans_up_containers() {
     let runtime = Arc::new(FakeRuntime::new());
     let cleanup_handler = Box::new(ContainerCleanupHandler::new(runtime.clone()));
-    let bus = InMemoryEventBus::new(vec![cleanup_handler]);
+    let event_bus = Arc::new(InMemoryEventBus::new(vec![cleanup_handler]));
+    let publisher = DomainEventPublisherAdapter::new(event_bus);
 
     let event = DomainEvent::WorkflowRunCompleted(WorkflowRunCompletedPayload::new(
         "run-1".to_string(),
@@ -21,7 +25,7 @@ fn publish_workflow_run_completed_stops_kills_and_removes_containers() {
         true,
     ));
 
-    bus.publish(event);
+    publisher.publish(event);
 
     assert_eq!(
         *runtime.stopped_containers.lock(),
