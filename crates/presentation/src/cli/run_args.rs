@@ -6,10 +6,9 @@ use crate::{
     application::dtos::responses::WorkflowInputSourceResponse,
     domain::{
         Repository, WorkflowRunConfig,
-        value_objects::{
-            JobName, RepoPath, RepositoryName, Secret, WorkflowEvent, WorkflowInput, WorkflowPath,
-        },
+        value_objects::{JobName, Secret, WorkflowEvent, WorkflowInput, WorkflowPath},
     },
+    infrastructure::RepositoryResolver,
 };
 
 /// CLI arguments for the `run` subcommand.
@@ -91,9 +90,7 @@ impl RunArgs {
     }
 
     fn build_repository(&self) -> Result<Repository, Box<dyn std::error::Error>> {
-        let repo_path = RepoPath::new(self.path.clone())?;
-        let repo_name = RepositoryName::from_repo_path(&repo_path)?;
-        Ok(Repository::new(repo_path, repo_name))
+        Ok(RepositoryResolver::resolve_from_path(self.path.clone())?)
     }
 
     fn build_config(&self) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
