@@ -10,20 +10,13 @@ use ephact::{
             ExecuteActionResponse, ExecutedStepResponse, JobExecutionResponse, JobSummaryResponse,
             WorkflowExecutionResponse,
         },
-        errors::{ExecuteJobError, ExecuteWorkflowError},
-        ports::outbound::{
-            action_command_publisher_port::ActionCommandPublisherPort,
-            container_port::ContainerPort, job_command_publisher_port::JobCommandPublisherPort,
-            step_command_publisher_port::StepCommandPublisherPort,
-            workflow_command_publisher_port::WorkflowCommandPublisherPort,
-        },
+        errors::ExecuteJobError,
+        ports::outbound::{Command, CommandError, CommandPublisherPort, CommandResponse},
     },
     domain::{
         entities::Step,
         errors::StepError,
-        messages::commands::{
-            ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
-        },
+        messages::commands::{ExecuteJobCommand, ExecuteWorkflowCommand},
         value_objects::EvaluationContext,
     },
 };
@@ -198,86 +191,77 @@ impl FakeCommandBus {
     }
 }
 
-impl WorkflowCommandPublisherPort for FakeCommandBus {
-    fn publish(
-        &self,
-        cmd: ExecuteWorkflowCommand,
-    ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
-        self.dispatched_workflows.lock().push(cmd);
-        Ok(self
-            .workflow_result
-            .clone()
-            .unwrap_or(WorkflowExecutionResponse::new(
-                "fake-workflow".to_string(),
-                Vec::new(),
-                vec!["c1".to_string()],
-                true,
-            )))
-    }
-}
-
-impl JobCommandPublisherPort for FakeCommandBus {
-    fn publish(&self, cmd: ExecuteJobCommand) -> Result<JobExecutionResponse, ExecuteJobError> {
-        let job_id = cmd.job_id().to_owned();
-        let name = cmd.job().name().map(|s| s.to_owned());
-        self.dispatched_jobs.lock().push(cmd);
-        if let Some(message) = &self.job_error {
-            return Err(ExecuteJobError::Preparation(message.clone()));
+impl CommandPublisherPort for FakeCommandBus {
+    fn publish(&self, command: Command) -> Result<CommandResponse, CommandError> {
+        match command {
+            Command::Workflow(command) => {
+                self.dispatched_workflows.lock().push(command);
+                Ok(CommandResponse::Workflow(
+                    self.workflow_result
+                        .clone()
+                        .unwrap_or(WorkflowExecutionResponse::new(
+                            "fake-workflow".to_string(),
+                            Vec::new(),
+                            vec!["c1".to_string()],
+                            true,
+                        )),
+                ))
+            }
+            Command::Job(command) => {
+                let command = *command;
+                let job_id = command.job_id().to_owned();
+                let name = command.job().name().map(str::to_owned);
+                self.dispatched_jobs.lock().push(command);
+                if let Some(message) = &self.job_error {
+                    return Err(CommandError::Job(ExecuteJobError::Preparation(
+                        message.clone(),
+                    )));
+                }
+                Ok(CommandResponse::Job(JobExecutionResponse::new(
+                    JobSummaryResponse::new(
+                        job_id.clone(),
+                        name,
+                        Vec::new(),
+                        !self.failing_jobs.contains(&job_id),
+                    ),
+                    format!("container-{job_id}"),
+                )))
+            }
+            Command::Step(command) => {
+                let (step, env, context, _container, repo_path) = command.into_parts();
+                self.dispatched_steps
+                    .lock()
+                    .push(DispatchedStepSnapshot::new(
+                        step.clone(),
+                        env,
+                        context,
+                        repo_path,
+                    ));
+                if let Some(message) = &self.step_error {
+                    return Err(CommandError::Step(StepError::new(message.clone())));
+                }
+                Ok(CommandResponse::Step(Box::new(ExecutedStepResponse::new(
+                    step,
+                    ExecuteActionResponse::new(
+                        self.step_exit_codes.lock().pop().unwrap_or(0),
+                        String::new(),
+                        String::new(),
+                    ),
+                ))))
+            }
+            Command::Action(command) => {
+                let (action_ref, step, repo_path, env, context, _container) = command.into_parts();
+                self.dispatched_actions
+                    .lock()
+                    .push(DispatchedActionSnapshot::new(
+                        action_ref, step, repo_path, env, context,
+                    ));
+                Ok(CommandResponse::Action(
+                    self.action_result
+                        .clone()
+                        .unwrap_or(ExecuteActionResponse::new(0, String::new(), String::new())),
+                ))
+            }
         }
-        Ok(JobExecutionResponse::new(
-            JobSummaryResponse::new(
-                job_id.clone(),
-                name,
-                Vec::new(),
-                !self.failing_jobs.contains(&job_id),
-            ),
-            format!("container-{job_id}"),
-        ))
-    }
-}
-
-impl StepCommandPublisherPort for FakeCommandBus {
-    fn publish(
-        &self,
-        cmd: ExecuteStepCommand<dyn ContainerPort>,
-    ) -> Result<ExecutedStepResponse, StepError> {
-        let (step, env, context, _container, repo_path) = cmd.into_parts();
-        self.dispatched_steps
-            .lock()
-            .push(DispatchedStepSnapshot::new(
-                step.clone(),
-                env,
-                context,
-                repo_path,
-            ));
-        if let Some(message) = &self.step_error {
-            return Err(StepError::new(message.clone()));
-        }
-        Ok(ExecutedStepResponse::new(
-            step,
-            ExecuteActionResponse::new(
-                self.step_exit_codes.lock().pop().unwrap_or(0),
-                String::new(),
-                String::new(),
-            ),
-        ))
-    }
-}
-
-impl ActionCommandPublisherPort for FakeCommandBus {
-    fn publish(
-        &self,
-        cmd: ExecuteActionCommand<dyn ContainerPort>,
-    ) -> Result<ExecuteActionResponse, StepError> {
-        let (action_ref, step, repo_path, env, context, _container) = cmd.into_parts();
-        self.dispatched_actions
-            .lock()
-            .push(DispatchedActionSnapshot::new(
-                action_ref, step, repo_path, env, context,
-            ));
-        Ok(self
-            .action_result
-            .clone()
-            .unwrap_or(ExecuteActionResponse::new(0, String::new(), String::new())))
     }
 }

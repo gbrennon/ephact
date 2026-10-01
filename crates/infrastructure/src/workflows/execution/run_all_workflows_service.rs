@@ -10,9 +10,8 @@ use crate::{
         ports::{
             inbound::run_all_workflows_port::RunAllWorkflowsPort,
             outbound::{
-                DetectWorkflowTriggerPort, WorkflowSourcePort,
-                domain_event_publisher_port::DomainEventPublisherPort,
-                workflow_command_publisher_port::WorkflowCommandPublisherPort,
+                Command, CommandPublisherPort, CommandResponse, DetectWorkflowTriggerPort,
+                WorkflowSourcePort, domain_event_publisher_port::DomainEventPublisherPort,
             },
         },
     },
@@ -38,7 +37,7 @@ pub const ALL_WORKFLOWS_SUMMARY_NAME: &str = "All Workflows";
 /// infrastructure handlers can clean up.
 pub struct RunAllWorkflowsService {
     workflow_source: Box<dyn WorkflowSourcePort>,
-    command_bus: Box<dyn WorkflowCommandPublisherPort>,
+    command_bus: Box<dyn CommandPublisherPort>,
     event_bus: Box<dyn DomainEventPublisherPort>,
     trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
 }
@@ -46,7 +45,7 @@ pub struct RunAllWorkflowsService {
 impl RunAllWorkflowsService {
     pub fn new(
         workflow_source: Box<dyn WorkflowSourcePort>,
-        command_bus: Box<dyn WorkflowCommandPublisherPort>,
+        command_bus: Box<dyn CommandPublisherPort>,
         event_bus: Box<dyn DomainEventPublisherPort>,
         trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
     ) -> Self {
@@ -140,7 +139,7 @@ impl RunAllWorkflowsService {
             .into_iter()
             .map(|workflow| {
                 self.command_bus
-                    .publish(
+                    .publish(Command::Workflow(
                         ExecuteWorkflowCommand::new(
                             workflow.content().to_owned(),
                             config.clone(),
@@ -149,7 +148,15 @@ impl RunAllWorkflowsService {
                             config.allow_repo_writes(),
                         )
                         .with_workflow_file_name(workflow.file_name()),
-                    )
+                    ))
+                    .and_then(|response| match response {
+                        CommandResponse::Workflow(response) => Ok(response),
+                        _ => Err(
+                            crate::application::ports::outbound::CommandError::Transport(
+                                "unexpected command response for workflow".to_string(),
+                            ),
+                        ),
+                    })
                     .map_err(|error| ApplicationError::Workflow(error.to_string()))
             })
             .collect()
