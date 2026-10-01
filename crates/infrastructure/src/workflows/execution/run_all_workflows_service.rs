@@ -11,8 +11,8 @@ use crate::{
             inbound::run_all_workflows_port::RunAllWorkflowsPort,
             outbound::{
                 DetectWorkflowTriggerPort, WorkflowSourcePort,
-                domain_event_bus_port::DomainEventBusPort,
-                workflow_command_bus_port::WorkflowCommandBusPort,
+                domain_event_publisher_port::DomainEventPublisherPort,
+                workflow_command_publisher_port::WorkflowCommandPublisherPort,
             },
         },
     },
@@ -38,16 +38,16 @@ pub const ALL_WORKFLOWS_SUMMARY_NAME: &str = "All Workflows";
 /// infrastructure handlers can clean up.
 pub struct RunAllWorkflowsService {
     workflow_source: Box<dyn WorkflowSourcePort>,
-    command_bus: Box<dyn WorkflowCommandBusPort>,
-    event_bus: Box<dyn DomainEventBusPort>,
+    command_bus: Box<dyn WorkflowCommandPublisherPort>,
+    event_bus: Box<dyn DomainEventPublisherPort>,
     trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
 }
 
 impl RunAllWorkflowsService {
     pub fn new(
         workflow_source: Box<dyn WorkflowSourcePort>,
-        command_bus: Box<dyn WorkflowCommandBusPort>,
-        event_bus: Box<dyn DomainEventBusPort>,
+        command_bus: Box<dyn WorkflowCommandPublisherPort>,
+        event_bus: Box<dyn DomainEventPublisherPort>,
         trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
     ) -> Self {
         Self {
@@ -140,7 +140,7 @@ impl RunAllWorkflowsService {
             .into_iter()
             .map(|workflow| {
                 self.command_bus
-                    .dispatch(
+                    .publish(
                         ExecuteWorkflowCommand::new(
                             workflow.content().to_owned(),
                             config.clone(),

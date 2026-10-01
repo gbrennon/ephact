@@ -1,23 +1,22 @@
-use super::domain_event_handler::DomainEventHandler;
 use crate::{
-    application::ports::outbound::domain_event_bus_port::DomainEventBusPort,
+    application::ports::outbound::domain_event_handler_port::DomainEventHandlerPort,
     domain::messages::events::DomainEvent,
 };
 
-/// Event bus that dispatches published domain events to the in-process
-/// handlers interested in them, in registration order.
+/// Infrastructure event transport that fans every published event out to the
+/// bound handlers in registration order. It is an internal bus detail: the
+/// application never depends on it, reaching it only through the
+/// [`DomainEventPublisherAdapter`](super::DomainEventPublisherAdapter).
 pub struct InMemoryEventBus {
-    handlers: Vec<Box<dyn DomainEventHandler>>,
+    handlers: Vec<Box<dyn DomainEventHandlerPort>>,
 }
 
 impl InMemoryEventBus {
-    pub fn new(handlers: Vec<Box<dyn DomainEventHandler>>) -> Self {
+    pub fn new(handlers: Vec<Box<dyn DomainEventHandlerPort>>) -> Self {
         Self { handlers }
     }
-}
 
-impl DomainEventBusPort for InMemoryEventBus {
-    fn publish(&self, event: DomainEvent) {
+    pub fn publish(&self, event: DomainEvent) {
         for handler in &self.handlers {
             handler.handle(&event);
         }

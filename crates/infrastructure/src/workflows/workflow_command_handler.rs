@@ -1,10 +1,14 @@
-use std::{collections::BTreeMap, error::Error};
+use std::collections::BTreeMap;
 
 use super::super::containers::workspace::CONTAINER_WORKSPACE;
 use crate::{
     application::{
         dtos::{requests::ExecuteWorkflowRequest, responses::WorkflowExecutionResponse},
-        ports::inbound::execute_workflow_port::ExecuteWorkflowPort,
+        errors::ExecuteWorkflowError,
+        ports::{
+            inbound::execute_workflow_port::ExecuteWorkflowPort,
+            outbound::WorkflowCommandHandlerPort,
+        },
     },
     domain::{
         messages::commands::ExecuteWorkflowCommand,
@@ -64,7 +68,7 @@ impl WorkflowCommandHandler {
     pub fn handle(
         &self,
         cmd: ExecuteWorkflowCommand,
-    ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
+    ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
         let context = Self::build_context(&cmd);
         let req = ExecuteWorkflowRequest::new(
             cmd.workflow_content().to_string(),
@@ -78,7 +82,16 @@ impl WorkflowCommandHandler {
             Some(file_name) => req.with_file_name(file_name),
             None => req,
         };
-        Ok(self.executor.execute(req)?)
+        self.executor.execute(req)
+    }
+}
+
+impl WorkflowCommandHandlerPort for WorkflowCommandHandler {
+    fn handle(
+        &self,
+        command: ExecuteWorkflowCommand,
+    ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
+        WorkflowCommandHandler::handle(self, command)
     }
 }
 

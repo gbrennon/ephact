@@ -5,8 +5,9 @@ use crate::{
     application::{
         ports::outbound::{
             ActionFetcherPort, ContainerRuntimePort, ImageMapperPort, ProjectBrandingStorePort,
-            WorkflowSourcePort, domain_event_bus_port::DomainEventBusPort,
-            workflow_command_bus_port::WorkflowCommandBusPort,
+            WorkflowSourcePort, domain_event_handler_port::DomainEventHandlerPort,
+            domain_event_publisher_port::DomainEventPublisherPort,
+            workflow_command_publisher_port::WorkflowCommandPublisherPort,
         },
         services::{
             list_actions_service::ListActionsService, list_workflows_service::ListWorkflowsService,
@@ -21,7 +22,7 @@ use crate::{
     },
     images::PlatformImageMapper,
     logging::{FailureLogErrorStore, FailureLogHandler, FailureLogPathStore, FailureLogStores},
-    messaging::{DomainEventHandler, InMemoryEventBus, SharedCommandBus, SharedEventBus},
+    messaging::{CommandPublisherAdapter, DomainEventPublisherAdapter, InMemoryEventBus},
     steps::JsonStepTextCodec,
     workflows::{
         DetectWorkflowTriggerService, FilesystemRunInputDiscoveryService, FilesystemWorkflowSource,
@@ -58,7 +59,7 @@ pub struct Container {}
 
 impl Container {
     pub fn build_with_branding(
-        progress_reporter: Option<Box<dyn DomainEventHandler>>,
+        progress_reporter: Option<Box<dyn DomainEventHandlerPort>>,
         branding_store: Box<dyn ProjectBrandingStorePort>,
     ) -> AppContainer {
         let runtime: Arc<dyn ContainerRuntimePort> = Arc::new(
@@ -79,7 +80,7 @@ impl Container {
 
     pub fn with_collaborators_and_branding(
         collaborators: ContainerCollaborators,
-        progress_reporter: Option<Box<dyn DomainEventHandler>>,
+        progress_reporter: Option<Box<dyn DomainEventHandlerPort>>,
         branding_store: Box<dyn ProjectBrandingStorePort>,
     ) -> AppContainer {
         let ContainerCollaborators {
@@ -88,19 +89,19 @@ impl Container {
             action_fetcher,
             workflow_source,
         } = collaborators;
-        let (shared_event_bus, failure_log_stores) =
+        let (event_publisher, failure_log_stores) =
             Self::build_event_bus(runtime.clone(), progress_reporter);
         let shared_workflow_source = SharedWorkflowSource::new(workflow_source);
-        let shared_command_bus = Self::build_command_bus(
+        let command_publisher = Self::build_command_bus(
             runtime,
             image_mapper,
             action_fetcher,
-            shared_event_bus.clone(),
+            event_publisher.clone(),
         );
         let parts = Self::build_app_parts(
             shared_workflow_source,
-            shared_command_bus,
-            shared_event_bus,
+            command_publisher,
+            event_publisher,
             branding_store,
         );
         AppContainer::new_with_discovery_and_failure_stores(parts, failure_log_stores)
@@ -108,29 +109,29 @@ impl Container {
 
     fn build_app_parts(
         workflow_source: SharedWorkflowSource,
-        command_bus: SharedCommandBus,
-        event_bus: SharedEventBus,
+        command_publisher: CommandPublisherAdapter,
+        event_publisher: DomainEventPublisherAdapter,
         branding_store: Box<dyn ProjectBrandingStorePort>,
     ) -> AppContainerParts {
         let list_workflows_service = ListWorkflowsService::new(Box::new(workflow_source.clone()));
         let list_actions_service = ListActionsService::new(Box::new(workflow_source.clone()));
         let run_workflow_service = RunWorkflowService::new(
             Box::new(workflow_source.clone()),
-            Box::new(command_bus.clone()) as Box<dyn WorkflowCommandBusPort>,
-            Box::new(event_bus.clone()) as Box<dyn DomainEventBusPort>,
+            Box::new(command_publisher.clone()) as Box<dyn WorkflowCommandPublisherPort>,
+            Box::new(event_publisher.clone()) as Box<dyn DomainEventPublisherPort>,
             Box::new(DetectWorkflowTriggerService::new()),
         );
         let discover_run_inputs_service =
             FilesystemRunInputDiscoveryService::new(Box::new(workflow_source.clone()));
         let run_all_workflows_service = RunAllWorkflowsService::new(
             Box::new(workflow_source),
-            Box::new(command_bus.clone()) as Box<dyn WorkflowCommandBusPort>,
-            Box::new(event_bus) as Box<dyn DomainEventBusPort>,
+            Box::new(command_publisher.clone()) as Box<dyn WorkflowCommandPublisherPort>,
+            Box::new(event_publisher) as Box<dyn DomainEventPublisherPort>,
             Box::new(DetectWorkflowTriggerService::new()),
         );
         let run_action_factory: RunActionFactory = Box::new(move |container| {
             Box::new(RunActionService::new(
-                Box::new(command_bus.clone()),
+                Box::new(command_publisher.clone()),
                 container,
                 Arc::new(JsonStepTextCodec),
             ))
@@ -148,10 +149,11 @@ impl Container {
             Box::new(list_actions_service),
         )
     }
+
     fn build_event_bus(
         runtime: Arc<dyn ContainerRuntimePort>,
-        progress_reporter: Option<Box<dyn DomainEventHandler>>,
-    ) -> (SharedEventBus, FailureLogStores) {
+        progress_reporter: Option<Box<dyn DomainEventHandlerPort>>,
+    ) -> (DomainEventPublisherAdapter, FailureLogStores) {
         let failure_log_error_store = FailureLogErrorStore::new();
         let failure_log_path_store = FailureLogPathStore::new();
         let failure_log_handler = FailureLogHandler::with_temp_root_and_stores(
@@ -159,7 +161,7 @@ impl Container {
             failure_log_error_store.clone(),
             failure_log_path_store.clone(),
         );
-        let mut handlers: Vec<Box<dyn DomainEventHandler>> = vec![
+        let mut handlers: Vec<Box<dyn DomainEventHandlerPort>> = vec![
             Box::new(ContainerCleanupHandler::new(runtime)),
             Box::new(failure_log_handler),
         ];
@@ -168,7 +170,7 @@ impl Container {
         }
         let in_memory_event_bus = Arc::new(InMemoryEventBus::new(handlers));
         (
-            SharedEventBus::new(in_memory_event_bus),
+            DomainEventPublisherAdapter::new(in_memory_event_bus),
             FailureLogStores::from_stores(failure_log_error_store, failure_log_path_store),
         )
     }
@@ -177,8 +179,8 @@ impl Container {
         runtime: Arc<dyn ContainerRuntimePort>,
         image_mapper: Box<dyn ImageMapperPort>,
         action_fetcher: Box<dyn ActionFetcherPort>,
-        event_bus: SharedEventBus,
-    ) -> crate::messaging::SharedCommandBus {
+        event_bus: DomainEventPublisherAdapter,
+    ) -> CommandPublisherAdapter {
         CommandBusWiring::build(runtime, image_mapper, action_fetcher, event_bus)
     }
 }

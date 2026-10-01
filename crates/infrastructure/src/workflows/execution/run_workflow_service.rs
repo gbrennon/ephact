@@ -11,8 +11,8 @@ use crate::{
             inbound::RunWorkflowPort,
             outbound::{
                 DetectWorkflowTriggerPort, WorkflowSourcePort,
-                domain_event_bus_port::DomainEventBusPort,
-                workflow_command_bus_port::WorkflowCommandBusPort,
+                domain_event_publisher_port::DomainEventPublisherPort,
+                workflow_command_publisher_port::WorkflowCommandPublisherPort,
             },
         },
     },
@@ -33,12 +33,12 @@ use crate::{
 /// Agnostic by construction: it never touches files, containers, or any external
 /// service. It reads the workflow definition through the outbound
 /// [`WorkflowSourcePort`], expresses the intent to execute it as a command on the
-/// outbound [`WorkflowCommandBusPort`], and announces the outcome as a domain event on the
-/// outbound [`DomainEventBusPort`].
+/// outbound [`WorkflowCommandPublisherPort`], and announces the outcome as a domain event on the
+/// outbound [`DomainEventPublisherPort`].
 pub struct RunWorkflowService {
     workflow_source: Box<dyn WorkflowSourcePort>,
-    command_bus: Box<dyn WorkflowCommandBusPort>,
-    event_bus: Box<dyn DomainEventBusPort>,
+    command_bus: Box<dyn WorkflowCommandPublisherPort>,
+    event_bus: Box<dyn DomainEventPublisherPort>,
     trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
 }
 
@@ -89,8 +89,8 @@ impl RunExecutionContext {
 impl RunWorkflowService {
     pub fn new(
         workflow_source: Box<dyn WorkflowSourcePort>,
-        command_bus: Box<dyn WorkflowCommandBusPort>,
-        event_bus: Box<dyn DomainEventBusPort>,
+        command_bus: Box<dyn WorkflowCommandPublisherPort>,
+        event_bus: Box<dyn DomainEventPublisherPort>,
         trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
     ) -> Self {
         Self {
@@ -185,7 +185,7 @@ impl RunWorkflowService {
         context: &RunExecutionContext,
         workflow_source: crate::application::dtos::responses::WorkflowSourceFileResponse,
     ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
-        match self.command_bus.dispatch(
+        match self.command_bus.publish(
             ExecuteWorkflowCommand::new(
                 workflow_source.content().to_owned(),
                 context.config.clone(),

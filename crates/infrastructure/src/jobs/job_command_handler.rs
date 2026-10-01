@@ -1,9 +1,8 @@
-use std::error::Error;
-
 use crate::{
     application::{
         dtos::{requests::ExecuteJobRequest, responses::JobExecutionResponse},
-        ports::inbound::execute_job_port::ExecuteJobPort,
+        errors::ExecuteJobError,
+        ports::{inbound::execute_job_port::ExecuteJobPort, outbound::JobCommandHandlerPort},
     },
     domain::{entities::JobRun, messages::commands::ExecuteJobCommand},
 };
@@ -17,7 +16,7 @@ impl JobCommandHandler {
         Self { executor }
     }
 
-    pub fn handle(&self, cmd: ExecuteJobCommand) -> Result<JobExecutionResponse, Box<dyn Error>> {
+    pub fn handle(&self, cmd: ExecuteJobCommand) -> Result<JobExecutionResponse, ExecuteJobError> {
         let allow_network = cmd.allow_network();
         let (job, job_id, workflow, repo_path, context, run_id, allow_repo_writes) =
             cmd.into_parts();
@@ -25,6 +24,12 @@ impl JobCommandHandler {
 
         let req = ExecuteJobRequest::new(repo_path, context, run_id, allow_repo_writes)
             .with_allow_network(allow_network);
-        Ok(self.executor.execute(req, &run, &workflow)?)
+        self.executor.execute(req, &run, &workflow)
+    }
+}
+
+impl JobCommandHandlerPort for JobCommandHandler {
+    fn handle(&self, command: ExecuteJobCommand) -> Result<JobExecutionResponse, ExecuteJobError> {
+        JobCommandHandler::handle(self, command)
     }
 }
