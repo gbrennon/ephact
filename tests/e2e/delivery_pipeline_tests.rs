@@ -9,21 +9,21 @@ mod tests {
     impl DeliveryPipelineTests {
         fn a_pipeline_of_dependent_jobs_succeeds() {
             let run = DeliveryPipelineRun::execute();
-            assert_eq!(run.outcome, Ok(()));
+            assert_eq!(run.outcome(), &Ok(()));
         }
 
         fn every_job_runs_in_its_own_container() {
             let run = DeliveryPipelineRun::execute();
-            assert_eq!(run.activity.pulled_images(), vec![RUNNER_IMAGE; 3]);
+            assert_eq!(run.activity().pulled_images(), vec![RUNNER_IMAGE; 3]);
         }
 
         fn jobs_run_in_the_order_their_dependencies_require() {
             let run = DeliveryPipelineRun::execute();
-            assert!(run.activity.ran_before(
+            assert!(run.activity().ran_before(
                 DeliveryPipelineRun::CONTEXT_SCRIPT,
                 DeliveryPipelineRun::PACKAGE_SCRIPT
             ));
-            assert!(run.activity.ran_before(
+            assert!(run.activity().ran_before(
                 DeliveryPipelineRun::PACKAGE_SCRIPT,
                 DeliveryPipelineRun::PUBLISH_SCRIPT
             ));
@@ -32,43 +32,52 @@ mod tests {
         fn workflow_and_job_environments_are_resolved_in_scripts() {
             let run = DeliveryPipelineRun::execute();
             assert!(
-                run.activity
+                run.activity()
                     .ran_script(DeliveryPipelineRun::ENVIRONMENT_SCRIPT)
             );
         }
 
         fn the_github_and_runner_contexts_are_resolved_in_scripts() {
             let run = DeliveryPipelineRun::execute();
-            assert!(run.activity.ran_script(DeliveryPipelineRun::CONTEXT_SCRIPT));
+            assert!(
+                run.activity()
+                    .ran_script(DeliveryPipelineRun::CONTEXT_SCRIPT)
+            );
         }
 
         fn command_line_inputs_and_secrets_are_resolved_in_scripts() {
             let run = DeliveryPipelineRun::execute();
-            assert!(run.activity.ran_script(DeliveryPipelineRun::PUBLISH_SCRIPT));
+            assert!(
+                run.activity()
+                    .ran_script(DeliveryPipelineRun::PUBLISH_SCRIPT)
+            );
         }
 
         fn composite_action_inputs_fall_back_to_their_declared_defaults() {
             let run = DeliveryPipelineRun::execute();
-            assert!(run.activity.ran_script(DeliveryPipelineRun::PACKAGE_SCRIPT));
+            assert!(
+                run.activity()
+                    .ran_script(DeliveryPipelineRun::PACKAGE_SCRIPT)
+            );
         }
 
         fn an_action_nested_in_a_composite_action_receives_inputs_and_secrets() {
             let run = DeliveryPipelineRun::execute();
             assert!(
-                run.activity
+                run.activity()
                     .ran_script(DeliveryPipelineRun::CHECKSUM_SCRIPT)
             );
         }
 
         fn checking_out_the_repository_fetches_nothing() {
             let run = DeliveryPipelineRun::execute();
-            assert_eq!(run.fetcher.fetched().len(), 0);
+            assert_eq!(run.fetcher().fetched().len(), 0);
         }
 
         fn every_container_is_stopped_once_the_run_completes() {
             let run = DeliveryPipelineRun::execute();
-            assert_eq!(run.activity.stopped_containers().len(), 3);
-            assert_eq!(run.activity.killed_containers().len(), 3);
+            assert_eq!(run.activity().stopped_containers().len(), 3);
+            assert_eq!(run.activity().killed_containers().len(), 3);
         }
     }
 

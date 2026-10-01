@@ -7,22 +7,22 @@ mod tests {
     impl EveryWorkflowTests {
         fn running_every_workflow_succeeds() {
             let run = EveryWorkflowRun::execute();
-            assert_eq!(run.outcome, Ok(()));
+            assert_eq!(run.outcome(), &Ok(()));
         }
 
         fn the_jobs_of_every_workflow_file_are_executed() {
             let run = EveryWorkflowRun::execute();
-            assert!(run.activity.ran_script(EveryWorkflowRun::LINT_SCRIPT));
-            assert!(run.activity.ran_script(EveryWorkflowRun::UNIT_SCRIPT));
+            assert!(run.activity().ran_script(EveryWorkflowRun::LINT_SCRIPT));
+            assert!(run.activity().ran_script(EveryWorkflowRun::UNIT_SCRIPT));
             assert!(
-                run.activity
+                run.activity()
                     .ran_script(EveryWorkflowRun::INTEGRATION_SCRIPT)
             );
         }
 
         fn dependency_order_holds_inside_each_workflow_file() {
             let run = EveryWorkflowRun::execute();
-            assert!(run.activity.ran_before(
+            assert!(run.activity().ran_before(
                 EveryWorkflowRun::UNIT_SCRIPT,
                 EveryWorkflowRun::INTEGRATION_SCRIPT
             ));
@@ -30,9 +30,9 @@ mod tests {
 
         fn one_container_is_created_and_stopped_per_job() {
             let run = EveryWorkflowRun::execute();
-            assert_eq!(run.activity.pulled_images().len(), 3);
-            assert_eq!(run.activity.stopped_containers().len(), 3);
-            assert_eq!(run.activity.killed_containers().len(), 3);
+            assert_eq!(run.activity().pulled_images().len(), 3);
+            assert_eq!(run.activity().stopped_containers().len(), 3);
+            assert_eq!(run.activity().killed_containers().len(), 3);
         }
     }
 

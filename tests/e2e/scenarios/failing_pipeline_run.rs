@@ -1,12 +1,19 @@
 use std::sync::Arc;
 
-use crate::{
-    e2e_failing_runtime::FailingRuntime,
-    e2e_mirrored_action_fetcher::MirroredActionFetcher,
-    support::{
-        container_activity::ContainerActivity, ephact_application::EphactApplication,
-        workflow_repository::WorkflowRepository,
-    },
+#[path = "failing_pipeline_action_fetcher.rs"]
+mod failing_pipeline_action_fetcher;
+#[path = "failing_pipeline_container.rs"]
+mod failing_pipeline_container;
+#[path = "failing_pipeline_runtime.rs"]
+mod failing_pipeline_runtime;
+
+use self::{
+    failing_pipeline_action_fetcher::FailingPipelineActionFetcher,
+    failing_pipeline_runtime::FailingPipelineRuntime,
+};
+use crate::support::{
+    container_activity::ContainerActivity, ephact_application::EphactApplication,
+    workflow_repository::WorkflowRepository,
 };
 
 const RELEASE_WORKFLOW: &str = r#"
@@ -37,8 +44,8 @@ runs:
 /// status, covering how a failed shell step and a failed composite action step
 /// surface to the caller.
 pub struct FailingPipelineRun {
-    pub outcome: Result<(), String>,
-    pub activity: ContainerActivity,
+    outcome: Result<(), String>,
+    activity: ContainerActivity,
 }
 
 impl FailingPipelineRun {
@@ -55,8 +62,8 @@ impl FailingPipelineRun {
                 .with_workflow_content(RELEASE_WORKFLOW),
         );
         let application = EphactApplication::compose(
-            Arc::new(FailingRuntime::recording(activity.clone())),
-            Box::new(MirroredActionFetcher::mirroring(repository.path())),
+            Arc::new(FailingPipelineRuntime::recording(activity.clone())),
+            Box::new(FailingPipelineActionFetcher::mirroring(repository.path())),
             workflow_source,
         );
 
@@ -73,5 +80,13 @@ impl FailingPipelineRun {
             .map_err(|error| error.to_string());
 
         Self { outcome, activity }
+    }
+
+    pub fn outcome(&self) -> &Result<(), String> {
+        &self.outcome
+    }
+
+    pub fn activity(&self) -> &ContainerActivity {
+        &self.activity
     }
 }

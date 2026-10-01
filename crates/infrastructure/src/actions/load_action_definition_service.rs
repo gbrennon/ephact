@@ -6,7 +6,7 @@ use crate::{
         ports::outbound::action_definition_loader_port::ActionDefinitionLoaderPort,
     },
     domain::{errors::StepError, value_objects::ActionDefinition},
-    workflows::{source_name::resolve_source_name, yaml::ActionDefinitionYaml},
+    workflows::{actions::ActionDefinitionYaml, source_name::resolve_source_name},
 };
 
 /// Service that reads an action's `action.yml` (or `action.yaml`) and parses it.

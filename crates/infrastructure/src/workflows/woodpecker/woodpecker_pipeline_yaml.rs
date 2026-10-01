@@ -37,7 +37,6 @@ impl WoodpeckerPipelineYaml {
     }
 
     /// Builds the domain workflow this pipeline describes.
-    #[must_use]
     pub fn into_domain(self) -> Workflow {
         let triggers = self
             .when

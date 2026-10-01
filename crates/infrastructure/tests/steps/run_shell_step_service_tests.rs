@@ -13,7 +13,7 @@ use ephact::{
     },
     domain::entities::Step,
     infrastructure::{
-        steps::run_shell_step_service::RunShellStepService, workflows::yaml::StepYaml,
+        steps::run_shell_step_service::RunShellStepService, workflows::actions::StepYaml,
     },
 };
 

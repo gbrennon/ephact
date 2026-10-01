@@ -18,7 +18,7 @@ use ephact::{
         actions::{ActionFetcherPort, ExecuteActionFactory},
         di::ActionExecutionWiring,
         steps::JsonStepTextCodec,
-        workflows::yaml::StepYaml,
+        workflows::actions::StepYaml,
     },
 };
 
