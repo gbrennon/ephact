@@ -8,7 +8,6 @@ use crate::{
     },
     domain::{
         messages::commands::ExecuteWorkflowCommand,
-        services::evaluation_context_mapper::EvaluationContextMapper,
         value_objects::{ContextValue, EvaluationContext},
     },
 };
@@ -57,10 +56,10 @@ impl WorkflowCommandHandler {
         ]);
 
         EvaluationContext::new()
-            .with_secrets(secrets)
-            .with_inputs(ContextValue::Mapping(inputs))
-            .with_github(github)
-            .with_runner(runner_context())
+            .with_root("secrets", secrets)
+            .with_root("inputs", ContextValue::Mapping(inputs))
+            .with_root("github", github)
+            .with_root("runner", runner_context())
     }
     pub fn handle(
         &self,
@@ -70,7 +69,7 @@ impl WorkflowCommandHandler {
         let req = ExecuteWorkflowRequest::new(
             cmd.workflow_content().to_string(),
             cmd.repository().path().as_path().to_path_buf(),
-            EvaluationContextMapper::to_parts(&context),
+            context,
             cmd.run_id().to_string(),
             cmd.allow_repo_writes(),
         )

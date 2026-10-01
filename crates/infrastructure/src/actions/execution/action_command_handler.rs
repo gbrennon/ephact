@@ -9,10 +9,7 @@ use crate::{
         },
         ports::outbound::{StepTextCodecPort, container_port::ContainerPort},
     },
-    domain::{
-        errors::StepError, messages::commands::ExecuteActionCommand,
-        services::evaluation_context_mapper::EvaluationContextMapper,
-    },
+    domain::{errors::StepError, messages::commands::ExecuteActionCommand},
     steps::JsonStepTextCodec,
 };
 
@@ -34,11 +31,7 @@ impl ActionCommandHandler {
         let req = ExecuteActionRequest::new(ExecuteActionRequestInput::new(
             action_ref,
             JsonStepTextCodec.encode(&step)?,
-            ExecuteActionExecutionInput::new(
-                repo_path,
-                env,
-                EvaluationContextMapper::to_parts(&context),
-            ),
+            ExecuteActionExecutionInput::new(repo_path, env, context),
         ));
         let executor = (self.executor_factory)(container);
         executor.execute(req).map_err(|error| {

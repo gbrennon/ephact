@@ -16,20 +16,15 @@ use crate::{
             },
         },
     },
-    domain::{
-        messages::{
-            commands::ExecuteWorkflowCommand,
-            events::{
-                DomainEvent, RunFailedPayload, RunStartedPayload, WorkflowRunCompletedPayload,
-            },
-        },
-        services::{
-            repository_factory::RepositoryFactory,
-            workflow_run_config_factory::WorkflowRunConfigFactory,
-            workflow_run_config_input::WorkflowRunConfigInput,
-        },
+    domain::messages::{
+        commands::ExecuteWorkflowCommand,
+        events::{DomainEvent, RunFailedPayload, RunStartedPayload, WorkflowRunCompletedPayload},
     },
-    workflows::execution::workflow_execution_aggregator::WorkflowExecutionAggregator,
+    repositories::RepositoryResolver,
+    workflows::execution::{
+        workflow_execution_aggregator::WorkflowExecutionAggregator,
+        workflow_run_config_mapper::WorkflowRunConfigMapper,
+    },
 };
 
 /// Name reported for the aggregate summary of a full multi-workflow run.
@@ -70,15 +65,15 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
         request: RunAllWorkflowsRequest,
     ) -> Result<RunSummaryResponse, ApplicationError> {
         let started_at = Instant::now();
-        let repository = RepositoryFactory::create(
+        let repository = RepositoryResolver::resolve(
             request.repository_path().to_path_buf(),
-            request.repository_name().to_string(),
+            request.repository_name().to_owned(),
         )
-        .map_err(|error| ApplicationError::Workflow(format!("{error:?}")))?;
+        .map_err(|error| ApplicationError::Workflow(error.to_string()))?;
         let config = Self::create_config(&request);
         let event = Self::required_event(&config)?;
-        let run_id = request.run_id().to_string();
         let repository_path = repository.path().as_path().display().to_string();
+        let run_id = request.run_id().to_string();
         self.event_bus
             .publish(DomainEvent::RunStarted(RunStartedPayload::new(
                 run_id.clone(),
@@ -108,19 +103,18 @@ impl RunAllWorkflowsService {
     fn create_config(
         request: &RunAllWorkflowsRequest,
     ) -> crate::domain::value_objects::WorkflowRunConfig {
-        WorkflowRunConfigFactory::create(
-            WorkflowRunConfigInput::default()
-                .with_workflow(request.workflow().map(str::to_string))
-                .with_job(request.job().map(str::to_string))
-                .with_event(request.event().map(str::to_string))
-                .with_inputs(request.inputs().to_vec())
-                .with_secrets(request.secrets().to_vec())
-                .with_all_workflows(request.all_workflows())
-                .with_allow_repo_writes(request.allow_repo_writes())
-                .with_allow_real_container(request.allow_real_container())
-                .with_allow_real_fetcher(request.allow_real_fetcher())
-                .with_allow_network(request.allow_network()),
-        )
+        WorkflowRunConfigMapper::default()
+            .with_workflow(request.workflow().map(str::to_string))
+            .with_job(request.job().map(str::to_string))
+            .with_event(request.event().map(str::to_string))
+            .with_inputs(request.inputs().to_vec())
+            .with_secrets(request.secrets().to_vec())
+            .with_all_workflows(request.all_workflows())
+            .with_allow_repo_writes(request.allow_repo_writes())
+            .with_allow_real_container(request.allow_real_container())
+            .with_allow_real_fetcher(request.allow_real_fetcher())
+            .with_allow_network(request.allow_network())
+            .into_config()
     }
 
     fn required_event(
