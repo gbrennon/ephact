@@ -3,9 +3,8 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use ephact::{
-    application::dtos::requests::DetectWorkflowFileRequest,
-    infrastructure::workflows::detect_workflow_file_port::DetectWorkflowFilePort,
+use ephact::application::{
+    dtos::requests::DetectWorkflowFileRequest, ports::outbound::DetectWorkflowFilePort,
 };
 
 /// Detects a prepared workflow file, recording whether it was consulted.
@@ -31,7 +30,7 @@ impl FakeDetectWorkflowFilePort {
 }
 
 impl DetectWorkflowFilePort for FakeDetectWorkflowFilePort {
-    fn execute(
+    fn detect(
         &self,
         _request: DetectWorkflowFileRequest,
     ) -> Result<PathBuf, Box<dyn std::error::Error>> {

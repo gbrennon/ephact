@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
-use super::{
-    super::containers::workspace::RUNNER_PATH_FILE,
-    read_step_path_exports_port::ReadStepPathExportsPort,
+use super::super::containers::workspace::RUNNER_PATH_FILE;
+use crate::application::{
+    dtos::requests::ReadStepPathExportsRequest, ports::outbound::ReadStepPathExportsPort,
 };
-use crate::application::dtos::requests::ReadStepPathExportsRequest;
 
 /// Service that reads the directories a step exported through `GITHUB_PATH`.
 ///
@@ -25,7 +24,7 @@ impl Default for ReadStepPathExportsService {
 }
 
 impl ReadStepPathExportsPort for ReadStepPathExportsService {
-    fn execute(
+    fn read(
         &self,
         _request: ReadStepPathExportsRequest,
         container: &dyn crate::application::ports::outbound::container_port::ContainerPort,

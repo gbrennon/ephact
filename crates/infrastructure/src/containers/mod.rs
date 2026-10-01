@@ -10,9 +10,8 @@ pub mod workspace;
 pub use container_cleanup_handler::ContainerCleanupHandler;
 pub use docker::DockerRuntime;
 pub use job_preparation::{
-    BuildRunContextPort, BuildRunContextService, CopyRepositoryToContainerPort,
-    CreateJobContainerPort, CreateJobContainerService, PrepareJobContainerService,
-    PullJobImagePort, PullJobImageService, RepositoryContainerCopyAdapter,
+    BuildRunContextService, CreateJobContainerService, PrepareJobContainerService,
+    PullJobImageService, RepositoryContainerCopyAdapter,
 };
 pub use podman::PodmanRuntime;
 pub use runtime::ContainerRuntimeAdapter;

@@ -1,9 +1,11 @@
 use std::error::Error;
 
-use super::merge_run_executions_port::MergeRunExecutionsPort;
-use crate::application::dtos::{
-    requests::MergeRunExecutionsRequest,
-    responses::{JobSummaryResponse, WorkflowExecutionResponse},
+use crate::application::{
+    dtos::{
+        requests::MergeRunExecutionsRequest,
+        responses::{JobSummaryResponse, WorkflowExecutionResponse},
+    },
+    ports::outbound::MergeRunExecutionsPort,
 };
 
 /// Summary name used when every workflow in the repository is executed.
@@ -40,7 +42,7 @@ impl Default for MergeRunExecutionsService {
 }
 
 impl MergeRunExecutionsPort for MergeRunExecutionsService {
-    fn execute(
+    fn merge(
         &self,
         request: MergeRunExecutionsRequest,
     ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {

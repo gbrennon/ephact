@@ -8,11 +8,11 @@ use crate::{
         },
         ports::outbound::{
             action_command_bus_port::ActionCommandBusPort, container_port::ContainerPort,
+            run_composite_step_port::RunCompositeStepPort,
             shell_step_runner_port::ShellStepRunnerPort,
         },
     },
     domain::{errors::StepError, messages::commands::ExecuteActionCommand},
-    steps::run_composite_step_port::RunCompositeStepPort,
 };
 
 /// Runs one step of a composite action: shell steps go straight to the shell
@@ -36,7 +36,7 @@ impl RunCompositeStepService {
 }
 
 impl RunCompositeStepPort for RunCompositeStepService {
-    fn execute(
+    fn run(
         &self,
         request: RunCompositeStepRequest<'_>,
         container: Arc<dyn ContainerPort>,

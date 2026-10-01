@@ -1,14 +1,14 @@
 use std::{collections::HashMap, error::Error, sync::Arc};
 
-use super::{
-    super::workspace::CONTAINER_WORKSPACE, create_job_container_port::CreateJobContainerPort,
-};
-use crate::application::{
-    dtos::{
-        requests::CreateJobContainerRequest,
-        responses::{ContainerConfigOptions, ContainerConfigResponse, RunnerContextResponse},
+use crate::{
+    application::{
+        dtos::{
+            requests::CreateJobContainerRequest,
+            responses::{ContainerConfigOptions, ContainerConfigResponse, RunnerContextResponse},
+        },
+        ports::outbound::{ContainerPort, ContainerRuntimePort, CreateJobContainerPort},
     },
-    ports::outbound::{ContainerRuntimePort, container_port::ContainerPort},
+    containers::workspace::CONTAINER_WORKSPACE,
 };
 
 /// Service that creates the container a job's steps run in, removing any
@@ -24,7 +24,7 @@ impl CreateJobContainerService {
 }
 
 impl CreateJobContainerPort for CreateJobContainerService {
-    fn execute(
+    fn create(
         &self,
         request: CreateJobContainerRequest,
     ) -> Result<Box<dyn ContainerPort>, Box<dyn Error>> {

@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use crate::{
-    actions::{BuildActionInputEnvironmentPort, CopyActionToContainerPort, ResolveNodeBinaryPort},
     application::{
         dtos::{
             requests::{
@@ -11,7 +10,8 @@ use crate::{
             responses::RunNodeActionResponse,
         },
         ports::outbound::{
-            container_port::ContainerPort, node_action_runner_port::NodeActionRunnerPort,
+            BuildActionInputEnvironmentPort, ContainerPort, CopyActionToContainerPort,
+            NodeActionRunnerPort, ResolveNodeBinaryPort,
         },
     },
     containers::workspace::CONTAINER_WORKSPACE,
@@ -46,22 +46,20 @@ impl NodeActionRunnerPort for RunNodeActionService {
         request: RunNodeActionRequest,
         container: Arc<dyn ContainerPort>,
     ) -> Result<RunNodeActionResponse, StepError> {
-        let container_dir = self
-            .action_copier
-            .execute(CopyActionToContainerRequest::new(
-                request.action_dir().to_path_buf(),
-                container.clone(),
-            ))?;
+        let container_dir = self.action_copier.copy(CopyActionToContainerRequest::new(
+            request.action_dir().to_path_buf(),
+            container.clone(),
+        ))?;
 
         let action_request = BuildActionInputEnvironmentRequest::new(
             request.env().clone(),
             request.inputs().clone(),
             container_dir.clone(),
         );
-        let action_response = self.environment_builder.execute(action_request);
+        let action_response = self.environment_builder.build(action_request);
         let binary = self
             .node_binary_resolver
-            .execute(ResolveNodeBinaryRequest::new(container.clone()));
+            .resolve(ResolveNodeBinaryRequest::new(container.clone()));
 
         let entry_point = request.entry_point();
         let command = ShellCommand::new(

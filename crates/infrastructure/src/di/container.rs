@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use crate::{
-    actions::{ActionFetcherPort, GitActionFetcher, RunActionFactory},
+    actions::{GitActionFetcher, RunActionFactory},
     application::{
         ports::outbound::{
-            ContainerRuntimePort, ProjectBrandingStorePort, WorkflowSourcePort,
-            domain_event_bus_port::DomainEventBusPort,
+            ActionFetcherPort, ContainerRuntimePort, ImageMapperPort, ProjectBrandingStorePort,
+            WorkflowSourcePort, domain_event_bus_port::DomainEventBusPort,
             workflow_command_bus_port::WorkflowCommandBusPort,
         },
         services::{
@@ -19,7 +19,7 @@ use crate::{
         app_container::{AppContainer, AppContainerParts},
         command_bus_wiring::CommandBusWiring,
     },
-    images::{ImageMapperPort, PlatformImageMapper},
+    images::PlatformImageMapper,
     logging::{FailureLogErrorStore, FailureLogHandler, FailureLogPathStore, FailureLogStores},
     messaging::{DomainEventHandler, InMemoryEventBus, SharedCommandBus, SharedEventBus},
     steps::JsonStepTextCodec,

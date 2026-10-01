@@ -1,7 +1,12 @@
 use std::path::PathBuf;
 
-use super::{ActionFetcherPort, fetch_remote_action_port::FetchRemoteActionPort};
-use crate::{application::dtos::requests::FetchRemoteActionRequest, domain::errors::ActionError};
+use crate::{
+    application::{
+        dtos::requests::FetchRemoteActionRequest,
+        ports::outbound::{ActionFetcherPort, FetchRemoteActionPort},
+    },
+    domain::errors::ActionError,
+};
 
 /// Service that retrieves an action published on a forge, narrowing the result
 /// to the subdirectory the reference names when it names one.
@@ -16,7 +21,7 @@ impl FetchRemoteActionService {
 }
 
 impl FetchRemoteActionPort for FetchRemoteActionService {
-    fn execute(&self, request: FetchRemoteActionRequest) -> Result<PathBuf, ActionError> {
+    fn fetch(&self, request: FetchRemoteActionRequest) -> Result<PathBuf, ActionError> {
         let fetched = self.fetcher.fetch(request.reference())?;
         Ok(match request.reference().directory() {
             Some(directory) => fetched.join(directory),

@@ -2,11 +2,9 @@ use std::{fs, os::unix::fs::PermissionsExt};
 
 use ephact::{
     application::dtos::requests::CollectActionFilesRequest,
-    infrastructure::actions::preparation::{
-        collect_action_files_port::CollectActionFilesPort,
-        collect_action_files_service::CollectActionFilesService,
-    },
+    infrastructure::actions::preparation::collect_action_files_service::CollectActionFilesService,
 };
+use ephact_application::ports::outbound::CollectActionFilesPort;
 
 #[test]
 fn execute_returns_files_with_action_relative_paths_and_contents() {
@@ -14,7 +12,7 @@ fn execute_returns_files_with_action_relative_paths_and_contents() {
     fs::write(tmp.path().join("action.yml"), "name: Greet\n").unwrap();
 
     let response = CollectActionFilesService::new()
-        .execute(CollectActionFilesRequest::new(tmp.path().to_path_buf()))
+        .collect(CollectActionFilesRequest::new(tmp.path().to_path_buf()))
         .unwrap();
 
     assert_eq!(response.files().len(), 1);
@@ -29,7 +27,7 @@ fn execute_walks_nested_directories() {
     fs::write(tmp.path().join("dist/index.js"), "run()").unwrap();
 
     let response = CollectActionFilesService::new()
-        .execute(CollectActionFilesRequest::new(tmp.path().to_path_buf()))
+        .collect(CollectActionFilesRequest::new(tmp.path().to_path_buf()))
         .unwrap();
 
     assert_eq!(response.files()[0].path(), "dist/index.js");
@@ -43,7 +41,7 @@ fn execute_skips_the_git_directory() {
     fs::write(tmp.path().join(".git/config"), "[core]").unwrap();
 
     let response = CollectActionFilesService::new()
-        .execute(CollectActionFilesRequest::new(tmp.path().to_path_buf()))
+        .collect(CollectActionFilesRequest::new(tmp.path().to_path_buf()))
         .unwrap();
 
     assert_eq!(response.files().len(), 1);
@@ -58,7 +56,7 @@ fn execute_keeps_an_executables_mode_bits() {
     fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).unwrap();
 
     let response = CollectActionFilesService::new()
-        .execute(CollectActionFilesRequest::new(tmp.path().to_path_buf()))
+        .collect(CollectActionFilesRequest::new(tmp.path().to_path_buf()))
         .unwrap();
 
     assert_eq!(response.files()[0].mode(), 0o755);
@@ -69,7 +67,7 @@ fn execute_errors_for_a_missing_action_directory() {
     let tmp = tempfile::tempdir().unwrap();
 
     let error = CollectActionFilesService::new()
-        .execute(CollectActionFilesRequest::new(tmp.path().join("absent")))
+        .collect(CollectActionFilesRequest::new(tmp.path().join("absent")))
         .unwrap_err();
 
     assert!(

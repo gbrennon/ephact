@@ -2,11 +2,9 @@ use std::{path::PathBuf, sync::Arc};
 
 use ephact::{
     application::dtos::{requests::CopyActionToContainerRequest, responses::FileEntryResponse},
-    infrastructure::actions::preparation::{
-        copy_action_to_container_port::CopyActionToContainerPort,
-        copy_action_to_container_service::CopyActionToContainerService,
-    },
+    infrastructure::actions::preparation::copy_action_to_container_service::CopyActionToContainerService,
 };
+use ephact_application::ports::outbound::CopyActionToContainerPort;
 
 use crate::common::fakes::{
     fake_collect_action_files_port::FakeCollectActionFilesPort,
@@ -26,7 +24,7 @@ fn execute_returns_the_slugged_container_directory() {
         ])));
 
     let directory = service
-        .execute(CopyActionToContainerRequest::new(
+        .copy(CopyActionToContainerRequest::new(
             PathBuf::from("/repo/actions/greet"),
             Arc::new(container.clone()),
         ))
@@ -44,7 +42,7 @@ fn execute_creates_the_directory_before_copying_the_files() {
         ])));
 
     service
-        .execute(CopyActionToContainerRequest::new(
+        .copy(CopyActionToContainerRequest::new(
             PathBuf::from("/repo/actions/greet"),
             Arc::new(container.clone()),
         ))
@@ -73,7 +71,7 @@ fn execute_reports_a_failing_copy() {
         ])));
 
     let error = service
-        .execute(CopyActionToContainerRequest::new(
+        .copy(CopyActionToContainerRequest::new(
             PathBuf::from("/repo/actions/greet"),
             Arc::new(StubFailingContainer),
         ))
@@ -95,7 +93,7 @@ fn execute_propagates_a_collection_failure() {
     )));
 
     let error = service
-        .execute(CopyActionToContainerRequest::new(
+        .copy(CopyActionToContainerRequest::new(
             PathBuf::from("/repo/actions/greet"),
             Arc::new(StubRecordingContainer::new()),
         ))

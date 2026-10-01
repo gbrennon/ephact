@@ -1,8 +1,11 @@
 use std::fs::{create_dir_all, write};
 
 use ephact::{
-    application::dtos::requests::CopyRepositoryToContainerRequest,
-    infrastructure::containers::{CopyRepositoryToContainerPort, RepositoryContainerCopyAdapter},
+    application::{
+        dtos::requests::CopyRepositoryToContainerRequest,
+        ports::outbound::CopyRepositoryToContainerPort,
+    },
+    infrastructure::containers::RepositoryContainerCopyAdapter,
 };
 use tempfile::tempdir;
 
@@ -22,7 +25,7 @@ fn execute_preserves_git_metadata_for_ci_commands() {
     );
 
     RepositoryContainerCopyAdapter::new()
-        .execute(request, &container)
+        .copy(request, &container)
         .expect("repository copy");
 
     let mut copied_paths = container
@@ -60,7 +63,7 @@ fn execute_excludes_nested_worktrees_from_repository_archive() {
     );
 
     RepositoryContainerCopyAdapter::new()
-        .execute(request, &container)
+        .copy(request, &container)
         .expect("repository copy");
 
     let copied_files = container.copied_files();

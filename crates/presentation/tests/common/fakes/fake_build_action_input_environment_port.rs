@@ -1,11 +1,11 @@
 use std::{collections::HashMap, sync::Arc};
 
-use ephact::{
-    application::dtos::{
+use ephact::application::{
+    dtos::{
         requests::BuildActionInputEnvironmentRequest,
         responses::BuildActionInputEnvironmentResponse,
     },
-    infrastructure::actions::preparation::build_action_input_environment_port::BuildActionInputEnvironmentPort,
+    ports::outbound::BuildActionInputEnvironmentPort,
 };
 use parking_lot::Mutex;
 
@@ -30,7 +30,7 @@ impl FakeBuildActionInputEnvironmentPort {
 }
 
 impl BuildActionInputEnvironmentPort for FakeBuildActionInputEnvironmentPort {
-    fn execute(
+    fn build(
         &self,
         request: BuildActionInputEnvironmentRequest,
     ) -> BuildActionInputEnvironmentResponse {

@@ -4,11 +4,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use super::collect_action_files_port::CollectActionFilesPort;
 use crate::{
-    application::dtos::{
-        requests::CollectActionFilesRequest,
-        responses::{CollectActionFilesResponse, FileEntryResponse},
+    application::{
+        dtos::{
+            requests::CollectActionFilesRequest,
+            responses::{CollectActionFilesResponse, FileEntryResponse},
+        },
+        ports::outbound::CollectActionFilesPort,
     },
     domain::errors::StepError,
 };
@@ -94,7 +96,7 @@ impl Default for CollectActionFilesService {
 }
 
 impl CollectActionFilesPort for CollectActionFilesService {
-    fn execute(
+    fn collect(
         &self,
         request: CollectActionFilesRequest,
     ) -> Result<CollectActionFilesResponse, StepError> {

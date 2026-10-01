@@ -1,11 +1,10 @@
 use std::{collections::HashMap, path::Path};
 
-use super::{
-    collect_action_files_port::CollectActionFilesPort,
-    copy_action_to_container_port::CopyActionToContainerPort,
-};
 use crate::{
-    application::dtos::requests::{CollectActionFilesRequest, CopyActionToContainerRequest},
+    application::{
+        dtos::requests::{CollectActionFilesRequest, CopyActionToContainerRequest},
+        ports::outbound::{CollectActionFilesPort, CopyActionToContainerPort},
+    },
     domain::{entities::FileEntry, errors::StepError},
 };
 
@@ -41,9 +40,9 @@ impl CopyActionToContainerService {
 }
 
 impl CopyActionToContainerPort for CopyActionToContainerService {
-    fn execute(&self, request: CopyActionToContainerRequest) -> Result<String, StepError> {
+    fn copy(&self, request: CopyActionToContainerRequest) -> Result<String, StepError> {
         let container_dir = Self::container_action_dir(request.action_dir());
-        let files_response = self.file_collector.execute(CollectActionFilesRequest::new(
+        let files_response = self.file_collector.collect(CollectActionFilesRequest::new(
             request.action_dir().to_path_buf(),
         ))?;
         let files: Vec<FileEntry> = files_response

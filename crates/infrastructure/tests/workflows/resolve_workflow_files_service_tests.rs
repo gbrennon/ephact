@@ -3,11 +3,9 @@ use std::path::{Path, PathBuf};
 use ephact::{
     application::dtos::requests::ResolveWorkflowFilesRequest,
     domain::{WorkflowPath, WorkflowRunConfig},
-    infrastructure::workflows::{
-        resolve_workflow_files_port::ResolveWorkflowFilesPort,
-        resolve_workflow_files_service::ResolveWorkflowFilesService,
-    },
+    infrastructure::workflows::resolve_workflow_files_service::ResolveWorkflowFilesService,
 };
+use ephact_application::ports::outbound::ResolveWorkflowFilesPort;
 
 use crate::common::fakes::{
     fake_detect_workflow_file_port::FakeDetectWorkflowFilePort,
@@ -32,7 +30,7 @@ fn execute_lists_every_workflow_when_all_workflows_is_configured() {
     let config = WorkflowRunConfig::new().with_all_workflows(true);
 
     let response = service
-        .execute(ResolveWorkflowFilesRequest::new(
+        .resolve(ResolveWorkflowFilesRequest::new(
             &config,
             Path::new("/repo"),
         ))
@@ -57,7 +55,7 @@ fn execute_resolves_the_configured_workflow_by_name() {
     let config = WorkflowRunConfig::new().with_workflow(WorkflowPath::new("ci.yml".into()));
 
     let response = service
-        .execute(ResolveWorkflowFilesRequest::new(
+        .resolve(ResolveWorkflowFilesRequest::new(
             &config,
             Path::new("/repo"),
         ))
@@ -80,7 +78,7 @@ fn execute_detects_the_workflow_when_none_is_configured() {
     let config = WorkflowRunConfig::new();
 
     let response = service
-        .execute(ResolveWorkflowFilesRequest::new(
+        .resolve(ResolveWorkflowFilesRequest::new(
             &config,
             Path::new("/repo"),
         ))
@@ -105,7 +103,7 @@ fn execute_does_not_consult_the_detector_for_a_named_workflow() {
     );
 
     service
-        .execute(ResolveWorkflowFilesRequest::new(
+        .resolve(ResolveWorkflowFilesRequest::new(
             &config,
             Path::new("/repo"),
         ))
@@ -126,7 +124,7 @@ fn execute_propagates_a_collaborator_error() {
     let config = WorkflowRunConfig::new().with_workflow(WorkflowPath::new("ci.yml".into()));
 
     let error = service
-        .execute(ResolveWorkflowFilesRequest::new(
+        .resolve(ResolveWorkflowFilesRequest::new(
             &config,
             Path::new("/repo"),
         ))

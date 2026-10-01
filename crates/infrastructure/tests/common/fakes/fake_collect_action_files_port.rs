@@ -1,12 +1,14 @@
 use std::{path::PathBuf, sync::Arc};
 
 use ephact::{
-    application::dtos::{
-        requests::CollectActionFilesRequest,
-        responses::{CollectActionFilesResponse, FileEntryResponse},
+    application::{
+        dtos::{
+            requests::CollectActionFilesRequest,
+            responses::{CollectActionFilesResponse, FileEntryResponse},
+        },
+        ports::outbound::CollectActionFilesPort,
     },
     domain::errors::StepError,
-    infrastructure::actions::preparation::collect_action_files_port::CollectActionFilesPort,
 };
 use parking_lot::Mutex;
 
@@ -41,7 +43,7 @@ impl FakeCollectActionFilesPort {
 }
 
 impl CollectActionFilesPort for FakeCollectActionFilesPort {
-    fn execute(
+    fn collect(
         &self,
         request: CollectActionFilesRequest,
     ) -> Result<CollectActionFilesResponse, StepError> {

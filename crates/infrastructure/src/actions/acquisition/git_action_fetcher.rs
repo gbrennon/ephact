@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::{
-    actions::ActionFetcherPort,
+    application::ports::outbound::ActionFetcherPort,
     domain::{errors::ActionError, value_objects::RemoteActionReference},
 };
 

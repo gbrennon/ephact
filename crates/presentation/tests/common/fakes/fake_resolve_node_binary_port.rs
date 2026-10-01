@@ -1,6 +1,5 @@
-use ephact::{
-    application::dtos::requests::ResolveNodeBinaryRequest,
-    infrastructure::actions::preparation::resolve_node_binary_port::ResolveNodeBinaryPort,
+use ephact::application::{
+    dtos::requests::ResolveNodeBinaryRequest, ports::outbound::ResolveNodeBinaryPort,
 };
 
 /// Reports a prepared node interpreter.
@@ -18,7 +17,7 @@ impl FakeResolveNodeBinaryPort {
 }
 
 impl ResolveNodeBinaryPort for FakeResolveNodeBinaryPort {
-    fn execute(&self, _request: ResolveNodeBinaryRequest) -> String {
+    fn resolve(&self, _request: ResolveNodeBinaryRequest) -> String {
         self.binary.clone()
     }
 }

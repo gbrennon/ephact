@@ -1,11 +1,9 @@
-use crate::application::dtos::{
+use crate::dtos::{
     requests::BuildActionInputEnvironmentRequest, responses::BuildActionInputEnvironmentResponse,
 };
 
-/// Outbound port for exposing an action's inputs as environment variables.
 pub trait BuildActionInputEnvironmentPort: Send + Sync {
-    /// Returns the environment with action inputs and action path configured.
-    fn execute(
+    fn build(
         &self,
         request: BuildActionInputEnvironmentRequest,
     ) -> BuildActionInputEnvironmentResponse;

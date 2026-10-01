@@ -6,7 +6,7 @@ use ephact::{
             ContainerConfigResponse, ExecResultResponse, HostInfoResponse, RunnerContextResponse,
         },
         ports::outbound::{
-            ContainerRuntimePort,
+            ActionFetcherPort, ContainerRuntimePort,
             container_port::{ContainerPort, ExecOptions},
         },
     },
@@ -16,7 +16,6 @@ use ephact::{
         messages::events::OutputStream,
         value_objects::RemoteActionReference,
     },
-    infrastructure::actions::ActionFetcherPort,
 };
 
 use crate::support::{

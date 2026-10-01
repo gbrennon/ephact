@@ -1,8 +1,8 @@
 use std::{error::Error, fs::read_dir};
 
-use super::list_workflow_directory_port::ListWorkflowDirectoryPort;
-use crate::application::dtos::{
-    requests::ListWorkflowDirectoryRequest, responses::ListWorkflowDirectoryResponse,
+use crate::application::{
+    dtos::{requests::ListWorkflowDirectoryRequest, responses::ListWorkflowDirectoryResponse},
+    ports::outbound::ListWorkflowDirectoryPort,
 };
 
 /// Service that lists the workflow files held directly by one directory.
@@ -28,7 +28,7 @@ impl Default for ListWorkflowDirectoryService {
 }
 
 impl ListWorkflowDirectoryPort for ListWorkflowDirectoryService {
-    fn execute(
+    fn list(
         &self,
         request: ListWorkflowDirectoryRequest,
     ) -> Result<ListWorkflowDirectoryResponse, Box<dyn Error>> {
