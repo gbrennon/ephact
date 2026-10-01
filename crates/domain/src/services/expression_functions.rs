@@ -266,4 +266,506 @@ impl ExpressionFunctions {
 }
 
 #[cfg(test)]
-mod tests;
+mod tests {
+    use super::*;
+
+    #[test]
+    fn call_unknown_function_error() {
+        let f = ExpressionFunctions::new();
+        let err = f.call("nonexistent", &[]).unwrap_err();
+        assert!(matches!(err, EvalError::TypeError(_)));
+    }
+
+    #[test]
+    fn call_wrong_arg_count() {
+        let f = ExpressionFunctions::new();
+        let err = f
+            .call("contains", &[ContextValue::text("only one")])
+            .unwrap_err();
+        assert!(matches!(err, EvalError::ArgCount(_)));
+    }
+
+    #[test]
+    fn call_case_insensitive() {
+        let f = ExpressionFunctions::new();
+        let result = f
+            .call(
+                "CoNtAiNs",
+                &[
+                    ContextValue::text("Hello World"),
+                    ContextValue::text("world"),
+                ],
+            )
+            .unwrap();
+        assert_eq!(result, ContextValue::Boolean(true));
+    }
+
+    #[test]
+    fn call_success_zero_args() {
+        let f = ExpressionFunctions::new();
+        let result = f.call("success", &[]).unwrap();
+        assert_eq!(result, ContextValue::Boolean(true));
+    }
+
+    #[test]
+    fn call_success_with_args_is_error() {
+        let f = ExpressionFunctions::new();
+        let err = f
+            .call("success", &[ContextValue::text("extra")])
+            .unwrap_err();
+        assert!(matches!(err, EvalError::ArgCount(_)));
+    }
+
+    #[test]
+    fn call_dispatches_starts_with() {
+        let f = ExpressionFunctions::new();
+        assert_eq!(
+            f.call(
+                "startswith",
+                &[ContextValue::text("Hello"), ContextValue::text("he")]
+            )
+            .unwrap(),
+            ContextValue::Boolean(true)
+        );
+    }
+
+    #[test]
+    fn call_dispatches_ends_with() {
+        let f = ExpressionFunctions::new();
+        assert_eq!(
+            f.call(
+                "endswith",
+                &[ContextValue::text("Hello"), ContextValue::text("lo")]
+            )
+            .unwrap(),
+            ContextValue::Boolean(true)
+        );
+    }
+
+    #[test]
+    fn call_format_with_no_args_errors() {
+        let f = ExpressionFunctions::new();
+        let err = f.call("format", &[]).unwrap_err();
+        assert!(matches!(err, EvalError::ArgCount(_)));
+    }
+
+    #[test]
+    fn call_dispatches_format() {
+        let f = ExpressionFunctions::new();
+        assert_eq!(
+            f.call(
+                "format",
+                &[ContextValue::text("Hi {0}"), ContextValue::text("bob")]
+            )
+            .unwrap(),
+            ContextValue::text("Hi bob")
+        );
+    }
+
+    #[test]
+    fn call_dispatches_join() {
+        let f = ExpressionFunctions::new();
+        assert_eq!(
+            f.call(
+                "join",
+                &[
+                    ContextValue::list([ContextValue::text("a"), ContextValue::text("b")]),
+                    ContextValue::text("-")
+                ]
+            )
+            .unwrap(),
+            ContextValue::text("a-b")
+        );
+    }
+
+    #[test]
+    fn call_dispatches_to_json() {
+        let f = ExpressionFunctions::new();
+        assert_eq!(
+            f.call(
+                "tojson",
+                &[ContextValue::mapping([(
+                    "a".to_owned(),
+                    ContextValue::Integer(1)
+                )])]
+            )
+            .unwrap(),
+            ContextValue::text(r#"{"a":1}"#)
+        );
+    }
+
+    #[test]
+    fn call_dispatches_from_json() {
+        let f = ExpressionFunctions::new();
+        assert_eq!(
+            f.call("fromjson", &[ContextValue::text(r#"{"a":1}"#)])
+                .unwrap(),
+            ContextValue::mapping([("a".to_owned(), ContextValue::Integer(1))])
+        );
+    }
+
+    #[test]
+    fn call_dispatches_always_cancelled_failure() {
+        let f = ExpressionFunctions::new();
+        assert_eq!(f.call("always", &[]).unwrap(), ContextValue::Boolean(true));
+        assert_eq!(
+            f.call("cancelled", &[]).unwrap(),
+            ContextValue::Boolean(false)
+        );
+        assert_eq!(
+            f.call("failure", &[]).unwrap(),
+            ContextValue::Boolean(false)
+        );
+    }
+
+    #[test]
+    fn expect_arg_count_reports_range() {
+        let err = ExpressionFunctions::expect_arg_count("x", 4, 1, 3).unwrap_err();
+        assert!(matches!(err, EvalError::ArgCount(_)));
+    }
+
+    #[test]
+    fn format_basic() {
+        let f = ExpressionFunctions::new();
+        let result = f
+            .format(
+                &ContextValue::text("Hello {0}"),
+                &[ContextValue::text("world")],
+            )
+            .unwrap();
+        assert_eq!(result, ContextValue::text("Hello world"));
+    }
+
+    #[test]
+    fn format_multiple_args() {
+        let f = ExpressionFunctions::new();
+        let result = f
+            .format(
+                &ContextValue::text("{0} + {1} = {2}"),
+                &[
+                    ContextValue::Integer(1),
+                    ContextValue::Integer(2),
+                    ContextValue::Integer(3),
+                ],
+            )
+            .unwrap();
+        assert_eq!(result, ContextValue::text("1 + 2 = 3"));
+    }
+
+    #[test]
+    fn format_no_placeholders() {
+        let f = ExpressionFunctions::new();
+        let result = f
+            .format(&ContextValue::text("no placeholders"), &[])
+            .unwrap();
+        assert_eq!(result, ContextValue::text("no placeholders"));
+    }
+
+    #[test]
+    fn format_index_out_of_range() {
+        let f = ExpressionFunctions::new();
+        let err = f
+            .format(
+                &ContextValue::text("Hello {5}"),
+                &[ContextValue::text("world")],
+            )
+            .unwrap_err();
+        assert!(matches!(err, EvalError::FormatError(_)));
+    }
+
+    #[test]
+    fn format_invalid_placeholder_character() {
+        let f = ExpressionFunctions::new();
+        let err = f
+            .format(&ContextValue::text("{a}"), &[ContextValue::text("x")])
+            .unwrap_err();
+        assert!(matches!(err, EvalError::FormatError(_)));
+    }
+
+    #[test]
+    fn format_unclosed_placeholder() {
+        let f = ExpressionFunctions::new();
+        let err = f.format(&ContextValue::text("{0"), &[]).unwrap_err();
+        assert!(matches!(err, EvalError::FormatError(_)));
+    }
+
+    #[test]
+    fn format_invalid_placeholder_index() {
+        let f = ExpressionFunctions::new();
+        let err = f
+            .format(&ContextValue::text("{}"), &[ContextValue::text("x")])
+            .unwrap_err();
+        assert!(matches!(err, EvalError::FormatError(_)));
+    }
+
+    #[test]
+    fn format_unexpected_closing_brace() {
+        let f = ExpressionFunctions::new();
+        let err = f
+            .format(&ContextValue::text("a}b"), &[ContextValue::text("x")])
+            .unwrap_err();
+        assert!(matches!(err, EvalError::FormatError(_)));
+    }
+
+    #[test]
+    fn format_null_and_bool_and_array_replacement() {
+        let f = ExpressionFunctions::new();
+        assert_eq!(
+            f.format(&ContextValue::text("{0}"), &[ContextValue::Null])
+                .unwrap(),
+            ContextValue::text("null")
+        );
+        assert_eq!(
+            f.format(&ContextValue::text("{0}"), &[ContextValue::Boolean(true)])
+                .unwrap(),
+            ContextValue::text("true")
+        );
+        assert_eq!(
+            f.format(
+                &ContextValue::text("{0}"),
+                &[ContextValue::list([
+                    ContextValue::Integer(1),
+                    ContextValue::Integer(2)
+                ])]
+            )
+            .unwrap(),
+            ContextValue::text("[1,2]")
+        );
+    }
+
+    #[test]
+    fn join_basic() {
+        let f = ExpressionFunctions::new();
+        let result = f
+            .join(
+                &ContextValue::list([
+                    ContextValue::text("a"),
+                    ContextValue::text("b"),
+                    ContextValue::text("c"),
+                ]),
+                &ContextValue::text(", "),
+            )
+            .unwrap();
+        assert_eq!(result, ContextValue::text("a, b, c"));
+    }
+
+    #[test]
+    fn join_single_element() {
+        let f = ExpressionFunctions::new();
+        let result = f
+            .join(
+                &ContextValue::list([ContextValue::text("only")]),
+                &ContextValue::text(", "),
+            )
+            .unwrap();
+        assert_eq!(result, ContextValue::text("only"));
+    }
+
+    #[test]
+    fn join_empty_array() {
+        let f = ExpressionFunctions::new();
+        let result = f
+            .join(&ContextValue::list([]), &ContextValue::text(", "))
+            .unwrap();
+        assert_eq!(result, ContextValue::text(""));
+    }
+
+    #[test]
+    fn join_first_argument_must_be_an_array() {
+        let f = ExpressionFunctions::new();
+        let result = f.join(&ContextValue::text("nope"), &ContextValue::text(", "));
+        assert!(matches!(result.unwrap_err(), EvalError::TypeError(_)));
+    }
+
+    #[test]
+    fn to_json_roundtrip() {
+        let f = ExpressionFunctions::new();
+        let original = ContextValue::mapping([
+            ("key".to_owned(), ContextValue::text("value")),
+            ("num".to_owned(), ContextValue::Integer(42)),
+        ]);
+        let json_str = f.to_json(&original).unwrap();
+        let parsed = f.from_json(&json_str).unwrap();
+        assert_eq!(original, parsed);
+    }
+
+    #[test]
+    fn from_json_invalid() {
+        let f = ExpressionFunctions::new();
+        let err = f.from_json(&ContextValue::text("not json")).unwrap_err();
+        assert!(matches!(err, EvalError::JsonError(_)));
+    }
+
+    #[test]
+    fn contains_string_match_case_insensitive() {
+        let f = ExpressionFunctions::new();
+        let result = f
+            .contains(
+                &ContextValue::text("Hello World"),
+                &ContextValue::text("world"),
+            )
+            .unwrap();
+        assert_eq!(result, ContextValue::Boolean(true));
+    }
+
+    #[test]
+    fn contains_string_no_match() {
+        let f = ExpressionFunctions::new();
+        let result = f
+            .contains(
+                &ContextValue::text("Hello World"),
+                &ContextValue::text("xyz"),
+            )
+            .unwrap();
+        assert_eq!(result, ContextValue::Boolean(false));
+    }
+
+    #[test]
+    fn contains_array_match() {
+        let f = ExpressionFunctions::new();
+        let result = f
+            .contains(
+                &ContextValue::list([
+                    ContextValue::text("a"),
+                    ContextValue::text("b"),
+                    ContextValue::text("c"),
+                ]),
+                &ContextValue::text("b"),
+            )
+            .unwrap();
+        assert_eq!(result, ContextValue::Boolean(true));
+    }
+
+    #[test]
+    fn contains_array_no_match() {
+        let f = ExpressionFunctions::new();
+        let result = f
+            .contains(
+                &ContextValue::list([ContextValue::text("a"), ContextValue::text("b")]),
+                &ContextValue::text("c"),
+            )
+            .unwrap();
+        assert_eq!(result, ContextValue::Boolean(false));
+    }
+
+    #[test]
+    fn contains_type_error_on_number() {
+        let f = ExpressionFunctions::new();
+        let err = f
+            .contains(&ContextValue::Integer(42), &ContextValue::text("x"))
+            .unwrap_err();
+        assert!(matches!(err, EvalError::TypeError(_)));
+    }
+
+    #[test]
+    fn starts_with_match() {
+        let f = ExpressionFunctions::new();
+        let result = f
+            .starts_with(
+                &ContextValue::text("Hello World"),
+                &ContextValue::text("hello"),
+            )
+            .unwrap();
+        assert_eq!(result, ContextValue::Boolean(true));
+    }
+
+    #[test]
+    fn starts_with_no_match() {
+        let f = ExpressionFunctions::new();
+        let result = f
+            .starts_with(
+                &ContextValue::text("Hello World"),
+                &ContextValue::text("World"),
+            )
+            .unwrap();
+        assert_eq!(result, ContextValue::Boolean(false));
+    }
+
+    #[test]
+    fn ends_with_match() {
+        let f = ExpressionFunctions::new();
+        let result = f
+            .ends_with(
+                &ContextValue::text("Hello World"),
+                &ContextValue::text("WORLD"),
+            )
+            .unwrap();
+        assert_eq!(result, ContextValue::Boolean(true));
+    }
+
+    #[test]
+    fn ends_with_no_match() {
+        let f = ExpressionFunctions::new();
+        let result = f
+            .ends_with(
+                &ContextValue::text("Hello World"),
+                &ContextValue::text("Hello"),
+            )
+            .unwrap();
+        assert_eq!(result, ContextValue::Boolean(false));
+    }
+
+    #[test]
+    fn contains_errors_when_search_string_and_item_not_string() {
+        let f = ExpressionFunctions::new();
+        let err = f
+            .contains(&ContextValue::text("hello"), &ContextValue::Integer(42))
+            .unwrap_err();
+        assert!(matches!(err, EvalError::TypeError(_)));
+    }
+
+    #[test]
+    fn expect_string_error_names_value_type() {
+        let f = ExpressionFunctions::new();
+        assert!(
+            f.starts_with(&ContextValue::Null, &ContextValue::text("a"))
+                .is_err()
+        );
+        assert!(
+            f.starts_with(&ContextValue::Boolean(true), &ContextValue::text("a"))
+                .is_err()
+        );
+        assert!(
+            f.starts_with(&ContextValue::Integer(42), &ContextValue::text("a"))
+                .is_err()
+        );
+        assert!(
+            f.starts_with(
+                &ContextValue::list([ContextValue::Integer(1), ContextValue::Integer(2)]),
+                &ContextValue::text("a")
+            )
+            .is_err()
+        );
+        assert!(
+            f.starts_with(
+                &ContextValue::mapping([("k".to_owned(), ContextValue::Integer(1))]),
+                &ContextValue::text("a")
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn success_returns_true() {
+        let f = ExpressionFunctions::new();
+        assert_eq!(f.success().unwrap(), ContextValue::Boolean(true));
+    }
+
+    #[test]
+    fn always_returns_true() {
+        let f = ExpressionFunctions::new();
+        assert_eq!(f.always().unwrap(), ContextValue::Boolean(true));
+    }
+
+    #[test]
+    fn cancelled_returns_false() {
+        let f = ExpressionFunctions::new();
+        assert_eq!(f.cancelled().unwrap(), ContextValue::Boolean(false));
+    }
+
+    #[test]
+    fn failure_returns_false() {
+        let f = ExpressionFunctions::new();
+        assert_eq!(f.failure().unwrap(), ContextValue::Boolean(false));
+    }
+}
