@@ -8,6 +8,7 @@ use crate::{
         TriggerKind, WorkflowTrigger,
     },
 };
+type DependencyMaps<'a> = (HashMap<&'a str, usize>, HashMap<&'a str, Vec<&'a str>>);
 
 /// Represents a parsed workflow file.
 ///
@@ -262,7 +263,7 @@ impl Workflow {
 
     fn build_dependency_maps<'a>(
         dependencies: &HashMap<&'a str, Vec<&'a str>>,
-    ) -> Result<(HashMap<&'a str, usize>, HashMap<&'a str, Vec<&'a str>>), PlanError> {
+    ) -> Result<DependencyMaps<'a>, PlanError> {
         let mut in_degree = HashMap::new();
         let mut dependents = HashMap::new();
         for (&job_id, job_dependencies) in dependencies {
