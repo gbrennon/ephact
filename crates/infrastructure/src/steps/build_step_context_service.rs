@@ -3,10 +3,7 @@ use crate::{
         dtos::requests::BuildStepContextRequest,
         ports::outbound::step_context_builder_port::StepContextBuilderPort,
     },
-    domain::{
-        services::evaluation_context_mapper::EvaluationContextMapper,
-        value_objects::{ContextValue, EvaluationContext},
-    },
+    domain::value_objects::{ContextValue, EvaluationContext},
 };
 
 /// Service that mirrors a step's environment into the `env` expression context.
@@ -26,14 +23,13 @@ impl Default for BuildStepContextService {
 
 impl StepContextBuilderPort for BuildStepContextService {
     fn build(&self, request: BuildStepContextRequest) -> EvaluationContext {
-        let context =
-            EvaluationContextMapper::from_parts(request.context().to_vec()).unwrap_or_default();
+        let context = request.context().clone();
         let env = ContextValue::mapping(
             request
                 .env()
                 .iter()
                 .map(|(key, value)| (key.clone(), ContextValue::text(value.clone()))),
         );
-        context.with_env(env)
+        context.with_root("env", env)
     }
 }

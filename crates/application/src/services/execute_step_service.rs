@@ -1,11 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    domain::{
-        errors::StepError,
-        messages::commands::ExecuteActionCommand,
-        services::{StepInterpolator, evaluation_context_mapper::EvaluationContextMapper},
-    },
+    domain::{errors::StepError, messages::commands::ExecuteActionCommand},
     dtos::{
         requests::{ExecuteStepRequest, RunShellStepRequest},
         responses::{ExecuteActionResponse, ExecutedStepResponse},
@@ -18,6 +14,7 @@ use crate::{
             shell_step_runner_port::ShellStepRunnerPort, step_text_codec_port::StepTextCodecPort,
         },
     },
+    services::StepInterpolator,
 };
 
 pub struct ExecuteStepService {
@@ -83,8 +80,7 @@ impl ExecuteStepPort for ExecuteStepService {
             .step_codec
             .decode(request.step())
             .map_err(ExecuteStepError::Step)?;
-        let context = EvaluationContextMapper::from_parts(request.context().to_vec())
-            .map_err(|error| ExecuteStepError::Step(StepError::new(error.to_string())))?;
+        let context = request.context().clone();
         let interpolated = StepInterpolator::interpolate(&step, &context).map_err(|error| {
             ExecuteStepError::Step(StepError::new(format!(
                 "failed to resolve expressions: {error:?}"

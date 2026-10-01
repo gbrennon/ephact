@@ -5,6 +5,7 @@ use std::{
 };
 
 use super::execute_action_request_input::ExecuteActionRequestInput;
+use crate::domain::value_objects::EvaluationContext;
 
 #[derive(Clone)]
 pub struct ExecuteActionRequest {
@@ -12,14 +13,14 @@ pub struct ExecuteActionRequest {
     step: String,
     repo_path: PathBuf,
     env: HashMap<String, String>,
-    context: Vec<(String, String)>,
+    context: EvaluationContext,
 }
 pub type ExecuteActionRequestParts = (
     String,
     String,
     PathBuf,
     HashMap<String, String>,
-    Vec<(String, String)>,
+    EvaluationContext,
 );
 
 impl ExecuteActionRequest {
@@ -51,7 +52,7 @@ impl ExecuteActionRequest {
         &self.env
     }
 
-    pub fn context(&self) -> &[(String, String)] {
+    pub fn context(&self) -> &EvaluationContext {
         &self.context
     }
 

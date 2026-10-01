@@ -241,4 +241,267 @@ impl Step {
 }
 
 #[cfg(test)]
-mod tests;
+mod tests {
+    use super::*;
+
+    impl Step {
+        fn for_test(run: Option<&str>, shell: Option<&str>, uses: Option<&str>) -> Self {
+            Self::new(None, None, run.map(str::to_owned), uses.map(str::to_owned))
+                .with_shell(shell.map(str::to_owned))
+        }
+    }
+
+    #[test]
+    fn step_type_returns_run_for_script_step() {
+        let step = Step::for_test(Some("cargo test"), None, None);
+
+        assert_eq!(step.step_type(), StepType::Run);
+    }
+
+    #[test]
+    fn step_type_returns_uses_for_remote_action() {
+        let step = Step::for_test(None, None, Some("actions/checkout@v4"));
+
+        assert_eq!(step.step_type(), StepType::Uses);
+    }
+
+    #[test]
+    fn step_type_returns_composite_for_local_action() {
+        let step = Step::for_test(None, None, Some("./action"));
+
+        assert_eq!(step.step_type(), StepType::Composite);
+    }
+
+    #[test]
+    fn step_type_returns_invalid_without_script_or_action() {
+        let step = Step::for_test(None, None, None);
+
+        assert_eq!(step.step_type(), StepType::Invalid);
+    }
+
+    #[test]
+    fn is_run_step_returns_true_for_script_step() {
+        let step = Step::for_test(Some("cargo test"), None, None);
+
+        assert!(step.is_run_step());
+    }
+
+    #[test]
+    fn is_uses_step_returns_true_for_action_step() {
+        let step = Step::for_test(None, None, Some("actions/checkout@v4"));
+
+        assert!(step.is_uses_step());
+    }
+
+    #[test]
+    fn effective_shell_returns_configured_shell() {
+        let step = Step::for_test(Some("echo hello"), Some("pwsh"), None);
+
+        assert_eq!(step.effective_shell("bash"), "pwsh");
+    }
+
+    #[test]
+    fn continues_on_error_returns_true_for_true_flag() {
+        let step = Step::new(None, None, Some("echo".to_owned()), None)
+            .with_continue_on_error(Some("true".to_owned()));
+
+        assert!(step.continues_on_error());
+    }
+
+    #[test]
+    fn continues_on_error_returns_true_for_case_insensitive_true_flag() {
+        let step = Step::new(None, None, Some("echo".to_owned()), None)
+            .with_continue_on_error(Some("True".to_owned()));
+
+        assert!(step.continues_on_error());
+    }
+
+    #[test]
+    fn continues_on_error_returns_false_for_false_flag() {
+        let step = Step::new(None, None, Some("echo".to_owned()), None)
+            .with_continue_on_error(Some("false".to_owned()));
+
+        assert!(!step.continues_on_error());
+    }
+
+    #[test]
+    fn display_name_returns_explicit_name() {
+        let step = Step::new(
+            Some("step-id".to_owned()),
+            Some("Run tests".to_owned()),
+            Some("cargo test".to_owned()),
+            None,
+        );
+
+        assert_eq!(step.display_name(), "Run tests");
+    }
+
+    #[test]
+    fn display_name_returns_id_without_explicit_name() {
+        let step = Step::new(
+            Some("step-id".to_owned()),
+            None,
+            Some("cargo test".to_owned()),
+            None,
+        );
+
+        assert_eq!(step.display_name(), "step-id");
+    }
+
+    #[test]
+    fn display_name_returns_script_without_name_or_id() {
+        let step = Step::for_test(Some("cargo test"), None, None);
+
+        assert_eq!(step.display_name(), "cargo test");
+    }
+
+    #[test]
+    fn display_name_returns_action_without_name_id_or_script() {
+        let step = Step::for_test(None, None, Some("./action"));
+
+        assert_eq!(step.display_name(), "./action");
+    }
+
+    #[test]
+    fn display_name_returns_fallback_without_displayable_fields() {
+        let step = Step::for_test(None, None, None);
+
+        assert_eq!(step.display_name(), "unnamed step");
+    }
+
+    #[derive(Default)]
+    struct StubClassifier {
+        package_registry: bool,
+        http_request: bool,
+        network_command: bool,
+        remote_mutation: bool,
+    }
+
+    impl crate::traits::NetworkCommandClassifier for StubClassifier {
+        fn accesses_package_registry(&self, _script: &str) -> bool {
+            self.package_registry
+        }
+
+        fn issues_http_request(&self, _script: &str) -> bool {
+            self.http_request
+        }
+
+        fn uses_network_command(&self, _script: &str) -> bool {
+            self.network_command
+        }
+
+        fn mutates_remote_environment(&self, _script: &str) -> bool {
+            self.remote_mutation
+        }
+    }
+
+    #[test]
+    fn network_access_reason_returns_none_for_package_registry_access() {
+        let step = Step::for_test(Some("echo hi"), None, None);
+        let classifier = StubClassifier {
+            package_registry: true,
+            http_request: true,
+            network_command: true,
+            ..StubClassifier::default()
+        };
+
+        assert_eq!(step.network_access_reason(&classifier), None);
+    }
+
+    #[test]
+    fn network_access_reason_reports_http_requests() {
+        let step = Step::for_test(Some("echo hi"), None, None);
+        let classifier = StubClassifier {
+            http_request: true,
+            network_command: true,
+            ..StubClassifier::default()
+        };
+
+        assert_eq!(
+            step.network_access_reason(&classifier),
+            Some("network access is disabled; the step would send an HTTP request")
+        );
+    }
+
+    #[test]
+    fn network_access_reason_reports_network_commands() {
+        let step = Step::for_test(Some("echo hi"), None, None);
+        let classifier = StubClassifier {
+            network_command: true,
+            ..StubClassifier::default()
+        };
+
+        assert_eq!(
+            step.network_access_reason(&classifier),
+            Some("network access is disabled; the step would use a network command")
+        );
+    }
+
+    #[test]
+    fn network_access_reason_returns_none_without_network_signal() {
+        let step = Step::for_test(Some("echo hi"), None, None);
+        let classifier = StubClassifier::default();
+
+        assert_eq!(step.network_access_reason(&classifier), None);
+    }
+
+    #[test]
+    fn network_access_reason_returns_none_without_script() {
+        let step = Step::for_test(None, None, Some("actions/checkout@v4"));
+        let classifier = StubClassifier {
+            http_request: true,
+            ..StubClassifier::default()
+        };
+
+        assert_eq!(step.network_access_reason(&classifier), None);
+    }
+
+    #[test]
+    fn network_policy_violation_reports_remote_mutation() {
+        let step = Step::for_test(Some("echo hi"), None, None);
+        let classifier = StubClassifier {
+            remote_mutation: true,
+            ..StubClassifier::default()
+        };
+
+        assert_eq!(
+            step.network_policy_violation(&classifier),
+            Some("network operation blocked; the step would modify a remote environment")
+        );
+    }
+
+    #[test]
+    fn network_policy_violation_returns_none_without_remote_mutation() {
+        let step = Step::for_test(Some("echo hi"), None, None);
+        let classifier = StubClassifier::default();
+
+        assert_eq!(step.network_policy_violation(&classifier), None);
+    }
+
+    #[test]
+    fn network_policy_violation_returns_none_without_script() {
+        let step = Step::for_test(None, None, Some("actions/checkout@v4"));
+        let classifier = StubClassifier {
+            remote_mutation: true,
+            ..StubClassifier::default()
+        };
+
+        assert_eq!(step.network_policy_violation(&classifier), None);
+    }
+
+    #[test]
+    fn r#if_returns_condition() {
+        let step =
+            Step::for_test(Some("echo"), None, None).with_if_condition(Some("always()".into()));
+
+        assert_eq!(step.r#if(), Some("always()"));
+    }
+
+    #[test]
+    fn if_condition_returns_condition() {
+        let step =
+            Step::for_test(Some("echo"), None, None).with_if_condition(Some("always()".into()));
+
+        assert_eq!(step.if_condition(), Some("always()"));
+    }
+}

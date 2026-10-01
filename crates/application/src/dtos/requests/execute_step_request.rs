@@ -3,9 +3,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::domain::value_objects::EvaluationContext;
 pub struct ExecuteStepRequest {
     step: String,
-    context: Vec<(String, String)>,
+    context: EvaluationContext,
     repo_path: PathBuf,
     env: HashMap<String, String>,
 }
@@ -13,7 +14,7 @@ pub struct ExecuteStepRequest {
 impl ExecuteStepRequest {
     pub fn new(
         step: impl Into<String>,
-        context: Vec<(String, String)>,
+        context: EvaluationContext,
         repo_path: impl Into<PathBuf>,
         env: HashMap<String, String>,
     ) -> Self {
@@ -28,7 +29,7 @@ impl ExecuteStepRequest {
     pub fn step(&self) -> &str {
         &self.step
     }
-    pub fn context(&self) -> &[(String, String)] {
+    pub fn context(&self) -> &EvaluationContext {
         &self.context
     }
     pub fn repo_path(&self) -> &Path {

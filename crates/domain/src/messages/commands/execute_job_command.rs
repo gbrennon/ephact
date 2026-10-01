@@ -150,7 +150,7 @@ mod tests {
         assert_eq!(command.job_id(), "build");
         assert_eq!(command.workflow(), &workflow_for_test());
         assert_eq!(command.repo_path(), &PathBuf::from("/repo"));
-        assert!(command.context().github().as_text().is_none());
+        assert!(command.context().get("source").is_none());
         assert_eq!(command.run_id(), "");
         assert!(!command.allow_repo_writes());
         assert!(!command.allow_network());
@@ -177,7 +177,7 @@ mod tests {
         assert_eq!(job_id, "build");
         assert_eq!(workflow, workflow_for_test());
         assert_eq!(repo_path, PathBuf::from("/repo"));
-        assert!(context.github().as_text().is_none());
+        assert!(context.get("source").is_none());
         assert_eq!(run_id, "run-1");
         assert!(!allow_repo_writes);
     }

@@ -35,7 +35,8 @@ impl<'a> ExpressionLexer<'a> {
     /// # Errors
     ///
     /// Returns [`LexerError`] if the next characters form an invalid token.
-    pub fn peek_token(&mut self) -> Result<ExpressionToken, LexerError> {
+    #[cfg(test)]
+    fn peek_token(&mut self) -> Result<ExpressionToken, LexerError> {
         if let Some(token) = &self.peeked {
             return Ok(token.clone());
         }
@@ -169,11 +170,11 @@ mod tests {
 
     #[test]
     fn lex_simple_ident() {
-        let tokens = ExpressionLexer::lex_all_for_test("github").unwrap();
+        let tokens = ExpressionLexer::lex_all_for_test("source").unwrap();
         assert_eq!(
             tokens,
             vec![
-                ExpressionToken::Identifier("github".into()),
+                ExpressionToken::Identifier("source".into()),
                 ExpressionToken::EndOfInput
             ]
         );
@@ -286,12 +287,12 @@ mod tests {
     #[test]
     fn lex_full_expression() {
         let tokens =
-            ExpressionLexer::lex_all_for_test("github.event_name == 'push' && !cancelled()")
+            ExpressionLexer::lex_all_for_test("source.event_name == 'push' && !cancelled()")
                 .unwrap();
         assert_eq!(
             tokens,
             vec![
-                ExpressionToken::Identifier("github".into()),
+                ExpressionToken::Identifier("source".into()),
                 ExpressionToken::Dot,
                 ExpressionToken::Identifier("event_name".into()),
                 ExpressionToken::Equal,

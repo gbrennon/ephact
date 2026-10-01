@@ -23,9 +23,10 @@ use crate::{
     },
     cli::run_args::RunArgs,
     domain::{
-        RepoPath, Repository, RepositoryName,
+        Repository,
         value_objects::{WorkflowEvent, WorkflowInput, WorkflowPath, WorkflowRunConfig},
     },
+    infrastructure::RepositoryResolver,
 };
 
 /// Handles the `run` subcommand by dispatching parsed CLI arguments to the
@@ -125,9 +126,7 @@ impl RunHandler {
     fn build_repository(
         repository_path: PathBuf,
     ) -> Result<Repository, Box<dyn std::error::Error>> {
-        let repo_path = RepoPath::new(repository_path)?;
-        let repo_name = RepositoryName::from_repo_path(&repo_path)?;
-        Ok(Repository::new(repo_path, repo_name))
+        Ok(RepositoryResolver::resolve_from_path(repository_path)?)
     }
 
     fn single_workflow_config(

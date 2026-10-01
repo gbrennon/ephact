@@ -1,6 +1,6 @@
+use super::{expression_evaluator::ExpressionEvaluator, expression_parser::ExpressionParser};
 use crate::{
     errors::EvalError,
-    services::{ExpressionEvaluator, expression_parser::ExpressionParser},
     value_objects::{ContextValue, EvaluationContext},
 };
 
@@ -80,7 +80,7 @@ mod tests {
     impl ExpressionResolver {
         fn context_with_secret_for_test(name: &str, value: &str) -> EvaluationContext {
             let secrets = ContextValue::mapping([(name.to_owned(), ContextValue::text(value))]);
-            EvaluationContext::new().with_secrets(secrets)
+            EvaluationContext::new().with_root("credentials", secrets)
         }
     }
 
@@ -89,7 +89,7 @@ mod tests {
         let context = ExpressionResolver::context_with_secret_for_test("TOKEN", "staging-token");
 
         let resolved =
-            ExpressionResolver::resolve_text("publish --token ${{ secrets.TOKEN }}", &context)
+            ExpressionResolver::resolve_text("publish --token ${{ credentials.TOKEN }}", &context)
                 .unwrap();
 
         assert_eq!(resolved, "publish --token staging-token");
@@ -98,11 +98,11 @@ mod tests {
     #[test]
     fn resolve_text_substitutes_multiple_expressions() {
         let inputs = ContextValue::mapping([("mode".to_owned(), ContextValue::text("staging"))]);
-        let context =
-            ExpressionResolver::context_with_secret_for_test("TOKEN", "abc").with_inputs(inputs);
+        let context = ExpressionResolver::context_with_secret_for_test("TOKEN", "abc")
+            .with_root("parameters", inputs);
 
         let resolved = ExpressionResolver::resolve_text(
-            "${{ inputs.mode }}:${{ secrets.TOKEN }}:${{ inputs.mode }}",
+            "${{ parameters.mode }}:${{ credentials.TOKEN }}:${{ parameters.mode }}",
             &context,
         )
         .unwrap();
@@ -124,7 +124,7 @@ mod tests {
     #[test]
     fn resolve_text_renders_unknown_secret_as_empty_string() {
         let resolved = ExpressionResolver::resolve_text(
-            "token=${{ secrets.MISSING }}",
+            "token=${{ credentials.MISSING }}",
             &EvaluationContext::new(),
         )
         .unwrap();
@@ -143,11 +143,13 @@ mod tests {
 
     #[test]
     fn resolve_text_leaves_unclosed_expression_untouched() {
-        let resolved =
-            ExpressionResolver::resolve_text("echo ${{ secrets.TOKEN", &EvaluationContext::new())
-                .unwrap();
+        let resolved = ExpressionResolver::resolve_text(
+            "echo ${{ credentials.TOKEN",
+            &EvaluationContext::new(),
+        )
+        .unwrap();
 
-        assert_eq!(resolved, "echo ${{ secrets.TOKEN");
+        assert_eq!(resolved, "echo ${{ credentials.TOKEN");
     }
 
     #[test]
@@ -161,11 +163,11 @@ mod tests {
 
     #[test]
     fn resolve_text_renders_a_null_context_value_as_empty_string() {
-        let secrets = ContextValue::mapping([("TOKEN".to_owned(), ContextValue::Null)]);
-        let context = EvaluationContext::new().with_secrets(secrets);
+        let credentials = ContextValue::mapping([("TOKEN".to_owned(), ContextValue::Null)]);
+        let context = EvaluationContext::new().with_root("credentials", credentials);
 
         let resolved =
-            ExpressionResolver::resolve_text("token=${{ secrets.TOKEN }}", &context).unwrap();
+            ExpressionResolver::resolve_text("token=${{ credentials.TOKEN }}", &context).unwrap();
 
         assert_eq!(resolved, "token=");
     }
@@ -183,8 +185,9 @@ mod tests {
 
     #[test]
     fn resolve_text_errors_on_unparsable_expression() {
-        let error = ExpressionResolver::resolve_text("${{ secrets. }}", &EvaluationContext::new())
-            .unwrap_err();
+        let error =
+            ExpressionResolver::resolve_text("${{ credentials. }}", &EvaluationContext::new())
+                .unwrap_err();
 
         assert!(
             matches!(error, EvalError::TypeError(message) if message.contains("invalid expression"))

@@ -6,11 +6,7 @@ use ephact::{
         ports::inbound::execute_job_port::ExecuteJobPort,
         services::execute_job_service::{ExecuteJobDependencies, ExecuteJobService},
     },
-    domain::{
-        aggregates::Workflow,
-        services::{ExecutionPlanner, evaluation_context_mapper::EvaluationContextMapper},
-        value_objects::EvaluationContext,
-    },
+    domain::{aggregates::Workflow, value_objects::EvaluationContext},
     infrastructure::{
         jobs::RunnerEnvironmentAdapter,
         steps::{
@@ -72,7 +68,7 @@ fn single_job_workflow(steps: &str) -> Workflow {
 #[test]
 fn execute_summarizes_a_single_run_step_and_reports_the_job_successful() {
     let wf = single_job_workflow("      - run: echo hi\n");
-    let plan = ExecutionPlanner.plan(&wf).unwrap();
+    let plan = wf.plan().unwrap();
     let run = &plan.stages()[0].runs()[0];
 
     let execution = service(
@@ -83,7 +79,7 @@ fn execute_summarizes_a_single_run_step_and_reports_the_job_successful() {
     .execute(
         ExecuteJobRequest::new(
             Path::new("/repo"),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             "test-run",
             false,
         ),
@@ -100,7 +96,7 @@ fn execute_summarizes_a_single_run_step_and_reports_the_job_successful() {
 #[test]
 fn network_step_is_skipped_without_failing_the_job() {
     let wf = single_job_workflow("      - run: curl https://example.com\n");
-    let plan = ExecutionPlanner.plan(&wf).unwrap();
+    let plan = wf.plan().unwrap();
     let run = &plan.stages()[0].runs()[0];
     let command_bus = FakeCommandBus::new();
 
@@ -112,7 +108,7 @@ fn network_step_is_skipped_without_failing_the_job() {
     .execute(
         ExecuteJobRequest::new(
             Path::new("/repo"),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             "test-run",
             false,
         ),
@@ -134,7 +130,7 @@ fn network_step_is_skipped_without_failing_the_job() {
 #[test]
 fn network_step_runs_when_network_access_is_allowed() {
     let wf = single_job_workflow("      - run: curl https://example.com\n");
-    let plan = ExecutionPlanner.plan(&wf).unwrap();
+    let plan = wf.plan().unwrap();
     let run = &plan.stages()[0].runs()[0];
     let command_bus = FakeCommandBus::new();
 
@@ -146,7 +142,7 @@ fn network_step_runs_when_network_access_is_allowed() {
     .execute(
         ExecuteJobRequest::new(
             Path::new("/repo"),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             "test-run",
             false,
         )
@@ -163,7 +159,7 @@ fn network_step_runs_when_network_access_is_allowed() {
 #[test]
 fn package_manager_step_runs_without_explicit_network_access() {
     let wf = single_job_workflow("      - run: npm install\n");
-    let plan = ExecutionPlanner.plan(&wf).unwrap();
+    let plan = wf.plan().unwrap();
     let run = &plan.stages()[0].runs()[0];
     let command_bus = FakeCommandBus::new();
 
@@ -175,7 +171,7 @@ fn package_manager_step_runs_without_explicit_network_access() {
     .execute(
         ExecuteJobRequest::new(
             Path::new("/repo"),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             "test-run",
             false,
         ),
@@ -191,7 +187,7 @@ fn package_manager_step_runs_without_explicit_network_access() {
 #[test]
 fn remote_mutation_is_skipped_even_with_network_access() {
     let wf = single_job_workflow("      - run: git push origin main\n");
-    let plan = ExecutionPlanner.plan(&wf).unwrap();
+    let plan = wf.plan().unwrap();
     let run = &plan.stages()[0].runs()[0];
     let command_bus = FakeCommandBus::new();
 
@@ -203,7 +199,7 @@ fn remote_mutation_is_skipped_even_with_network_access() {
     .execute(
         ExecuteJobRequest::new(
             Path::new("/repo"),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             "test-run",
             false,
         )
@@ -225,7 +221,7 @@ fn remote_mutation_is_skipped_even_with_network_access() {
 #[test]
 fn execute_publishes_one_step_command_per_step_with_the_prepared_container() {
     let wf = single_job_workflow("      - run: one\n      - run: two\n");
-    let plan = ExecutionPlanner.plan(&wf).unwrap();
+    let plan = wf.plan().unwrap();
     let run = &plan.stages()[0].runs()[0];
     let command_bus = FakeCommandBus::new();
 
@@ -237,7 +233,7 @@ fn execute_publishes_one_step_command_per_step_with_the_prepared_container() {
     .execute(
         ExecuteJobRequest::new(
             Path::new("/repo"),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             "test-run",
             false,
         ),
@@ -254,7 +250,7 @@ fn execute_publishes_one_step_command_per_step_with_the_prepared_container() {
 #[test]
 fn execute_fails_the_job_but_still_runs_the_later_steps() {
     let wf = single_job_workflow("      - run: exit 1\n      - run: echo after\n");
-    let plan = ExecutionPlanner.plan(&wf).unwrap();
+    let plan = wf.plan().unwrap();
     let run = &plan.stages()[0].runs()[0];
     let command_bus = FakeCommandBus::new().queueing_step_exit_codes(vec![1, 0]);
 
@@ -266,7 +262,7 @@ fn execute_fails_the_job_but_still_runs_the_later_steps() {
     .execute(
         ExecuteJobRequest::new(
             Path::new("/repo"),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             "test-run",
             false,
         ),
@@ -285,7 +281,7 @@ fn execute_passes_the_workflow_and_job_environment_to_every_step() {
     let wf = workflow(
         "name: Ci\non: push\nenv:\n  MODE: workflow\njobs:\n  build:\n    runs-on: ubuntu-latest\n    env:\n      SCOPE: job\n    steps:\n      - run: echo hi\n",
     );
-    let plan = ExecutionPlanner.plan(&wf).unwrap();
+    let plan = wf.plan().unwrap();
     let run = &plan.stages()[0].runs()[0];
     let command_bus = FakeCommandBus::new();
 
@@ -297,7 +293,7 @@ fn execute_passes_the_workflow_and_job_environment_to_every_step() {
     .execute(
         ExecuteJobRequest::new(
             Path::new("/repo"),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             "test-run",
             false,
         ),
@@ -319,7 +315,7 @@ fn execute_passes_the_workflow_and_job_environment_to_every_step() {
 #[test]
 fn execute_reads_the_exports_once_per_step() {
     let wf = single_job_workflow("      - run: one\n      - run: two\n");
-    let plan = ExecutionPlanner.plan(&wf).unwrap();
+    let plan = wf.plan().unwrap();
     let run = &plan.stages()[0].runs()[0];
     let exports = FakeStepExportsReaderPort::new();
 
@@ -331,7 +327,7 @@ fn execute_reads_the_exports_once_per_step() {
     .execute(
         ExecuteJobRequest::new(
             Path::new("/repo"),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             "test-run",
             false,
         ),
@@ -346,7 +342,7 @@ fn execute_reads_the_exports_once_per_step() {
 #[test]
 fn execute_carries_exported_path_additions_and_env_into_the_next_step() {
     let wf = single_job_workflow("      - run: one\n      - run: two\n");
-    let plan = ExecutionPlanner.plan(&wf).unwrap();
+    let plan = wf.plan().unwrap();
     let run = &plan.stages()[0].runs()[0];
     let mut exported_env = HashMap::new();
     exported_env.insert("EXPORTED".to_string(), "yes".to_string());
@@ -362,7 +358,7 @@ fn execute_carries_exported_path_additions_and_env_into_the_next_step() {
     .execute(
         ExecuteJobRequest::new(
             Path::new("/repo"),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             "test-run",
             false,
         ),
@@ -384,7 +380,7 @@ fn execute_carries_exported_path_additions_and_env_into_the_next_step() {
 #[test]
 fn execute_propagates_a_container_preparation_failure() {
     let wf = single_job_workflow("      - run: echo hi\n");
-    let plan = ExecutionPlanner.plan(&wf).unwrap();
+    let plan = wf.plan().unwrap();
     let run = &plan.stages()[0].runs()[0];
 
     let Err(error) = service(
@@ -395,7 +391,7 @@ fn execute_propagates_a_container_preparation_failure() {
     .execute(
         ExecuteJobRequest::new(
             Path::new("/repo"),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             "test-run",
             false,
         ),
@@ -411,7 +407,7 @@ fn execute_propagates_a_container_preparation_failure() {
 #[test]
 fn execute_announces_the_same_step_label_as_the_summary() {
     let wf = single_job_workflow("      - run: cargo test\n");
-    let plan = ExecutionPlanner.plan(&wf).unwrap();
+    let plan = wf.plan().unwrap();
     let run = &plan.stages()[0].runs()[0];
     let event_bus = FakeEventBus::new();
 
@@ -424,7 +420,7 @@ fn execute_announces_the_same_step_label_as_the_summary() {
     .execute(
         ExecuteJobRequest::new(
             Path::new("/repo"),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             "test-run",
             false,
         ),
@@ -454,7 +450,7 @@ fn execute_reports_the_source_filename_in_step_progress_events() {
         "on: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n",
     )
     .with_file("ci.yml");
-    let plan = ExecutionPlanner.plan(&wf).unwrap();
+    let plan = wf.plan().unwrap();
     let run = &plan.stages()[0].runs()[0];
     let event_bus = FakeEventBus::new();
 
@@ -467,7 +463,7 @@ fn execute_reports_the_source_filename_in_step_progress_events() {
     .execute(
         ExecuteJobRequest::new(
             Path::new("/repo"),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             "test-run",
             false,
         ),
@@ -492,7 +488,7 @@ fn execute_reports_the_source_filename_in_step_progress_events() {
 #[test]
 fn execute_announces_the_prepared_container_as_started_for_the_run() {
     let wf = single_job_workflow("      - run: echo hi\n");
-    let plan = ExecutionPlanner.plan(&wf).unwrap();
+    let plan = wf.plan().unwrap();
     let run = &plan.stages()[0].runs()[0];
     let event_bus = FakeEventBus::new();
 
@@ -505,7 +501,7 @@ fn execute_announces_the_prepared_container_as_started_for_the_run() {
     .execute(
         ExecuteJobRequest::new(
             Path::new("/repo"),
-            EvaluationContextMapper::to_parts(&EvaluationContext::new()),
+            EvaluationContext::new(),
             "test-run",
             false,
         ),

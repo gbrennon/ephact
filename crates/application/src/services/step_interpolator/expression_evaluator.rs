@@ -1,10 +1,10 @@
+use super::expression_functions::ExpressionFunctions;
 /// AST evaluator for workflow `${{ }}` expressions.
 ///
 /// Walks an [`Expression`] AST and produces a [`ContextValue`] result,
 /// using the built-in [`ExpressionFunctions`] dispatcher for function calls.
 use crate::{
     errors::EvalError,
-    services::ExpressionFunctions,
     value_objects::{
         ComparisonOperator, ContextValue, EvaluationContext, Expression, ExpressionLiteral,
         LogicalOperator,
@@ -636,8 +636,8 @@ mod tests {
 
     #[test]
     fn eval_variable_from_context() {
-        let expr = Expression::Variable("github".into());
-        let c = ctx();
+        let expr = Expression::Variable("source".into());
+        let c = EvaluationContext::new().with_root("source", ContextValue::empty_mapping());
         let result = ExpressionEvaluator::new(&c).evaluate(&expr).unwrap();
         assert!(result.is_mapping());
     }

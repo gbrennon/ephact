@@ -1,10 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    domain::{
-        errors::StepError, messages::commands::ExecuteActionCommand,
-        services::evaluation_context_mapper::EvaluationContextMapper,
-    },
+    domain::messages::commands::ExecuteActionCommand,
     dtos::{requests::RunActionRequest, responses::ExecuteActionResponse},
     errors::RunActionError,
     ports::{
@@ -42,8 +39,7 @@ impl RunActionPort for RunActionService {
             .step_codec
             .decode(request.step())
             .map_err(RunActionError::Step)?;
-        let context = EvaluationContextMapper::from_parts(request.context().to_vec())
-            .map_err(|error| RunActionError::Step(StepError::new(error.to_string())))?;
+        let context = request.context().clone();
         let cmd = ExecuteActionCommand::new(
             request.action_ref().to_string(),
             step,

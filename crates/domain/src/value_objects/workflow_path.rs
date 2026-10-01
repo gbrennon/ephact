@@ -8,8 +8,8 @@ impl WorkflowPath {
     ///
     /// ```
     /// # use ephact_domain::value_objects::WorkflowPath;
-    /// let wf = WorkflowPath::new(".github/workflows/ci.yml".into());
-    /// assert_eq!(wf.as_str(), ".github/workflows/ci.yml");
+    /// let wf = WorkflowPath::new(".ci/workflows/ci.yml".into());
+    /// assert_eq!(wf.as_str(), ".ci/workflows/ci.yml");
     /// ```
     pub fn new(path: String) -> Self {
         Self(path)
@@ -27,7 +27,7 @@ mod tests {
 
     #[test]
     fn new_stores_path() {
-        let wf = WorkflowPath::new(".github/workflows/ci.yml".into());
-        assert_eq!(wf.as_str(), ".github/workflows/ci.yml");
+        let wf = WorkflowPath::new(".ci/workflows/ci.yml".into());
+        assert_eq!(wf.as_str(), ".ci/workflows/ci.yml");
     }
 }

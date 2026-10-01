@@ -132,7 +132,7 @@ mod tests {
 
     #[test]
     fn remote_mutation_is_a_policy_violation() {
-        let policy = StepNetworkPolicy::new("Git Push");
+        let policy = StepNetworkPolicy::new("remote update");
         let classifier = FakeClassifier {
             remote_mutation: true,
             ..FakeClassifier::default()

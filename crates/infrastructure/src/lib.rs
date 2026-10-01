@@ -8,8 +8,8 @@ pub mod jobs;
 pub mod logging;
 pub mod messaging;
 pub mod persistence;
+pub mod repositories;
 pub mod steps;
-pub mod webhooks;
 pub mod workflows;
 
 pub use actions::GitActionFetcher;
@@ -18,4 +18,5 @@ pub use di::{AppContainer, Container};
 pub use images::PlatformImageMapper;
 pub use messaging::{InMemoryCommandBus, InMemoryEventBus};
 pub use persistence::{CargoProjectBrandingStore, TomlSettingsStore};
+pub use repositories::{RepositoryResolutionError, RepositoryResolver};
 pub use workflows::FilesystemWorkflowSource;

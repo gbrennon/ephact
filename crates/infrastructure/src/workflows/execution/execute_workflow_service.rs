@@ -21,7 +21,6 @@ use crate::{
             commands::ExecuteJobCommand,
             events::{DomainEvent, JobFinishedPayload, JobStartedPayload, WorkflowStartedPayload},
         },
-        services::{ExecutionPlanner, evaluation_context_mapper::EvaluationContextMapper},
         value_objects::EvaluationContext,
     },
 };
@@ -87,8 +86,7 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
         &self,
         request: ExecuteWorkflowRequest,
     ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
-        let context = EvaluationContextMapper::from_parts(request.context().to_vec())
-            .map_err(|error| ExecuteWorkflowError::Workflow(format!("{error:?}")))?;
+        let context = request.context().clone();
         let workflow = self
             .workflow_loader
             .load(LoadWorkflowRequest::new(
@@ -97,8 +95,8 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
             ))
             .map_err(|error| ExecuteWorkflowError::Workflow(error.to_string()))?;
         let workflow_name = workflow.name().or(workflow.file()).unwrap_or("unnamed");
-        let plan = ExecutionPlanner
-            .plan(&workflow)
+        let plan = workflow
+            .plan()
             .map_err(|error| ExecuteWorkflowError::Workflow(format!("{error:?}")))?;
 
         self.announce_workflow_started(workflow_name);

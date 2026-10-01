@@ -5,12 +5,8 @@ use crate::{
         dtos::{requests::ExecuteJobRequest, responses::JobExecutionResponse},
         ports::inbound::execute_job_port::ExecuteJobPort,
     },
-    domain::{
-        entities::JobRun, messages::commands::ExecuteJobCommand,
-        services::evaluation_context_mapper::EvaluationContextMapper,
-    },
+    domain::{entities::JobRun, messages::commands::ExecuteJobCommand},
 };
-
 /// Infrastructure command handler that processes `ExecuteJobCommand`.
 pub struct JobCommandHandler {
     executor: Box<dyn ExecuteJobPort>,
@@ -27,13 +23,8 @@ impl JobCommandHandler {
             cmd.into_parts();
         let run = JobRun::new(workflow.name().map(str::to_string), job_id, job, None);
 
-        let req = ExecuteJobRequest::new(
-            repo_path,
-            EvaluationContextMapper::to_parts(&context),
-            run_id,
-            allow_repo_writes,
-        )
-        .with_allow_network(allow_network);
+        let req = ExecuteJobRequest::new(repo_path, context, run_id, allow_repo_writes)
+            .with_allow_network(allow_network);
         Ok(self.executor.execute(req, &run, &workflow)?)
     }
 }
