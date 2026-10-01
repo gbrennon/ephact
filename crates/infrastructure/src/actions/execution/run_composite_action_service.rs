@@ -1,6 +1,5 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::steps::run_composite_step_port::RunCompositeStepPort;
 use crate::{
     application::{
         dtos::{
@@ -16,12 +15,32 @@ use crate::{
         services::{StepInterpolator, evaluation_context_mapper::EvaluationContextMapper},
         value_objects::{ContextValue, EvaluationContext},
     },
+    steps::run_composite_step_port::RunCompositeStepPort,
 };
 
 /// Service that runs a composite action's steps in order, accumulating their
 /// output and stopping at the first one that fails.
 pub struct RunCompositeActionService {
     step_runner: Box<dyn RunCompositeStepPort>,
+}
+
+struct ActionOutput {
+    stdout: String,
+    stderr: String,
+}
+
+impl ActionOutput {
+    fn new() -> Self {
+        Self {
+            stdout: String::new(),
+            stderr: String::new(),
+        }
+    }
+
+    fn append(&mut self, result: &crate::application::dtos::responses::ExecResultResponse) {
+        self.stdout.push_str(result.stdout());
+        self.stderr.push_str(result.stderr());
+    }
 }
 
 impl RunCompositeActionService {
@@ -47,14 +66,13 @@ impl RunCompositeActionService {
         request: &RunCompositeActionRequest<'_>,
         context: &EvaluationContext,
         container: Arc<dyn ContainerPort>,
-        stdout: &mut String,
-        stderr: &mut String,
+        output: &mut ActionOutput,
     ) -> Result<Option<ExecuteActionResponse>, StepError> {
         for step in request.steps() {
             let interpolated = StepInterpolator::interpolate(step, context).map_err(|error| {
                 StepError::new(format!("failed to resolve expressions: {error:?}"))
-                    .with_stdout(stdout.clone())
-                    .with_stderr(stderr.clone())
+                    .with_stdout(output.stdout.clone())
+                    .with_stderr(output.stderr.clone())
             })?;
 
             let outcome = self.step_runner.execute(
@@ -67,7 +85,7 @@ impl RunCompositeActionService {
                 container.clone(),
             );
 
-            if let Some(early_exit) = Self::process_step_outcome(outcome, stdout, stderr)? {
+            if let Some(early_exit) = Self::process_step_outcome(outcome, output)? {
                 return Ok(Some(early_exit));
             }
         }
@@ -77,26 +95,24 @@ impl RunCompositeActionService {
 
     fn process_step_outcome(
         outcome: Result<crate::application::dtos::responses::ExecResultResponse, StepError>,
-        stdout: &mut String,
-        stderr: &mut String,
+        output: &mut ActionOutput,
     ) -> Result<Option<ExecuteActionResponse>, StepError> {
         match outcome {
             Ok(result) => {
-                stdout.push_str(result.stdout());
-                stderr.push_str(result.stderr());
+                output.append(&result);
                 if result.exit_code() != 0 {
                     Ok(Some(ExecuteActionResponse::new(
                         result.exit_code(),
-                        stdout.clone(),
-                        stderr.clone(),
+                        output.stdout.clone(),
+                        output.stderr.clone(),
                     )))
                 } else {
                     Ok(None)
                 }
             }
             Err(error) => Err(StepError::new(error.message())
-                .with_stdout(format!("{stdout}{}", error.stdout()))
-                .with_stderr(format!("{stderr}{}", error.stderr()))),
+                .with_stdout(format!("{}{}", output.stdout, error.stdout()))
+                .with_stderr(format!("{}{}", output.stderr, error.stderr()))),
         }
     }
 }
@@ -111,15 +127,12 @@ impl CompositeActionRunnerPort for RunCompositeActionService {
             EvaluationContextMapper::from_parts(request.action_request().context().to_vec())
                 .map_err(|error| StepError::new(error.to_string()))?;
         let context = Self::context_with_inputs(&base_context, request.inputs());
-        let mut stdout = String::new();
-        let mut stderr = String::new();
+        let mut output = ActionOutput::new();
 
-        if let Some(early_exit) =
-            self.execute_steps(&request, &context, container, &mut stdout, &mut stderr)?
-        {
+        if let Some(early_exit) = self.execute_steps(&request, &context, container, &mut output)? {
             return Ok(early_exit);
         }
 
-        Ok(ExecuteActionResponse::new(0, stdout, stderr))
+        Ok(ExecuteActionResponse::new(0, output.stdout, output.stderr))
     }
 }
