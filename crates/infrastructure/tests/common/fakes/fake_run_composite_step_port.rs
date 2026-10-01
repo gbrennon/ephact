@@ -10,13 +10,16 @@ use ephact::{
 };
 use parking_lot::Mutex;
 
+type StepOutcome = Result<ExecResultResponse, StepError>;
+type SharedStepOutcomes = Arc<Mutex<Vec<StepOutcome>>>;
+
 /// Answers each composite step with the next queued result, recording the
 /// steps it was asked to run.
 #[derive(Clone, Default)]
 pub struct FakeRunCompositeStepPort {
     results: Arc<Mutex<Vec<ExecResultResponse>>>,
     failure: Option<(String, String, String)>,
-    outcomes: Option<Arc<Mutex<Vec<Result<ExecResultResponse, StepError>>>>>,
+    outcomes: Option<SharedStepOutcomes>,
     steps: Arc<Mutex<Vec<Step>>>,
 }
 
@@ -43,7 +46,7 @@ impl FakeRunCompositeStepPort {
         }
     }
 
-    pub fn sequence(outcomes: Vec<Result<ExecResultResponse, StepError>>) -> Self {
+    pub fn sequence(outcomes: Vec<StepOutcome>) -> Self {
         Self {
             results: Arc::new(Mutex::new(Vec::new())),
             failure: None,
