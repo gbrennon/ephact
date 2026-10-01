@@ -585,7 +585,7 @@ mod tests {
             ("num".to_owned(), ContextValue::Integer(42)),
         ]);
         let json_str = f.to_json(&original).unwrap();
-        let parsed = f.from_json(&json_str).unwrap();
+        let parsed = f.parse_json(&json_str).unwrap();
         assert_eq!(original, parsed);
     }
 
