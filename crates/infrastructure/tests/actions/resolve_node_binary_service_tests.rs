@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ephact::{
     application::dtos::requests::ResolveNodeBinaryRequest,
-    infrastructure::actions::{
+    infrastructure::actions::preparation::{
         resolve_node_binary_port::ResolveNodeBinaryPort,
         resolve_node_binary_service::ResolveNodeBinaryService,
     },

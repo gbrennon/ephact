@@ -5,7 +5,7 @@ use ephact::{
     },
     domain::{entities::Step, value_objects::ActionDefinition},
     infrastructure::{
-        actions::resolve_action_inputs_service::ResolveActionInputsService,
+        actions::preparation::resolve_action_inputs_service::ResolveActionInputsService,
         workflows::actions::{ActionDefinitionYaml, StepYaml},
     },
 };

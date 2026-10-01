@@ -5,7 +5,7 @@ use ephact::{
         dtos::requests::RunNodeActionRequest,
         ports::outbound::node_action_runner_port::NodeActionRunnerPort,
     },
-    infrastructure::actions::run_node_action_service::RunNodeActionService,
+    infrastructure::actions::execution::run_node_action_service::RunNodeActionService,
 };
 
 use crate::common::fakes::{

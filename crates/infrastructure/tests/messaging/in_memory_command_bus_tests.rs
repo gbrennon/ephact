@@ -9,6 +9,7 @@ use ephact::{
                 JobSummaryResponse, WorkflowExecutionResponse,
             },
         },
+        errors::ExecuteActionError,
         ports::{
             inbound::{
                 execute_action_port::ExecuteActionPort, execute_job_port::ExecuteJobPort,
@@ -26,6 +27,7 @@ use ephact::{
         RepoPath, Repository, RepositoryName, WorkflowRunConfig,
         aggregates::Workflow,
         entities::Job,
+        errors::StepError,
         messages::commands::{
             ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
         },
@@ -104,6 +106,20 @@ impl ExecuteActionPort for StubActionPort {
     }
 }
 
+struct FailingActionPort;
+impl ExecuteActionPort for FailingActionPort {
+    fn execute(
+        &self,
+        _request: ExecuteActionRequest,
+    ) -> Result<ExecuteActionResponse, ExecuteActionError> {
+        Err(ExecuteActionError::Step(
+            StepError::new("action failed".to_string())
+                .with_stdout("action output".to_string())
+                .with_stderr("action error".to_string()),
+        ))
+    }
+}
+
 #[test]
 fn command_bus_dispatches_workflow_to_workflow_handler() {
     let bus = InMemoryCommandBus::new(
@@ -165,6 +181,29 @@ fn command_bus_dispatches_action_to_action_handler() {
     let result = ActionCommandBusPort::dispatch(&bus, cmd).unwrap();
     assert_eq!(result.stdout(), "action out");
     assert_eq!(result.exit_code(), 0);
+}
+
+#[test]
+fn action_handler_preserves_failed_action_output() {
+    let handler = ActionCommandHandler::new(Box::new(|_| Box::new(FailingActionPort)));
+    let container: Arc<dyn ContainerPort> = Arc::new(StubContainer);
+    let step = serde_yaml::from_str::<StepYaml>("uses: actions/checkout@v4")
+        .unwrap()
+        .into_domain();
+    let command = ExecuteActionCommand::new(
+        "actions/checkout@v4".into(),
+        step,
+        PathBuf::from("/repo"),
+        HashMap::new(),
+        container,
+    )
+    .with_context(EvaluationContext::new());
+
+    let error = handler.handle(command).unwrap_err();
+
+    assert_eq!(error.message(), "action failed");
+    assert_eq!(error.stdout(), "action output");
+    assert_eq!(error.stderr(), "action error");
 }
 
 struct EchoJobPort;

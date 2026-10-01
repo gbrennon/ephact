@@ -20,8 +20,8 @@ use ephact::{
     },
     domain::{entities::Step, errors::StepError, value_objects::EvaluationContext},
     infrastructure::{
-        actions::run_composite_action_service::RunCompositeActionService, steps::JsonStepTextCodec,
-        workflows::actions::StepYaml,
+        actions::execution::run_composite_action_service::RunCompositeActionService,
+        steps::JsonStepTextCodec, workflows::actions::StepYaml,
     },
 };
 
@@ -56,7 +56,11 @@ fn action_request(_container: &dyn ContainerPort) -> ExecuteActionRequest {
 }
 
 fn result(exit_code: i64, stdout: &str) -> ExecResultResponse {
-    ExecResultResponse::new(exit_code, stdout, String::new())
+    result_with_output(exit_code, stdout, "")
+}
+
+fn result_with_output(exit_code: i64, stdout: &str, stderr: &str) -> ExecResultResponse {
+    ExecResultResponse::new(exit_code, stdout, stderr)
 }
 
 #[test]
@@ -109,11 +113,12 @@ fn execute_stops_at_the_first_failing_step() {
 
 #[test]
 fn execute_carries_earlier_output_into_a_step_error() {
-    let runner = FakeRunCompositeStepPort::failing(
-        StepError::new("boom".to_string())
+    let runner = FakeRunCompositeStepPort::sequence(vec![
+        Ok(result_with_output(0, "one", "first")),
+        Err(StepError::new("boom".to_string())
             .with_stdout("partial".to_string())
-            .with_stderr("bad".to_string()),
-    );
+            .with_stderr("bad".to_string())),
+    ]);
     let service = RunCompositeActionService::new(Box::new(runner));
     let container = StubContainer;
     let request_owner = action_request(&container);
@@ -121,7 +126,7 @@ fn execute_carries_earlier_output_into_a_step_error() {
     let error = service
         .run(
             RunCompositeActionRequest::new(
-                &steps("- run: one\n"),
+                &steps("- run: one\n- run: two\n"),
                 &HashMap::new(),
                 Path::new("/repo/actions/outer"),
                 &request_owner,
@@ -131,8 +136,8 @@ fn execute_carries_earlier_output_into_a_step_error() {
         .unwrap_err();
 
     assert_eq!(error.message(), "boom");
-    assert_eq!(error.stdout(), "partial");
-    assert_eq!(error.stderr(), "bad");
+    assert_eq!(error.stdout(), "onepartial");
+    assert_eq!(error.stderr(), "firstbad");
 }
 
 #[test]

@@ -7,7 +7,7 @@ use ephact::{
         },
         ports::outbound::action_directory_resolver_port::ActionDirectoryResolverPort,
     },
-    infrastructure::actions::resolve_action_directory_service::ResolveActionDirectoryService,
+    infrastructure::actions::preparation::resolve_action_directory_service::ResolveActionDirectoryService,
 };
 
 use crate::common::fakes::fake_fetch_remote_action_port::FakeFetchRemoteActionPort;
