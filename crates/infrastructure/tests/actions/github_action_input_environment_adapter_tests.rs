@@ -4,7 +4,7 @@ use ephact::{
     application::dtos::requests::BuildActionInputEnvironmentRequest,
     infrastructure::actions::{
         GitHubActionInputEnvironmentAdapter,
-        build_action_input_environment_port::BuildActionInputEnvironmentPort,
+        preparation::build_action_input_environment_port::BuildActionInputEnvironmentPort,
     },
 };
 

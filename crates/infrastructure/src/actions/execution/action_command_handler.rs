@@ -41,8 +41,10 @@ impl ActionCommandHandler {
             ),
         ));
         let executor = (self.executor_factory)(container);
-        executor
-            .execute(req)
-            .map_err(|error| StepError::new(error.to_string()))
+        executor.execute(req).map_err(|error| {
+            StepError::new(error.message())
+                .with_stdout(error.stdout().to_string())
+                .with_stderr(error.stderr().to_string())
+        })
     }
 }

@@ -241,4 +241,107 @@ impl ExecutionPlanner {
 }
 
 #[cfg(test)]
-mod tests;
+mod tests {
+    use super::*;
+    use crate::{entities::Job, value_objects::WorkflowTrigger};
+
+    impl ExecutionPlanner {
+        fn make_job_for_test(needs: &[&str]) -> Job {
+            let needs = needs.iter().map(|need| (*need).to_owned()).collect();
+            Job::new(None, None, Vec::new(), needs)
+        }
+
+        fn make_workflow_for_test(jobs: &[(&str, &[&str])]) -> Workflow {
+            let jobs = jobs
+                .iter()
+                .map(|(id, needs)| ((*id).to_owned(), Self::make_job_for_test(needs)))
+                .collect();
+            Workflow::new(
+                None,
+                vec![WorkflowTrigger::Push(None)],
+                HashMap::new(),
+                jobs,
+            )
+        }
+    }
+
+    #[test]
+    fn plan_detects_cycle() {
+        let wf = ExecutionPlanner::make_workflow_for_test(&[("a", &["b"]), ("b", &["a"])]);
+        let result = ExecutionPlanner.plan(&wf);
+
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            PlanError::CycleDetected { .. }
+        ));
+    }
+
+    #[test]
+    fn plan_detects_missing_dependency() {
+        let wf = ExecutionPlanner::make_workflow_for_test(&[("build", &["nonexistent"])]);
+        let result = ExecutionPlanner.plan(&wf);
+
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            PlanError::MissingDependency { .. }
+        ));
+    }
+
+    #[test]
+    fn topological_sort_reports_unresolved_dependencies_on_cycle() {
+        let wf = ExecutionPlanner::make_workflow_for_test(&[("a", &["b"]), ("b", &["a"])]);
+        let mut deps = HashMap::new();
+        deps.insert("a", vec!["b"]);
+        deps.insert("b", vec!["a"]);
+        let result = ExecutionPlanner.topological_sort(&deps, &wf);
+
+        assert!(matches!(result, Err(PlanError::UnresolvedDependencies)));
+    }
+
+    #[test]
+    fn plan_single_job() {
+        let wf = ExecutionPlanner::make_workflow_for_test(&[("build", &[])]);
+        let plan = ExecutionPlanner.plan(&wf).unwrap();
+
+        assert_eq!(plan.stages().len(), 1);
+        assert_eq!(plan.stages()[0].runs().len(), 1);
+        assert_eq!(plan.stages()[0].runs()[0].job_id(), "build");
+    }
+
+    #[test]
+    fn plan_independent_jobs_same_stage() {
+        let wf = ExecutionPlanner::make_workflow_for_test(&[("build", &[]), ("lint", &[])]);
+        let plan = ExecutionPlanner.plan(&wf).unwrap();
+
+        assert_eq!(plan.stages().len(), 1);
+        assert_eq!(plan.stages()[0].runs().len(), 2);
+    }
+
+    #[test]
+    fn plan_sequential_jobs() {
+        let wf = ExecutionPlanner::make_workflow_for_test(&[("build", &[]), ("test", &["build"])]);
+        let plan = ExecutionPlanner.plan(&wf).unwrap();
+
+        assert_eq!(plan.stages().len(), 2);
+        assert_eq!(plan.stages()[0].runs()[0].job_id(), "build");
+        assert_eq!(plan.stages()[1].runs()[0].job_id(), "test");
+    }
+
+    #[test]
+    fn plan_diamond_dependency() {
+        let wf = ExecutionPlanner::make_workflow_for_test(&[
+            ("build", &[]),
+            ("test", &["build"]),
+            ("lint", &["build"]),
+            ("deploy", &["test", "lint"]),
+        ]);
+        let plan = ExecutionPlanner.plan(&wf).unwrap();
+
+        assert_eq!(plan.stages().len(), 3);
+        assert_eq!(plan.stages()[0].runs()[0].job_id(), "build");
+        assert_eq!(plan.stages()[1].runs().len(), 2);
+        assert_eq!(plan.stages()[2].runs().len(), 1);
+    }
+}

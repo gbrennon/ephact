@@ -6,7 +6,7 @@ use ephact::{
         ports::outbound::action_definition_loader_port::ActionDefinitionLoaderPort,
     },
     domain::value_objects::ActionRuntime,
-    infrastructure::actions::load_action_definition_service::LoadActionDefinitionService,
+    infrastructure::actions::preparation::load_action_definition_service::LoadActionDefinitionService,
 };
 
 const COMPOSITE: &str =

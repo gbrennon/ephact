@@ -6,7 +6,7 @@ use ephact::{
         responses::{CollectActionFilesResponse, FileEntryResponse},
     },
     domain::errors::StepError,
-    infrastructure::actions::collect_action_files_port::CollectActionFilesPort,
+    infrastructure::actions::preparation::collect_action_files_port::CollectActionFilesPort,
 };
 use parking_lot::Mutex;
 

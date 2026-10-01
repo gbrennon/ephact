@@ -1,4 +1,5 @@
 pub mod action_definition;
+pub mod action_execution_context;
 pub mod action_input;
 pub mod action_reference;
 pub mod action_runtime;
@@ -58,6 +59,7 @@ pub mod workflow_trigger;
 
 pub use self::{
     action_definition::ActionDefinition,
+    action_execution_context::ActionExecutionContext,
     action_input::ActionInput,
     action_reference::ActionReference,
     action_runtime::ActionRuntime,

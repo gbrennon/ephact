@@ -5,7 +5,7 @@ use ephact::{
         requests::BuildActionInputEnvironmentRequest,
         responses::BuildActionInputEnvironmentResponse,
     },
-    infrastructure::actions::build_action_input_environment_port::BuildActionInputEnvironmentPort,
+    infrastructure::actions::preparation::build_action_input_environment_port::BuildActionInputEnvironmentPort,
 };
 use parking_lot::Mutex;
 
