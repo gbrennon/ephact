@@ -10,9 +10,8 @@ use crate::{
         ports::{
             inbound::RunWorkflowPort,
             outbound::{
-                DetectWorkflowTriggerPort, WorkflowSourcePort,
-                domain_event_publisher_port::DomainEventPublisherPort,
-                workflow_command_publisher_port::WorkflowCommandPublisherPort,
+                Command, CommandPublisherPort, CommandResponse, DetectWorkflowTriggerPort,
+                WorkflowSourcePort, domain_event_publisher_port::DomainEventPublisherPort,
             },
         },
     },
@@ -33,11 +32,11 @@ use crate::{
 /// Agnostic by construction: it never touches files, containers, or any external
 /// service. It reads the workflow definition through the outbound
 /// [`WorkflowSourcePort`], expresses the intent to execute it as a command on the
-/// outbound [`WorkflowCommandPublisherPort`], and announces the outcome as a domain event on the
+/// outbound [`CommandPublisherPort`], and announces the outcome as a domain event on the
 /// outbound [`DomainEventPublisherPort`].
 pub struct RunWorkflowService {
     workflow_source: Box<dyn WorkflowSourcePort>,
-    command_bus: Box<dyn WorkflowCommandPublisherPort>,
+    command_bus: Box<dyn CommandPublisherPort>,
     event_bus: Box<dyn DomainEventPublisherPort>,
     trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
 }
@@ -89,7 +88,7 @@ impl RunExecutionContext {
 impl RunWorkflowService {
     pub fn new(
         workflow_source: Box<dyn WorkflowSourcePort>,
-        command_bus: Box<dyn WorkflowCommandPublisherPort>,
+        command_bus: Box<dyn CommandPublisherPort>,
         event_bus: Box<dyn DomainEventPublisherPort>,
         trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
     ) -> Self {
@@ -185,7 +184,7 @@ impl RunWorkflowService {
         context: &RunExecutionContext,
         workflow_source: crate::application::dtos::responses::WorkflowSourceFileResponse,
     ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
-        match self.command_bus.publish(
+        match self.command_bus.publish(Command::Workflow(
             ExecuteWorkflowCommand::new(
                 workflow_source.content().to_owned(),
                 context.config.clone(),
@@ -194,8 +193,15 @@ impl RunWorkflowService {
                 context.config.allow_repo_writes(),
             )
             .with_workflow_file_name(workflow_source.file_name()),
-        ) {
-            Ok(execution) => Ok(execution),
+        )) {
+            Ok(CommandResponse::Workflow(execution)) => Ok(execution),
+            Ok(_) => {
+                let error: Box<dyn Error> = "unexpected command response for workflow"
+                    .to_string()
+                    .into();
+                self.announce_run_failed(context, error.as_ref());
+                Err(error)
+            }
             Err(error) => {
                 let error: Box<dyn Error> = Box::new(error);
                 self.announce_run_failed(context, error.as_ref());

@@ -10,8 +10,8 @@ use crate::{
         ports::{
             inbound::execute_workflow_port::ExecuteWorkflowPort,
             outbound::{
+                Command, CommandPublisherPort, CommandResponse,
                 domain_event_publisher_port::DomainEventPublisherPort,
-                job_command_publisher_port::JobCommandPublisherPort,
                 workflow_loader_port::WorkflowLoaderPort,
             },
         },
@@ -35,7 +35,7 @@ use crate::{
 /// announced as domain events on the outbound [`DomainEventPublisherPort`].
 pub struct ExecuteWorkflowService {
     workflow_loader: Box<dyn WorkflowLoaderPort>,
-    command_bus: Box<dyn JobCommandPublisherPort>,
+    command_bus: Box<dyn CommandPublisherPort>,
     event_bus: Box<dyn DomainEventPublisherPort>,
 }
 
@@ -71,7 +71,7 @@ impl<'a> JobExecutionInput<'a> {
 impl ExecuteWorkflowService {
     pub fn new(
         workflow_loader: Box<dyn WorkflowLoaderPort>,
-        command_bus: Box<dyn JobCommandPublisherPort>,
+        command_bus: Box<dyn CommandPublisherPort>,
         event_bus: Box<dyn DomainEventPublisherPort>,
     ) -> Self {
         Self {
@@ -152,7 +152,7 @@ impl ExecuteWorkflowService {
             .or(input.workflow.file())
             .unwrap_or("unnamed");
         self.announce_job_started(workflow_name, input.run);
-        let execution = self.command_bus.publish(
+        let execution = match self.command_bus.publish(Command::Job(Box::new(
             ExecuteJobCommand::new(
                 input.run.job().clone(),
                 input.run.job_id().to_string(),
@@ -163,7 +163,15 @@ impl ExecuteWorkflowService {
             .with_run_id(input.run_id.to_string())
             .with_allow_repo_writes(input.allow_repo_writes)
             .with_allow_network(input.allow_network),
-        )?;
+        ))) {
+            Ok(CommandResponse::Job(execution)) => execution,
+            Ok(_) => {
+                return Err(Box::new(ExecuteWorkflowError::Workflow(
+                    "unexpected command response for job".to_string(),
+                )));
+            }
+            Err(error) => return Err(Box::new(error)),
+        };
         self.announce_job_finished(workflow_name, input.run, execution.job_summary().success());
         Ok(execution)
     }

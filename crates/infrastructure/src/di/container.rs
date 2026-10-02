@@ -4,10 +4,10 @@ use crate::{
     actions::{GitActionFetcher, RunActionFactory},
     application::{
         ports::outbound::{
-            ActionFetcherPort, ContainerRuntimePort, ImageMapperPort, ProjectBrandingStorePort,
-            WorkflowSourcePort, domain_event_handler_port::DomainEventHandlerPort,
+            ActionFetcherPort, CommandPublisherPort, ContainerRuntimePort, ImageMapperPort,
+            ProjectBrandingStorePort, WorkflowSourcePort,
+            domain_event_handler_port::DomainEventHandlerPort,
             domain_event_publisher_port::DomainEventPublisherPort,
-            workflow_command_publisher_port::WorkflowCommandPublisherPort,
         },
         services::{
             list_actions_service::ListActionsService, list_workflows_service::ListWorkflowsService,
@@ -117,7 +117,7 @@ impl Container {
         let list_actions_service = ListActionsService::new(Box::new(workflow_source.clone()));
         let run_workflow_service = RunWorkflowService::new(
             Box::new(workflow_source.clone()),
-            Box::new(command_publisher.clone()) as Box<dyn WorkflowCommandPublisherPort>,
+            Box::new(command_publisher.clone()) as Box<dyn CommandPublisherPort>,
             Box::new(event_publisher.clone()) as Box<dyn DomainEventPublisherPort>,
             Box::new(DetectWorkflowTriggerService::new()),
         );
@@ -125,7 +125,7 @@ impl Container {
             FilesystemRunInputDiscoveryService::new(Box::new(workflow_source.clone()));
         let run_all_workflows_service = RunAllWorkflowsService::new(
             Box::new(workflow_source),
-            Box::new(command_publisher.clone()) as Box<dyn WorkflowCommandPublisherPort>,
+            Box::new(command_publisher.clone()) as Box<dyn CommandPublisherPort>,
             Box::new(event_publisher) as Box<dyn DomainEventPublisherPort>,
             Box::new(DetectWorkflowTriggerService::new()),
         );
