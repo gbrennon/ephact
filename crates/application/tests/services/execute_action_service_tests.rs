@@ -89,6 +89,7 @@ fn execute_runs_the_steps_of_a_local_composite_action() {
         "name: Greet\nruns:\n  using: composite\n  steps:\n    - run: echo hi\n      shell: bash\n",
     );
     let runtime = FakeRuntime::new();
+    push_result(&runtime, 0, "");
     push_result(&runtime, 0, "hi\n");
     let container = container(&runtime);
 
@@ -202,6 +203,7 @@ fn execute_stops_composite_action_at_the_first_failing_step() {
         "name: Build\nruns:\n  using: composite\n  steps:\n    - run: first\n      shell: bash\n    - run: second\n      shell: bash\n",
     );
     let runtime = FakeRuntime::new();
+    push_result(&runtime, 0, "");
     push_result(&runtime, 2, "boom\n");
     let container = container(&runtime);
 
