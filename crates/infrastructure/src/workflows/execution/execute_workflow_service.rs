@@ -1,10 +1,13 @@
-use std::error::Error;
+use std::{collections::HashSet, error::Error};
 
 use crate::{
     application::{
         dtos::{
             requests::{ExecuteWorkflowRequest, LoadWorkflowRequest},
-            responses::WorkflowExecutionResponse,
+            responses::{
+                JobExecutionResponse, JobSummaryResponse, StepSummaryDetails, StepSummaryResponse,
+                StepSummaryResponseInput, WorkflowExecutionResponse,
+            },
         },
         errors::ExecuteWorkflowError,
         ports::{
@@ -129,17 +132,70 @@ impl ExecuteWorkflowService {
         plan: &crate::domain::value_objects::ExecutionPlan,
         context: &EvaluationContext,
         request: ExecuteWorkflowRequest,
-    ) -> Result<Vec<crate::application::dtos::responses::JobExecutionResponse>, Box<dyn Error>>
-    {
-        let all_runs: Vec<&crate::domain::entities::JobRun> = plan
-            .stages()
+    ) -> Result<Vec<JobExecutionResponse>, Box<dyn Error>> {
+        let mut blocked_jobs = HashSet::new();
+        let mut executions = Vec::new();
+        for run in plan.stages().iter().flat_map(|stage| stage.runs()) {
+            let input = JobExecutionInput::new(workflow, run, &request, context);
+            executions.push(self.execute_planned_run(run, input, &mut blocked_jobs)?);
+        }
+        Ok(executions)
+    }
+
+    fn execute_planned_run(
+        &self,
+        run: &JobRun,
+        input: JobExecutionInput<'_>,
+        blocked_jobs: &mut HashSet<String>,
+    ) -> Result<JobExecutionResponse, Box<dyn Error>> {
+        if Self::run_is_blocked(run, blocked_jobs) {
+            blocked_jobs.insert(run.job_id().to_string());
+            return Ok(Self::skipped_run(run));
+        }
+        let execution = self.execute_run(input)?;
+        if !execution.job_summary().success() && !run.job().continues_after_failure() {
+            blocked_jobs.insert(run.job_id().to_string());
+        }
+        Ok(execution)
+    }
+
+    fn run_is_blocked(run: &JobRun, blocked_jobs: &HashSet<String>) -> bool {
+        run.job()
+            .needs()
             .iter()
-            .flat_map(|stage| stage.runs().iter())
+            .any(|dependency| blocked_jobs.contains(dependency))
+    }
+
+    fn skipped_run(run: &JobRun) -> JobExecutionResponse {
+        let steps = run
+            .job()
+            .steps()
+            .iter()
+            .map(|step| {
+                StepSummaryResponse::new(StepSummaryResponseInput::new(
+                    step.display_name(),
+                    step.step_type(),
+                    StepSummaryDetails::new(
+                        None,
+                        step.continues_on_error(),
+                        std::time::Duration::ZERO,
+                        "",
+                        "",
+                    ),
+                ))
+                .with_skip_reason("dependency failed")
+            })
             .collect();
-        all_runs
-            .iter()
-            .map(|run| self.execute_run(JobExecutionInput::new(workflow, run, &request, context)))
-            .collect()
+        JobExecutionResponse::new(
+            JobSummaryResponse::new(
+                run.job_id().to_string(),
+                run.job().name().map(str::to_string),
+                steps,
+                false,
+            )
+            .with_skip_reason("dependency failed"),
+            "",
+        )
     }
 
     fn execute_run(

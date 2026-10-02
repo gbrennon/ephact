@@ -62,6 +62,49 @@ fn execute_publishes_a_job_command_per_job_in_dependency_order() {
 }
 
 #[test]
+fn execute_skips_a_job_when_one_of_its_dependencies_fails() {
+    let execution = execute(
+        FakeWorkflowLoaderPort::holding(TWO_JOBS),
+        FakeCommandBus::new().failing_jobs(vec!["build".to_string()]),
+    )
+    .unwrap();
+
+    assert!(!execution.success());
+    let publish = execution
+        .job_summaries()
+        .iter()
+        .find(|job| job.job_id() == "publish")
+        .expect("publish summary");
+    assert!(publish.is_skipped());
+    assert_eq!(publish.skip_reason(), Some("dependency failed"));
+    assert!(publish.steps()[0].is_skipped());
+    assert_eq!(publish.steps()[0].skip_reason(), Some("dependency failed"));
+}
+
+#[test]
+fn execute_runs_independent_jobs_when_another_job_fails() {
+    let workflow = "name: Ci\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: build\n  lint:\n    runs-on: ubuntu-latest\n    steps:\n      - run: lint\n  publish:\n    needs: build\n    runs-on: ubuntu-latest\n    steps:\n      - run: publish\n";
+    let command_bus = FakeCommandBus::new().failing_jobs(vec!["build".to_string()]);
+
+    let execution = execute(
+        FakeWorkflowLoaderPort::holding(workflow),
+        command_bus.clone(),
+    )
+    .unwrap();
+
+    let dispatched = command_bus.dispatched_job_ids();
+    assert!(dispatched.contains(&"build".to_string()));
+    assert!(dispatched.contains(&"lint".to_string()));
+    assert!(!dispatched.contains(&"publish".to_string()));
+    let publish = execution
+        .job_summaries()
+        .iter()
+        .find(|job| job.job_id() == "publish")
+        .expect("publish summary");
+    assert!(publish.is_skipped());
+}
+
+#[test]
 fn execute_publishes_job_commands_carrying_the_loaded_workflow_and_repo_path() {
     let command_bus = FakeCommandBus::new();
 
