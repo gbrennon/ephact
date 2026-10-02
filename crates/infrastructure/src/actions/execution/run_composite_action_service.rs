@@ -8,7 +8,8 @@ use crate::{
     application::{
         dtos::{
             requests::{
-                CopyActionToContainerRequest, RunCompositeActionRequest, RunCompositeStepRequest,
+                CopyActionToContainerRequest, ReadStepExportsRequest, RunCompositeActionRequest,
+                RunCompositeStepRequest,
             },
             responses::ExecuteActionResponse,
         },
@@ -16,6 +17,7 @@ use crate::{
             composite_action_runner_port::CompositeActionRunnerPort, container_port::ContainerPort,
             copy_action_to_container_port::CopyActionToContainerPort,
             run_composite_step_port::RunCompositeStepPort,
+            step_exports_reader_port::StepExportsReaderPort,
         },
         services::StepInterpolator,
     },
@@ -31,6 +33,7 @@ use crate::{
 pub struct RunCompositeActionService {
     step_runner: Box<dyn RunCompositeStepPort>,
     action_copier: Box<dyn CopyActionToContainerPort>,
+    step_exports_reader: Box<dyn StepExportsReaderPort>,
 }
 
 struct ActionOutput {
@@ -56,10 +59,12 @@ impl RunCompositeActionService {
     pub fn new(
         step_runner: Box<dyn RunCompositeStepPort>,
         action_copier: Box<dyn CopyActionToContainerPort>,
+        step_exports_reader: Box<dyn StepExportsReaderPort>,
     ) -> Self {
         Self {
             step_runner,
             action_copier,
+            step_exports_reader,
         }
     }
 
@@ -75,6 +80,7 @@ impl RunCompositeActionService {
         );
         context.clone().with_root("inputs", input_values)
     }
+
     fn context_with_action_path(
         context: &EvaluationContext,
         action_dir: &Path,
@@ -93,70 +99,51 @@ impl RunCompositeActionService {
     }
 
     fn merge_runner_exports(
+        exports_reader: &dyn StepExportsReaderPort,
         container: &dyn ContainerPort,
         step: &Step,
         environment: &mut HashMap<String, String>,
         context: &mut EvaluationContext,
     ) {
-        if let Some(path_file) = environment.get("GITHUB_PATH").cloned()
-            && let Ok(result) = container.exec(&["cat".into(), path_file], None, &HashMap::new())
-        {
-            let current_path = environment.get("PATH").cloned().unwrap_or_default();
-            let additions: Vec<_> = result
-                .stdout()
-                .lines()
-                .map(str::trim)
-                .filter(|path| {
-                    !path.is_empty() && !current_path.split(':').any(|entry| entry == *path)
-                })
-                .collect();
-            if !additions.is_empty() {
-                let prefix = additions.join(":");
-                let path = if current_path.is_empty() {
-                    prefix
-                } else {
-                    format!("{prefix}:{current_path}")
-                };
-                environment.insert("PATH".into(), path);
-            }
+        let exports = exports_reader.read(ReadStepExportsRequest::new(), container);
+        let current_path = environment.get("PATH").cloned().unwrap_or_default();
+        let additions: Vec<_> = exports
+            .path_additions()
+            .iter()
+            .filter(|path| !current_path.split(':').any(|entry| entry == path.as_str()))
+            .cloned()
+            .collect();
+        if !additions.is_empty() {
+            let prefix = additions.join(":");
+            let path = if current_path.is_empty() {
+                prefix
+            } else {
+                format!("{prefix}:{current_path}")
+            };
+            environment.insert("PATH".into(), path);
         }
+        environment.extend(exports.env().clone());
 
-        if let Some(env_file) = environment.get("GITHUB_ENV").cloned()
-            && let Ok(result) = container.exec(&["cat".into(), env_file], None, &HashMap::new())
-        {
-            for line in result.stdout().lines().map(str::trim) {
-                if let Some((key, value)) = line.split_once('=') {
-                    environment.insert(key.to_owned(), value.to_owned());
-                }
-            }
-        }
         let Some(step_id) = step.id() else {
             return;
         };
-        let Some(output_file) = environment.get("GITHUB_OUTPUT").cloned() else {
-            return;
-        };
-        let Ok(result) = container.exec(&["cat".into(), output_file], None, &HashMap::new()) else {
-            return;
-        };
-        let outputs: BTreeMap<_, _> = result
-            .stdout()
-            .lines()
-            .filter_map(|line| {
-                line.split_once('=')
-                    .map(|(key, value)| (key.to_owned(), ContextValue::text(value)))
-            })
-            .collect();
-        if outputs.is_empty() {
+        if exports.outputs().is_empty() {
             return;
         }
         let mut steps = match context.get("steps") {
             Some(ContextValue::Mapping(values)) => values.clone(),
             _ => BTreeMap::new(),
         };
-        let step_value =
-            ContextValue::mapping([("outputs".to_owned(), ContextValue::Mapping(outputs))]);
-        steps.insert(step_id.to_owned(), step_value);
+        let outputs = ContextValue::mapping(
+            exports
+                .outputs()
+                .iter()
+                .map(|(name, value)| (name.clone(), ContextValue::text(value.clone()))),
+        );
+        steps.insert(
+            step_id.to_owned(),
+            ContextValue::mapping([("outputs".to_owned(), outputs)]),
+        );
         *context = context
             .clone()
             .with_root("steps", ContextValue::Mapping(steps));
@@ -171,38 +158,82 @@ impl RunCompositeActionService {
         output: &mut ActionOutput,
     ) -> Result<Option<ExecuteActionResponse>, StepError> {
         let mut environment = request.action_request().env().clone();
+        environment.insert(
+            "GITHUB_ACTION_PATH".to_owned(),
+            action_dir.display().to_string(),
+        );
         for step in request.steps() {
-            let should_run = StepInterpolator::should_run(step, context).map_err(|error| {
-                StepError::new(format!("failed to evaluate step condition: {error:?}"))
-                    .with_stdout(output.stdout.clone())
-                    .with_stderr(output.stderr.clone())
-            })?;
-            if !should_run {
-                continue;
+            if let Some(early_exit) = self.execute_step(
+                request,
+                action_dir,
+                context,
+                container.clone(),
+                output,
+                &mut environment,
+                step,
+            )? {
+                return Ok(Some(early_exit));
             }
+        }
+        Ok(None)
+    }
 
-            let interpolated = StepInterpolator::interpolate(step, context).map_err(|error| {
+    fn interpolated_step(
+        step: &Step,
+        context: &EvaluationContext,
+        output: &ActionOutput,
+    ) -> Result<Option<Step>, StepError> {
+        let should_run = StepInterpolator::should_run(step, context).map_err(|error| {
+            StepError::new(format!("failed to evaluate step condition: {error:?}"))
+                .with_stdout(output.stdout.clone())
+                .with_stderr(output.stderr.clone())
+        })?;
+        if !should_run {
+            return Ok(None);
+        }
+        StepInterpolator::interpolate(step, context)
+            .map(Some)
+            .map_err(|error| {
                 StepError::new(format!("failed to resolve expressions: {error:?}"))
                     .with_stdout(output.stdout.clone())
                     .with_stderr(output.stderr.clone())
-            })?;
-            let outcome = self.step_runner.run(
-                RunCompositeStepRequest::new(
-                    &interpolated,
-                    action_dir,
-                    request.action_request(),
-                    context,
-                )
-                .with_environment(&environment),
-                container.clone(),
-            );
+            })
+    }
 
-            if let Some(early_exit) = Self::process_step_outcome(outcome, output)? {
-                return Ok(Some(early_exit));
-            }
-            Self::merge_runner_exports(container.as_ref(), step, &mut environment, context);
+    fn execute_step(
+        &self,
+        request: &RunCompositeActionRequest<'_>,
+        action_dir: &Path,
+        context: &mut EvaluationContext,
+        container: Arc<dyn ContainerPort>,
+        output: &mut ActionOutput,
+        environment: &mut HashMap<String, String>,
+        step: &Step,
+    ) -> Result<Option<ExecuteActionResponse>, StepError> {
+        let Some(interpolated) = Self::interpolated_step(step, context, output)? else {
+            return Ok(None);
+        };
+        let outcome = self.step_runner.run(
+            RunCompositeStepRequest::new(
+                &interpolated,
+                action_dir,
+                request.action_request(),
+                context,
+            )
+            .with_environment(environment),
+            container.clone(),
+        );
+
+        if let Some(early_exit) = Self::process_step_outcome(outcome, output)? {
+            return Ok(Some(early_exit));
         }
-
+        Self::merge_runner_exports(
+            self.step_exports_reader.as_ref(),
+            container.as_ref(),
+            step,
+            environment,
+            context,
+        );
         Ok(None)
     }
 
