@@ -1,4 +1,8 @@
-use super::event::Event;
+use super::{
+    ContainerStartedPayload, Event, JobFinishedPayload, JobStartedPayload, RunFailedPayload,
+    RunStartedPayload, StepFinishedPayload, StepOutputPayload, StepStartedPayload,
+    WorkflowRunCompletedPayload, WorkflowStartedPayload,
+};
 
 /// Domain events published by application services.
 ///
@@ -8,16 +12,16 @@ use super::event::Event;
 /// container cleanup and terminal progress reporting).
 #[derive(Debug, Clone)]
 pub enum DomainEvent {
-    RunStarted(super::run_started_payload::RunStartedPayload),
-    RunFailed(super::run_failed_payload::RunFailedPayload),
-    WorkflowRunCompleted(super::workflow_run_completed_payload::WorkflowRunCompletedPayload),
-    ContainerStarted(super::container_started_payload::ContainerStartedPayload),
-    WorkflowStarted(super::workflow_started_payload::WorkflowStartedPayload),
-    JobStarted(super::job_started_payload::JobStartedPayload),
-    StepStarted(super::step_started_payload::StepStartedPayload),
-    StepOutput(super::step_output_payload::StepOutputPayload),
-    StepFinished(super::step_finished_payload::StepFinishedPayload),
-    JobFinished(super::job_finished_payload::JobFinishedPayload),
+    RunStarted(RunStartedPayload),
+    RunFailed(RunFailedPayload),
+    WorkflowRunCompleted(WorkflowRunCompletedPayload),
+    ContainerStarted(ContainerStartedPayload),
+    WorkflowStarted(WorkflowStartedPayload),
+    JobStarted(JobStartedPayload),
+    StepStarted(StepStartedPayload),
+    StepOutput(StepOutputPayload),
+    StepFinished(StepFinishedPayload),
+    JobFinished(JobFinishedPayload),
 }
 
 impl Event for DomainEvent {}

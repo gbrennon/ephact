@@ -44,6 +44,7 @@ impl JobFinishedPayload {
         self.success
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
