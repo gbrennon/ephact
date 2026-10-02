@@ -9,6 +9,7 @@ pub mod job_needs_visitor;
 pub mod job_strategy_yaml;
 pub mod job_yaml;
 pub mod run_step_defaults_yaml;
+pub mod scalar_string_map;
 pub mod step_yaml;
 pub mod token_permissions_yaml;
 pub mod trigger_filter_yaml;

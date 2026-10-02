@@ -6,6 +6,7 @@ use super::{TriggerFilter, TriggerInput};
 pub enum TriggerKind {
     Push,
     PullRequest,
+    Tag,
     Manual,
     Schedule,
 }
@@ -14,6 +15,7 @@ pub enum TriggerKind {
 pub enum WorkflowTrigger {
     Push(Option<TriggerFilter>),
     PullRequest(Option<TriggerFilter>),
+    Tag(Option<TriggerFilter>),
     Manual {
         inputs: HashMap<String, TriggerInput>,
     },
@@ -27,6 +29,7 @@ impl WorkflowTrigger {
         match self {
             Self::Push(_) => TriggerKind::Push,
             Self::PullRequest(_) => TriggerKind::PullRequest,
+            Self::Tag(_) => TriggerKind::Tag,
             Self::Manual { .. } => TriggerKind::Manual,
             Self::Schedule { .. } => TriggerKind::Schedule,
         }
@@ -34,7 +37,7 @@ impl WorkflowTrigger {
 
     pub fn filter(&self) -> Option<&TriggerFilter> {
         match self {
-            Self::Push(filter) | Self::PullRequest(filter) => filter.as_ref(),
+            Self::Push(filter) | Self::PullRequest(filter) | Self::Tag(filter) => filter.as_ref(),
             Self::Manual { .. } | Self::Schedule { .. } => None,
         }
     }
@@ -42,14 +45,14 @@ impl WorkflowTrigger {
     pub fn inputs(&self) -> Option<&HashMap<String, TriggerInput>> {
         match self {
             Self::Manual { inputs } => Some(inputs),
-            Self::Push(_) | Self::PullRequest(_) | Self::Schedule { .. } => None,
+            Self::Push(_) | Self::PullRequest(_) | Self::Tag(_) | Self::Schedule { .. } => None,
         }
     }
 
     pub fn expressions(&self) -> &[String] {
         match self {
             Self::Schedule { expressions } => expressions,
-            Self::Push(_) | Self::PullRequest(_) | Self::Manual { .. } => &[],
+            Self::Push(_) | Self::PullRequest(_) | Self::Tag(_) | Self::Manual { .. } => &[],
         }
     }
 }
@@ -57,6 +60,22 @@ impl WorkflowTrigger {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value_objects::RefPattern;
+
+    #[test]
+    fn tag_trigger_reports_tag_kind() {
+        assert_eq!(WorkflowTrigger::Tag(None).kind(), TriggerKind::Tag);
+    }
+
+    #[test]
+    fn tag_trigger_exposes_its_ref_filter() {
+        let filter = TriggerFilter::new().with_included_ref(RefPattern::tag("refs/tags/v*"));
+
+        assert_eq!(
+            WorkflowTrigger::Tag(Some(filter.clone())).filter(),
+            Some(&filter)
+        );
+    }
 
     #[test]
     fn identifies_domain_trigger_kinds() {

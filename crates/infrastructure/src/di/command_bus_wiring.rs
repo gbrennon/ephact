@@ -22,11 +22,10 @@ use crate::{
     messaging::{CommandPublisherAdapter, DeferredCommandBus, InMemoryCommandBus},
     steps::{
         ExecuteStepFactory, FragmentNetworkCommandClassifier, JsonStepTextCodec,
-        StepCommandHandler, build_step_context_service::BuildStepContextService,
+        ReadStepEnvExportsService, ReadStepExportsService, ReadStepOutputExportsService,
+        ReadStepPathExportsService, StepCommandHandler,
+        build_step_context_service::BuildStepContextService,
         prefix_step_path_service::PrefixStepPathService,
-        read_step_env_exports_service::ReadStepEnvExportsService,
-        read_step_exports_service::ReadStepExportsService,
-        read_step_path_exports_service::ReadStepPathExportsService,
         run_shell_step_service::RunShellStepService, summarize_step_service::SummarizeStepService,
     },
     workflows::{
@@ -125,6 +124,7 @@ impl CommandBusWiring {
                 Box::new(ReadStepExportsService::new(
                     Box::new(ReadStepPathExportsService::new()),
                     Box::new(ReadStepEnvExportsService::new()),
+                    Box::new(ReadStepOutputExportsService::new()),
                 )),
             ),
             (command_bus, event_bus),

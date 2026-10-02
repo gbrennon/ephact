@@ -118,3 +118,68 @@ fn execute_errors_on_malformed_yaml() {
         error.message()
     );
 }
+const COMPOSITE_WITH_SCALAR_FIELDS: &str = r#"
+name: toolchain setup
+runs:
+  using: composite
+  steps:
+    - name: install
+      run: install-toolchain
+      shell: bash
+      env:
+        TOOLCHAIN_ALLOW_RENAME: 1
+      continue-on-error: true
+"#;
+
+fn composite_steps(
+    definition: &ephact::domain::value_objects::ActionDefinition,
+) -> Vec<ephact::domain::entities::Step> {
+    match definition.runs() {
+        ActionRuntime::Composite { steps } => steps.clone(),
+        other => panic!("expected a composite runtime, got {other:?}"),
+    }
+}
+
+#[test]
+fn execute_loads_composite_action_with_scalar_metadata() {
+    let tmp = tempfile::tempdir().unwrap();
+    fs::write(tmp.path().join("action.yml"), COMPOSITE_WITH_SCALAR_FIELDS).unwrap();
+
+    let definition = LoadActionDefinitionService::new()
+        .load(LoadActionDefinitionRequest::new(tmp.path().to_path_buf()))
+        .expect("composite action metadata parses");
+
+    assert_eq!(definition.name(), "toolchain setup");
+}
+
+#[test]
+fn execute_normalizes_numeric_environment_values_to_strings() {
+    let tmp = tempfile::tempdir().unwrap();
+    fs::write(tmp.path().join("action.yml"), COMPOSITE_WITH_SCALAR_FIELDS).unwrap();
+
+    let definition = LoadActionDefinitionService::new()
+        .load(LoadActionDefinitionRequest::new(tmp.path().to_path_buf()))
+        .unwrap();
+    let steps = composite_steps(&definition);
+
+    assert_eq!(
+        steps[0]
+            .env()
+            .get("TOOLCHAIN_ALLOW_RENAME")
+            .map(String::as_str),
+        Some("1")
+    );
+}
+
+#[test]
+fn execute_normalizes_boolean_continue_on_error_values_to_strings() {
+    let tmp = tempfile::tempdir().unwrap();
+    fs::write(tmp.path().join("action.yml"), COMPOSITE_WITH_SCALAR_FIELDS).unwrap();
+
+    let definition = LoadActionDefinitionService::new()
+        .load(LoadActionDefinitionRequest::new(tmp.path().to_path_buf()))
+        .unwrap();
+    let steps = composite_steps(&definition);
+
+    assert_eq!(steps[0].continue_on_error(), Some("true"));
+}

@@ -15,7 +15,10 @@ use crate::{
         },
         services::execute_action_service::ExecuteActionService,
     },
-    steps::{RunCompositeStepService, RunShellStepService},
+    steps::{
+        ReadStepEnvExportsService, ReadStepExportsService, ReadStepOutputExportsService,
+        ReadStepPathExportsService, RunCompositeStepService, RunShellStepService,
+    },
 };
 
 pub struct ActionExecutionWiring;
@@ -34,12 +37,22 @@ impl ActionExecutionWiring {
             Arc::new(LoadActionDefinitionService::new());
         let input_resolver: Arc<dyn ActionInputsResolverPort> =
             Arc::new(ResolveActionInputsService::new());
-        let composite_runner: Arc<dyn CompositeActionRunnerPort> = Arc::new(
-            RunCompositeActionService::new(Box::new(RunCompositeStepService::new(
-                Box::new(RunShellStepService::new(event_bus)),
-                command_publisher,
-            ))),
-        );
+        let composite_exports_reader = Box::new(ReadStepExportsService::new(
+            Box::new(ReadStepPathExportsService::new()),
+            Box::new(ReadStepEnvExportsService::new()),
+            Box::new(ReadStepOutputExportsService::new()),
+        ));
+        let composite_runner: Arc<dyn CompositeActionRunnerPort> =
+            Arc::new(RunCompositeActionService::new(
+                Box::new(RunCompositeStepService::new(
+                    Box::new(RunShellStepService::new(event_bus)),
+                    command_publisher,
+                )),
+                Box::new(CopyActionToContainerService::new(Box::new(
+                    CollectActionFilesService::new(),
+                ))),
+                composite_exports_reader,
+            ));
         let node_runner: Arc<dyn NodeActionRunnerPort> = Arc::new(RunNodeActionService::new(
             Box::new(CopyActionToContainerService::new(Box::new(
                 CollectActionFilesService::new(),

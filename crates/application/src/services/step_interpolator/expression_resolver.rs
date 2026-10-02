@@ -63,6 +63,27 @@ impl ExpressionResolver {
             .as_ref()
             .map_or_else(|_| String::new(), Self::stringify))
     }
+    /// Evaluates a step `if` condition against the supplied context.
+    pub(super) fn evaluate_condition(
+        condition: &str,
+        context: &EvaluationContext,
+    ) -> Result<bool, EvalError> {
+        let body = condition
+            .trim()
+            .strip_prefix("${{")
+            .and_then(|value| value.strip_suffix("}}"))
+            .map_or_else(|| condition.trim(), str::trim);
+        let expression = ExpressionParser::parse_text(body).map_err(|error| {
+            EvalError::TypeError(format!(
+                "invalid expression '{body}': {} at position {}",
+                error.message(),
+                error.position()
+            ))
+        })?;
+        ExpressionEvaluator::new(context)
+            .evaluate(&expression)
+            .map(|value| value.is_truthy())
+    }
 
     fn stringify(value: &ContextValue) -> String {
         match value {

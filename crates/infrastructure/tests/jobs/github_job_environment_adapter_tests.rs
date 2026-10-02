@@ -54,6 +54,10 @@ fn execute_sets_the_runners_own_variables() {
         Some("/tmp/.ephact_env")
     );
     assert_eq!(
+        response.env().get("GITHUB_OUTPUT").map(String::as_str),
+        Some("/tmp/.ephact_output")
+    );
+    assert_eq!(
         response.env().get("GITHUB_WORKSPACE").map(String::as_str),
         Some("/workspace")
     );

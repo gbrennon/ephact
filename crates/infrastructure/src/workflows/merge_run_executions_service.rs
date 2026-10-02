@@ -26,12 +26,16 @@ impl MergeRunExecutionsService {
 
     fn prefix_job(wf_name: &str, job: &JobSummaryResponse) -> JobSummaryResponse {
         let prefixed_name = job.name().map(|name| format!("{wf_name} / {name}"));
-        JobSummaryResponse::new(
+        let prefixed = JobSummaryResponse::new(
             job.job_id().to_string(),
             prefixed_name,
             job.steps().to_vec(),
             job.success(),
-        )
+        );
+        match job.skip_reason() {
+            Some(reason) => prefixed.with_skip_reason(reason),
+            None => prefixed,
+        }
     }
 }
 

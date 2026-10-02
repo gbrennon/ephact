@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 use crate::{
     domain::{entities::Step, value_objects::EvaluationContext},
@@ -11,6 +11,7 @@ pub struct RunCompositeStepRequest<'a> {
     action_dir: &'a Path,
     action_request: &'a ExecuteActionRequest,
     context: &'a EvaluationContext,
+    environment: Option<&'a HashMap<String, String>>,
 }
 
 impl<'a> RunCompositeStepRequest<'a> {
@@ -25,7 +26,18 @@ impl<'a> RunCompositeStepRequest<'a> {
             action_dir,
             action_request,
             context,
+            environment: None,
         }
+    }
+
+    pub fn with_environment(mut self, environment: &'a HashMap<String, String>) -> Self {
+        self.environment = Some(environment);
+        self
+    }
+
+    pub fn environment(&self) -> &HashMap<String, String> {
+        self.environment
+            .unwrap_or_else(|| self.action_request.env())
     }
 
     pub fn step(&self) -> &'a Step {

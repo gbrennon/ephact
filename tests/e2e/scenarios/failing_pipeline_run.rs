@@ -40,9 +40,9 @@ runs:
     - run: echo "releasing"
 "#;
 
-/// Runs a workflow inside a container where every command exits with a failure
-/// status, covering how a failed shell step and a failed composite action step
-/// surface to the caller.
+/// Runs a workflow inside a container where the first command exits with a
+/// failure status, covering the failed shell step and the skipped dependent
+/// job that surface to the caller.
 pub struct FailingPipelineRun {
     outcome: Result<(), String>,
     activity: ContainerActivity,

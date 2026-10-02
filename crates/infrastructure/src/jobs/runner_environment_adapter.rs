@@ -3,7 +3,9 @@ use crate::{
         dtos::{requests::BuildJobEnvironmentRequest, responses::BuildJobEnvironmentResponse},
         ports::outbound::job_environment_builder_port::JobEnvironmentBuilderPort,
     },
-    containers::workspace::{CONTAINER_WORKSPACE, RUNNER_ENV_FILE, RUNNER_PATH_FILE},
+    containers::workspace::{
+        CONTAINER_WORKSPACE, RUNNER_ENV_FILE, RUNNER_OUTPUT_FILE, RUNNER_PATH_FILE,
+    },
 };
 
 /// `PATH` a job runs with when neither the workflow nor the job declares one.
@@ -35,6 +37,7 @@ impl JobEnvironmentBuilderPort for RunnerEnvironmentAdapter {
 
         env.insert("GITHUB_PATH".into(), RUNNER_PATH_FILE.into());
         env.insert("GITHUB_ENV".into(), RUNNER_ENV_FILE.into());
+        env.insert("GITHUB_OUTPUT".into(), RUNNER_OUTPUT_FILE.into());
         env.insert("GITHUB_WORKSPACE".into(), CONTAINER_WORKSPACE.into());
         env.entry("PATH".to_string())
             .or_insert_with(|| DEFAULT_PATH.to_string());

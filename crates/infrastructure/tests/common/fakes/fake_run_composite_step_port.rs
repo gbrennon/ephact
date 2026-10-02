@@ -1,11 +1,11 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use ephact::{
     application::{
         dtos::{requests::RunCompositeStepRequest, responses::ExecResultResponse},
         ports::outbound::{ContainerPort, RunCompositeStepPort},
     },
-    domain::{entities::Step, errors::StepError},
+    domain::{entities::Step, errors::StepError, value_objects::EvaluationContext},
 };
 use parking_lot::Mutex;
 
@@ -13,13 +13,15 @@ type StepOutcome = Result<ExecResultResponse, StepError>;
 type SharedStepOutcomes = Arc<Mutex<Vec<StepOutcome>>>;
 
 /// Answers each composite step with the next queued result, recording the
-/// steps it was asked to run.
+/// steps and execution state it was given.
 #[derive(Clone, Default)]
 pub struct FakeRunCompositeStepPort {
     results: Arc<Mutex<Vec<ExecResultResponse>>>,
     failure: Option<(String, String, String)>,
     outcomes: Option<SharedStepOutcomes>,
     steps: Arc<Mutex<Vec<Step>>>,
+    contexts: Arc<Mutex<Vec<EvaluationContext>>>,
+    environments: Arc<Mutex<Vec<HashMap<String, String>>>>,
 }
 
 impl FakeRunCompositeStepPort {
@@ -29,6 +31,8 @@ impl FakeRunCompositeStepPort {
             failure: None,
             outcomes: None,
             steps: Arc::new(Mutex::new(Vec::new())),
+            contexts: Arc::new(Mutex::new(Vec::new())),
+            environments: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -42,6 +46,8 @@ impl FakeRunCompositeStepPort {
             )),
             outcomes: None,
             steps: Arc::new(Mutex::new(Vec::new())),
+            contexts: Arc::new(Mutex::new(Vec::new())),
+            environments: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -51,11 +57,21 @@ impl FakeRunCompositeStepPort {
             failure: None,
             outcomes: Some(Arc::new(Mutex::new(outcomes))),
             steps: Arc::new(Mutex::new(Vec::new())),
+            contexts: Arc::new(Mutex::new(Vec::new())),
+            environments: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
     pub fn steps(&self) -> Vec<Step> {
         self.steps.lock().clone()
+    }
+
+    pub fn contexts(&self) -> Vec<EvaluationContext> {
+        self.contexts.lock().clone()
+    }
+
+    pub fn environments(&self) -> Vec<HashMap<String, String>> {
+        self.environments.lock().clone()
     }
 }
 
@@ -66,6 +82,8 @@ impl RunCompositeStepPort for FakeRunCompositeStepPort {
         _container: std::sync::Arc<dyn ContainerPort>,
     ) -> Result<ExecResultResponse, StepError> {
         self.steps.lock().push(request.step().clone());
+        self.contexts.lock().push(request.context().clone());
+        self.environments.lock().push(request.environment().clone());
 
         if let Some((message, stdout, stderr)) = &self.failure {
             return Err(StepError::new(message.clone())

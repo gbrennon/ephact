@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::super::containers::workspace::RUNNER_ENV_FILE;
+use super::{super::containers::workspace::RUNNER_ENV_FILE, runner_export_parser};
 use crate::application::{
     dtos::requests::ReadStepEnvExportsRequest, ports::outbound::ReadStepEnvExportsPort,
 };
@@ -30,19 +30,21 @@ impl ReadStepEnvExportsPort for ReadStepEnvExportsService {
         _request: ReadStepEnvExportsRequest,
         container: &dyn crate::application::ports::outbound::container_port::ContainerPort,
     ) -> HashMap<String, String> {
-        let mut exported = HashMap::new();
-        if let Ok(output) = container.exec(
-            &["cat".into(), RUNNER_ENV_FILE.into()],
-            None,
-            &HashMap::new(),
-        ) {
-            for line in output.stdout().lines() {
-                let trimmed = line.trim();
-                if let Some((key, value)) = trimmed.split_once('=') {
-                    exported.insert(key.to_string(), value.to_string());
-                }
-            }
-        }
-        exported
+        container
+            .exec(
+                &["cat".into(), RUNNER_ENV_FILE.into()],
+                None,
+                &HashMap::new(),
+            )
+            .map(|result| {
+                let mut exports = runner_export_parser::parse(result.stdout());
+                exports.retain(|name, _| {
+                    !name.starts_with("GITHUB_")
+                        && !name.starts_with("RUNNER_")
+                        && name != "NODE_OPTIONS"
+                });
+                exports
+            })
+            .unwrap_or_default()
     }
 }
