@@ -360,8 +360,11 @@ fn execute_skips_checkout_because_the_workspace_is_mounted() {
         .unwrap();
 
     assert_eq!(response.exit_code(), 0);
+    assert!(!response.stdout().contains("[skipped]"));
     assert!(
-        response.stdout().contains("[skipped]"),
+        response
+            .stdout()
+            .contains("the repository is already mounted at /workspace"),
         "{}",
         response.stdout()
     );
