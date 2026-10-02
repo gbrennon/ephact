@@ -4,8 +4,8 @@ use crate::{
     actions::{GitActionFetcher, RunActionFactory},
     application::{
         ports::outbound::{
-            ActionFetcherPort, CommandPublisherPort, ContainerRuntimePort, ImageMapperPort,
-            ProjectBrandingStorePort, WorkflowSourcePort,
+            ActionCommandPublisherPort, ActionFetcherPort, ContainerRuntimePort, ImageMapperPort,
+            ProjectBrandingStorePort, WorkflowCommandPublisherPort, WorkflowSourcePort,
             domain_event_handler_port::DomainEventHandlerPort,
             domain_event_publisher_port::DomainEventPublisherPort,
         },
@@ -117,7 +117,7 @@ impl Container {
         let list_actions_service = ListActionsService::new(Box::new(workflow_source.clone()));
         let run_workflow_service = RunWorkflowService::new(
             Box::new(workflow_source.clone()),
-            Box::new(command_publisher.clone()) as Box<dyn CommandPublisherPort>,
+            Box::new(command_publisher.clone()) as Box<dyn WorkflowCommandPublisherPort>,
             Box::new(event_publisher.clone()) as Box<dyn DomainEventPublisherPort>,
             Box::new(DetectWorkflowTriggerService::new()),
         );
@@ -125,13 +125,13 @@ impl Container {
             FilesystemRunInputDiscoveryService::new(Box::new(workflow_source.clone()));
         let run_all_workflows_service = RunAllWorkflowsService::new(
             Box::new(workflow_source),
-            Box::new(command_publisher.clone()) as Box<dyn CommandPublisherPort>,
+            Box::new(command_publisher.clone()) as Box<dyn WorkflowCommandPublisherPort>,
             Box::new(event_publisher) as Box<dyn DomainEventPublisherPort>,
             Box::new(DetectWorkflowTriggerService::new()),
         );
         let run_action_factory: RunActionFactory = Box::new(move |container| {
             Box::new(RunActionService::new(
-                Box::new(command_publisher.clone()),
+                Box::new(command_publisher.clone()) as Box<dyn ActionCommandPublisherPort>,
                 container,
                 Arc::new(JsonStepTextCodec),
             ))

@@ -5,11 +5,9 @@ use ephact::{
         dtos::requests::{
             ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
         },
-        ports::outbound::{
-            Command, CommandError, CommandPublisherPort, CommandResponse, StepTextCodecPort,
-        },
+        ports::outbound::{ActionCommandPublisherPort, ContainerPort, StepTextCodecPort},
     },
-    domain::errors::StepError,
+    domain::{errors::StepError, messages::commands::ExecuteActionCommand},
     infrastructure::{actions::ExecuteActionFactory, steps::JsonStepTextCodec},
 };
 
@@ -33,28 +31,24 @@ impl FakeActionRoutingCommandBus {
     }
 }
 
-impl CommandPublisherPort for FakeActionRoutingCommandBus {
-    fn publish(&self, command: Command) -> Result<CommandResponse, CommandError> {
-        let Command::Action(command) = command else {
-            return Err(CommandError::Transport(
-                "action routing fake received a non-action command".to_string(),
-            ));
-        };
+impl ActionCommandPublisherPort for FakeActionRoutingCommandBus {
+    fn publish(
+        &self,
+        command: ExecuteActionCommand<dyn ContainerPort>,
+    ) -> Result<ephact::application::dtos::responses::ExecuteActionResponse, StepError> {
         let factory = self
             .executor_factory
             .get()
-            .ok_or_else(|| CommandError::Step(StepError::new("no action executor bound")))?;
+            .ok_or_else(|| StepError::new("no action executor bound"))?;
         let (action_ref, step, repo_path, env, context, container) = command.into_parts();
         let executor = factory(container);
+        let encoded_step = JsonStepTextCodec.encode(&step)?;
         executor
             .execute(ExecuteActionRequest::new(ExecuteActionRequestInput::new(
                 action_ref,
-                JsonStepTextCodec
-                    .encode(&step)
-                    .map_err(CommandError::Step)?,
+                encoded_step,
                 ExecuteActionExecutionInput::new(repo_path, env, context),
             )))
-            .map(CommandResponse::Action)
-            .map_err(|error| CommandError::Step(StepError::new(error.to_string())))
+            .map_err(|error| StepError::new(error.to_string()))
     }
 }

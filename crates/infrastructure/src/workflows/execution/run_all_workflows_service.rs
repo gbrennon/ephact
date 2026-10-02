@@ -10,8 +10,8 @@ use crate::{
         ports::{
             inbound::run_all_workflows_port::RunAllWorkflowsPort,
             outbound::{
-                Command, CommandPublisherPort, CommandResponse, DetectWorkflowTriggerPort,
-                WorkflowSourcePort, domain_event_publisher_port::DomainEventPublisherPort,
+                DetectWorkflowTriggerPort, WorkflowCommandPublisherPort, WorkflowSourcePort,
+                domain_event_publisher_port::DomainEventPublisherPort,
             },
         },
     },
@@ -37,22 +37,22 @@ pub const ALL_WORKFLOWS_SUMMARY_NAME: &str = "All Workflows";
 /// infrastructure handlers can clean up.
 pub struct RunAllWorkflowsService {
     workflow_source: Box<dyn WorkflowSourcePort>,
-    command_bus: Box<dyn CommandPublisherPort>,
-    event_bus: Box<dyn DomainEventPublisherPort>,
+    command_publisher: Box<dyn WorkflowCommandPublisherPort>,
+    event_publisher: Box<dyn DomainEventPublisherPort>,
     trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
 }
 
 impl RunAllWorkflowsService {
     pub fn new(
         workflow_source: Box<dyn WorkflowSourcePort>,
-        command_bus: Box<dyn CommandPublisherPort>,
-        event_bus: Box<dyn DomainEventPublisherPort>,
+        command_publisher: Box<dyn WorkflowCommandPublisherPort>,
+        event_publisher: Box<dyn DomainEventPublisherPort>,
         trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
     ) -> Self {
         Self {
             workflow_source,
-            command_bus,
-            event_bus,
+            command_publisher,
+            event_publisher,
             trigger_detector,
         }
     }
@@ -73,7 +73,7 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
         let event = Self::required_event(&config)?;
         let repository_path = repository.path().as_path().display().to_string();
         let run_id = request.run_id().to_string();
-        self.event_bus
+        self.event_publisher
             .publish(DomainEvent::RunStarted(RunStartedPayload::new(
                 run_id.clone(),
                 repository_path.clone(),
@@ -138,25 +138,16 @@ impl RunAllWorkflowsService {
         self.filter_workflow_sources(workflow_contents, event)
             .into_iter()
             .map(|workflow| {
-                self.command_bus
-                    .publish(Command::Workflow(
-                        ExecuteWorkflowCommand::new(
-                            workflow.content().to_owned(),
-                            config.clone(),
-                            repository.clone(),
-                            run_id.to_string(),
-                            config.allow_repo_writes(),
-                        )
-                        .with_workflow_file_name(workflow.file_name()),
-                    ))
-                    .and_then(|response| match response {
-                        CommandResponse::Workflow(response) => Ok(response),
-                        _ => Err(
-                            crate::application::ports::outbound::CommandError::Transport(
-                                "unexpected command response for workflow".to_string(),
-                            ),
-                        ),
-                    })
+                let command = ExecuteWorkflowCommand::new(
+                    workflow.content().to_owned(),
+                    config.clone(),
+                    repository.clone(),
+                    run_id.to_string(),
+                    config.allow_repo_writes(),
+                )
+                .with_workflow_file_name(workflow.file_name());
+                self.command_publisher
+                    .publish(command)
                     .map_err(|error| ApplicationError::Workflow(error.to_string()))
             })
             .collect()
@@ -186,18 +177,19 @@ impl RunAllWorkflowsService {
             .iter()
             .flat_map(|execution| execution.container_names().to_vec())
             .collect();
-        self.event_bus.publish(DomainEvent::WorkflowRunCompleted(
-            WorkflowRunCompletedPayload::new(
-                run_id.to_string(),
-                repository_path.to_string(),
-                container_names,
-                success,
-            ),
-        ));
+        self.event_publisher
+            .publish(DomainEvent::WorkflowRunCompleted(
+                WorkflowRunCompletedPayload::new(
+                    run_id.to_string(),
+                    repository_path.to_string(),
+                    container_names,
+                    success,
+                ),
+            ));
     }
 
     fn announce_run_failed(&self, run_id: &str, repository_path: &str, error: &dyn Error) {
-        self.event_bus
+        self.event_publisher
             .publish(DomainEvent::RunFailed(RunFailedPayload::new(
                 run_id.to_string(),
                 repository_path.to_string(),

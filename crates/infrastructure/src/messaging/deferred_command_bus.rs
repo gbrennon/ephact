@@ -1,7 +1,20 @@
 use std::sync::OnceLock;
 
 use crate::{
-    application::ports::outbound::{Command, CommandError, CommandResponse},
+    application::{
+        dtos::responses::{
+            ExecuteActionResponse, ExecutedStepResponse, JobExecutionResponse,
+            WorkflowExecutionResponse,
+        },
+        errors::{ExecuteJobError, ExecuteWorkflowError},
+        ports::outbound::container_port::ContainerPort,
+    },
+    domain::{
+        errors::StepError,
+        messages::commands::{
+            ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
+        },
+    },
     messaging::in_memory_command_bus::InMemoryCommandBus,
 };
 
@@ -22,43 +35,45 @@ impl DeferredCommandBus {
         assert!(self.bus.set(bus).is_ok(), "command bus already bound");
     }
 
-    fn bound(&self) -> Option<&InMemoryCommandBus> {
-        self.bus.get()
+    fn bound(&self) -> Result<&InMemoryCommandBus, String> {
+        self.bus
+            .get()
+            .ok_or_else(|| "command bus used before it was bound".to_owned())
     }
 
-    pub fn route(&self, command: Command) -> Result<CommandResponse, CommandError> {
+    pub fn route_workflow(
+        &self,
+        command: ExecuteWorkflowCommand,
+    ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
         self.bound()
-            .ok_or_else(|| {
-                CommandError::Transport("command bus used before it was bound".to_string())
-            })?
-            .handle(command)
+            .map_err(ExecuteWorkflowError::Workflow)
+            .and_then(|bus| bus.handle_workflow(command))
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use std::path::PathBuf;
+    pub fn route_job(
+        &self,
+        command: ExecuteJobCommand,
+    ) -> Result<JobExecutionResponse, ExecuteJobError> {
+        self.bound()
+            .map_err(ExecuteJobError::Preparation)
+            .and_then(|bus| bus.handle_job(command))
+    }
 
-    use super::*;
-    use crate::domain::{aggregates::Workflow, entities::Job, value_objects::EvaluationContext};
+    pub fn route_step(
+        &self,
+        command: ExecuteStepCommand<dyn ContainerPort>,
+    ) -> Result<ExecutedStepResponse, StepError> {
+        self.bound()
+            .map_err(StepError::new)
+            .and_then(|bus| bus.handle_step(command))
+    }
 
-    #[test]
-    fn route_reports_unbound_transport_without_misclassifying_command() {
-        let bus = DeferredCommandBus::new();
-        let command = Command::Job(Box::new(
-            crate::domain::messages::commands::ExecuteJobCommand::new(
-                Job::default(),
-                "job".to_string(),
-                Workflow::new(None, Vec::new(), Default::default(), Default::default()),
-                PathBuf::from("/repo"),
-                EvaluationContext::new(),
-            ),
-        ));
-
-        let error = bus.route(command).unwrap_err();
-
-        assert!(
-            matches!(error, CommandError::Transport(message) if message == "command bus used before it was bound")
-        );
+    pub fn route_action(
+        &self,
+        command: ExecuteActionCommand<dyn ContainerPort>,
+    ) -> Result<ExecuteActionResponse, StepError> {
+        self.bound()
+            .map_err(StepError::new)
+            .and_then(|bus| bus.handle_action(command))
     }
 }

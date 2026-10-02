@@ -9,8 +9,8 @@ use crate::{
     },
     application::{
         ports::outbound::{
-            ActionDefinitionLoaderPort, ActionDirectoryResolverPort, ActionFetcherPort,
-            ActionInputsResolverPort, CommandPublisherPort, CompositeActionRunnerPort,
+            ActionCommandPublisherPort, ActionDefinitionLoaderPort, ActionDirectoryResolverPort,
+            ActionFetcherPort, ActionInputsResolverPort, CompositeActionRunnerPort,
             DomainEventPublisherPort, NodeActionRunnerPort, StepTextCodecPort,
         },
         services::execute_action_service::ExecuteActionService,
@@ -23,7 +23,7 @@ pub struct ActionExecutionWiring;
 impl ActionExecutionWiring {
     pub fn build(
         fetcher: Box<dyn ActionFetcherPort>,
-        command_bus: Box<dyn CommandPublisherPort>,
+        command_publisher: Box<dyn ActionCommandPublisherPort>,
         event_bus: Box<dyn DomainEventPublisherPort>,
         step_codec: Arc<dyn StepTextCodecPort>,
     ) -> ExecuteActionFactory {
@@ -37,7 +37,7 @@ impl ActionExecutionWiring {
         let composite_runner: Arc<dyn CompositeActionRunnerPort> = Arc::new(
             RunCompositeActionService::new(Box::new(RunCompositeStepService::new(
                 Box::new(RunShellStepService::new(event_bus)),
-                command_bus,
+                command_publisher,
             ))),
         );
         let node_runner: Arc<dyn NodeActionRunnerPort> = Arc::new(RunNodeActionService::new(
