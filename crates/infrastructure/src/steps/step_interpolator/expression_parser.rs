@@ -1,10 +1,8 @@
-use super::expression_lexer::ExpressionLexer;
-use crate::{
-    errors::ParseError,
-    value_objects::{
-        ComparisonOperator, Expression, ExpressionLiteral, ExpressionToken, LogicalOperator,
-    },
+use super::{
+    ComparisonOperator, Expression, ExpressionLiteral, ExpressionToken, LogicalOperator,
+    expression_lexer::ExpressionLexer,
 };
+use crate::application::errors::ParseError;
 
 /// Recursive-descent parser for expression tokens.
 pub struct ExpressionParser {
@@ -239,9 +237,9 @@ impl ExpressionParser {
 }
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::value_objects::{
-        ComparisonOperator, Expression, ExpressionLiteral, LogicalOperator,
+    use super::{
+        super::{ComparisonOperator, Expression, ExpressionLiteral, LogicalOperator},
+        *,
     };
 
     #[test]
