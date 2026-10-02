@@ -7,21 +7,21 @@ use crate::{
     ports::{
         inbound::RunActionPort,
         outbound::{
-            action_command_publisher_port::ActionCommandPublisherPort,
-            container_port::ContainerPort, step_text_codec_port::StepTextCodecPort,
+            Command, CommandPublisherPort, CommandResponse, container_port::ContainerPort,
+            step_text_codec_port::StepTextCodecPort,
         },
     },
 };
 
 pub struct RunActionService {
-    command_bus: Box<dyn ActionCommandPublisherPort>,
+    command_bus: Box<dyn CommandPublisherPort>,
     container: Arc<dyn ContainerPort>,
     step_codec: Arc<dyn StepTextCodecPort>,
 }
 
 impl RunActionService {
     pub fn new(
-        command_bus: Box<dyn ActionCommandPublisherPort>,
+        command_bus: Box<dyn CommandPublisherPort>,
         container: Arc<dyn ContainerPort>,
         step_codec: Arc<dyn StepTextCodecPort>,
     ) -> Self {
@@ -48,6 +48,19 @@ impl RunActionPort for RunActionService {
             self.container.clone(),
         )
         .with_context(context);
-        self.command_bus.publish(cmd).map_err(RunActionError::Step)
+        self.command_bus
+            .publish(Command::Action(cmd))
+            .map_err(|error| match error {
+                crate::ports::outbound::CommandError::Step(error) => RunActionError::Step(error),
+                error => {
+                    RunActionError::Step(crate::domain::errors::StepError::new(error.to_string()))
+                }
+            })
+            .and_then(|response| match response {
+                CommandResponse::Action(response) => Ok(response),
+                _ => Err(RunActionError::Step(crate::domain::errors::StepError::new(
+                    "unexpected command response for action",
+                ))),
+            })
     }
 }

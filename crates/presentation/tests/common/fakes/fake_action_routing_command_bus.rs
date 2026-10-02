@@ -2,18 +2,14 @@ use std::sync::{Arc, OnceLock};
 
 use ephact::{
     application::{
-        dtos::{
-            requests::{
-                ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
-            },
-            responses::ExecuteActionResponse,
+        dtos::requests::{
+            ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
         },
         ports::outbound::{
-            StepTextCodecPort, action_command_publisher_port::ActionCommandPublisherPort,
-            container_port::ContainerPort,
+            Command, CommandError, CommandPublisherPort, CommandResponse, StepTextCodecPort,
         },
     },
-    domain::{errors::StepError, messages::commands::ExecuteActionCommand},
+    domain::errors::StepError,
     infrastructure::{actions::ExecuteActionFactory, steps::JsonStepTextCodec},
 };
 
@@ -36,23 +32,29 @@ impl FakeActionRoutingCommandBus {
         );
     }
 }
-impl ActionCommandPublisherPort for FakeActionRoutingCommandBus {
-    fn publish(
-        &self,
-        cmd: ExecuteActionCommand<dyn ContainerPort>,
-    ) -> Result<ExecuteActionResponse, StepError> {
+
+impl CommandPublisherPort for FakeActionRoutingCommandBus {
+    fn publish(&self, command: Command) -> Result<CommandResponse, CommandError> {
+        let Command::Action(command) = command else {
+            return Err(CommandError::Transport(
+                "action routing fake received a non-action command".to_string(),
+            ));
+        };
         let factory = self
             .executor_factory
             .get()
-            .ok_or_else(|| StepError::new("no action executor bound"))?;
-        let (action_ref, step, repo_path, env, context, container) = cmd.into_parts();
+            .ok_or_else(|| CommandError::Step(StepError::new("no action executor bound")))?;
+        let (action_ref, step, repo_path, env, context, container) = command.into_parts();
         let executor = factory(container);
         executor
             .execute(ExecuteActionRequest::new(ExecuteActionRequestInput::new(
                 action_ref,
-                JsonStepTextCodec.encode(&step).unwrap(),
+                JsonStepTextCodec
+                    .encode(&step)
+                    .map_err(CommandError::Step)?,
                 ExecuteActionExecutionInput::new(repo_path, env, context),
             )))
-            .map_err(|error| StepError::new(error.to_string()))
+            .map(CommandResponse::Action)
+            .map_err(|error| CommandError::Step(StepError::new(error.to_string())))
     }
 }

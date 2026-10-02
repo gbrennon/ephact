@@ -5,10 +5,7 @@ use crate::{
     application::{
         dtos::{requests::ExecuteWorkflowRequest, responses::WorkflowExecutionResponse},
         errors::ExecuteWorkflowError,
-        ports::{
-            inbound::execute_workflow_port::ExecuteWorkflowPort,
-            outbound::WorkflowCommandHandlerPort,
-        },
+        ports::inbound::execute_workflow_port::ExecuteWorkflowPort,
     },
     domain::{
         messages::commands::ExecuteWorkflowCommand,
@@ -83,15 +80,6 @@ impl WorkflowCommandHandler {
             None => req,
         };
         self.executor.execute(req)
-    }
-}
-
-impl WorkflowCommandHandlerPort for WorkflowCommandHandler {
-    fn handle(
-        &self,
-        command: ExecuteWorkflowCommand,
-    ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
-        WorkflowCommandHandler::handle(self, command)
     }
 }
 

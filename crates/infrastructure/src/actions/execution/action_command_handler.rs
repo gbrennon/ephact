@@ -7,9 +7,7 @@ use crate::{
             },
             responses::ExecuteActionResponse,
         },
-        ports::outbound::{
-            ActionCommandHandlerPort, StepTextCodecPort, container_port::ContainerPort,
-        },
+        ports::outbound::{StepTextCodecPort, container_port::ContainerPort},
     },
     domain::{errors::StepError, messages::commands::ExecuteActionCommand},
     steps::JsonStepTextCodec,
@@ -41,14 +39,5 @@ impl ActionCommandHandler {
                 .with_stdout(error.stdout().to_string())
                 .with_stderr(error.stderr().to_string())
         })
-    }
-}
-
-impl ActionCommandHandlerPort for ActionCommandHandler {
-    fn handle(
-        &self,
-        command: ExecuteActionCommand<dyn ContainerPort>,
-    ) -> Result<ExecuteActionResponse, StepError> {
-        ActionCommandHandler::handle(self, command)
     }
 }

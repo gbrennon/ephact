@@ -26,10 +26,10 @@ use crate::{
     ports::{
         inbound::execute_job_port::ExecuteJobPort,
         outbound::{
+            Command, CommandError, CommandPublisherPort, CommandResponse,
             domain_event_publisher_port::DomainEventPublisherPort,
             job_container_preparer_port::JobContainerPreparerPort,
             job_environment_builder_port::JobEnvironmentBuilderPort,
-            step_command_publisher_port::StepCommandPublisherPort,
             step_context_builder_port::StepContextBuilderPort,
             step_exports_reader_port::StepExportsReaderPort,
             step_path_prefixer_port::StepPathPrefixerPort,
@@ -52,7 +52,7 @@ pub struct ExecuteJobService {
     step_context_builder: Box<dyn StepContextBuilderPort>,
     step_summarizer: Box<dyn StepSummarizerPort>,
     step_exports_reader: Box<dyn StepExportsReaderPort>,
-    command_bus: Box<dyn StepCommandPublisherPort>,
+    command_bus: Box<dyn CommandPublisherPort>,
     event_bus: Box<dyn DomainEventPublisherPort>,
     network_command_classifier: Box<dyn NetworkCommandClassifier>,
 }
@@ -63,8 +63,9 @@ pub type ExecuteJobStepDependencies = (
     Box<dyn StepSummarizerPort>,
     Box<dyn StepExportsReaderPort>,
 );
+
 pub type ExecuteJobMessagingDependencies = (
-    Box<dyn StepCommandPublisherPort>,
+    Box<dyn CommandPublisherPort>,
     Box<dyn DomainEventPublisherPort>,
 );
 
@@ -75,7 +76,7 @@ pub struct ExecuteJobDependencies {
     step_context_builder: Box<dyn StepContextBuilderPort>,
     step_summarizer: Box<dyn StepSummarizerPort>,
     step_exports_reader: Box<dyn StepExportsReaderPort>,
-    command_bus: Box<dyn StepCommandPublisherPort>,
+    command_bus: Box<dyn CommandPublisherPort>,
     event_bus: Box<dyn DomainEventPublisherPort>,
     network_command_classifier: Box<dyn NetworkCommandClassifier>,
 }
@@ -249,13 +250,25 @@ impl ExecuteJobService {
         {
             return self.skipped_step(step, started_at.elapsed(), reason);
         }
-        let outcome = self.command_bus.publish(ExecuteStepCommand::new(
-            step.clone(),
-            state.step_env.clone(),
-            step_context,
-            state.prepared.container_handle(),
-            request.repo_path().to_path_buf(),
-        ));
+        let outcome = self
+            .command_bus
+            .publish(Command::Step(ExecuteStepCommand::new(
+                step.clone(),
+                state.step_env.clone(),
+                step_context,
+                state.prepared.container_handle(),
+                request.repo_path().to_path_buf(),
+            )))
+            .map_err(|error| match error {
+                CommandError::Step(error) => error,
+                error => crate::domain::errors::StepError::new(error.to_string()),
+            })
+            .and_then(|response| match response {
+                CommandResponse::Step(response) => Ok(*response),
+                _ => Err(crate::domain::errors::StepError::new(
+                    "unexpected command response for step",
+                )),
+            });
         self.step_summarizer.summarize(SummarizeStepRequest::new(
             step,
             outcome,

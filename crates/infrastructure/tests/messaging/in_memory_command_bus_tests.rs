@@ -23,11 +23,8 @@ use ephact::{
                 execute_step_port::ExecuteStepPort, execute_workflow_port::ExecuteWorkflowPort,
             },
             outbound::{
-                StepTextCodecPort, action_command_handler_port::ActionCommandHandlerPort,
-                action_command_publisher_port::ActionCommandPublisherPort,
-                container_port::ContainerPort, job_command_publisher_port::JobCommandPublisherPort,
-                step_command_publisher_port::StepCommandPublisherPort,
-                workflow_command_publisher_port::WorkflowCommandPublisherPort,
+                Command, CommandError, CommandHandlerPort, CommandPublisherPort, CommandResponse,
+                StepTextCodecPort, container_port::ContainerPort,
             },
         },
     },
@@ -44,7 +41,9 @@ use ephact::{
     infrastructure::{
         actions::ActionCommandHandler,
         jobs::JobCommandHandler,
-        messaging::{CommandPublisherAdapter, DeferredCommandBus, InMemoryCommandBus},
+        messaging::{
+            CommandHandlerAdapter, CommandPublisherAdapter, DeferredCommandBus, InMemoryCommandBus,
+        },
         steps::{JsonStepTextCodec, StepCommandHandler},
         workflows::{WorkflowCommandHandler, actions::StepYaml},
     },
@@ -52,21 +51,22 @@ use ephact::{
 
 use crate::common::fakes::stub_container::StubContainer;
 
-/// Binds the four handlers behind a deferred bus and exposes it through the
-/// application-facing [`CommandPublisherAdapter`], mirroring production wiring.
 fn bound_publisher(
     workflow: WorkflowCommandHandler,
     job: JobCommandHandler,
     step: StepCommandHandler,
-    action: Box<dyn ActionCommandHandlerPort>,
+    action: ActionCommandHandler,
 ) -> CommandPublisherAdapter {
     let deferred = Arc::new(DeferredCommandBus::new());
-    deferred.bind(InMemoryCommandBus::new(
-        Box::new(workflow),
-        Box::new(job),
-        Box::new(step),
-        action,
-    ));
+    deferred.bind(InMemoryCommandBus::new(Box::new(
+        CommandHandlerAdapter::new(workflow, job, step, action),
+    )));
+    CommandPublisherAdapter::new(deferred)
+}
+
+fn publisher_with_handler(handler: Box<dyn CommandHandlerPort>) -> CommandPublisherAdapter {
+    let deferred = Arc::new(DeferredCommandBus::new());
+    deferred.bind(InMemoryCommandBus::new(handler));
     CommandPublisherAdapter::new(deferred)
 }
 
@@ -74,15 +74,13 @@ fn stub_handlers() -> (
     WorkflowCommandHandler,
     JobCommandHandler,
     StepCommandHandler,
-    Box<dyn ActionCommandHandlerPort>,
+    ActionCommandHandler,
 ) {
     (
         WorkflowCommandHandler::new(Box::new(StubWorkflowPort)),
         JobCommandHandler::new(Box::new(StubJobPort)),
         StepCommandHandler::new(Box::new(|_| Box::new(StubStepPort))),
-        Box::new(ActionCommandHandler::new(Box::new(|_| {
-            Box::new(StubActionPort)
-        }))),
+        ActionCommandHandler::new(Box::new(|_| Box::new(StubActionPort))),
     )
 }
 
@@ -162,24 +160,34 @@ impl ExecuteActionPort for FailingActionPort {
     }
 }
 
-/// Records every action command routed to it, proving which handler a command
-/// reaches.
+/// Records action commands while still handling workflow commands, proving
+/// that centralized routing selects the matching handler.
 #[derive(Clone, Default)]
-struct SpyActionHandler {
-    calls: Arc<AtomicUsize>,
+struct SpyCommandHandler {
+    action_calls: Arc<AtomicUsize>,
 }
 
-impl ActionCommandHandlerPort for SpyActionHandler {
-    fn handle(
-        &self,
-        _command: ExecuteActionCommand<dyn ContainerPort>,
-    ) -> Result<ExecuteActionResponse, StepError> {
-        self.calls.fetch_add(1, Ordering::SeqCst);
-        Ok(ExecuteActionResponse::new(
-            0,
-            "spy".to_string(),
-            String::new(),
-        ))
+impl CommandHandlerPort for SpyCommandHandler {
+    fn handle(&self, command: Command) -> Result<CommandResponse, CommandError> {
+        match command {
+            Command::Workflow(_) => Ok(CommandResponse::Workflow(WorkflowExecutionResponse::new(
+                "dispatched-wf".to_string(),
+                Vec::new(),
+                vec!["c1".to_string()],
+                true,
+            ))),
+            Command::Action(_) => {
+                self.action_calls.fetch_add(1, Ordering::SeqCst);
+                Ok(CommandResponse::Action(ExecuteActionResponse::new(
+                    0,
+                    "spy".to_string(),
+                    String::new(),
+                )))
+            }
+            _ => Err(CommandError::Transport(
+                "spy received an unsupported command".to_string(),
+            )),
+        }
     }
 }
 
@@ -219,8 +227,12 @@ fn publisher_routes_workflow_command_to_workflow_handler() {
     let (workflow, job, step, action) = stub_handlers();
     let publisher = bound_publisher(workflow, job, step, action);
 
-    let result =
-        WorkflowCommandPublisherPort::publish(&publisher, sample_workflow_command()).unwrap();
+    let result = publisher
+        .publish(Command::Workflow(sample_workflow_command()))
+        .unwrap();
+    let CommandResponse::Workflow(result) = result else {
+        panic!("expected workflow response");
+    };
 
     assert_eq!(result.workflow_name(), "dispatched-wf");
 }
@@ -230,8 +242,12 @@ fn publisher_routes_action_command_to_action_handler() {
     let (workflow, job, step, action) = stub_handlers();
     let publisher = bound_publisher(workflow, job, step, action);
 
-    let result =
-        ActionCommandPublisherPort::publish(&publisher, checkout_action_command()).unwrap();
+    let result = publisher
+        .publish(Command::Action(checkout_action_command()))
+        .unwrap();
+    let CommandResponse::Action(result) = result else {
+        panic!("expected action response");
+    };
 
     assert_eq!(result.stdout(), "action out");
     assert_eq!(result.exit_code(), 0);
@@ -239,19 +255,18 @@ fn publisher_routes_action_command_to_action_handler() {
 
 #[test]
 fn publisher_routes_workflow_command_without_reaching_action_handler() {
-    let action_spy = SpyActionHandler::default();
-    let publisher = bound_publisher(
-        WorkflowCommandHandler::new(Box::new(StubWorkflowPort)),
-        JobCommandHandler::new(Box::new(StubJobPort)),
-        StepCommandHandler::new(Box::new(|_| Box::new(StubStepPort))),
-        Box::new(action_spy.clone()),
-    );
+    let action_spy = SpyCommandHandler::default();
+    let publisher = publisher_with_handler(Box::new(action_spy.clone()));
 
-    let result =
-        WorkflowCommandPublisherPort::publish(&publisher, sample_workflow_command()).unwrap();
+    let result = publisher
+        .publish(Command::Workflow(sample_workflow_command()))
+        .unwrap();
+    let CommandResponse::Workflow(result) = result else {
+        panic!("expected workflow response");
+    };
 
     assert_eq!(result.workflow_name(), "dispatched-wf");
-    assert_eq!(action_spy.calls.load(Ordering::SeqCst), 0);
+    assert_eq!(action_spy.action_calls.load(Ordering::SeqCst), 0);
 }
 
 #[test]
@@ -331,9 +346,7 @@ fn publisher_routes_job_command_to_job_handler_with_command_payload() {
         WorkflowCommandHandler::new(Box::new(StubWorkflowPort)),
         JobCommandHandler::new(Box::new(EchoJobPort)),
         StepCommandHandler::new(Box::new(|_| Box::new(StubStepPort))),
-        Box::new(ActionCommandHandler::new(Box::new(|_| {
-            Box::new(StubActionPort)
-        }))),
+        ActionCommandHandler::new(Box::new(|_| Box::new(StubActionPort))),
     );
     let repo_path = PathBuf::from("/repo/job");
     let command = ExecuteJobCommand::new(
@@ -346,7 +359,10 @@ fn publisher_routes_job_command_to_job_handler_with_command_payload() {
     .with_run_id("test-run".to_string())
     .with_allow_repo_writes(false);
 
-    let result = JobCommandPublisherPort::publish(&publisher, command).unwrap();
+    let result = publisher.publish(Command::Job(Box::new(command))).unwrap();
+    let CommandResponse::Job(result) = result else {
+        panic!("expected job response");
+    };
 
     assert_eq!(result.job_summary().job_id(), "build-job");
     assert_eq!(result.job_summary().name(), Some("Build"));
@@ -359,9 +375,7 @@ fn publisher_routes_step_command_to_step_handler_with_command_payload() {
         WorkflowCommandHandler::new(Box::new(StubWorkflowPort)),
         JobCommandHandler::new(Box::new(StubJobPort)),
         StepCommandHandler::new(Box::new(|_| Box::new(EchoStepPort))),
-        Box::new(ActionCommandHandler::new(Box::new(|_| {
-            Box::new(StubActionPort)
-        }))),
+        ActionCommandHandler::new(Box::new(|_| Box::new(StubActionPort))),
     );
     let step = serde_yaml::from_str::<StepYaml>("run: echo hello")
         .unwrap()
@@ -375,7 +389,10 @@ fn publisher_routes_step_command_to_step_handler_with_command_payload() {
         PathBuf::from("/repo/step"),
     );
 
-    let result = StepCommandPublisherPort::publish(&publisher, command).unwrap();
+    let result = publisher.publish(Command::Step(command)).unwrap();
+    let CommandResponse::Step(result) = result else {
+        panic!("expected step response");
+    };
 
     assert_eq!(result.step().run(), Some("echo hello"));
     assert_eq!(result.response().stdout(), "step-marker");
