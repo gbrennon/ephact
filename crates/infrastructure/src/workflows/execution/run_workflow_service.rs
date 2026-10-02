@@ -18,10 +18,8 @@ use crate::{
     domain::{
         Repository, Validatable,
         messages::{
-            commands::ExecuteWorkflowCommand,
-            events::{
-                DomainEvent, RunFailedPayload, RunStartedPayload, WorkflowRunCompletedPayload,
-            },
+            commands::{Event, ExecuteWorkflowCommand},
+            events::{RunFailedPayload, RunStartedPayload, WorkflowRunCompletedPayload},
         },
         value_objects::workflow_run_config::WorkflowRunConfig,
     },
@@ -129,7 +127,7 @@ impl RunWorkflowPort for RunWorkflowService {
 impl RunWorkflowService {
     fn announce_run_started(&self, context: &RunExecutionContext) {
         self.event_publisher
-            .publish(DomainEvent::RunStarted(RunStartedPayload::new(
+            .publish(Event::RunStarted(RunStartedPayload::new(
                 context.run_id.clone(),
                 context.repository_path.clone(),
             )));
@@ -208,15 +206,14 @@ impl RunWorkflowService {
         execution: WorkflowExecutionResponse,
     ) -> RunSummaryResponse {
         let (workflow_name, job_summaries, container_names, success) = execution.into_parts();
-        self.event_publisher
-            .publish(DomainEvent::WorkflowRunCompleted(
-                WorkflowRunCompletedPayload::new(
-                    context.run_id.clone(),
-                    context.repository_path.clone(),
-                    container_names,
-                    success,
-                ),
-            ));
+        self.event_publisher.publish(Event::WorkflowRunCompleted(
+            WorkflowRunCompletedPayload::new(
+                context.run_id.clone(),
+                context.repository_path.clone(),
+                container_names,
+                success,
+            ),
+        ));
         RunSummaryResponse::new(
             workflow_name,
             job_summaries,
@@ -229,7 +226,7 @@ impl RunWorkflowService {
 impl RunWorkflowService {
     fn announce_run_failed(&self, context: &RunExecutionContext, error: &dyn Error) {
         self.event_publisher
-            .publish(DomainEvent::RunFailed(RunFailedPayload::new(
+            .publish(Event::RunFailed(RunFailedPayload::new(
                 context.run_id.clone(),
                 context.repository_path.clone(),
                 context.workflow_name.clone(),

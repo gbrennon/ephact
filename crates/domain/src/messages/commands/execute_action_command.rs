@@ -1,8 +1,6 @@
 use std::{collections::HashMap, fmt, path::PathBuf, sync::Arc};
 
-use crate::{
-    entities::Step, messages::commands::command::Command, value_objects::EvaluationContext,
-};
+use crate::{entities::Step, messages::Message, value_objects::EvaluationContext};
 
 /// Command representing the intention to execute one action.
 ///
@@ -106,7 +104,7 @@ impl<C: ?Sized + Send + Sync> fmt::Debug for ExecuteActionCommand<C> {
     }
 }
 
-impl<C: ?Sized + Send + Sync> Command for ExecuteActionCommand<C> {}
+impl<C: ?Sized + Send + Sync> Message for ExecuteActionCommand<C> {}
 
 #[cfg(test)]
 mod tests {

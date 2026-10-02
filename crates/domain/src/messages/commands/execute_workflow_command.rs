@@ -1,5 +1,5 @@
 use crate::{
-    entities::repository::Repository, messages::commands::command::Command,
+    entities::repository::Repository, messages::Message,
     value_objects::workflow_run_config::WorkflowRunConfig,
 };
 
@@ -85,7 +85,7 @@ impl ExecuteWorkflowCommand {
     }
 }
 
-impl Command for ExecuteWorkflowCommand {}
+impl Message for ExecuteWorkflowCommand {}
 
 #[cfg(test)]
 mod tests {

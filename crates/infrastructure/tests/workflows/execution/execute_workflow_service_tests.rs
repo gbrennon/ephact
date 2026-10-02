@@ -5,7 +5,7 @@ use ephact::{
         dtos::{requests::ExecuteWorkflowRequest, responses::WorkflowExecutionResponse},
         ports::inbound::execute_workflow_port::ExecuteWorkflowPort,
     },
-    domain::{messages::events::DomainEvent, value_objects::EvaluationContext},
+    domain::{messages::commands::Event, value_objects::EvaluationContext},
     infrastructure::workflows::execution::execute_workflow_service::ExecuteWorkflowService,
 };
 
@@ -156,17 +156,17 @@ fn execute_reports_the_source_filename_in_progress_events_and_summary() {
     assert_eq!(execution.workflow_name(), "ci.yml");
     let events = event_bus.events();
     let workflow_started = events.iter().find_map(|event| match event {
-        DomainEvent::WorkflowStarted(payload) => Some(payload),
+        Event::WorkflowStarted(payload) => Some(payload),
         _ => None,
     });
     assert_eq!(workflow_started.unwrap().workflow_name(), "ci.yml");
     let job_started = events.iter().find_map(|event| match event {
-        DomainEvent::JobStarted(payload) => Some(payload),
+        Event::JobStarted(payload) => Some(payload),
         _ => None,
     });
     assert_eq!(job_started.unwrap().workflow_name(), "ci.yml");
     let job_finished = events.iter().find_map(|event| match event {
-        DomainEvent::JobFinished(payload) => Some(payload),
+        Event::JobFinished(payload) => Some(payload),
         _ => None,
     });
     assert_eq!(job_finished.unwrap().workflow_name(), "ci.yml");

@@ -1,6 +1,6 @@
-/// Payload for [`DomainEvent::StepStarted`].
+/// Payload for [`Event::StepStarted`].
 ///
-/// [`DomainEvent::StepStarted`]: super::domain_event::DomainEvent::StepStarted
+/// [`Event::StepStarted`]: crate::messages::commands::Event::StepStarted
 #[derive(Debug, Clone)]
 pub struct StepStartedPayload {
     /// Name of the workflow the step belongs to.

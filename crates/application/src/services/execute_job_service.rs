@@ -7,9 +7,9 @@ use std::{
 use crate::{
     domain::{
         messages::{
-            commands::ExecuteStepCommand,
+            commands::{Event, ExecuteStepCommand},
             events::{
-                ContainerStartedPayload, DomainEvent, StepFinishedDetails, StepFinishedPayload,
+                ContainerStartedPayload, StepFinishedDetails, StepFinishedPayload,
                 StepStartedPayload,
             },
         },
@@ -199,7 +199,7 @@ impl ExecuteJobService {
 
     fn announce_container_started(&self, request: &ExecuteJobRequest, state: &JobExecutionState) {
         self.event_bus
-            .publish(DomainEvent::ContainerStarted(ContainerStartedPayload::new(
+            .publish(Event::ContainerStarted(ContainerStartedPayload::new(
                 request.run_id().to_string(),
                 state.prepared.container_name().to_string(),
             )));
@@ -328,7 +328,7 @@ impl ExecuteJobService {
         step: &crate::domain::entities::Step,
     ) {
         self.event_bus
-            .publish(DomainEvent::StepStarted(StepStartedPayload::new(
+            .publish(Event::StepStarted(StepStartedPayload::new(
                 workflow
                     .name()
                     .or(workflow.file())
@@ -348,7 +348,7 @@ impl ExecuteJobService {
         step_success: bool,
     ) {
         self.event_bus
-            .publish(DomainEvent::StepFinished(StepFinishedPayload::new(
+            .publish(Event::StepFinished(StepFinishedPayload::new(
                 request.run_id().to_string(),
                 StepFinishedDetails::new(
                     workflow

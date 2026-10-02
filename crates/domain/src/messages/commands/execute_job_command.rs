@@ -1,8 +1,7 @@
 use std::path::PathBuf;
 
 use crate::{
-    aggregates::Workflow, entities::Job, messages::commands::command::Command,
-    value_objects::EvaluationContext,
+    aggregates::Workflow, entities::Job, messages::Message, value_objects::EvaluationContext,
 };
 
 /// Command representing the intention to execute one job of a workflow.
@@ -110,7 +109,7 @@ impl ExecuteJobCommand {
     }
 }
 
-impl Command for ExecuteJobCommand {}
+impl Message for ExecuteJobCommand {}
 
 #[cfg(test)]
 mod tests {

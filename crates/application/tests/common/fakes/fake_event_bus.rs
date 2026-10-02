@@ -2,13 +2,13 @@ use std::sync::Arc;
 
 use ephact::{
     application::ports::outbound::domain_event_publisher_port::DomainEventPublisherPort,
-    domain::messages::events::DomainEvent,
+    domain::messages::commands::Event,
 };
 use parking_lot::Mutex;
 
 #[derive(Clone, Default)]
 pub struct FakeEventBus {
-    pub published_events: Arc<Mutex<Vec<DomainEvent>>>,
+    pub published_events: Arc<Mutex<Vec<Event>>>,
 }
 
 impl FakeEventBus {
@@ -18,13 +18,13 @@ impl FakeEventBus {
         }
     }
 
-    pub fn events(&self) -> Vec<DomainEvent> {
+    pub fn events(&self) -> Vec<Event> {
         self.published_events.lock().clone()
     }
 }
 
 impl DomainEventPublisherPort for FakeEventBus {
-    fn publish(&self, event: DomainEvent) {
+    fn publish(&self, event: Event) {
         self.published_events.lock().push(event);
     }
 }

@@ -4,8 +4,9 @@ use ephact::{
     application::ports::outbound::{ContainerRuntimePort, DomainEventHandlerPort},
     domain::{
         errors::ContainerError,
-        messages::events::{
-            ContainerStartedPayload, DomainEvent, RunFailedPayload, WorkflowRunCompletedPayload,
+        messages::{
+            commands::Event,
+            events::{ContainerStartedPayload, RunFailedPayload, WorkflowRunCompletedPayload},
         },
     },
     infrastructure::containers::container_cleanup_handler::ContainerCleanupHandler,
@@ -21,7 +22,7 @@ fn cleanup_handler_attempts_to_remove_containers_from_completed_event() {
     let container_names = vec!["ephact-test-12345-1000".to_string()];
 
     // Act: Publish WorkflowRunCompleted event
-    let event = DomainEvent::WorkflowRunCompleted(WorkflowRunCompletedPayload::new(
+    let event = Event::WorkflowRunCompleted(WorkflowRunCompletedPayload::new(
         "test-run".to_string(),
         "/test/repo".to_string(),
         container_names.clone(),
@@ -78,15 +79,15 @@ fn cleanup_handler_ignores_started_containers_from_other_runs_when_run_fails() {
     assert!(!calls.iter().any(|c| c.starts_with("remove_container")));
 }
 
-fn container_started(run_id: &str, container_name: &str) -> DomainEvent {
-    DomainEvent::ContainerStarted(ContainerStartedPayload::new(
+fn container_started(run_id: &str, container_name: &str) -> Event {
+    Event::ContainerStarted(ContainerStartedPayload::new(
         run_id.to_string(),
         container_name.to_string(),
     ))
 }
 
-fn run_failed(run_id: &str) -> DomainEvent {
-    DomainEvent::RunFailed(RunFailedPayload::new(
+fn run_failed(run_id: &str) -> Event {
+    Event::RunFailed(RunFailedPayload::new(
         run_id.to_string(),
         "/test/repo".to_string(),
         None,

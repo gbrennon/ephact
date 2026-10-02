@@ -1,4 +1,4 @@
-use crate::domain::messages::events::DomainEvent;
+use crate::domain::messages::commands::Event;
 
 /// Handles a domain event delivered by the bound infrastructure transport.
 ///
@@ -6,5 +6,5 @@ use crate::domain::messages::events::DomainEvent;
 /// implement this application-owned port so the transport can route events to
 /// them without knowing their concrete types.
 pub trait DomainEventHandlerPort: Send + Sync {
-    fn handle(&self, event: &DomainEvent);
+    fn handle(&self, event: &Event);
 }
