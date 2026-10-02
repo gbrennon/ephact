@@ -1,7 +1,7 @@
 use super::{expression_evaluator::ExpressionEvaluator, expression_parser::ExpressionParser};
 use crate::{
-    errors::EvalError,
-    value_objects::{ContextValue, EvaluationContext},
+    application::errors::EvalError,
+    domain::value_objects::{ContextValue, EvaluationContext},
 };
 
 /// Marker that opens an interpolated expression inside a template string.

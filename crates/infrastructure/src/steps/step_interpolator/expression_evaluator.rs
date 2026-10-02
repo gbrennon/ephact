@@ -3,12 +3,10 @@ use super::expression_functions::ExpressionFunctions;
 ///
 /// Walks an [`Expression`] AST and produces a [`ContextValue`] result,
 /// using the built-in [`ExpressionFunctions`] dispatcher for function calls.
+use super::{ComparisonOperator, Expression, ExpressionLiteral, LogicalOperator};
 use crate::{
-    errors::EvalError,
-    value_objects::{
-        ComparisonOperator, ContextValue, EvaluationContext, Expression, ExpressionLiteral,
-        LogicalOperator,
-    },
+    application::errors::EvalError,
+    domain::value_objects::{ContextValue, EvaluationContext},
 };
 
 /// Walks an expression AST and evaluates it to a [`ContextValue`].
@@ -225,10 +223,11 @@ impl<'a> ExpressionEvaluator<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::value_objects::{
-        ComparisonOperator, EvaluationContext, Expression, ExpressionLiteral, LogicalOperator,
+    use super::{
+        super::{ComparisonOperator, Expression, ExpressionLiteral, LogicalOperator},
+        *,
     };
+    use crate::domain::value_objects::EvaluationContext;
 
     fn ctx() -> EvaluationContext {
         EvaluationContext::new()

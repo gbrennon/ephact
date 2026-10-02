@@ -27,6 +27,7 @@ pub mod fake_run_workflow_port;
 pub mod fake_runtime;
 pub mod fake_shell_step_runner_port;
 pub mod fake_step_exports_reader_port;
+pub mod fake_step_interpolator_port;
 pub mod fake_workflow_loader_port;
 pub mod fake_workflow_source;
 pub mod spy_container_runtime;

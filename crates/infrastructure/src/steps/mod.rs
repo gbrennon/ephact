@@ -11,6 +11,7 @@ pub mod run_composite_step_service;
 pub mod run_shell_step_service;
 pub mod runner_export_parser;
 pub mod step_command_handler;
+pub mod step_interpolator;
 pub mod summarize_step_service;
 
 pub use build_step_context_service::BuildStepContextService;
@@ -25,4 +26,5 @@ pub use read_step_path_exports_service::ReadStepPathExportsService;
 pub use run_composite_step_service::RunCompositeStepService;
 pub use run_shell_step_service::RunShellStepService;
 pub use step_command_handler::StepCommandHandler;
+pub use step_interpolator::StepInterpolator;
 pub use summarize_step_service::SummarizeStepService;

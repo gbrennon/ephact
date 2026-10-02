@@ -1,13 +1,34 @@
+mod builtin_function;
+mod comparison_operator;
+mod expression;
+mod expression_cursor;
 mod expression_evaluator;
 mod expression_functions;
 mod expression_lexer;
+mod expression_literal;
 mod expression_parser;
 mod expression_resolver;
+mod expression_token;
+mod identifier_token;
+mod logical_operator;
+mod number_literal;
+mod operator_token;
+mod string_literal;
 
 use std::collections::HashMap;
 
 use self::expression_resolver::ExpressionResolver;
-use crate::{domain::entities::Step, errors::EvalError, value_objects::EvaluationContext};
+pub(super) use self::{
+    builtin_function::BuiltinFunction, comparison_operator::ComparisonOperator,
+    expression::Expression, expression_cursor::ExpressionCursor,
+    expression_literal::ExpressionLiteral, expression_token::ExpressionToken,
+    identifier_token::IdentifierToken, logical_operator::LogicalOperator,
+    number_literal::NumberLiteral, operator_token::OperatorToken, string_literal::StringLiteral,
+};
+use crate::{
+    application::{errors::EvalError, ports::outbound::StepInterpolatorPort},
+    domain::{entities::Step, value_objects::EvaluationContext},
+};
 
 /// Produces a copy of a step with every `${{ }}` expression in its
 /// user-supplied fields replaced by its evaluated value.
@@ -92,23 +113,33 @@ impl StepInterpolator {
     }
 }
 
+impl StepInterpolatorPort for StepInterpolator {
+    fn interpolate(&self, step: &Step, context: &EvaluationContext) -> Result<Step, EvalError> {
+        Self::interpolate(step, context)
+    }
+
+    fn should_run(&self, step: &Step, context: &EvaluationContext) -> Result<bool, EvalError> {
+        Self::should_run(step, context)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     impl StepInterpolator {
         fn context_with_secret_for_test(name: &str, value: &str) -> EvaluationContext {
-            let secrets = crate::value_objects::ContextValue::mapping([(
+            let secrets = crate::domain::value_objects::ContextValue::mapping([(
                 name.to_owned(),
-                crate::value_objects::ContextValue::text(value),
+                crate::domain::value_objects::ContextValue::text(value),
             )]);
             EvaluationContext::new().with_root("credentials", secrets)
         }
 
         fn context_with_input_for_test(name: &str, value: &str) -> EvaluationContext {
-            let inputs = crate::value_objects::ContextValue::mapping([(
+            let inputs = crate::domain::value_objects::ContextValue::mapping([(
                 name.to_owned(),
-                crate::value_objects::ContextValue::text(value),
+                crate::domain::value_objects::ContextValue::text(value),
             )]);
             EvaluationContext::new().with_root("parameters", inputs)
         }

@@ -1,5 +1,4 @@
-use super::ExpressionToken;
-use crate::value_objects::expression_cursor::ExpressionCursor;
+use super::{ExpressionCursor, ExpressionToken};
 
 pub struct IdentifierToken;
 
@@ -29,8 +28,10 @@ impl IdentifierToken {
 
 #[cfg(test)]
 mod tests {
-    use super::IdentifierToken;
-    use crate::value_objects::{ExpressionToken, expression_cursor::ExpressionCursor};
+    use super::{
+        super::{ExpressionCursor, ExpressionToken},
+        IdentifierToken,
+    };
 
     #[test]
     fn recognizes_names_and_keywords() {

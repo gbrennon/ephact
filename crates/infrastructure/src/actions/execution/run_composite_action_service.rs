@@ -15,12 +15,12 @@ use crate::{
             responses::ExecuteActionResponse,
         },
         ports::outbound::{
-            composite_action_runner_port::CompositeActionRunnerPort, container_port::ContainerPort,
+            StepInterpolatorPort, composite_action_runner_port::CompositeActionRunnerPort,
+            container_port::ContainerPort,
             copy_action_to_container_port::CopyActionToContainerPort,
             run_composite_step_port::RunCompositeStepPort,
             step_exports_reader_port::StepExportsReaderPort,
         },
-        services::StepInterpolator,
     },
     domain::{
         entities::Step,
@@ -34,6 +34,7 @@ pub struct RunCompositeActionService {
     step_runner: Box<dyn RunCompositeStepPort>,
     action_copier: Box<dyn CopyActionToContainerPort>,
     step_exports_reader: Box<dyn StepExportsReaderPort>,
+    interpolator: Arc<dyn StepInterpolatorPort>,
 }
 pub(super) struct ActionOutput {
     stdout: String,
@@ -59,11 +60,13 @@ impl RunCompositeActionService {
         step_runner: Box<dyn RunCompositeStepPort>,
         action_copier: Box<dyn CopyActionToContainerPort>,
         step_exports_reader: Box<dyn StepExportsReaderPort>,
+        interpolator: Arc<dyn StepInterpolatorPort>,
     ) -> Self {
         Self {
             step_runner,
             action_copier,
             step_exports_reader,
+            interpolator,
         }
     }
 
@@ -174,19 +177,24 @@ impl RunCompositeActionService {
     }
 
     fn interpolated_step(
+        &self,
         step: &Step,
         context: &EvaluationContext,
         output: &ActionOutput,
     ) -> Result<Option<Step>, StepError> {
-        let should_run = StepInterpolator::should_run(step, context).map_err(|error| {
-            StepError::new(format!("failed to evaluate step condition: {error:?}"))
-                .with_stdout(output.stdout.clone())
-                .with_stderr(output.stderr.clone())
-        })?;
+        let should_run = self
+            .interpolator
+            .should_run(step, context)
+            .map_err(|error| {
+                StepError::new(format!("failed to evaluate step condition: {error:?}"))
+                    .with_stdout(output.stdout.clone())
+                    .with_stderr(output.stderr.clone())
+            })?;
         if !should_run {
             return Ok(None);
         }
-        StepInterpolator::interpolate(step, context)
+        self.interpolator
+            .interpolate(step, context)
             .map(Some)
             .map_err(|error| {
                 StepError::new(format!("failed to resolve expressions: {error:?}"))
@@ -205,7 +213,7 @@ impl RunCompositeActionService {
         let action_dir = execution.action_dir().to_path_buf();
         let environment = execution.environment().clone();
         let Some(interpolated) =
-            Self::interpolated_step(step, execution.context(), execution.output())?
+            self.interpolated_step(step, execution.context(), execution.output())?
         else {
             return Ok(None);
         };

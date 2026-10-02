@@ -25,7 +25,8 @@ use ephact::{
     },
     infrastructure::{
         actions::execution::run_composite_action_service::RunCompositeActionService,
-        steps::JsonStepTextCodec, workflows::actions::StepYaml,
+        steps::{JsonStepTextCodec, StepInterpolator},
+        workflows::actions::StepYaml,
     },
 };
 
@@ -79,6 +80,7 @@ fn service_with_exports(
         Box::new(runner),
         Box::new(FakeCopyActionToContainerPort::returning("/actions/outer")),
         Box::new(exports_reader),
+        Arc::new(StepInterpolator),
     )
 }
 
