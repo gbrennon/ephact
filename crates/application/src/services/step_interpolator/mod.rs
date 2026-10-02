@@ -43,6 +43,12 @@ impl StepInterpolator {
             .with_continue_on_error(step.continue_on_error().map(str::to_string))
             .with_timeout_minutes(step.timeout_minutes()))
     }
+    /// Returns whether a step's `if` condition permits execution.
+    pub fn should_run(step: &Step, context: &EvaluationContext) -> Result<bool, EvalError> {
+        step.if_condition().map_or(Ok(true), |condition| {
+            ExpressionResolver::evaluate_condition(condition, context)
+        })
+    }
 
     fn interpolate_core_fields(
         step: &Step,

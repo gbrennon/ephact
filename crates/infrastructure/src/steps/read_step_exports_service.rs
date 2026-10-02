@@ -4,7 +4,7 @@ use crate::application::{
         responses::StepExportsResponse,
     },
     ports::outbound::{
-        ReadStepEnvExportsPort, ReadStepPathExportsPort,
+        ReadStepEnvExportsPort, ReadStepOutputExportsPort, ReadStepPathExportsPort,
         step_exports_reader_port::StepExportsReaderPort,
     },
 };
@@ -13,16 +13,19 @@ use crate::application::{
 pub struct ReadStepExportsService {
     path_reader: Box<dyn ReadStepPathExportsPort>,
     env_reader: Box<dyn ReadStepEnvExportsPort>,
+    output_reader: Box<dyn ReadStepOutputExportsPort>,
 }
 
 impl ReadStepExportsService {
     pub fn new(
         path_reader: Box<dyn ReadStepPathExportsPort>,
         env_reader: Box<dyn ReadStepEnvExportsPort>,
+        output_reader: Box<dyn ReadStepOutputExportsPort>,
     ) -> Self {
         Self {
             path_reader,
             env_reader,
+            output_reader,
         }
     }
 }
@@ -39,5 +42,9 @@ impl StepExportsReaderPort for ReadStepExportsService {
             self.env_reader
                 .read(ReadStepEnvExportsRequest::new(), container),
         )
+        .with_outputs(self.output_reader.read(
+            crate::application::dtos::requests::ReadStepOutputExportsRequest::new(),
+            container,
+        ))
     }
 }

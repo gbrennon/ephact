@@ -67,7 +67,7 @@ impl ActionDirectoryResolverPort for ResolveActionDirectoryService {
             )),
             ActionReference::Remote(remote) if remote.repo() == CHECKOUT_REPO => Ok(
                 ResolvedActionDirectoryResponse::Skipped(ExecuteActionResponse::note(format!(
-                    "[skipped] {} - the repository is already mounted at {CONTAINER_WORKSPACE}\n",
+                    "{} - the repository is already mounted at {CONTAINER_WORKSPACE}\n",
                     request.action_ref()
                 ))),
             ),

@@ -18,6 +18,7 @@ pub mod fake_list_all_workflow_files_port;
 pub mod fake_list_workflows_port;
 pub mod fake_pull_job_image_port;
 pub mod fake_read_step_env_exports_port;
+pub mod fake_read_step_output_exports_port;
 pub mod fake_read_step_path_exports_port;
 pub mod fake_resolve_named_workflow_file_port;
 pub mod fake_resolve_node_binary_port;

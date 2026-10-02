@@ -1,7 +1,9 @@
 use crate::{
     application::{
         dtos::{requests::ExecuteStepRequest, responses::ExecutedStepResponse},
-        ports::outbound::{StepTextCodecPort, container_port::ContainerPort},
+        ports::outbound::{
+            StepCommandHandlerPort, StepTextCodecPort, container_port::ContainerPort,
+        },
     },
     domain::{errors::StepError, messages::commands::ExecuteStepCommand},
     steps::{ExecuteStepFactory, JsonStepTextCodec},
@@ -28,5 +30,13 @@ impl StepCommandHandler {
         executor
             .execute(req)
             .map_err(|error| StepError::new(error.to_string()))
+    }
+}
+impl StepCommandHandlerPort for StepCommandHandler {
+    fn handle(
+        &self,
+        command: ExecuteStepCommand<dyn ContainerPort>,
+    ) -> Result<ExecutedStepResponse, StepError> {
+        StepCommandHandler::handle(self, command)
     }
 }

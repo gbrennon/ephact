@@ -2,7 +2,7 @@ use crate::{
     application::{
         dtos::{requests::ExecuteJobRequest, responses::JobExecutionResponse},
         errors::ExecuteJobError,
-        ports::inbound::execute_job_port::ExecuteJobPort,
+        ports::{inbound::execute_job_port::ExecuteJobPort, outbound::JobCommandHandlerPort},
     },
     domain::{entities::JobRun, messages::commands::ExecuteJobCommand},
 };
@@ -25,5 +25,10 @@ impl JobCommandHandler {
         let req = ExecuteJobRequest::new(repo_path, context, run_id, allow_repo_writes)
             .with_allow_network(allow_network);
         self.executor.execute(req, &run, &workflow)
+    }
+}
+impl JobCommandHandlerPort for JobCommandHandler {
+    fn handle(&self, command: ExecuteJobCommand) -> Result<JobExecutionResponse, ExecuteJobError> {
+        JobCommandHandler::handle(self, command)
     }
 }

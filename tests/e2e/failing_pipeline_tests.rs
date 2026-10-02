@@ -18,10 +18,10 @@ mod tests {
             assert!(run.activity().ran_script(FailingPipelineRun::SUITE_SCRIPT));
         }
 
-        fn the_failing_composite_action_step_was_executed() {
+        fn the_dependent_composite_action_step_was_skipped() {
             let run = FailingPipelineRun::execute();
             assert!(
-                run.activity()
+                !run.activity()
                     .ran_script(FailingPipelineRun::RELEASE_SCRIPT)
             );
         }
@@ -44,8 +44,8 @@ mod tests {
     }
 
     #[test]
-    fn the_failing_composite_action_step_was_executed() {
-        FailingPipelineTests::the_failing_composite_action_step_was_executed();
+    fn the_dependent_composite_action_step_was_skipped() {
+        FailingPipelineTests::the_dependent_composite_action_step_was_skipped();
     }
 
     #[test]

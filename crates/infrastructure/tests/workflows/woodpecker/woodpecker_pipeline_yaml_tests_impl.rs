@@ -65,3 +65,40 @@ fn later_step_jobs_depend_on_their_predecessor_to_preserve_order() {
 fn an_empty_pipeline_parses_to_a_workflow_without_jobs() {
     assert!(workflow_from("steps: []").jobs().is_empty());
 }
+
+const MAPPING_PIPELINE: &str = r#"
+when:
+  - event: tag
+    ref: refs/tags/v*
+
+steps:
+  build:
+    image: ubuntu:24.04
+    commands:
+      - echo build
+  package:
+    image: ubuntu:24.04
+    commands:
+      - echo package
+"#;
+
+#[test]
+fn mapping_form_steps_become_jobs_in_declaration_order() {
+    let workflow = workflow_from(MAPPING_PIPELINE);
+
+    assert_eq!(workflow.jobs().len(), 2);
+    assert!(workflow.jobs().get("step-1").expect("second job").needs() == ["step-0"]);
+}
+
+#[test]
+fn mapping_form_steps_take_their_name_from_the_key() {
+    let workflow = workflow_from(MAPPING_PIPELINE);
+    let job = workflow.jobs().get("step-0").expect("first job");
+
+    assert_eq!(job.steps()[0].name(), Some("build"));
+}
+
+#[test]
+fn a_tag_pipeline_declares_a_supported_tag_trigger() {
+    assert!(workflow_from(MAPPING_PIPELINE).triggers_on(TriggerKind::Tag));
+}

@@ -7,11 +7,17 @@ use ephact::application::{
 use parking_lot::Mutex;
 
 type QueuedStepExports = (Vec<String>, HashMap<String, String>);
+type QueuedStepExportsWithOutputs = (
+    Vec<String>,
+    HashMap<String, String>,
+    HashMap<String, String>,
+);
 
 /// Hands out the next queued set of exports, or nothing once drained.
 #[derive(Clone, Default)]
 pub struct FakeStepExportsReaderPort {
     queued: Arc<Mutex<Vec<QueuedStepExports>>>,
+    output_queued: Arc<Mutex<Vec<HashMap<String, String>>>>,
     calls: Arc<Mutex<usize>>,
 }
 
@@ -23,6 +29,21 @@ impl FakeStepExportsReaderPort {
     pub fn queueing(exports: Vec<QueuedStepExports>) -> Self {
         Self {
             queued: Arc::new(Mutex::new(exports)),
+            output_queued: Arc::new(Mutex::new(Vec::new())),
+            calls: Arc::new(Mutex::new(0)),
+        }
+    }
+
+    pub fn queueing_with_outputs(exports: Vec<QueuedStepExportsWithOutputs>) -> Self {
+        let mut queued = Vec::with_capacity(exports.len());
+        let mut output_queued = Vec::with_capacity(exports.len());
+        for (path_additions, env, outputs) in exports {
+            queued.push((path_additions, env));
+            output_queued.push(outputs);
+        }
+        Self {
+            queued: Arc::new(Mutex::new(queued)),
+            output_queued: Arc::new(Mutex::new(output_queued)),
             calls: Arc::new(Mutex::new(0)),
         }
     }
@@ -44,6 +65,14 @@ impl StepExportsReaderPort for FakeStepExportsReaderPort {
             return StepExportsResponse::new(Vec::new(), HashMap::new());
         }
         let (path_additions, env) = queued.remove(0);
-        StepExportsResponse::new(path_additions, env)
+        let outputs = {
+            let mut output_queued = self.output_queued.lock();
+            if output_queued.is_empty() {
+                HashMap::new()
+            } else {
+                output_queued.remove(0)
+            }
+        };
+        StepExportsResponse::new(path_additions, env).with_outputs(outputs)
     }
 }

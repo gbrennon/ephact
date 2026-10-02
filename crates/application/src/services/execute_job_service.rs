@@ -1,4 +1,8 @@
-use std::{collections::HashMap, error::Error, time::Instant};
+use std::{
+    collections::{BTreeMap, HashMap},
+    error::Error,
+    time::Instant,
+};
 
 use crate::{
     domain::{
@@ -10,6 +14,7 @@ use crate::{
             },
         },
         traits::NetworkCommandClassifier,
+        value_objects::ContextValue,
     },
     dtos::{
         requests::{
@@ -26,8 +31,7 @@ use crate::{
     ports::{
         inbound::execute_job_port::ExecuteJobPort,
         outbound::{
-            Command, CommandError, CommandPublisherPort, CommandResponse,
-            domain_event_publisher_port::DomainEventPublisherPort,
+            DomainEventPublisherPort, StepCommandPublisherPort,
             job_container_preparer_port::JobContainerPreparerPort,
             job_environment_builder_port::JobEnvironmentBuilderPort,
             step_context_builder_port::StepContextBuilderPort,
@@ -52,7 +56,7 @@ pub struct ExecuteJobService {
     step_context_builder: Box<dyn StepContextBuilderPort>,
     step_summarizer: Box<dyn StepSummarizerPort>,
     step_exports_reader: Box<dyn StepExportsReaderPort>,
-    command_bus: Box<dyn CommandPublisherPort>,
+    command_bus: Box<dyn StepCommandPublisherPort>,
     event_bus: Box<dyn DomainEventPublisherPort>,
     network_command_classifier: Box<dyn NetworkCommandClassifier>,
 }
@@ -65,7 +69,7 @@ pub type ExecuteJobStepDependencies = (
 );
 
 pub type ExecuteJobMessagingDependencies = (
-    Box<dyn CommandPublisherPort>,
+    Box<dyn StepCommandPublisherPort>,
     Box<dyn DomainEventPublisherPort>,
 );
 
@@ -76,7 +80,7 @@ pub struct ExecuteJobDependencies {
     step_context_builder: Box<dyn StepContextBuilderPort>,
     step_summarizer: Box<dyn StepSummarizerPort>,
     step_exports_reader: Box<dyn StepExportsReaderPort>,
-    command_bus: Box<dyn CommandPublisherPort>,
+    command_bus: Box<dyn StepCommandPublisherPort>,
     event_bus: Box<dyn DomainEventPublisherPort>,
     network_command_classifier: Box<dyn NetworkCommandClassifier>,
 }
@@ -109,6 +113,7 @@ impl ExecuteJobDependencies {
 struct JobExecutionState {
     step_env: HashMap<String, String>,
     extra_path: Vec<String>,
+    step_outputs: BTreeMap<String, ContextValue>,
     prepared: PreparedJobContainerResponse,
     steps: Vec<StepSummaryResponse>,
     job_success: bool,
@@ -119,13 +124,13 @@ impl JobExecutionState {
         Self {
             step_env,
             extra_path: Vec::new(),
+            step_outputs: BTreeMap::new(),
             prepared,
             steps: Vec::new(),
             job_success: true,
         }
     }
 }
-
 impl ExecuteJobService {
     pub fn new(dependencies: ExecuteJobDependencies) -> Self {
         Self {
@@ -154,6 +159,13 @@ impl ExecuteJobPort for ExecuteJobService {
             .map_err(|error| ExecuteJobError::Preparation(error.to_string()))?;
         self.announce_container_started(&request, &state);
         for step in run.job().steps() {
+            if !state.job_success && !run.job().continues_after_failure() {
+                state.steps.push(
+                    self.skipped_step(step, std::time::Duration::ZERO, "previous step failed")
+                        .into_summary(),
+                );
+                continue;
+            }
             self.execute_step(&request, workflow, run, step, &mut state);
         }
         Ok(self.build_response(&request, run, state))
@@ -206,29 +218,41 @@ impl ExecuteJobService {
             state.extra_path.clone(),
         ));
         let started_at = Instant::now();
+        let context = request
+            .context()
+            .clone()
+            .with_root("steps", ContextValue::Mapping(state.step_outputs.clone()));
         let step_context = self
             .step_context_builder
             .build(BuildStepContextRequest::new(
-                request.context().clone(),
+                context,
                 state.step_env.clone(),
             ));
         self.announce_step_started(request, workflow, run, step);
         let summarized = self.summarize_step(request, step, state, step_context, started_at);
-        state.job_success &= !summarized.fails_job();
-        self.announce_step_finished(
-            request,
-            workflow,
-            run,
-            summarized.summary(),
-            !summarized.fails_job(),
-        );
+        let fails_job = summarized.fails_job();
+        state.job_success &= !fails_job || run.job().continues_after_failure();
+        self.announce_step_finished(request, workflow, run, summarized.summary(), !fails_job);
         state.steps.push(summarized.into_summary());
         let exports = self
             .step_exports_reader
             .read(ReadStepExportsRequest::new(), state.prepared.container());
-        let (path_additions, env) = exports.into_parts();
+        let (path_additions, env, outputs) = exports.into_parts();
         state.extra_path.extend(path_additions);
         state.step_env.extend(env);
+        if let Some(step_id) = step.id()
+            && !outputs.is_empty()
+        {
+            let output_values = ContextValue::mapping(
+                outputs
+                    .into_iter()
+                    .map(|(name, value)| (name, ContextValue::text(value))),
+            );
+            state.step_outputs.insert(
+                step_id.to_owned(),
+                ContextValue::mapping([("outputs".to_owned(), output_values)]),
+            );
+        }
     }
 
     fn summarize_step(
@@ -250,25 +274,13 @@ impl ExecuteJobService {
         {
             return self.skipped_step(step, started_at.elapsed(), reason);
         }
-        let outcome = self
-            .command_bus
-            .publish(Command::Step(ExecuteStepCommand::new(
-                step.clone(),
-                state.step_env.clone(),
-                step_context,
-                state.prepared.container_handle(),
-                request.repo_path().to_path_buf(),
-            )))
-            .map_err(|error| match error {
-                CommandError::Step(error) => error,
-                error => crate::domain::errors::StepError::new(error.to_string()),
-            })
-            .and_then(|response| match response {
-                CommandResponse::Step(response) => Ok(*response),
-                _ => Err(crate::domain::errors::StepError::new(
-                    "unexpected command response for step",
-                )),
-            });
+        let outcome = self.command_bus.publish(ExecuteStepCommand::new(
+            step.clone(),
+            state.step_env.clone(),
+            step_context,
+            state.prepared.container_handle(),
+            request.repo_path().to_path_buf(),
+        ));
         self.step_summarizer.summarize(SummarizeStepRequest::new(
             step,
             outcome,

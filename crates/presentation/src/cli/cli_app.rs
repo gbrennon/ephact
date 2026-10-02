@@ -121,7 +121,10 @@ impl Cli {
         I: IntoIterator<Item = T>,
         T: Into<OsString> + Clone,
     {
-        tokio::runtime::Runtime::new()?.block_on(self.run_async(args))
+        let runtime = tokio::runtime::Runtime::new()?;
+        let result = runtime.block_on(self.run_async(args));
+        runtime.shutdown_background();
+        result
     }
 
     async fn run_async<I, T>(self, args: I) -> Result<(), Box<dyn std::error::Error>>
@@ -143,7 +146,10 @@ impl Cli {
         I: IntoIterator<Item = T>,
         T: Into<OsString> + Clone,
     {
-        tokio::runtime::Runtime::new()?.block_on(self.run_with_terminal_async(args, terminal))
+        let runtime = tokio::runtime::Runtime::new()?;
+        let result = runtime.block_on(self.run_with_terminal_async(args, terminal));
+        runtime.shutdown_background();
+        result
     }
 
     async fn run_with_terminal_async<I, T>(
