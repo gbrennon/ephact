@@ -163,7 +163,11 @@ impl RunDetailsView {
         let expanded = !self.collapsed_jobs.contains(&job);
         let mark = fold_mark(expanded, true);
         let label = format!("Job: {}", job_display(summary, job));
-        header_line(1, mark, label, summary_job.success())
+        if summary_job.is_skipped() {
+            skipped_header_line(1, mark, label)
+        } else {
+            header_line(1, mark, label, summary_job.success())
+        }
     }
 
     fn step_line(&self, job: usize, step: usize, summary: &RunSummaryResponse) -> Line<'static> {

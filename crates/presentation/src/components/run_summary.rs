@@ -35,7 +35,13 @@ impl Component for RunSummaryComponent<'_> {
     fn render(&self) -> String {
         let mut output = format!("Summary\nWorkflow: {}", self.summary.name());
         for job in self.summary.job_summaries() {
-            let status = if job.success() { "ok" } else { "failed" };
+            let status = if job.is_skipped() {
+                "skipped"
+            } else if job.success() {
+                "ok"
+            } else {
+                "failed"
+            };
             output.push_str(&format!("\n  [{status}] {}", Self::job_label(job)));
             for step in job.steps() {
                 let status = Self::step_status(step);
