@@ -32,6 +32,7 @@ use ephact::{
 use crate::common::fakes::{
     fake_copy_action_to_container_port::FakeCopyActionToContainerPort,
     fake_run_composite_step_port::FakeRunCompositeStepPort, stub_container::StubContainer,
+    stub_exporting_container::StubExportingContainer,
 };
 
 fn steps(yaml: &str) -> Vec<Step> {
@@ -59,7 +60,11 @@ fn action_request_with_context(
                     .into_domain(),
             )
             .unwrap(),
-        ExecuteActionExecutionInput::new(PathBuf::from("/repo"), HashMap::new(), context),
+        ExecuteActionExecutionInput::new(
+            PathBuf::from("/repo"),
+            HashMap::from([("GITHUB_OUTPUT".to_owned(), "/tmp/.ephact_output".to_owned())]),
+            context,
+        ),
     ))
 }
 fn service(runner: FakeRunCompositeStepPort) -> RunCompositeActionService {
@@ -207,4 +212,32 @@ fn execute_skips_steps_when_their_condition_is_false() {
     assert_eq!(response.exit_code(), 0);
     assert_eq!(runner.steps().len(), 1);
     assert_eq!(runner.steps()[0].run(), Some("echo linux"));
+}
+
+#[test]
+fn execute_exposes_a_step_output_to_following_steps() {
+    let runner = FakeRunCompositeStepPort::queueing(vec![result(0, ""), result(0, "")]);
+    let service = service(runner.clone());
+    let container = StubExportingContainer::holding(vec![(
+        "/tmp/.ephact_output".to_owned(),
+        "artifact=ready\n".to_owned(),
+    )]);
+    let request_owner = action_request(&container);
+
+    service
+        .run(
+            RunCompositeActionRequest::new(
+                &steps(
+                    "- id: produce\n  run: echo produce\n\
+                     - run: echo ${{ steps.produce.outputs.artifact }}\n",
+                ),
+                &HashMap::new(),
+                Path::new("/repo/actions/outer"),
+                &request_owner,
+            ),
+            Arc::new(container),
+        )
+        .unwrap();
+
+    assert_eq!(runner.steps()[1].run(), Some("echo ready"));
 }
