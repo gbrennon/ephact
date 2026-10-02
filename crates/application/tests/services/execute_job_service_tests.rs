@@ -557,3 +557,49 @@ fn execute_announces_the_prepared_container_as_started_for_the_run() {
     assert_eq!(started.run_id(), "test-run");
     assert_eq!(started.container_name(), "job-container");
 }
+
+#[test]
+fn execute_passes_step_outputs_to_later_step_context() {
+    let wf = single_job_workflow(
+        "      - id: produce\n        run: echo produce\n      - run: echo ${{ steps.produce.outputs.artifact }}\n",
+    );
+    let plan = wf.plan().unwrap();
+    let run = &plan.stages()[0].runs()[0];
+    let command_bus = FakeCommandBus::new();
+    let mut outputs = HashMap::new();
+    outputs.insert("artifact".to_owned(), "ready".to_owned());
+    let exports = FakeStepExportsReaderPort::queueing_with_outputs(vec![(
+        Vec::new(),
+        HashMap::new(),
+        outputs,
+    )]);
+
+    service(
+        FakeJobContainerPreparerPort::named("job-container"),
+        command_bus.clone(),
+        exports,
+    )
+    .execute(
+        ExecuteJobRequest::new(
+            Path::new("/repo"),
+            EvaluationContext::new(),
+            "test-run",
+            false,
+        ),
+        run,
+        &wf,
+    )
+    .unwrap();
+
+    let dispatched = command_bus.dispatched_steps.lock();
+    assert_eq!(
+        dispatched[1]
+            .context()
+            .get("steps")
+            .and_then(|steps| steps.property("produce"))
+            .and_then(|step| step.property("outputs"))
+            .and_then(|outputs| outputs.property("artifact"))
+            .and_then(ephact::domain::value_objects::ContextValue::as_text),
+        Some("ready"),
+    );
+}
