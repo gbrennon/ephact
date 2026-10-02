@@ -44,6 +44,7 @@ impl WorkflowDocument {
             .map(|trigger| match trigger.kind() {
                 TriggerKind::Push => "push",
                 TriggerKind::PullRequest => "pull_request",
+                TriggerKind::Tag => "tag",
                 TriggerKind::Manual => "workflow_dispatch",
                 TriggerKind::Schedule => "schedule",
             })

@@ -22,6 +22,24 @@ pub struct WoodpeckerStepYaml {
 }
 
 impl WoodpeckerStepYaml {
+    /// Returns the step's declared name, if any.
+    #[must_use]
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    /// Sets the step name when it was not declared inline.
+    ///
+    /// Woodpecker's mapping form keys each step by name, so the key supplies
+    /// the name that the sequence form would carry on the step itself.
+    #[must_use]
+    pub fn with_name_if_absent(mut self, name: String) -> Self {
+        if self.name.is_none() {
+            self.name = Some(name);
+        }
+        self
+    }
+
     /// Maps this Woodpecker step into a domain [`Job`] with a single run step.
     ///
     /// The step `image` becomes the job container and `needs` carries the

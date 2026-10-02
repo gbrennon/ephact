@@ -48,3 +48,32 @@ fn action_inputs_reach_the_domain_step() {
 
     assert_eq!(step.with().get("mode").map(String::as_str), Some("staging"));
 }
+
+#[test]
+fn unquoted_scalar_env_values_normalize_to_strings() {
+    let step = step_from("run: rustup toolchain install\nenv:\n  RUSTUP_PERMIT_COPY_RENAME: 1\n");
+
+    assert_eq!(
+        step.env()
+            .get("RUSTUP_PERMIT_COPY_RENAME")
+            .map(String::as_str),
+        Some("1")
+    );
+}
+
+#[test]
+fn unquoted_scalar_with_values_normalize_to_strings() {
+    let step = step_from("uses: actions/checkout@v4\nwith:\n  fetch-depth: 0\n");
+
+    assert_eq!(
+        step.with().get("fetch-depth").map(String::as_str),
+        Some("0")
+    );
+}
+
+#[test]
+fn an_unquoted_boolean_continue_on_error_normalizes_to_a_string() {
+    let step = step_from("run: rustup toolchain install\ncontinue-on-error: true\n");
+
+    assert_eq!(step.continue_on_error(), Some("true"));
+}

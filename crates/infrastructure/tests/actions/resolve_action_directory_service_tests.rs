@@ -51,13 +51,11 @@ fn execute_skips_a_checkout_action_because_the_workspace_is_mounted() {
     let ResolvedActionDirectoryResponse::Skipped(response) = resolved else {
         panic!("checkout should be skipped");
     };
+    assert!(!response.stdout().contains("[skipped]"));
     assert!(
-        response.stdout().contains("[skipped]"),
-        "{}",
-        response.stdout()
-    );
-    assert!(
-        response.stdout().contains("/workspace"),
+        response
+            .stdout()
+            .contains("the repository is already mounted at /workspace"),
         "{}",
         response.stdout()
     );

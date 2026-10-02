@@ -154,6 +154,13 @@ impl ExecuteJobPort for ExecuteJobService {
             .map_err(|error| ExecuteJobError::Preparation(error.to_string()))?;
         self.announce_container_started(&request, &state);
         for step in run.job().steps() {
+            if !state.job_success && !run.job().continues_after_failure() {
+                state.steps.push(
+                    self.skipped_step(step, std::time::Duration::ZERO, "previous step failed")
+                        .into_summary(),
+                );
+                continue;
+            }
             self.execute_step(&request, workflow, run, step, &mut state);
         }
         Ok(self.build_response(&request, run, state))
@@ -214,14 +221,9 @@ impl ExecuteJobService {
             ));
         self.announce_step_started(request, workflow, run, step);
         let summarized = self.summarize_step(request, step, state, step_context, started_at);
-        state.job_success &= !summarized.fails_job();
-        self.announce_step_finished(
-            request,
-            workflow,
-            run,
-            summarized.summary(),
-            !summarized.fails_job(),
-        );
+        let fails_job = summarized.fails_job();
+        state.job_success &= !fails_job || run.job().continues_after_failure();
+        self.announce_step_finished(request, workflow, run, summarized.summary(), !fails_job);
         state.steps.push(summarized.into_summary());
         let exports = self
             .step_exports_reader
