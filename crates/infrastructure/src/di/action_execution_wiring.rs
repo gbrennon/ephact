@@ -34,12 +34,16 @@ impl ActionExecutionWiring {
             Arc::new(LoadActionDefinitionService::new());
         let input_resolver: Arc<dyn ActionInputsResolverPort> =
             Arc::new(ResolveActionInputsService::new());
-        let composite_runner: Arc<dyn CompositeActionRunnerPort> = Arc::new(
-            RunCompositeActionService::new(Box::new(RunCompositeStepService::new(
-                Box::new(RunShellStepService::new(event_bus)),
-                command_bus,
-            ))),
-        );
+        let composite_runner: Arc<dyn CompositeActionRunnerPort> =
+            Arc::new(RunCompositeActionService::new(
+                Box::new(RunCompositeStepService::new(
+                    Box::new(RunShellStepService::new(event_bus)),
+                    command_bus,
+                )),
+                Box::new(CopyActionToContainerService::new(Box::new(
+                    CollectActionFilesService::new(),
+                ))),
+            ));
         let node_runner: Arc<dyn NodeActionRunnerPort> = Arc::new(RunNodeActionService::new(
             Box::new(CopyActionToContainerService::new(Box::new(
                 CollectActionFilesService::new(),

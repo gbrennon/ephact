@@ -30,6 +30,7 @@ use ephact::{
 };
 
 use crate::common::fakes::{
+    fake_copy_action_to_container_port::FakeCopyActionToContainerPort,
     fake_run_composite_step_port::FakeRunCompositeStepPort, stub_container::StubContainer,
 };
 
@@ -61,6 +62,12 @@ fn action_request_with_context(
         ExecuteActionExecutionInput::new(PathBuf::from("/repo"), HashMap::new(), context),
     ))
 }
+fn service(runner: FakeRunCompositeStepPort) -> RunCompositeActionService {
+    RunCompositeActionService::new(
+        Box::new(runner),
+        Box::new(FakeCopyActionToContainerPort::returning("/actions/outer")),
+    )
+}
 
 fn result(exit_code: i64, stdout: &str) -> ExecResultResponse {
     result_with_output(exit_code, stdout, "")
@@ -73,7 +80,7 @@ fn result_with_output(exit_code: i64, stdout: &str, stderr: &str) -> ExecResultR
 #[test]
 fn execute_runs_every_step_and_concatenates_their_output() {
     let runner = FakeRunCompositeStepPort::queueing(vec![result(0, "one"), result(0, "two")]);
-    let service = RunCompositeActionService::new(Box::new(runner.clone()));
+    let service = service(runner.clone());
     let container = StubContainer;
     let request_owner = action_request(&container);
 
@@ -97,7 +104,7 @@ fn execute_runs_every_step_and_concatenates_their_output() {
 #[test]
 fn execute_stops_at_the_first_failing_step() {
     let runner = FakeRunCompositeStepPort::queueing(vec![result(3, "one"), result(0, "two")]);
-    let service = RunCompositeActionService::new(Box::new(runner.clone()));
+    let service = service(runner.clone());
     let container = StubContainer;
     let request_owner = action_request(&container);
 
@@ -126,7 +133,7 @@ fn execute_carries_earlier_output_into_a_step_error() {
             .with_stdout("partial".to_string())
             .with_stderr("bad".to_string())),
     ]);
-    let service = RunCompositeActionService::new(Box::new(runner));
+    let service = service(runner);
     let container = StubContainer;
     let request_owner = action_request(&container);
 
@@ -150,7 +157,7 @@ fn execute_carries_earlier_output_into_a_step_error() {
 #[test]
 fn execute_exposes_the_actions_inputs_to_its_steps() {
     let runner = FakeRunCompositeStepPort::queueing(vec![result(0, "")]);
-    let service = RunCompositeActionService::new(Box::new(runner.clone()));
+    let service = service(runner.clone());
     let container = StubContainer;
     let request_owner = action_request(&container);
     let mut inputs = HashMap::new();
@@ -174,7 +181,7 @@ fn execute_exposes_the_actions_inputs_to_its_steps() {
 #[test]
 fn execute_skips_steps_when_their_condition_is_false() {
     let runner = FakeRunCompositeStepPort::queueing(vec![result(0, "linux")]);
-    let service = RunCompositeActionService::new(Box::new(runner.clone()));
+    let service = service(runner.clone());
     let container = StubContainer;
     let context = EvaluationContext::new().with_root(
         "runner",

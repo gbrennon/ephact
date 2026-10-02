@@ -42,6 +42,7 @@ impl RunCompositeStepPort for RunCompositeStepService {
         container: Arc<dyn ContainerPort>,
     ) -> Result<ExecResultResponse, StepError> {
         let action_request = request.action_request();
+        let action_env = request.environment().clone();
         match request.step().uses() {
             Some(nested) => self
                 .command_bus
@@ -50,7 +51,7 @@ impl RunCompositeStepPort for RunCompositeStepService {
                         nested.to_string(),
                         request.step().clone(),
                         action_request.repo_path().to_path_buf(),
-                        action_request.env().clone(),
+                        action_env,
                         container.clone(),
                     )
                     .with_context(request.context().clone()),
@@ -68,7 +69,7 @@ impl RunCompositeStepPort for RunCompositeStepService {
                     _ => Err(StepError::new("unexpected command response for action")),
                 }),
             None => {
-                let mut action_env = action_request.env().clone();
+                let mut action_env = action_env.clone();
                 action_env.insert(
                     "GITHUB_ACTION_PATH".into(),
                     request.action_dir().display().to_string(),
