@@ -1,4 +1,8 @@
-use std::{collections::HashMap, error::Error, time::Instant};
+use std::{
+    collections::{BTreeMap, HashMap},
+    error::Error,
+    time::Instant,
+};
 
 use crate::{
     domain::{
@@ -10,6 +14,7 @@ use crate::{
             },
         },
         traits::NetworkCommandClassifier,
+        value_objects::ContextValue,
     },
     dtos::{
         requests::{
@@ -109,6 +114,7 @@ impl ExecuteJobDependencies {
 struct JobExecutionState {
     step_env: HashMap<String, String>,
     extra_path: Vec<String>,
+    step_outputs: BTreeMap<String, ContextValue>,
     prepared: PreparedJobContainerResponse,
     steps: Vec<StepSummaryResponse>,
     job_success: bool,
@@ -119,13 +125,13 @@ impl JobExecutionState {
         Self {
             step_env,
             extra_path: Vec::new(),
+            step_outputs: BTreeMap::new(),
             prepared,
             steps: Vec::new(),
             job_success: true,
         }
     }
 }
-
 impl ExecuteJobService {
     pub fn new(dependencies: ExecuteJobDependencies) -> Self {
         Self {
@@ -213,10 +219,14 @@ impl ExecuteJobService {
             state.extra_path.clone(),
         ));
         let started_at = Instant::now();
+        let context = request
+            .context()
+            .clone()
+            .with_root("steps", ContextValue::Mapping(state.step_outputs.clone()));
         let step_context = self
             .step_context_builder
             .build(BuildStepContextRequest::new(
-                request.context().clone(),
+                context,
                 state.step_env.clone(),
             ));
         self.announce_step_started(request, workflow, run, step);
@@ -228,9 +238,22 @@ impl ExecuteJobService {
         let exports = self
             .step_exports_reader
             .read(ReadStepExportsRequest::new(), state.prepared.container());
-        let (path_additions, env) = exports.into_parts();
+        let (path_additions, env, outputs) = exports.into_parts();
         state.extra_path.extend(path_additions);
         state.step_env.extend(env);
+        if let Some(step_id) = step.id()
+            && !outputs.is_empty()
+        {
+            let output_values = ContextValue::mapping(
+                outputs
+                    .into_iter()
+                    .map(|(name, value)| (name, ContextValue::text(value))),
+            );
+            state.step_outputs.insert(
+                step_id.to_owned(),
+                ContextValue::mapping([("outputs".to_owned(), output_values)]),
+            );
+        }
     }
 
     fn summarize_step(

@@ -38,3 +38,30 @@ fn execute_returns_no_variables_when_the_file_was_never_written() {
 
     assert!(env.is_empty());
 }
+
+#[test]
+fn execute_parses_documented_multiline_values() {
+    let container = container("DESCRIPTION<<EOF\nfirst line\nsecond line\nEOF\n");
+
+    let env = ReadStepEnvExportsService::new().read(ReadStepEnvExportsRequest::new(), &container);
+
+    assert_eq!(
+        env.get("DESCRIPTION").map(String::as_str),
+        Some("first line\nsecond line"),
+    );
+}
+
+#[test]
+fn execute_rejects_protected_environment_variables() {
+    let container = container(
+        "GITHUB_WORKSPACE=/wrong\nRUNNER_OS=Windows\nNODE_OPTIONS=--require=bad\nCI=false\nMODE=release\n",
+    );
+
+    let env = ReadStepEnvExportsService::new().read(ReadStepEnvExportsRequest::new(), &container);
+
+    assert!(!env.contains_key("GITHUB_WORKSPACE"));
+    assert!(!env.contains_key("RUNNER_OS"));
+    assert!(!env.contains_key("NODE_OPTIONS"));
+    assert_eq!(env.get("CI").map(String::as_str), Some("false"));
+    assert_eq!(env.get("MODE").map(String::as_str), Some("release"));
+}

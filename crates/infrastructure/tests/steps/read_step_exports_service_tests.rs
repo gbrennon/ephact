@@ -10,24 +10,36 @@ use ephact::{
 
 use crate::common::fakes::{
     fake_read_step_env_exports_port::FakeReadStepEnvExportsPort,
+    fake_read_step_output_exports_port::FakeReadStepOutputExportsPort,
     fake_read_step_path_exports_port::FakeReadStepPathExportsPort,
     stub_exporting_container::StubExportingContainer,
 };
 
 #[test]
-fn execute_carries_both_collaborators_results_through() {
+fn execute_carries_all_collaborators_results_through() {
     let path_reader = FakeReadStepPathExportsPort::returning(vec!["/opt/bin".to_string()]);
     let mut exported = HashMap::new();
     exported.insert("A".to_string(), "1".to_string());
     let env_reader = FakeReadStepEnvExportsPort::returning(exported);
-    let service =
-        ReadStepExportsService::new(Box::new(path_reader.clone()), Box::new(env_reader.clone()));
+    let mut outputs = HashMap::new();
+    outputs.insert("artifact".to_string(), "ready".to_string());
+    let output_reader = FakeReadStepOutputExportsPort::returning(outputs);
+    let service = ReadStepExportsService::new(
+        Box::new(path_reader.clone()),
+        Box::new(env_reader.clone()),
+        Box::new(output_reader.clone()),
+    );
     let container = StubExportingContainer::empty();
 
     let exports = service.read(ReadStepExportsRequest::new(), &container);
 
     assert_eq!(exports.path_additions(), vec!["/opt/bin".to_string()]);
     assert_eq!(exports.env().get("A").map(String::as_str), Some("1"));
+    assert_eq!(
+        exports.outputs().get("artifact").map(String::as_str),
+        Some("ready")
+    );
     assert!(path_reader.was_called());
     assert!(env_reader.was_called());
+    assert!(output_reader.was_called());
 }
