@@ -1,5 +1,4 @@
-use super::ExpressionToken;
-use crate::value_objects::expression_cursor::ExpressionCursor;
+use super::{ExpressionCursor, ExpressionToken};
 
 pub struct NumberLiteral;
 
@@ -55,8 +54,10 @@ impl NumberLiteral {
 
 #[cfg(test)]
 mod tests {
-    use super::NumberLiteral;
-    use crate::value_objects::{ExpressionToken, expression_cursor::ExpressionCursor};
+    use super::{
+        super::{ExpressionCursor, ExpressionToken},
+        NumberLiteral,
+    };
 
     #[test]
     fn recognizes_integers_negative_numbers_and_fractional_numbers() {

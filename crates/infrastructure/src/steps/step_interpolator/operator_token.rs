@@ -1,5 +1,5 @@
-use super::ExpressionToken;
-use crate::{errors::LexerError, value_objects::expression_cursor::ExpressionCursor};
+use super::{ExpressionCursor, ExpressionToken};
+use crate::application::errors::LexerError;
 
 pub struct OperatorToken;
 
@@ -113,11 +113,11 @@ impl OperatorToken {
 
 #[cfg(test)]
 mod tests {
-    use super::OperatorToken;
-    use crate::{
-        errors::LexerError,
-        value_objects::{ExpressionToken, expression_cursor::ExpressionCursor},
+    use super::{
+        super::{ExpressionCursor, ExpressionToken},
+        OperatorToken,
     };
+    use crate::application::errors::LexerError;
 
     #[test]
     fn recognizes_single_and_compound_operators() {

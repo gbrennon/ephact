@@ -18,7 +18,9 @@ use ephact::{
         value_objects::{ContextValue, EvaluationContext},
     },
     infrastructure::{
-        actions::ExecuteActionFactory, di::ActionExecutionWiring, steps::JsonStepTextCodec,
+        actions::ExecuteActionFactory,
+        di::ActionExecutionWiring,
+        steps::{JsonStepTextCodec, StepInterpolator},
         workflows::actions::StepYaml,
     },
 };
@@ -36,6 +38,7 @@ fn wiring(fetcher: Box<dyn ActionFetcherPort>) -> ExecuteActionFactory {
         Box::new(FakeCommandBus::new()),
         Box::new(FakeEventBus::new()),
         Arc::new(JsonStepTextCodec),
+        Arc::new(StepInterpolator),
     )
 }
 
@@ -465,6 +468,7 @@ fn execute_runs_actions_nested_inside_a_composite_action() {
         Box::new(command_bus.clone()),
         Box::new(FakeEventBus::new()),
         Arc::new(JsonStepTextCodec),
+        Arc::new(StepInterpolator),
     ));
     command_bus.bind(service.clone());
     let container = container(&runtime);

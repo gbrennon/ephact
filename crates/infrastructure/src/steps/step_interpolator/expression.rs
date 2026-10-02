@@ -5,7 +5,7 @@
 /// function calls, and the ternary-like `a && b || c` pattern.
 use std::fmt;
 
-use crate::value_objects::{ComparisonOperator, ExpressionLiteral, LogicalOperator};
+use super::{ComparisonOperator, ExpressionLiteral, LogicalOperator};
 
 /// A complete expression.
 #[derive(Debug, Clone, PartialEq)]

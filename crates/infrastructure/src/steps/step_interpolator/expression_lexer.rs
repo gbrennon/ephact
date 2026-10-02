@@ -1,11 +1,7 @@
-use crate::{
-    errors::LexerError,
-    value_objects::{
-        ExpressionToken, expression_cursor::ExpressionCursor, identifier_token::IdentifierToken,
-        number_literal::NumberLiteral, operator_token::OperatorToken,
-        string_literal::StringLiteral,
-    },
+use super::{
+    ExpressionCursor, ExpressionToken, IdentifierToken, NumberLiteral, OperatorToken, StringLiteral,
 };
+use crate::application::errors::LexerError;
 
 /// A hand-written lexer for workflow `${{ }}` expression syntax.
 ///
@@ -98,8 +94,7 @@ impl<'a> ExpressionLexer<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::value_objects::ExpressionToken;
+    use super::{ExpressionToken, *};
 
     impl<'a> ExpressionLexer<'a> {
         fn lex_all_for_test(input: &'a str) -> Result<Vec<ExpressionToken>, LexerError> {

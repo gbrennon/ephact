@@ -1,7 +1,5 @@
-use crate::{
-    errors::EvalError,
-    value_objects::{ContextValue, builtin_function::BuiltinFunction},
-};
+use super::BuiltinFunction;
+use crate::{application::errors::EvalError, domain::value_objects::ContextValue};
 
 type FunctionArgs<'a> = &'a [ContextValue];
 type FunctionResult = Result<ContextValue, EvalError>;

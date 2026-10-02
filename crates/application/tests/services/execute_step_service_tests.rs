@@ -6,20 +6,17 @@ use ephact::{
             requests::ExecuteStepRequest,
             responses::{ExecResultResponse, ExecuteActionResponse},
         },
+        errors::EvalError,
         ports::{inbound::execute_step_port::ExecuteStepPort, outbound::StepTextCodecPort},
         services::execute_step_service::ExecuteStepService,
     },
-    domain::{
-        entities::Step,
-        errors::StepError,
-        value_objects::{ContextValue, EvaluationContext},
-    },
+    domain::{entities::Step, errors::StepError, value_objects::EvaluationContext},
     infrastructure::{steps::JsonStepTextCodec, workflows::actions::StepYaml},
 };
 
 use crate::common::fakes::{
     fake_command_bus::FakeCommandBus, fake_shell_step_runner_port::FakeShellStepRunnerPort,
-    stub_container::StubContainer,
+    fake_step_interpolator_port::FakeStepInterpolatorPort, stub_container::StubContainer,
 };
 
 fn step_from(yaml: &str) -> Step {
@@ -37,12 +34,21 @@ fn action_response() -> ExecuteActionResponse {
 }
 
 fn service(shell: FakeShellStepRunnerPort, command_bus: FakeCommandBus) -> ExecuteStepService {
+    service_with_interpolator(shell, command_bus, FakeStepInterpolatorPort::identity())
+}
+
+fn service_with_interpolator(
+    shell: FakeShellStepRunnerPort,
+    command_bus: FakeCommandBus,
+    interpolator: FakeStepInterpolatorPort,
+) -> ExecuteStepService {
     let container = Arc::new(StubContainer);
     ExecuteStepService::new(
         container,
         Arc::new(shell),
         Arc::new(command_bus),
         Arc::new(JsonStepTextCodec),
+        Arc::new(interpolator),
     )
 }
 
@@ -120,27 +126,30 @@ fn execute_does_not_publish_an_action_command_for_a_run_step() {
 #[test]
 fn execute_resolves_expressions_before_running_the_step() {
     let shell = FakeShellStepRunnerPort::returning(shell_result(""));
-    let service = service(shell.clone(), FakeCommandBus::new());
-    let step = step_from("run: deploy ${{ inputs.mode }}\n");
-    let inputs = ContextValue::mapping([("mode".to_string(), ContextValue::text("staging"))]);
-    let context = EvaluationContext::new().with_root("inputs", inputs);
+    let authored = step_from("run: deploy ${{ inputs.mode }}\n");
+    let interpolated = step_from("run: deploy staging\n");
+    let interpolator = FakeStepInterpolatorPort::returning(interpolated);
+    let service =
+        service_with_interpolator(shell.clone(), FakeCommandBus::new(), interpolator.clone());
     service
         .execute(ExecuteStepRequest::new(
-            JsonStepTextCodec.encode(&step).unwrap(),
-            context,
+            JsonStepTextCodec.encode(&authored).unwrap(),
+            EvaluationContext::new(),
             Path::new("/repo"),
             HashMap::new(),
         ))
         .unwrap();
 
     assert_eq!(shell.steps()[0].run(), Some("deploy staging"));
+    assert_eq!(interpolator.calls(), 1);
 }
 
 #[test]
 fn execute_reports_an_interpolation_failure() {
-    let service = service(
+    let service = service_with_interpolator(
         FakeShellStepRunnerPort::returning(shell_result("")),
         FakeCommandBus::new(),
+        FakeStepInterpolatorPort::failing(EvalError::TypeError("invalid".to_owned())),
     );
     let step = step_from("run: deploy ${{ }}\n");
     let error = service

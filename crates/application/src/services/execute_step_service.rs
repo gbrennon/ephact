@@ -10,11 +10,10 @@ use crate::{
     ports::{
         inbound::execute_step_port::ExecuteStepPort,
         outbound::{
-            ActionCommandPublisherPort, ContainerPort, shell_step_runner_port::ShellStepRunnerPort,
-            step_text_codec_port::StepTextCodecPort,
+            ActionCommandPublisherPort, ContainerPort, StepInterpolatorPort,
+            shell_step_runner_port::ShellStepRunnerPort, step_text_codec_port::StepTextCodecPort,
         },
     },
-    services::StepInterpolator,
 };
 
 pub struct ExecuteStepService {
@@ -22,6 +21,7 @@ pub struct ExecuteStepService {
     shell_runner: Arc<dyn ShellStepRunnerPort>,
     command_publisher: Arc<dyn ActionCommandPublisherPort>,
     step_codec: Arc<dyn StepTextCodecPort>,
+    interpolator: Arc<dyn StepInterpolatorPort>,
 }
 
 impl ExecuteStepService {
@@ -30,12 +30,14 @@ impl ExecuteStepService {
         shell_runner: Arc<dyn ShellStepRunnerPort>,
         command_publisher: Arc<dyn ActionCommandPublisherPort>,
         step_codec: Arc<dyn StepTextCodecPort>,
+        interpolator: Arc<dyn StepInterpolatorPort>,
     ) -> Self {
         Self {
             container,
             shell_runner,
             command_publisher,
             step_codec,
+            interpolator,
         }
     }
 
@@ -81,11 +83,14 @@ impl ExecuteStepPort for ExecuteStepService {
             .decode(request.step())
             .map_err(ExecuteStepError::Step)?;
         let context = request.context().clone();
-        let interpolated = StepInterpolator::interpolate(&step, &context).map_err(|error| {
-            ExecuteStepError::Step(StepError::new(format!(
-                "failed to resolve expressions: {error:?}"
-            )))
-        })?;
+        let interpolated = self
+            .interpolator
+            .interpolate(&step, &context)
+            .map_err(|error| {
+                ExecuteStepError::Step(StepError::new(format!(
+                    "failed to resolve expressions: {error:?}"
+                )))
+            })?;
         let response = self
             .execute_interpolated_step(&interpolated, &request, &context)
             .map_err(ExecuteStepError::Step)?;
