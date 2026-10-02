@@ -69,12 +69,20 @@ impl RunCompositeActionService {
         output: &mut ActionOutput,
     ) -> Result<Option<ExecuteActionResponse>, StepError> {
         for step in request.steps() {
+            let should_run = StepInterpolator::should_run(step, context).map_err(|error| {
+                StepError::new(format!("failed to evaluate step condition: {error:?}"))
+                    .with_stdout(output.stdout.clone())
+                    .with_stderr(output.stderr.clone())
+            })?;
+            if !should_run {
+                continue;
+            }
+
             let interpolated = StepInterpolator::interpolate(step, context).map_err(|error| {
                 StepError::new(format!("failed to resolve expressions: {error:?}"))
                     .with_stdout(output.stdout.clone())
                     .with_stderr(output.stderr.clone())
             })?;
-
             let outcome = self.step_runner.run(
                 RunCompositeStepRequest::new(
                     &interpolated,

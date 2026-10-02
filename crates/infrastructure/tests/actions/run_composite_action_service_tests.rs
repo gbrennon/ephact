@@ -18,7 +18,11 @@ use ephact::{
             container_port::ContainerPort,
         },
     },
-    domain::{entities::Step, errors::StepError, value_objects::EvaluationContext},
+    domain::{
+        entities::Step,
+        errors::StepError,
+        value_objects::{ContextValue, EvaluationContext},
+    },
     infrastructure::{
         actions::execution::run_composite_action_service::RunCompositeActionService,
         steps::JsonStepTextCodec, workflows::actions::StepYaml,
@@ -37,7 +41,14 @@ fn steps(yaml: &str) -> Vec<Step> {
         .collect()
 }
 
-fn action_request(_container: &dyn ContainerPort) -> ExecuteActionRequest {
+fn action_request(container: &dyn ContainerPort) -> ExecuteActionRequest {
+    action_request_with_context(container, EvaluationContext::new())
+}
+
+fn action_request_with_context(
+    _container: &dyn ContainerPort,
+    context: EvaluationContext,
+) -> ExecuteActionRequest {
     ExecuteActionRequest::new(ExecuteActionRequestInput::new(
         "./actions/outer",
         JsonStepTextCodec
@@ -47,11 +58,7 @@ fn action_request(_container: &dyn ContainerPort) -> ExecuteActionRequest {
                     .into_domain(),
             )
             .unwrap(),
-        ExecuteActionExecutionInput::new(
-            PathBuf::from("/repo"),
-            HashMap::new(),
-            EvaluationContext::new(),
-        ),
+        ExecuteActionExecutionInput::new(PathBuf::from("/repo"), HashMap::new(), context),
     ))
 }
 
@@ -162,4 +169,35 @@ fn execute_exposes_the_actions_inputs_to_its_steps() {
         .unwrap();
 
     assert_eq!(runner.steps()[0].run(), Some("deploy staging"));
+}
+
+#[test]
+fn execute_skips_steps_when_their_condition_is_false() {
+    let runner = FakeRunCompositeStepPort::queueing(vec![result(0, "linux")]);
+    let service = RunCompositeActionService::new(Box::new(runner.clone()));
+    let container = StubContainer;
+    let context = EvaluationContext::new().with_root(
+        "runner",
+        ContextValue::mapping([("os".to_owned(), ContextValue::text("Linux"))]),
+    );
+    let request_owner = action_request_with_context(&container, context);
+
+    let response = service
+        .run(
+            RunCompositeActionRequest::new(
+                &steps(
+                    "- if: runner.os == 'Windows'\n  run: echo windows\n\
+                     - run: echo linux\n",
+                ),
+                &HashMap::new(),
+                Path::new("/repo/actions/outer"),
+                &request_owner,
+            ),
+            Arc::new(container),
+        )
+        .unwrap();
+
+    assert_eq!(response.exit_code(), 0);
+    assert_eq!(runner.steps().len(), 1);
+    assert_eq!(runner.steps()[0].run(), Some("echo linux"));
 }
