@@ -5,6 +5,7 @@ pub struct JobSummaryResponse {
     name: Option<String>,
     steps: Vec<crate::dtos::responses::StepSummaryResponse>,
     success: bool,
+    skip_reason: Option<String>,
 }
 
 impl JobSummaryResponse {
@@ -19,6 +20,7 @@ impl JobSummaryResponse {
             name,
             steps,
             success,
+            skip_reason: None,
         }
     }
 
@@ -38,6 +40,19 @@ impl JobSummaryResponse {
         self.success
     }
 
+    pub fn is_skipped(&self) -> bool {
+        self.skip_reason.is_some()
+    }
+
+    pub fn skip_reason(&self) -> Option<&str> {
+        self.skip_reason.as_deref()
+    }
+
+    pub fn with_skip_reason(mut self, reason: impl Into<String>) -> Self {
+        self.skip_reason = Some(reason.into());
+        self
+    }
+
     pub fn with_name(mut self, name: Option<String>) -> Self {
         self.name = name;
         self
@@ -50,7 +65,14 @@ impl JobSummaryResponse {
         Option<String>,
         Vec<crate::dtos::responses::StepSummaryResponse>,
         bool,
+        Option<String>,
     ) {
-        (self.job_id, self.name, self.steps, self.success)
+        (
+            self.job_id,
+            self.name,
+            self.steps,
+            self.success,
+            self.skip_reason,
+        )
     }
 }

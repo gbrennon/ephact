@@ -248,7 +248,7 @@ fn execute_publishes_one_step_command_per_step_with_the_prepared_container() {
 }
 
 #[test]
-fn execute_fails_the_job_but_still_runs_the_later_steps() {
+fn execute_skips_later_steps_after_the_first_failure() {
     let wf = single_job_workflow("      - run: exit 1\n      - run: echo after\n");
     let plan = wf.plan().unwrap();
     let run = &plan.stages()[0].runs()[0];
@@ -273,7 +273,44 @@ fn execute_fails_the_job_but_still_runs_the_later_steps() {
 
     assert!(!execution.job_summary().success());
     assert_eq!(execution.job_summary().steps().len(), 2);
+    assert_eq!(command_bus.dispatched_steps.lock().len(), 1);
+    assert!(!execution.job_summary().steps()[0].is_skipped());
+    assert!(execution.job_summary().steps()[1].is_skipped());
+    assert_eq!(
+        execution.job_summary().steps()[1].skip_reason(),
+        Some("previous step failed")
+    );
+}
+
+#[test]
+fn execute_continues_after_a_failure_when_the_job_allows_it() {
+    let wf = single_job_workflow(
+        "      - run: exit 1\n        continue-on-error: true\n      - run: echo after\n",
+    );
+    let plan = wf.plan().unwrap();
+    let run = &plan.stages()[0].runs()[0];
+    let command_bus = FakeCommandBus::new().queueing_step_exit_codes(vec![1, 0]);
+
+    let execution = service(
+        FakeJobContainerPreparerPort::named("job-container"),
+        command_bus.clone(),
+        FakeStepExportsReaderPort::new(),
+    )
+    .execute(
+        ExecuteJobRequest::new(
+            Path::new("/repo"),
+            EvaluationContext::new(),
+            "test-run",
+            false,
+        ),
+        run,
+        &wf,
+    )
+    .unwrap();
+
+    assert!(execution.job_summary().success());
     assert_eq!(command_bus.dispatched_steps.lock().len(), 2);
+    assert!(!execution.job_summary().steps()[1].is_skipped());
 }
 
 #[test]
