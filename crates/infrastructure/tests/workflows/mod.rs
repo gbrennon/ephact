@@ -4,6 +4,7 @@ mod detect_workflow_trigger_service_tests;
 mod discover_run_inputs_service_tests;
 mod execution;
 mod filesystem_workflow_source_tests;
+mod issue_265_regression_tests;
 mod list_all_workflow_files_service_tests;
 mod list_workflow_directory_service_tests;
 mod load_workflow_service_tests;

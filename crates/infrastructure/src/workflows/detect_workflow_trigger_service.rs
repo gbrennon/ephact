@@ -25,6 +25,7 @@ impl DetectWorkflowTriggerPort for DetectWorkflowTriggerService {
         let kind = match event_name {
             "push" => TriggerKind::Push,
             "pull_request" => TriggerKind::PullRequest,
+            "tag" => TriggerKind::Tag,
             "workflow_dispatch" => TriggerKind::Manual,
             "schedule" => TriggerKind::Schedule,
             _ => return false,
