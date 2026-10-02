@@ -3,6 +3,7 @@ mod copy_action_to_container_service_tests;
 mod fetch_remote_action_service_tests;
 mod git_action_fetcher_tests;
 mod github_action_input_environment_adapter_tests;
+mod issue_265_action_metadata_tests;
 mod load_action_definition_service_tests;
 mod resolve_action_directory_service_tests;
 mod resolve_action_inputs_service_tests;
