@@ -13,3 +13,12 @@ fn detects_pull_request_event_in_woodpecker_pipeline() {
 
     assert!(triggers_pull_request);
 }
+
+#[test]
+fn detects_tag_event_in_woodpecker_pipeline() {
+    let content = "name: Release\nwhen:\n  - event: tag\n    ref: refs/tags/v*\nsteps: []\n";
+
+    let triggers = DetectWorkflowTriggerService::new();
+
+    assert!(triggers.triggers_on_event(content, "tag"));
+}
