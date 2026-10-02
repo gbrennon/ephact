@@ -1,4 +1,5 @@
 pub mod action_command_handler;
+mod composite_step_execution;
 pub mod execute_action_factory;
 pub mod run_action_factory;
 pub mod run_composite_action_service;

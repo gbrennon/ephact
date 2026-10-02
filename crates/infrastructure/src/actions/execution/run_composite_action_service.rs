@@ -4,6 +4,7 @@ use std::{
     sync::Arc,
 };
 
+use super::composite_step_execution::CompositeStepExecution;
 use crate::{
     application::{
         dtos::{
@@ -27,7 +28,6 @@ use crate::{
         value_objects::{ContextValue, EvaluationContext},
     },
 };
-
 /// Service that runs a composite action's steps in order, accumulating their
 /// output and stopping at the first one that fails.
 pub struct RunCompositeActionService {
@@ -35,8 +35,7 @@ pub struct RunCompositeActionService {
     action_copier: Box<dyn CopyActionToContainerPort>,
     step_exports_reader: Box<dyn StepExportsReaderPort>,
 }
-
-struct ActionOutput {
+pub(super) struct ActionOutput {
     stdout: String,
     stderr: String,
 }
@@ -162,16 +161,12 @@ impl RunCompositeActionService {
             "GITHUB_ACTION_PATH".to_owned(),
             action_dir.display().to_string(),
         );
+        let mut execution =
+            CompositeStepExecution::new(action_dir, context, output, &mut environment);
         for step in request.steps() {
-            if let Some(early_exit) = self.execute_step(
-                request,
-                action_dir,
-                context,
-                container.clone(),
-                output,
-                &mut environment,
-                step,
-            )? {
+            if let Some(early_exit) =
+                self.execute_step(request, &mut execution, container.clone(), step)?
+            {
                 return Ok(Some(early_exit));
             }
         }
@@ -203,30 +198,32 @@ impl RunCompositeActionService {
     fn execute_step(
         &self,
         request: &RunCompositeActionRequest<'_>,
-        action_dir: &Path,
-        context: &mut EvaluationContext,
+        execution: &mut CompositeStepExecution<'_>,
         container: Arc<dyn ContainerPort>,
-        output: &mut ActionOutput,
-        environment: &mut HashMap<String, String>,
         step: &Step,
     ) -> Result<Option<ExecuteActionResponse>, StepError> {
-        let Some(interpolated) = Self::interpolated_step(step, context, output)? else {
+        let action_dir = execution.action_dir().to_path_buf();
+        let environment = execution.environment().clone();
+        let Some(interpolated) =
+            Self::interpolated_step(step, execution.context(), execution.output())?
+        else {
             return Ok(None);
         };
         let outcome = self.step_runner.run(
             RunCompositeStepRequest::new(
                 &interpolated,
-                action_dir,
+                &action_dir,
                 request.action_request(),
-                context,
+                execution.context(),
             )
-            .with_environment(environment),
+            .with_environment(&environment),
             container.clone(),
         );
 
-        if let Some(early_exit) = Self::process_step_outcome(outcome, output)? {
+        if let Some(early_exit) = Self::process_step_outcome(outcome, execution.output_mut())? {
             return Ok(Some(early_exit));
         }
+        let (environment, context) = execution.environment_and_context_mut();
         Self::merge_runner_exports(
             self.step_exports_reader.as_ref(),
             container.as_ref(),
