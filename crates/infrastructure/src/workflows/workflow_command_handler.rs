@@ -5,7 +5,10 @@ use crate::{
     application::{
         dtos::{requests::ExecuteWorkflowRequest, responses::WorkflowExecutionResponse},
         errors::ExecuteWorkflowError,
-        ports::inbound::execute_workflow_port::ExecuteWorkflowPort,
+        ports::{
+            inbound::execute_workflow_port::ExecuteWorkflowPort,
+            outbound::WorkflowCommandHandlerPort,
+        },
     },
     domain::{
         messages::commands::ExecuteWorkflowCommand,
@@ -83,6 +86,14 @@ impl WorkflowCommandHandler {
     }
 }
 
+impl WorkflowCommandHandlerPort for WorkflowCommandHandler {
+    fn handle(
+        &self,
+        command: ExecuteWorkflowCommand,
+    ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
+        WorkflowCommandHandler::handle(self, command)
+    }
+}
 /// Returns the runner facts every workflow run sees in the `runner` context.
 fn runner_context() -> ContextValue {
     ContextValue::mapping([

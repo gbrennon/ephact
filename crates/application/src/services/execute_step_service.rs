@@ -10,8 +10,8 @@ use crate::{
     ports::{
         inbound::execute_step_port::ExecuteStepPort,
         outbound::{
-            Command, CommandPublisherPort, CommandResponse, ContainerPort,
-            shell_step_runner_port::ShellStepRunnerPort, step_text_codec_port::StepTextCodecPort,
+            ActionCommandPublisherPort, ContainerPort, shell_step_runner_port::ShellStepRunnerPort,
+            step_text_codec_port::StepTextCodecPort,
         },
     },
     services::StepInterpolator,
@@ -20,7 +20,7 @@ use crate::{
 pub struct ExecuteStepService {
     container: Arc<dyn ContainerPort>,
     shell_runner: Arc<dyn ShellStepRunnerPort>,
-    command_bus: Arc<dyn CommandPublisherPort>,
+    command_publisher: Arc<dyn ActionCommandPublisherPort>,
     step_codec: Arc<dyn StepTextCodecPort>,
 }
 
@@ -28,13 +28,13 @@ impl ExecuteStepService {
     pub fn new(
         container: Arc<dyn ContainerPort>,
         shell_runner: Arc<dyn ShellStepRunnerPort>,
-        command_bus: Arc<dyn CommandPublisherPort>,
+        command_publisher: Arc<dyn ActionCommandPublisherPort>,
         step_codec: Arc<dyn StepTextCodecPort>,
     ) -> Self {
         Self {
             container,
             shell_runner,
-            command_bus,
+            command_publisher,
             step_codec,
         }
     }
@@ -46,26 +46,16 @@ impl ExecuteStepService {
         context: &crate::domain::value_objects::EvaluationContext,
     ) -> Result<ExecuteActionResponse, StepError> {
         if let Some(action_ref) = step.uses() {
-            let response = self
-                .command_bus
-                .publish(Command::Action(
-                    ExecuteActionCommand::new(
-                        action_ref.to_string(),
-                        step.clone(),
-                        request.repo_path().to_path_buf(),
-                        request.env().clone(),
-                        self.container.clone(),
-                    )
-                    .with_context(context.clone()),
-                ))
-                .map_err(|error| match error {
-                    crate::ports::outbound::CommandError::Step(error) => error,
-                    error => StepError::new(error.to_string()),
-                })?;
-            return match response {
-                CommandResponse::Action(response) => Ok(response),
-                _ => Err(StepError::new("unexpected command response for action")),
-            };
+            return self.command_publisher.publish(
+                ExecuteActionCommand::new(
+                    action_ref.to_string(),
+                    step.clone(),
+                    request.repo_path().to_path_buf(),
+                    request.env().clone(),
+                    self.container.clone(),
+                )
+                .with_context(context.clone()),
+            );
         }
 
         let result = self.shell_runner.run(RunShellStepRequest::new(

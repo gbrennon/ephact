@@ -7,7 +7,7 @@ use crate::{
             responses::ExecResultResponse,
         },
         ports::outbound::{
-            Command, CommandPublisherPort, CommandResponse, container_port::ContainerPort,
+            ActionCommandPublisherPort, container_port::ContainerPort,
             run_composite_step_port::RunCompositeStepPort,
             shell_step_runner_port::ShellStepRunnerPort,
         },
@@ -20,17 +20,17 @@ use crate::{
 /// [`ExecuteActionCommand`] so the action command handler executes them.
 pub struct RunCompositeStepService {
     shell_runner: Box<dyn ShellStepRunnerPort>,
-    command_bus: Box<dyn CommandPublisherPort>,
+    command_publisher: Box<dyn ActionCommandPublisherPort>,
 }
 
 impl RunCompositeStepService {
     pub fn new(
         shell_runner: Box<dyn ShellStepRunnerPort>,
-        command_bus: Box<dyn CommandPublisherPort>,
+        command_publisher: Box<dyn ActionCommandPublisherPort>,
     ) -> Self {
         Self {
             shell_runner,
-            command_bus,
+            command_publisher,
         }
     }
 }
@@ -44,9 +44,8 @@ impl RunCompositeStepPort for RunCompositeStepService {
         let action_request = request.action_request();
         let action_env = request.environment().clone();
         match request.step().uses() {
-            Some(nested) => self
-                .command_bus
-                .publish(Command::Action(
+            Some(nested) => {
+                let response = self.command_publisher.publish(
                     ExecuteActionCommand::new(
                         nested.to_string(),
                         request.step().clone(),
@@ -55,19 +54,13 @@ impl RunCompositeStepPort for RunCompositeStepService {
                         container.clone(),
                     )
                     .with_context(request.context().clone()),
+                )?;
+                Ok(ExecResultResponse::new(
+                    response.exit_code(),
+                    response.stdout().to_string(),
+                    response.stderr().to_string(),
                 ))
-                .map_err(|error| match error {
-                    crate::application::ports::outbound::CommandError::Step(error) => error,
-                    error => StepError::new(error.to_string()),
-                })
-                .and_then(|response| match response {
-                    CommandResponse::Action(response) => Ok(ExecResultResponse::new(
-                        response.exit_code(),
-                        response.stdout().to_string(),
-                        response.stderr().to_string(),
-                    )),
-                    _ => Err(StepError::new("unexpected command response for action")),
-                }),
+            }
             None => {
                 let mut action_env = action_env.clone();
                 action_env.insert(

@@ -10,8 +10,8 @@ use crate::{
         ports::{
             inbound::RunWorkflowPort,
             outbound::{
-                Command, CommandPublisherPort, CommandResponse, DetectWorkflowTriggerPort,
-                WorkflowSourcePort, domain_event_publisher_port::DomainEventPublisherPort,
+                DetectWorkflowTriggerPort, WorkflowCommandPublisherPort, WorkflowSourcePort,
+                domain_event_publisher_port::DomainEventPublisherPort,
             },
         },
     },
@@ -32,12 +32,12 @@ use crate::{
 /// Agnostic by construction: it never touches files, containers, or any external
 /// service. It reads the workflow definition through the outbound
 /// [`WorkflowSourcePort`], expresses the intent to execute it as a command on the
-/// outbound [`CommandPublisherPort`], and announces the outcome as a domain event on the
+/// outbound [`WorkflowCommandPublisherPort`], and announces the outcome as a domain event on the
 /// outbound [`DomainEventPublisherPort`].
 pub struct RunWorkflowService {
     workflow_source: Box<dyn WorkflowSourcePort>,
-    command_bus: Box<dyn CommandPublisherPort>,
-    event_bus: Box<dyn DomainEventPublisherPort>,
+    command_publisher: Box<dyn WorkflowCommandPublisherPort>,
+    event_publisher: Box<dyn DomainEventPublisherPort>,
     trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
 }
 
@@ -88,14 +88,14 @@ impl RunExecutionContext {
 impl RunWorkflowService {
     pub fn new(
         workflow_source: Box<dyn WorkflowSourcePort>,
-        command_bus: Box<dyn CommandPublisherPort>,
-        event_bus: Box<dyn DomainEventPublisherPort>,
+        command_publisher: Box<dyn WorkflowCommandPublisherPort>,
+        event_publisher: Box<dyn DomainEventPublisherPort>,
         trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
     ) -> Self {
         Self {
             workflow_source,
-            command_bus,
-            event_bus,
+            command_publisher,
+            event_publisher,
             trigger_detector,
         }
     }
@@ -128,7 +128,7 @@ impl RunWorkflowPort for RunWorkflowService {
 }
 impl RunWorkflowService {
     fn announce_run_started(&self, context: &RunExecutionContext) {
-        self.event_bus
+        self.event_publisher
             .publish(DomainEvent::RunStarted(RunStartedPayload::new(
                 context.run_id.clone(),
                 context.repository_path.clone(),
@@ -184,24 +184,16 @@ impl RunWorkflowService {
         context: &RunExecutionContext,
         workflow_source: crate::application::dtos::responses::WorkflowSourceFileResponse,
     ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
-        match self.command_bus.publish(Command::Workflow(
-            ExecuteWorkflowCommand::new(
-                workflow_source.content().to_owned(),
-                context.config.clone(),
-                context.repository.clone(),
-                context.run_id.clone(),
-                context.config.allow_repo_writes(),
-            )
-            .with_workflow_file_name(workflow_source.file_name()),
-        )) {
-            Ok(CommandResponse::Workflow(execution)) => Ok(execution),
-            Ok(_) => {
-                let error: Box<dyn Error> = "unexpected command response for workflow"
-                    .to_string()
-                    .into();
-                self.announce_run_failed(context, error.as_ref());
-                Err(error)
-            }
+        let command = ExecuteWorkflowCommand::new(
+            workflow_source.content().to_owned(),
+            context.config.clone(),
+            context.repository.clone(),
+            context.run_id.clone(),
+            context.config.allow_repo_writes(),
+        )
+        .with_workflow_file_name(workflow_source.file_name());
+        match self.command_publisher.publish(command) {
+            Ok(execution) => Ok(execution),
             Err(error) => {
                 let error: Box<dyn Error> = Box::new(error);
                 self.announce_run_failed(context, error.as_ref());
@@ -216,14 +208,15 @@ impl RunWorkflowService {
         execution: WorkflowExecutionResponse,
     ) -> RunSummaryResponse {
         let (workflow_name, job_summaries, container_names, success) = execution.into_parts();
-        self.event_bus.publish(DomainEvent::WorkflowRunCompleted(
-            WorkflowRunCompletedPayload::new(
-                context.run_id.clone(),
-                context.repository_path.clone(),
-                container_names,
-                success,
-            ),
-        ));
+        self.event_publisher
+            .publish(DomainEvent::WorkflowRunCompleted(
+                WorkflowRunCompletedPayload::new(
+                    context.run_id.clone(),
+                    context.repository_path.clone(),
+                    container_names,
+                    success,
+                ),
+            ));
         RunSummaryResponse::new(
             workflow_name,
             job_summaries,
@@ -235,7 +228,7 @@ impl RunWorkflowService {
 
 impl RunWorkflowService {
     fn announce_run_failed(&self, context: &RunExecutionContext, error: &dyn Error) {
-        self.event_bus
+        self.event_publisher
             .publish(DomainEvent::RunFailed(RunFailedPayload::new(
                 context.run_id.clone(),
                 context.repository_path.clone(),
