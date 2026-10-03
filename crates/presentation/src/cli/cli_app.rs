@@ -37,6 +37,7 @@ pub struct Cli {
     show_project_branding_info_port: Box<dyn ShowProjectBrandingInfoPort>,
     failure_log_error_store: crate::infrastructure::logging::FailureLogErrorStore,
     failure_log_path_store: crate::infrastructure::logging::FailureLogPathStore,
+    failure_log_retention_store: crate::infrastructure::logging::FailureLogRetentionStore,
     tui_runner: TuiRunner,
     settings: Settings,
     settings_store: Option<Arc<dyn SettingsStorePort>>,
@@ -86,6 +87,7 @@ impl Cli {
             show_project_branding_info_port,
             failure_log_error_store: failure_log_stores.error_store(),
             failure_log_path_store: failure_log_stores.path_store(),
+            failure_log_retention_store: failure_log_stores.retention_store(),
             tui_runner,
             settings: Settings::default(),
             settings_store: None,
@@ -108,6 +110,8 @@ impl Cli {
         settings_store: Arc<dyn SettingsStorePort>,
     ) -> Self {
         self.settings = settings.clone();
+        self.failure_log_retention_store
+            .set_hours(settings.failure_log_retention_hours());
         self.settings_store = Some(settings_store.clone());
         self.tui_runner = self
             .tui_runner
@@ -419,6 +423,9 @@ failure-log-retention-hours = {}\n",
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut args = args;
         args.apply_settings(&self.settings);
+        if let Some(hours) = args.failure_log_retention_hours() {
+            self.failure_log_retention_store.set_hours(hours);
+        }
         if args.interactive() {
             print!("{output}");
             output.clear();

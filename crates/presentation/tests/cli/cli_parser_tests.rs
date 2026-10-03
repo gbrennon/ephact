@@ -104,6 +104,17 @@ fn parses_failure_log_retention_setting_name() {
 }
 
 #[test]
+fn rejects_zero_failure_log_retention_hours_before_dispatch() {
+    let error =
+        match CliParser::try_parse_from(["ephact", "run", "--failure-log-retention-hours", "0"]) {
+            Ok(_) => panic!("zero retention should fail during argument parsing"),
+            Err(error) => error,
+        };
+
+    assert!(error.to_string().contains("greater than zero"));
+}
+
+#[test]
 fn no_args_selects_tui_by_default() {
     let cli = CliParser::try_parse_from(["ephact"]).expect("no subcommand should parse");
 
