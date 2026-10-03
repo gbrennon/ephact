@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     fs,
+    io::Read,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
     time::{Duration, SystemTime},
@@ -13,6 +14,45 @@ use crate::{
         value_objects::RepositoryName,
     },
 };
+
+const DEFAULT_FAILURE_LOG_RETENTION_HOURS: u64 = 24;
+const FAILURE_LOG_MARKER: &str = "ephact-failure-log-v1\n";
+
+/// Shared runtime configuration for failure-log retention.
+#[derive(Clone)]
+pub struct FailureLogRetentionStore {
+    hours: Arc<Mutex<u64>>,
+}
+
+impl Default for FailureLogRetentionStore {
+    fn default() -> Self {
+        Self {
+            hours: Arc::new(Mutex::new(DEFAULT_FAILURE_LOG_RETENTION_HOURS)),
+        }
+    }
+}
+
+impl FailureLogRetentionStore {
+    /// Creates a retention store with the default number of hours.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Applies the active failure-log retention in hours.
+    pub fn apply_hours(&self, hours: u64) {
+        if let Ok(mut current) = self.hours.lock() {
+            *current = hours;
+        }
+    }
+
+    /// Returns the active failure-log retention in hours.
+    pub fn hours(&self) -> u64 {
+        self.hours
+            .lock()
+            .map(|hours| *hours)
+            .unwrap_or(DEFAULT_FAILURE_LOG_RETENTION_HOURS)
+    }
+}
 
 /// Shared status for filesystem failures encountered while writing diagnostics.
 #[derive(Clone, Default)]
@@ -79,6 +119,7 @@ impl FailureLogPathStore {
 pub struct FailureLogStores {
     error_store: FailureLogErrorStore,
     path_store: FailureLogPathStore,
+    retention_store: FailureLogRetentionStore,
 }
 
 impl FailureLogStores {
@@ -87,6 +128,7 @@ impl FailureLogStores {
         Self {
             error_store: FailureLogErrorStore::new(),
             path_store: FailureLogPathStore::new(),
+            retention_store: FailureLogRetentionStore::new(),
         }
     }
 
@@ -96,16 +138,26 @@ impl FailureLogStores {
     }
 
     /// Combines caller-owned stores for composition-root wiring.
-    pub fn from_stores(error_store: FailureLogErrorStore, path_store: FailureLogPathStore) -> Self {
+    pub fn from_stores(
+        error_store: FailureLogErrorStore,
+        path_store: FailureLogPathStore,
+        retention_store: FailureLogRetentionStore,
+    ) -> Self {
         Self {
             error_store,
             path_store,
+            retention_store,
         }
     }
 
     /// Returns the shared diagnostics path store.
     pub fn path_store(&self) -> FailureLogPathStore {
         self.path_store.clone()
+    }
+
+    /// Returns the shared retention configuration store.
+    pub fn retention_store(&self) -> FailureLogRetentionStore {
+        self.retention_store.clone()
     }
 }
 
@@ -146,8 +198,6 @@ impl FailureLogState {
         }
     }
 }
-/// Failed diagnostics remain available for one day before startup pruning.
-const DEFAULT_FAILURE_LOG_RETENTION: Duration = Duration::from_secs(24 * 60 * 60);
 
 /// Persists failed workflow details outside the repository being executed.
 ///
@@ -158,6 +208,7 @@ pub struct FailureLogHandler {
     states: Arc<Mutex<HashMap<String, FailureLogState>>>,
     temp_root: PathBuf,
     errors: FailureLogErrorStore,
+    retention: FailureLogRetentionStore,
     paths: FailureLogPathStore,
 }
 
@@ -173,6 +224,7 @@ impl FailureLogHandler {
             temp_root,
             FailureLogErrorStore::new(),
             FailureLogPathStore::new(),
+            FailureLogRetentionStore::new(),
         )
     }
 
@@ -181,15 +233,15 @@ impl FailureLogHandler {
         temp_root: impl Into<PathBuf>,
         errors: FailureLogErrorStore,
         paths: FailureLogPathStore,
+        retention: FailureLogRetentionStore,
     ) -> Self {
-        let handler = Self {
+        Self {
             states: Arc::new(Mutex::new(HashMap::new())),
             temp_root: temp_root.into(),
             errors,
             paths,
-        };
-        handler.prune_expired_logs(SystemTime::now(), DEFAULT_FAILURE_LOG_RETENTION);
-        handler
+            retention,
+        }
     }
 
     /// Returns the shared error status store used by this handler.
@@ -236,8 +288,13 @@ impl FailureLogHandler {
         if !Self::is_expired_log(&log, now, retention) {
             return;
         }
-        let path = log.path();
-        if let Err(error) = fs::remove_file(&path) {
+        self.remove_expired_log(&log.path());
+    }
+
+    fn remove_expired_log(&self, path: &Path) {
+        if let Err(error) = fs::remove_file(path)
+            && error.kind() != std::io::ErrorKind::NotFound
+        {
             self.errors.record(format!(
                 "failed to remove expired failure log '{}': {error}",
                 path.display()
@@ -249,13 +306,17 @@ impl FailureLogHandler {
         let Ok(file_type) = log.file_type() else {
             return false;
         };
-        if !file_type.is_file()
-            || log
-                .path()
-                .extension()
-                .and_then(|extension| extension.to_str())
-                != Some("log")
-        {
+        if !file_type.is_file() {
+            return false;
+        }
+        let path = log.path();
+        let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
+            return false;
+        };
+        if !file_name.starts_with("failure-") || !file_name.ends_with(".log") {
+            return false;
+        }
+        if !Self::has_ownership_marker(&path) {
             return false;
         }
         let Ok(modified) = log.metadata().and_then(|metadata| metadata.modified()) else {
@@ -266,7 +327,19 @@ impl FailureLogHandler {
             .unwrap_or(false)
     }
 
+    fn has_ownership_marker(path: &Path) -> bool {
+        let Ok(mut file) = fs::File::open(path) else {
+            return false;
+        };
+        let mut marker = [0; FAILURE_LOG_MARKER.len()];
+        file.read_exact(&mut marker).is_ok() && marker.as_slice() == FAILURE_LOG_MARKER.as_bytes()
+    }
+
     fn on_run_started(&self, run_id: &str, repository_path: &str) {
+        self.prune_expired_logs(
+            SystemTime::now(),
+            retention_duration(self.retention.hours()),
+        );
         if let Ok(mut states) = self.states.lock() {
             states.insert(
                 run_id.to_string(),
@@ -344,7 +417,7 @@ impl FailureLogHandler {
         let repository_name = repository_name(&state.repository_path)?;
         let run_component = safe_filename(run_id);
         let directory = self.temp_root.join("ephact").join(repository_name.as_str());
-        let path = directory.join(format!("{run_component}.log"));
+        let path = directory.join(format!("failure-{run_component}.log"));
         if directory.starts_with(Path::new(&state.repository_path)) {
             return Err(format!(
                 "refusing to write failure log '{}' under repository '{}'",
@@ -363,6 +436,10 @@ impl FailureLogHandler {
         })?;
         Ok(path)
     }
+}
+
+fn retention_duration(hours: u64) -> Duration {
+    Duration::from_secs(hours.saturating_mul(60 * 60))
 }
 
 impl Default for FailureLogHandler {
@@ -425,7 +502,10 @@ fn safe_filename(run_id: &str) -> String {
 }
 
 fn render_log(run_id: &str, state: &FailureLogState) -> String {
-    let mut output = format!("Repository: {}\nRun ID: {run_id}\n", state.repository_path);
+    let mut output = format!(
+        "{FAILURE_LOG_MARKER}Repository: {}\nRun ID: {run_id}\n",
+        state.repository_path
+    );
     for step in &state.failed_steps {
         output.push_str("\nFailed step\n");
         output.push_str(&format!("Workflow: {}\n", step.workflow_name));
@@ -503,10 +583,148 @@ mod tests {
 
         let path = handler.path_store().take("run-1").unwrap();
         assert!(!path.starts_with("/repo/project"));
-        let content = fs::read_to_string(path).unwrap();
+        let content = fs::read_to_string(&path).unwrap();
         assert!(content.contains("Workflow: Build"));
         assert!(content.contains("stdout details"));
         assert!(content.contains("stderr details"));
+        assert_eq!(
+            path.file_name().and_then(|name| name.to_str()),
+            Some("failure-run-1.log")
+        );
+    }
+
+    #[test]
+    fn generated_expired_log_is_pruned() {
+        let temp_root = tempfile::tempdir().unwrap();
+        let handler = FailureLogHandler::with_temp_root(temp_root.path());
+        handler.handle(&started("run-generated", "/repo/project"));
+        handler.handle(&finished("run-generated"));
+        handler.handle(&Event::WorkflowRunCompleted(
+            WorkflowRunCompletedPayload::new(
+                "run-generated".to_string(),
+                "/repo/project".to_string(),
+                Vec::new(),
+                false,
+            ),
+        ));
+
+        let generated_log = handler.path_store().take("run-generated").unwrap();
+        assert!(
+            fs::read_to_string(&generated_log)
+                .unwrap()
+                .starts_with(FAILURE_LOG_MARKER)
+        );
+        let old = SystemTime::now() - Duration::from_secs(25 * 60 * 60);
+        fs::File::open(&generated_log)
+            .unwrap()
+            .set_modified(old)
+            .unwrap();
+
+        handler.handle(&started("trigger-run", "/repo/project"));
+
+        assert!(!generated_log.exists());
+    }
+
+    #[test]
+    fn expired_unmarked_failure_log_is_not_pruned() {
+        let temp_root = tempfile::tempdir().unwrap();
+        let log_directory = temp_root.path().join("ephact/project");
+        fs::create_dir_all(&log_directory).unwrap();
+        let arbitrary_log = log_directory.join("failure-user-created.log");
+        fs::write(&arbitrary_log, "user-created").unwrap();
+        let old = SystemTime::now() - Duration::from_secs(25 * 60 * 60);
+        fs::File::open(&arbitrary_log)
+            .unwrap()
+            .set_modified(old)
+            .unwrap();
+
+        let handler = FailureLogHandler::with_temp_root(temp_root.path());
+        handler.handle(&started("trigger-run", "/repo/project"));
+
+        assert!(arbitrary_log.exists());
+    }
+
+    #[test]
+    fn unrelated_expired_log_is_not_pruned() {
+        let temp_root = tempfile::tempdir().unwrap();
+        let log_directory = temp_root.path().join("ephact/project");
+        fs::create_dir_all(&log_directory).unwrap();
+        let unrelated_log = log_directory.join("expired.log");
+        let owned_log = log_directory.join("failure-run.log");
+        fs::write(&unrelated_log, "unrelated").unwrap();
+        fs::write(&owned_log, FAILURE_LOG_MARKER).unwrap();
+        let old = SystemTime::now() - Duration::from_secs(25 * 60 * 60);
+        fs::File::open(&unrelated_log)
+            .unwrap()
+            .set_modified(old)
+            .unwrap();
+        fs::File::open(&owned_log)
+            .unwrap()
+            .set_modified(old)
+            .unwrap();
+
+        let handler = FailureLogHandler::with_temp_root(temp_root.path());
+        handler.handle(&started("trigger-run", "/repo/project"));
+
+        assert!(unrelated_log.exists());
+        assert!(!owned_log.exists());
+    }
+
+    #[test]
+    fn configured_retention_controls_pruning_boundary() {
+        let temp_root = tempfile::tempdir().unwrap();
+        let log_directory = temp_root.path().join("ephact/project");
+        fs::create_dir_all(&log_directory).unwrap();
+        let owned_log = log_directory.join("failure-run.log");
+        fs::write(&owned_log, FAILURE_LOG_MARKER).unwrap();
+        let old = SystemTime::now() - Duration::from_secs(2 * 60 * 60);
+        fs::File::open(&owned_log)
+            .unwrap()
+            .set_modified(old)
+            .unwrap();
+
+        let retention = FailureLogRetentionStore::new();
+        retention.apply_hours(1);
+        let handler = FailureLogHandler::with_temp_root_and_stores(
+            temp_root.path(),
+            FailureLogErrorStore::new(),
+            FailureLogPathStore::new(),
+            retention,
+        );
+        handler.handle(&started("trigger-run", "/repo/project"));
+
+        assert!(!owned_log.exists());
+    }
+
+    #[test]
+    fn missing_expired_owned_log_is_idempotent() {
+        let temp_root = tempfile::tempdir().unwrap();
+        let log_directory = temp_root.path().join("ephact/project");
+        fs::create_dir_all(&log_directory).unwrap();
+        let owned_log = log_directory.join("failure-race.log");
+        fs::write(&owned_log, "owned").unwrap();
+        let old = SystemTime::now() - Duration::from_secs(25 * 60 * 60);
+        fs::File::open(&owned_log)
+            .unwrap()
+            .set_modified(old)
+            .unwrap();
+
+        let handler = FailureLogHandler::with_temp_root(temp_root.path());
+        fs::remove_file(&owned_log).unwrap();
+        handler.remove_expired_log(&owned_log);
+
+        assert!(handler.error_store().read_and_clear().is_empty());
+    }
+
+    #[test]
+    fn retention_store_defaults_to_24_hours_and_shares_updates() {
+        let store = FailureLogRetentionStore::new();
+        assert_eq!(store.hours(), 24);
+
+        let clone = store.clone();
+        clone.apply_hours(72);
+
+        assert_eq!(store.hours(), 72);
     }
 
     #[test]
@@ -527,24 +745,6 @@ mod tests {
                 .unwrap()
                 .contains("workflow could not be read")
         );
-    }
-
-    #[test]
-    fn prunes_expired_logs_without_touching_other_files() {
-        let temp_root = tempfile::tempdir().unwrap();
-        let log_directory = temp_root.path().join("ephact/project");
-        fs::create_dir_all(&log_directory).unwrap();
-        let expired_log = log_directory.join("expired.log");
-        let other_file = log_directory.join("keep.txt");
-        fs::write(&expired_log, "expired").unwrap();
-        fs::write(&other_file, "keep").unwrap();
-        std::thread::sleep(Duration::from_millis(10));
-
-        let handler = FailureLogHandler::with_temp_root(temp_root.path());
-        handler.prune_expired_logs(SystemTime::now(), Duration::ZERO);
-
-        assert!(!expired_log.exists());
-        assert!(other_file.exists());
     }
 
     #[test]

@@ -74,6 +74,23 @@ pub struct RunArgs {
     /// addition to the final status of each step.
     #[arg(long)]
     verbose: bool,
+    /// Retain failure diagnostics for this many hours for the current run.
+    #[arg(
+        long = "failure-log-retention-hours",
+        value_name = "HOURS",
+        value_parser = parse_positive_hours
+    )]
+    failure_log_retention_hours: Option<u64>,
+}
+
+fn parse_positive_hours(value: &str) -> Result<u64, String> {
+    let hours = value
+        .parse::<u64>()
+        .map_err(|_| "failure-log-retention-hours must be a positive integer".to_string())?;
+    if hours == 0 {
+        return Err("failure-log-retention-hours must be greater than zero".to_string());
+    }
+    Ok(hours)
 }
 
 impl RunArgs {
@@ -149,6 +166,11 @@ impl RunArgs {
     /// Reports whether verbose output was requested.
     pub fn verbose(&self) -> bool {
         self.verbose
+    }
+
+    /// Returns the explicit failure-log retention override for this run.
+    pub fn failure_log_retention_hours(&self) -> Option<u64> {
+        self.failure_log_retention_hours
     }
     pub(super) fn apply_settings(&mut self, settings: &crate::domain::Settings) {
         self.interactive |= settings.interactive();

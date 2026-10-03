@@ -12,7 +12,9 @@ use crate::{
             outbound::RunInputsDiscovererPort,
         },
     },
-    logging::{FailureLogErrorStore, FailureLogPathStore, FailureLogStores},
+    logging::{
+        FailureLogErrorStore, FailureLogPathStore, FailureLogRetentionStore, FailureLogStores,
+    },
 };
 
 pub struct AppContainer {
@@ -25,6 +27,7 @@ pub struct AppContainer {
     list_actions_port: Box<dyn ListActionsPort>,
     failure_log_error_store: FailureLogErrorStore,
     failure_log_path_store: FailureLogPathStore,
+    failure_log_retention_store: FailureLogRetentionStore,
 }
 /// The ports assembled by the application container.
 pub type AppContainerParts = (
@@ -104,6 +107,7 @@ impl AppContainer {
             list_actions_port,
             failure_log_error_store: stores.error_store(),
             failure_log_path_store: stores.path_store(),
+            failure_log_retention_store: stores.retention_store(),
         }
     }
 
@@ -113,6 +117,10 @@ impl AppContainer {
 
     pub fn failure_log_path_store(&self) -> FailureLogPathStore {
         self.failure_log_path_store.clone()
+    }
+
+    pub fn failure_log_retention_store(&self) -> FailureLogRetentionStore {
+        self.failure_log_retention_store.clone()
     }
 
     pub fn into_parts(self) -> AppContainerParts {

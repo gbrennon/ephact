@@ -37,6 +37,7 @@ pub struct Cli {
     show_project_branding_info_port: Box<dyn ShowProjectBrandingInfoPort>,
     failure_log_error_store: crate::infrastructure::logging::FailureLogErrorStore,
     failure_log_path_store: crate::infrastructure::logging::FailureLogPathStore,
+    failure_log_retention_store: crate::infrastructure::logging::FailureLogRetentionStore,
     tui_runner: TuiRunner,
     settings: Settings,
     settings_store: Option<Arc<dyn SettingsStorePort>>,
@@ -86,6 +87,7 @@ impl Cli {
             show_project_branding_info_port,
             failure_log_error_store: failure_log_stores.error_store(),
             failure_log_path_store: failure_log_stores.path_store(),
+            failure_log_retention_store: failure_log_stores.retention_store(),
             tui_runner,
             settings: Settings::default(),
             settings_store: None,
@@ -108,6 +110,8 @@ impl Cli {
         settings_store: Arc<dyn SettingsStorePort>,
     ) -> Self {
         self.settings = settings.clone();
+        self.failure_log_retention_store
+            .apply_hours(settings.failure_log_retention_hours());
         self.settings_store = Some(settings_store.clone());
         self.tui_runner = self
             .tui_runner
@@ -332,6 +336,14 @@ impl Cli {
             SettingName::AllWorkflows => {
                 Self::update_bool(settings, value, Settings::with_all_workflows)
             }
+            SettingName::FailureLogRetentionHours => {
+                let hours = value.parse::<u64>().map_err(|_| {
+                    format!("failure-log-retention-hours must be a positive integer: {value}")
+                })?;
+                settings
+                    .with_failure_log_retention_hours(hours)
+                    .map_err(|error| format!("failure-log-retention-hours: {error}"))
+            }
         }
     }
 
@@ -359,7 +371,8 @@ allow-network = {}\n\
 preserve = {}\n\
 verbose = {}\n\
 interactive = {}\n\
-all-workflows = {}\n",
+all-workflows = {}\n\
+failure-log-retention-hours = {}\n",
             path.display(),
             Self::interface_name(settings.default_interface()),
             settings.allow_repo_writes(),
@@ -370,6 +383,7 @@ all-workflows = {}\n",
             settings.verbose(),
             settings.interactive(),
             settings.all_workflows(),
+            settings.failure_log_retention_hours(),
         )
     }
 
@@ -409,6 +423,9 @@ all-workflows = {}\n",
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut args = args;
         args.apply_settings(&self.settings);
+        if let Some(hours) = args.failure_log_retention_hours() {
+            self.failure_log_retention_store.apply_hours(hours);
+        }
         if args.interactive() {
             print!("{output}");
             output.clear();

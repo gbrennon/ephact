@@ -3,9 +3,10 @@ use std::sync::Arc;
 use ephact::{
     application::{
         dtos::responses::ShowProjectBrandingInfoResponse,
-        ports::inbound::ShowProjectBrandingInfoPort,
+        ports::{inbound::ShowProjectBrandingInfoPort, outbound::SettingsStorePort},
     },
     domain::{InterfaceMode, Settings},
+    infrastructure::{TomlSettingsStore, logging::FailureLogStores},
     presentation::{
         cli::{Cli, CliDependencies},
         components::terminal::SystemTerminal,
@@ -43,19 +44,26 @@ impl ShowProjectBrandingInfoPort for FakeShowProjectBrandingInfoPort {
     }
 }
 
+fn make_cli_with_stores(stores: FailureLogStores) -> Cli {
+    Cli::new_with_failure_stores(
+        CliDependencies::new(
+            (
+                Box::new(FakeRunWorkflowPort::new(true)),
+                Box::new(FakeRunAllWorkflowsPort::new(true)),
+                Box::new(FakeRunInputsDiscovererPort::new()),
+            ),
+            (
+                Box::new(FakeListWorkflowsPort::new()),
+                Box::new(FakeListActionsPort::new()),
+                Box::new(FakeShowProjectBrandingInfoPort),
+            ),
+        ),
+        stores,
+    )
+}
+
 fn make_cli() -> Cli {
-    Cli::new(CliDependencies::new(
-        (
-            Box::new(FakeRunWorkflowPort::new(true)),
-            Box::new(FakeRunAllWorkflowsPort::new(true)),
-            Box::new(FakeRunInputsDiscovererPort::new()),
-        ),
-        (
-            Box::new(FakeListWorkflowsPort::new()),
-            Box::new(FakeListActionsPort::new()),
-            Box::new(FakeShowProjectBrandingInfoPort),
-        ),
-    ))
+    make_cli_with_stores(FailureLogStores::new())
 }
 
 #[test]
@@ -65,6 +73,26 @@ fn run_subcommand_dispatches_to_run_handler() {
     let result = cli.run(["ephact", "run"]);
 
     assert!(result.is_ok());
+}
+
+#[test]
+fn explicit_failure_log_retention_overrides_persisted_settings() {
+    let stores = FailureLogStores::new();
+    let retention_store = stores.retention_store();
+    let settings = Settings::default()
+        .with_failure_log_retention_hours(12)
+        .expect("positive retention is valid");
+    let settings_store = Arc::new(FakeSettingsStore::new(settings.clone()));
+    let cli = make_cli_with_stores(stores).with_settings(settings, settings_store);
+    assert_eq!(retention_store.hours(), 12);
+
+    cli.run_with_terminal(
+        ["ephact", "run", "--failure-log-retention-hours", "72"],
+        &SystemTerminal,
+    )
+    .expect("run with explicit retention should succeed");
+
+    assert_eq!(retention_store.hours(), 72);
 }
 
 #[test]
@@ -196,4 +224,79 @@ fn persisted_cli_interface_makes_no_subcommand_render_help() {
         .expect("CLI default should render help");
 
     assert!(output.contains("Usage:"));
+}
+
+#[test]
+fn settings_set_persists_failure_log_retention_and_renders_it() {
+    let store = Arc::new(FakeSettingsStore::new(Settings::default()));
+    let cli = make_cli().with_settings(Settings::default(), store.clone());
+    let terminal = SystemTerminal;
+
+    let output = cli
+        .run_with_terminal(
+            [
+                "ephact",
+                "settings",
+                "set",
+                "failure-log-retention-hours",
+                "72",
+            ],
+            &terminal,
+        )
+        .expect("retention setting should succeed");
+
+    assert!(output.contains("failure-log-retention-hours = 72"));
+    assert_eq!(store.writes().len(), 1);
+    assert_eq!(store.writes()[0].failure_log_retention_hours(), 72);
+}
+
+#[test]
+fn invalid_failure_log_retention_values_are_rejected() {
+    for value in ["0", "-1", "not-a-number", "18446744073709551616"] {
+        let store = Arc::new(FakeSettingsStore::new(Settings::default()));
+        let cli = make_cli().with_settings(Settings::default(), store.clone());
+        let terminal = SystemTerminal;
+
+        let result = cli.run_with_terminal(
+            [
+                "ephact",
+                "settings",
+                "set",
+                "failure-log-retention-hours",
+                value,
+            ],
+            &terminal,
+        );
+
+        let error = result.expect_err("invalid retention should fail");
+        assert!(
+            error.to_string().contains("failure-log-retention-hours"),
+            "error should name the setting: {error}"
+        );
+        assert!(store.writes().is_empty());
+    }
+}
+
+#[test]
+fn settings_set_persists_failure_log_retention_through_toml_store() {
+    let directory = tempfile::tempdir().expect("temporary directory");
+    let store = Arc::new(TomlSettingsStore::new(directory.path().join("config.toml")));
+    let cli = make_cli().with_settings(Settings::default(), store.clone());
+    let terminal = SystemTerminal;
+
+    cli.run_with_terminal(
+        [
+            "ephact",
+            "settings",
+            "set",
+            "failure-log-retention-hours",
+            "72",
+        ],
+        &terminal,
+    )
+    .expect("retention setting should persist through TOML store");
+
+    let persisted = store.read_settings().expect("read persisted settings");
+
+    assert_eq!(persisted.failure_log_retention_hours(), 72);
 }

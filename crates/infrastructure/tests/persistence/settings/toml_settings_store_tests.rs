@@ -35,6 +35,21 @@ fn settings_round_trip_through_toml() {
     assert!(!contents.contains("allow_repo_writes"));
     assert_eq!(reloaded, settings);
 }
+#[test]
+fn failure_log_retention_round_trips_through_toml() {
+    let directory = TempDir::new().expect("temporary directory");
+    let store = TomlSettingsStore::new(directory.path().join("config.toml"));
+    let settings = Settings::default()
+        .with_failure_log_retention_hours(72)
+        .expect("positive retention is valid");
+
+    store.write_settings(&settings).expect("settings write");
+    let contents = std::fs::read_to_string(store.path()).expect("settings file");
+    let reloaded = store.read_settings().expect("settings read");
+
+    assert!(contents.contains("failure_log_retention_hours = 72"));
+    assert_eq!(reloaded.failure_log_retention_hours(), 72);
+}
 
 #[test]
 fn directory_read_failure_is_reported() {
@@ -77,6 +92,7 @@ fn omitted_values_use_built_in_defaults() {
     assert_eq!(settings.default_interface(), InterfaceMode::Tui);
     assert!(!settings.allow_repo_writes());
     assert_eq!(settings.marker(), &Marker::default());
+    assert_eq!(settings.failure_log_retention_hours(), 24);
 }
 
 #[test]
