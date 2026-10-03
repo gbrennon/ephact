@@ -15,6 +15,9 @@ use ephact::{
 };
 use ratatui::{Terminal, backend::TestBackend};
 
+const SELECT_TRUE_BOOLEAN_KEY: KeyCode = KeyCode::Char('l');
+const SUBMIT_CONFIGURATION_KEY: KeyCode = KeyCode::Char('r');
+
 fn rendered_app_lines(app: &TuiApp) -> Vec<String> {
     let backend = TestBackend::new(80, 24);
     let mut terminal = Terminal::new(backend).expect("test terminal");
@@ -47,6 +50,60 @@ fn rendered_lines(screens: &ScreenManager, title: &str) -> Vec<String> {
         .chunks(80)
         .map(|line| line.iter().map(|cell| cell.symbol()).collect())
         .collect()
+}
+
+fn select_boolean_input(app: &mut TuiApp) {
+    app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+}
+
+fn select_true_boolean_value(app: &mut TuiApp) {
+    app.handle_key(KeyEvent::new(SELECT_TRUE_BOOLEAN_KEY, KeyModifiers::NONE));
+}
+
+fn submit_boolean_configuration(app: &mut TuiApp) {
+    app.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+    app.handle_key(KeyEvent::new(SUBMIT_CONFIGURATION_KEY, KeyModifiers::NONE));
+}
+
+fn app_with_boolean_input() -> TuiApp {
+    let mut app = TuiApp::new(
+        vec![WorkflowListItemResponse::new(
+            Some("CI".to_string()),
+            None,
+            vec!["push".to_string()],
+        )],
+        ephact::PROJECT_EMBLEM.to_string(),
+    );
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.begin_run_configuration(
+        vec!["push".to_string()],
+        vec![RunInputDeclarationResponse::new(
+            "include-sysroot",
+            RunInputSourceResponse::Workflow,
+            None,
+            false,
+            Some("false".to_string()),
+        )],
+    );
+    app
+}
+
+fn submit_true_boolean_input(app: &mut TuiApp) {
+    select_boolean_input(app);
+    select_true_boolean_value(app);
+    submit_boolean_configuration(app);
+}
+
+fn assert_true_boolean_input_was_submitted(app: &mut TuiApp) {
+    let configuration = app
+        .take_configured_run_request()
+        .expect("boolean input configuration");
+    assert_eq!(
+        configuration.inputs(),
+        &[("include-sysroot".into(), "true".into())]
+    );
 }
 
 #[test]
@@ -193,39 +250,9 @@ fn configured_marker_is_used_by_text_input_form() {
 
 #[test]
 fn boolean_input_editing_works_through_tui_app() {
-    let mut app = TuiApp::new(
-        vec![WorkflowListItemResponse::new(
-            Some("CI".to_string()),
-            None,
-            vec!["push".to_string()],
-        )],
-        ephact::PROJECT_EMBLEM.to_string(),
-    );
-    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-    app.begin_run_configuration(
-        vec!["push".to_string()],
-        vec![RunInputDeclarationResponse::new(
-            "include-sysroot",
-            RunInputSourceResponse::Workflow,
-            None,
-            false,
-            Some("false".to_string()),
-        )],
-    );
-    app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-    app.handle_key(KeyEvent::new(KeyCode::Char('l'), KeyModifiers::NONE));
-    app.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
-    app.handle_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE));
-
-    let configuration = app
-        .take_configured_run_request()
-        .expect("boolean input configuration");
-    assert_eq!(
-        configuration.inputs(),
-        &[("include-sysroot".into(), "true".into())]
-    );
+    let mut app = app_with_boolean_input();
+    submit_true_boolean_input(&mut app);
+    assert_true_boolean_input_was_submitted(&mut app);
 }
 
 #[test]

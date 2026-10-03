@@ -14,7 +14,7 @@ use crate::{
             DomainEventPublisherPort, NodeActionRunnerPort, StepInterpolatorPort,
             StepTextCodecPort,
         },
-        services::execute_action_service::ExecuteActionService,
+        services::execute_action_service::{ExecuteActionDependencies, ExecuteActionService},
     },
     steps::{
         ReadStepEnvExportsService, ReadStepExportsService, ReadStepOutputExportsService,
@@ -48,16 +48,15 @@ impl ActionExecutionWiring {
             Box::new(GitHubActionInputEnvironmentAdapter::new()),
             Box::new(ResolveNodeBinaryService::new()),
         ));
+        let action_dependencies = ExecuteActionDependencies::new(
+            (directory_resolver, definition_loader, input_resolver),
+            (composite_runner, node_runner, step_codec),
+        );
 
         Box::new(move |container| {
             Box::new(ExecuteActionService::new(
                 container,
-                directory_resolver.clone(),
-                definition_loader.clone(),
-                input_resolver.clone(),
-                composite_runner.clone(),
-                node_runner.clone(),
-                step_codec.clone(),
+                action_dependencies.clone(),
             ))
         })
     }

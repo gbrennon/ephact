@@ -55,6 +55,14 @@ impl ActionOutput {
     }
 }
 
+struct CompositeActionExecution<'a> {
+    request: RunCompositeActionRequest<'a>,
+    action_dir: &'a Path,
+    context: &'a mut EvaluationContext,
+    container: Arc<dyn ContainerPort>,
+    output: &'a mut ActionOutput,
+}
+
 impl RunCompositeActionService {
     pub fn new(
         step_runner: Box<dyn RunCompositeStepPort>,
@@ -153,12 +161,15 @@ impl RunCompositeActionService {
 
     fn execute_steps(
         &self,
-        request: &RunCompositeActionRequest<'_>,
-        action_dir: &Path,
-        context: &mut EvaluationContext,
-        container: Arc<dyn ContainerPort>,
-        output: &mut ActionOutput,
+        execution: CompositeActionExecution<'_>,
     ) -> Result<Option<ExecuteActionResponse>, StepError> {
+        let CompositeActionExecution {
+            request,
+            action_dir,
+            context,
+            container,
+            output,
+        } = execution;
         let mut environment = request.action_request().env().clone();
         environment.insert(
             "GITHUB_ACTION_PATH".to_owned(),
@@ -166,9 +177,18 @@ impl RunCompositeActionService {
         );
         let mut execution =
             CompositeStepExecution::new(action_dir, context, output, &mut environment);
+        self.execute_step_sequence(&request, &mut execution, container)
+    }
+
+    fn execute_step_sequence(
+        &self,
+        request: &RunCompositeActionRequest<'_>,
+        execution: &mut CompositeStepExecution<'_>,
+        container: Arc<dyn ContainerPort>,
+    ) -> Result<Option<ExecuteActionResponse>, StepError> {
         for step in request.steps() {
             if let Some(early_exit) =
-                self.execute_step(request, &mut execution, container.clone(), step)?
+                self.execute_step(request, execution, container.clone(), step)?
             {
                 return Ok(Some(early_exit));
             }
@@ -282,13 +302,13 @@ impl CompositeActionRunnerPort for RunCompositeActionService {
             Self::context_with_action_path(&context, Path::new(&container_action_dir));
         let mut output = ActionOutput::new();
 
-        if let Some(early_exit) = self.execute_steps(
-            &request,
-            Path::new(&container_action_dir),
-            &mut context,
+        if let Some(early_exit) = self.execute_steps(CompositeActionExecution {
+            request,
+            action_dir: Path::new(&container_action_dir),
+            context: &mut context,
             container,
-            &mut output,
-        )? {
+            output: &mut output,
+        })? {
             return Ok(early_exit);
         }
 

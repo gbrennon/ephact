@@ -25,6 +25,46 @@ use crate::{
     },
 };
 
+pub type ExecuteActionResolutionDependencies = (
+    Arc<dyn ActionDirectoryResolverPort>,
+    Arc<dyn ActionDefinitionLoaderPort>,
+    Arc<dyn ActionInputsResolverPort>,
+);
+
+pub type ExecuteActionExecutionDependencies = (
+    Arc<dyn CompositeActionRunnerPort>,
+    Arc<dyn NodeActionRunnerPort>,
+    Arc<dyn StepTextCodecPort>,
+);
+
+#[derive(Clone)]
+pub struct ExecuteActionDependencies {
+    directory_resolver: Arc<dyn ActionDirectoryResolverPort>,
+    definition_loader: Arc<dyn ActionDefinitionLoaderPort>,
+    input_resolver: Arc<dyn ActionInputsResolverPort>,
+    composite_runner: Arc<dyn CompositeActionRunnerPort>,
+    node_runner: Arc<dyn NodeActionRunnerPort>,
+    step_codec: Arc<dyn StepTextCodecPort>,
+}
+
+impl ExecuteActionDependencies {
+    pub fn new(
+        resolution_dependencies: ExecuteActionResolutionDependencies,
+        execution_dependencies: ExecuteActionExecutionDependencies,
+    ) -> Self {
+        let (directory_resolver, definition_loader, input_resolver) = resolution_dependencies;
+        let (composite_runner, node_runner, step_codec) = execution_dependencies;
+        Self {
+            directory_resolver,
+            definition_loader,
+            input_resolver,
+            composite_runner,
+            node_runner,
+            step_codec,
+        }
+    }
+}
+
 /// Application service that runs the action a step references.
 ///
 /// Resolves where the action lives, loads its definition and inputs, and
@@ -48,23 +88,15 @@ enum ActionDirectoryResolution {
 }
 
 impl ExecuteActionService {
-    pub fn new(
-        container: Arc<dyn ContainerPort>,
-        directory_resolver: Arc<dyn ActionDirectoryResolverPort>,
-        definition_loader: Arc<dyn ActionDefinitionLoaderPort>,
-        input_resolver: Arc<dyn ActionInputsResolverPort>,
-        composite_runner: Arc<dyn CompositeActionRunnerPort>,
-        node_runner: Arc<dyn NodeActionRunnerPort>,
-        step_codec: Arc<dyn StepTextCodecPort>,
-    ) -> Self {
+    pub fn new(container: Arc<dyn ContainerPort>, dependencies: ExecuteActionDependencies) -> Self {
         Self {
             container,
-            directory_resolver,
-            definition_loader,
-            input_resolver,
-            composite_runner,
-            node_runner,
-            step_codec,
+            directory_resolver: dependencies.directory_resolver,
+            definition_loader: dependencies.definition_loader,
+            input_resolver: dependencies.input_resolver,
+            composite_runner: dependencies.composite_runner,
+            node_runner: dependencies.node_runner,
+            step_codec: dependencies.step_codec,
         }
     }
 

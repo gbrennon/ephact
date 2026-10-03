@@ -12,6 +12,12 @@ use ratatui::{Terminal, backend::TestBackend};
 
 use crate::fakes::fake_settings_store::FakeSettingsStore;
 
+const CUSTOM_MARKER_TEXT_KEY: KeyCode = KeyCode::Char('q');
+
+fn custom_marker_emoji_key() -> KeyCode {
+    KeyCode::Char("🚀".chars().next().expect("emoji marker"))
+}
+
 fn key(code: KeyCode) -> KeyEvent {
     KeyEvent::new(code, KeyModifiers::NONE)
 }
@@ -60,6 +66,42 @@ fn render_text(screen: &SettingsScreen) -> String {
         .iter()
         .map(|cell| cell.symbol())
         .collect()
+}
+
+fn custom_marker_editor() -> SettingsScreen {
+    let mut screen = SettingsScreen::new(Settings::default(), None);
+    for _ in 0..9 {
+        screen.handle_key(key(KeyCode::Down));
+    }
+    screen.handle_key(key(KeyCode::Enter));
+    for _ in 0..6 {
+        screen.handle_key(key(KeyCode::Right));
+    }
+    screen
+}
+
+fn enter_custom_marker_text(screen: &mut SettingsScreen) {
+    screen.handle_key(key(CUSTOM_MARKER_TEXT_KEY));
+    screen.handle_key(key(custom_marker_emoji_key()));
+}
+
+fn assert_custom_marker_cursor(screen: &SettingsScreen) {
+    assert!(
+        render_text(screen).contains("marker = Custom: q🚀 |"),
+        "{}",
+        render_text(screen)
+    );
+    assert!(screen.footer().contains("Type: Custom"));
+}
+
+fn cancel_custom_marker_edit(screen: &mut SettingsScreen) {
+    screen.handle_key(key(KeyCode::Backspace));
+    screen.handle_key(key(custom_marker_emoji_key()));
+    screen.handle_key(key(KeyCode::Esc));
+}
+
+fn assert_marker_edit_was_cancelled(screen: &SettingsScreen) {
+    assert_eq!(screen.settings().marker(), &Marker::default());
 }
 
 #[test]
@@ -144,28 +186,11 @@ fn marker_setting_is_the_tenth_row_and_previews_presets() {
 
 #[test]
 fn marker_custom_editor_accepts_unicode_shows_cursor_and_cancels() {
-    let mut screen = SettingsScreen::new(Settings::default(), None);
-    for _ in 0..9 {
-        screen.handle_key(key(KeyCode::Down));
-    }
-    screen.handle_key(key(KeyCode::Enter));
-    for _ in 0..6 {
-        screen.handle_key(key(KeyCode::Right));
-    }
-    screen.handle_key(key(KeyCode::Char('q')));
-    screen.handle_key(key(KeyCode::Char('🚀')));
-
-    assert!(
-        render_text(&screen).contains("marker = Custom: q🚀 |"),
-        "{}",
-        render_text(&screen)
-    );
-    assert!(screen.footer().contains("Type: Custom"));
-    screen.handle_key(key(KeyCode::Backspace));
-    screen.handle_key(key(KeyCode::Char('🚀')));
-    screen.handle_key(key(KeyCode::Esc));
-
-    assert_eq!(screen.settings().marker(), &Marker::default());
+    let mut screen = custom_marker_editor();
+    enter_custom_marker_text(&mut screen);
+    assert_custom_marker_cursor(&screen);
+    cancel_custom_marker_edit(&mut screen);
+    assert_marker_edit_was_cancelled(&screen);
 }
 
 #[test]

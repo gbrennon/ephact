@@ -12,6 +12,21 @@ use ephact::{
 };
 use ratatui::{Terminal, backend::TestBackend};
 
+const RUN_CONFIGURATION_KEY: KeyCode = KeyCode::Char('r');
+
+fn select_input(screen: &mut RunWorkflowScreen) {
+    screen.handle_configuration_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+}
+
+fn open_input_editor(screen: &mut RunWorkflowScreen) {
+    screen.handle_configuration_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+}
+
+fn dismiss_configuration_error(screen: &mut RunWorkflowScreen) {
+    screen.handle_configuration_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+    screen.handle_configuration_key(KeyEvent::new(RUN_CONFIGURATION_KEY, KeyModifiers::NONE));
+}
+
 fn workflows() -> Vec<WorkflowListItemResponse> {
     vec![
         WorkflowListItemResponse::new(Some("Build".into()), None, vec![]),
@@ -73,6 +88,61 @@ fn rendered_line_containing(screen: &RunWorkflowScreen, text: &str) -> String {
         }
     }
     panic!("rendered text not found");
+}
+
+fn configuration_screen() -> RunWorkflowScreen {
+    let mut screen = RunWorkflowScreen::new(workflows());
+    screen.begin_configuration(
+        vec!["push".to_string()],
+        vec![RunInputDeclarationResponse::new(
+            "environment",
+            RunInputSourceResponse::Workflow,
+            None,
+            true,
+            None,
+        )],
+    );
+    screen
+}
+
+fn configuration_picker_shows_keybinds() {
+    let screen = configuration_screen();
+    let picker = rendered_text(&screen);
+
+    assert!(picker.contains("Up/Down/j/k: Move"));
+    assert!(!picker.contains("Enter: Edit"));
+    assert!(picker.contains("r: Run"));
+    assert!(picker.contains("Esc/Bksp: Back"));
+}
+
+fn input_picker_shows_keybinds() {
+    let mut screen = configuration_screen();
+    select_input(&mut screen);
+
+    let input_picker = rendered_text(&screen);
+    assert!(input_picker.contains("Enter: Edit"));
+}
+
+fn input_editor_shows_keybinds() {
+    let mut screen = configuration_screen();
+    select_input(&mut screen);
+    open_input_editor(&mut screen);
+
+    let editing = rendered_text(&screen);
+    assert!(editing.contains("Type: Edit"));
+    assert!(editing.contains("Input: environment (required) = _"));
+    assert!(editing.contains("Enter/Esc: Finish"));
+    assert!(editing.contains("Bksp: Delete"));
+}
+
+fn configuration_error_shows_keybinds() {
+    let mut screen = configuration_screen();
+    select_input(&mut screen);
+    open_input_editor(&mut screen);
+    dismiss_configuration_error(&mut screen);
+
+    let error = rendered_text(&screen);
+    assert!(error.contains("Enter/Esc/Bksp: Dismiss"));
 }
 
 #[test]
@@ -302,39 +372,10 @@ fn event_configuration_selects_event_before_input_configuration() {
 
 #[test]
 fn configuration_renders_keybinds_for_each_state() {
-    let mut screen = RunWorkflowScreen::new(workflows());
-    screen.begin_configuration(
-        vec!["push".to_string()],
-        vec![RunInputDeclarationResponse::new(
-            "environment",
-            RunInputSourceResponse::Workflow,
-            None,
-            true,
-            None,
-        )],
-    );
-
-    let picker = rendered_text(&screen);
-    assert!(picker.contains("Up/Down/j/k: Move"));
-    assert!(!picker.contains("Enter: Edit"));
-    assert!(picker.contains("r: Run"));
-    assert!(picker.contains("Esc/Bksp: Back"));
-
-    screen.handle_configuration_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-    let input_picker = rendered_text(&screen);
-    assert!(input_picker.contains("Enter: Edit"));
-
-    screen.handle_configuration_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-    let editing = rendered_text(&screen);
-    assert!(editing.contains("Type: Edit"));
-    assert!(editing.contains("Input: environment (required) = _"));
-    assert!(editing.contains("Enter/Esc: Finish"));
-    assert!(editing.contains("Bksp: Delete"));
-
-    screen.handle_configuration_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
-    screen.handle_configuration_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE));
-    let error = rendered_text(&screen);
-    assert!(error.contains("Enter/Esc/Bksp: Dismiss"));
+    configuration_picker_shows_keybinds();
+    input_picker_shows_keybinds();
+    input_editor_shows_keybinds();
+    configuration_error_shows_keybinds();
 }
 
 #[test]

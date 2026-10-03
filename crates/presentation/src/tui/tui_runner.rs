@@ -30,6 +30,22 @@ struct RunTask {
     handle: tokio::task::JoinHandle<Result<(RunSummaryResponse, String), String>>,
 }
 
+struct TuiLoopState {
+    run_task: Option<RunTask>,
+    cancelled: bool,
+    input_configuration_pending: bool,
+}
+
+impl TuiLoopState {
+    fn new() -> Self {
+        Self {
+            run_task: None,
+            cancelled: false,
+            input_configuration_pending: false,
+        }
+    }
+}
+
 pub struct TuiRunner {
     list_workflows_port: Arc<dyn ListWorkflowsPort>,
     list_actions_port: Arc<dyn ListActionsPort>,
@@ -150,18 +166,9 @@ impl TuiRunner {
         terminal: &mut DefaultTerminal,
         app: &mut TuiApp,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let mut run_task = None;
-        let mut cancelled = false;
-        let mut input_configuration_pending = false;
+        let mut state = TuiLoopState::new();
         while app.screen() != TuiScreen::Exit {
-            self.tick(
-                terminal,
-                app,
-                &mut run_task,
-                &mut cancelled,
-                &mut input_configuration_pending,
-            )
-            .await?;
+            self.tick(terminal, app, &mut state).await?;
         }
         Ok(())
     }
@@ -181,16 +188,23 @@ impl TuiRunner {
         &self,
         terminal: &mut DefaultTerminal,
         app: &mut TuiApp,
-        run_task: &mut Option<RunTask>,
-        cancelled: &mut bool,
-        input_configuration_pending: &mut bool,
+        state: &mut TuiLoopState,
     ) -> Result<(), Box<dyn std::error::Error>> {
         self.process_progress(app);
         Self::render_and_handle_input(terminal, app)?;
-        self.process_cancel_request(app, run_task, cancelled);
-        self.process_finished_run(app, run_task, cancelled).await?;
-        self.process_run_request(app, run_task, input_configuration_pending)?;
-        self.process_configured_run_request(app, run_task, input_configuration_pending)?;
+        self.process_cancel_request(app, &mut state.run_task, &mut state.cancelled);
+        self.process_finished_run(app, &mut state.run_task, &mut state.cancelled)
+            .await?;
+        self.process_run_request(
+            app,
+            &mut state.run_task,
+            &mut state.input_configuration_pending,
+        )?;
+        self.process_configured_run_request(
+            app,
+            &mut state.run_task,
+            &mut state.input_configuration_pending,
+        )?;
         Ok(())
     }
 

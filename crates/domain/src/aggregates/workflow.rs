@@ -201,18 +201,29 @@ impl Workflow {
         visited.insert(job_id);
         in_stack.insert(job_id);
         if let Some(neighbors) = dependencies.get(job_id) {
-            for &neighbor in neighbors {
-                if !visited.contains(neighbor) {
-                    Self::visit_for_cycle(neighbor, dependencies, visited, in_stack)?;
-                } else if in_stack.contains(neighbor) {
-                    return Err(PlanError::CycleDetected {
-                        job: job_id.to_owned(),
-                        dependency: neighbor.to_owned(),
-                    });
-                }
-            }
+            Self::visit_neighbors(job_id, neighbors, dependencies, visited, in_stack)?;
         }
         in_stack.remove(job_id);
+        Ok(())
+    }
+
+    fn visit_neighbors<'a>(
+        job_id: &'a str,
+        neighbors: &[&'a str],
+        dependencies: &HashMap<&'a str, Vec<&'a str>>,
+        visited: &mut HashSet<&'a str>,
+        in_stack: &mut HashSet<&'a str>,
+    ) -> Result<(), PlanError> {
+        for &neighbor in neighbors {
+            if !visited.contains(neighbor) {
+                Self::visit_for_cycle(neighbor, dependencies, visited, in_stack)?;
+            } else if in_stack.contains(neighbor) {
+                return Err(PlanError::CycleDetected {
+                    job: job_id.to_owned(),
+                    dependency: neighbor.to_owned(),
+                });
+            }
+        }
         Ok(())
     }
 
