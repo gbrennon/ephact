@@ -3,9 +3,10 @@ use std::sync::Arc;
 use ephact::{
     application::{
         dtos::responses::ShowProjectBrandingInfoResponse,
-        ports::inbound::ShowProjectBrandingInfoPort,
+        ports::{inbound::ShowProjectBrandingInfoPort, outbound::SettingsStorePort},
     },
     domain::{InterfaceMode, Settings},
+    infrastructure::TomlSettingsStore,
     presentation::{
         cli::{Cli, CliDependencies},
         components::terminal::SystemTerminal,
@@ -247,4 +248,28 @@ fn invalid_failure_log_retention_values_are_rejected() {
         );
         assert!(store.writes().is_empty());
     }
+}
+
+#[test]
+fn settings_set_persists_failure_log_retention_through_toml_store() {
+    let directory = tempfile::tempdir().expect("temporary directory");
+    let store = Arc::new(TomlSettingsStore::new(directory.path().join("config.toml")));
+    let cli = make_cli().with_settings(Settings::default(), store.clone());
+    let terminal = SystemTerminal;
+
+    cli.run_with_terminal(
+        [
+            "ephact",
+            "settings",
+            "set",
+            "failure-log-retention-hours",
+            "72",
+        ],
+        &terminal,
+    )
+    .expect("retention setting should persist through TOML store");
+
+    let persisted = store.read_settings().expect("read persisted settings");
+
+    assert_eq!(persisted.failure_log_retention_hours(), 72);
 }
