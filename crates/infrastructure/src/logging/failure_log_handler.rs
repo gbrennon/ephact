@@ -3,6 +3,7 @@ use std::{
     fs,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
+    time::{Duration, SystemTime},
 };
 
 use crate::{
@@ -145,6 +146,8 @@ impl FailureLogState {
         }
     }
 }
+/// Failed diagnostics remain available for one day before startup pruning.
+const DEFAULT_FAILURE_LOG_RETENTION: Duration = Duration::from_secs(24 * 60 * 60);
 
 /// Persists failed workflow details outside the repository being executed.
 ///
@@ -179,12 +182,14 @@ impl FailureLogHandler {
         errors: FailureLogErrorStore,
         paths: FailureLogPathStore,
     ) -> Self {
-        Self {
+        let handler = Self {
             states: Arc::new(Mutex::new(HashMap::new())),
             temp_root: temp_root.into(),
             errors,
             paths,
-        }
+        };
+        handler.prune_expired_logs(SystemTime::now(), DEFAULT_FAILURE_LOG_RETENTION);
+        handler
     }
 
     /// Returns the shared error status store used by this handler.
@@ -195,6 +200,70 @@ impl FailureLogHandler {
     /// Returns the shared path status store used by this handler.
     pub fn path_store(&self) -> FailureLogPathStore {
         self.paths.clone()
+    }
+
+    fn prune_expired_logs(&self, now: SystemTime, retention: Duration) {
+        let root = self.temp_root.join("ephact");
+        let Ok(repositories) = fs::read_dir(root) else {
+            return;
+        };
+        for repository in repositories.flatten() {
+            self.prune_repository_logs(repository, now, retention);
+        }
+    }
+
+    fn prune_repository_logs(
+        &self,
+        repository: fs::DirEntry,
+        now: SystemTime,
+        retention: Duration,
+    ) {
+        let Ok(repository_type) = repository.file_type() else {
+            return;
+        };
+        if !repository_type.is_dir() {
+            return;
+        }
+        let Ok(logs) = fs::read_dir(repository.path()) else {
+            return;
+        };
+        for log in logs.flatten() {
+            self.prune_log(log, now, retention);
+        }
+    }
+
+    fn prune_log(&self, log: fs::DirEntry, now: SystemTime, retention: Duration) {
+        if !Self::is_expired_log(&log, now, retention) {
+            return;
+        }
+        let path = log.path();
+        if let Err(error) = fs::remove_file(&path) {
+            self.errors.record(format!(
+                "failed to remove expired failure log '{}': {error}",
+                path.display()
+            ));
+        }
+    }
+
+    fn is_expired_log(log: &fs::DirEntry, now: SystemTime, retention: Duration) -> bool {
+        let Ok(file_type) = log.file_type() else {
+            return false;
+        };
+        if !file_type.is_file()
+            || log
+                .path()
+                .extension()
+                .and_then(|extension| extension.to_str())
+                != Some("log")
+        {
+            return false;
+        }
+        let Ok(modified) = log.metadata().and_then(|metadata| metadata.modified()) else {
+            return false;
+        };
+        now.duration_since(modified)
+            .map(|age| age > retention)
+            .unwrap_or(false)
     }
 
     fn on_run_started(&self, run_id: &str, repository_path: &str) {
@@ -458,6 +527,24 @@ mod tests {
                 .unwrap()
                 .contains("workflow could not be read")
         );
+    }
+
+    #[test]
+    fn prunes_expired_logs_without_touching_other_files() {
+        let temp_root = tempfile::tempdir().unwrap();
+        let log_directory = temp_root.path().join("ephact/project");
+        fs::create_dir_all(&log_directory).unwrap();
+        let expired_log = log_directory.join("expired.log");
+        let other_file = log_directory.join("keep.txt");
+        fs::write(&expired_log, "expired").unwrap();
+        fs::write(&other_file, "keep").unwrap();
+        std::thread::sleep(Duration::from_millis(10));
+
+        let handler = FailureLogHandler::with_temp_root(temp_root.path());
+        handler.prune_expired_logs(SystemTime::now(), Duration::ZERO);
+
+        assert!(!expired_log.exists());
+        assert!(other_file.exists());
     }
 
     #[test]
