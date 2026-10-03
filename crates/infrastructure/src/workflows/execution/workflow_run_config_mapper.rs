@@ -69,24 +69,36 @@ impl WorkflowRunConfigMapper {
 
     /// Consumes the mapper and builds the domain workflow configuration.
     pub fn into_config(self) -> WorkflowRunConfig {
-        let mut config = WorkflowRunConfig::new();
+        let mut mapper = self;
+        let config = mapper.apply_named_values(WorkflowRunConfig::new());
+        let config = mapper.apply_collection_values(config);
+        mapper.apply_flags(config)
+    }
 
-        if let Some(workflow) = self.workflow {
+    fn apply_named_values(&mut self, mut config: WorkflowRunConfig) -> WorkflowRunConfig {
+        if let Some(workflow) = self.workflow.take() {
             config = config.with_workflow(WorkflowPath::new(workflow));
         }
-        if let Some(job) = self.job {
+        if let Some(job) = self.job.take() {
             config = config.with_job(JobName::new(job));
         }
-        if let Some(event) = self.event {
+        if let Some(event) = self.event.take() {
             config = config.with_event(WorkflowEvent::new(event));
         }
-        for (key, value) in self.inputs {
+        config
+    }
+
+    fn apply_collection_values(&mut self, mut config: WorkflowRunConfig) -> WorkflowRunConfig {
+        for (key, value) in std::mem::take(&mut self.inputs) {
             config = config.add_input(WorkflowInput::new(key, value));
         }
-        for (name, value) in self.secrets {
+        for (name, value) in std::mem::take(&mut self.secrets) {
             config = config.add_secret(Secret::new(name, value));
         }
+        config
+    }
 
+    fn apply_flags(&self, config: WorkflowRunConfig) -> WorkflowRunConfig {
         config
             .with_all_workflows(self.all_workflows)
             .with_allow_repo_writes(self.allow_repo_writes)

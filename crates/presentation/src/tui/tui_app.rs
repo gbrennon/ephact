@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::Frame;
@@ -135,7 +135,17 @@ impl TuiApp {
     }
 
     pub fn record_run_outcome(&mut self, outcome: RunSummaryResponse) {
-        self.screens = self.screens.record_run_outcome(outcome);
+        self.record_run_outcome_with_failure_log_path(outcome, None);
+    }
+
+    pub fn record_run_outcome_with_failure_log_path(
+        &mut self,
+        outcome: RunSummaryResponse,
+        failure_log_path: Option<PathBuf>,
+    ) {
+        self.screens = self
+            .screens
+            .record_run_outcome_with_failure_log_path(outcome, failure_log_path);
     }
 
     pub fn record_progress(&mut self, line: String) {

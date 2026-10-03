@@ -131,6 +131,31 @@ impl JobExecutionState {
         }
     }
 }
+
+struct StepExecutionContext<'a> {
+    request: &'a ExecuteJobRequest,
+    workflow: &'a crate::domain::aggregates::Workflow,
+    run: &'a crate::domain::entities::JobRun,
+    step: &'a crate::domain::entities::Step,
+    state: &'a mut JobExecutionState,
+}
+
+struct StepSummaryContext<'a> {
+    request: &'a ExecuteJobRequest,
+    step: &'a crate::domain::entities::Step,
+    state: &'a JobExecutionState,
+    step_context: crate::domain::value_objects::EvaluationContext,
+    started_at: Instant,
+}
+
+struct StepFinishedContext<'a> {
+    request: &'a ExecuteJobRequest,
+    workflow: &'a crate::domain::aggregates::Workflow,
+    run: &'a crate::domain::entities::JobRun,
+    summary: &'a StepSummaryResponse,
+    step_success: bool,
+}
+
 impl ExecuteJobService {
     pub fn new(dependencies: ExecuteJobDependencies) -> Self {
         Self {
@@ -166,7 +191,13 @@ impl ExecuteJobPort for ExecuteJobService {
                 );
                 continue;
             }
-            self.execute_step(&request, workflow, run, step, &mut state);
+            self.execute_step(StepExecutionContext {
+                request: &request,
+                workflow,
+                run,
+                step,
+                state: &mut state,
+            });
         }
         Ok(self.build_response(&request, run, state))
     }
@@ -205,35 +236,89 @@ impl ExecuteJobService {
             )));
     }
 
-    fn execute_step(
+    fn execute_step(&self, context: StepExecutionContext<'_>) {
+        let StepExecutionContext {
+            request,
+            workflow,
+            run,
+            step,
+            state,
+        } = context;
+        let step_context = self.prepare_step_context(request, step, state);
+        self.announce_step_started(request, workflow, run, step);
+        let summarized = self.summarize_step(step_context);
+        self.finish_step(
+            StepExecutionContext {
+                request,
+                workflow,
+                run,
+                step,
+                state,
+            },
+            summarized,
+        );
+    }
+
+    fn prepare_step_context<'a>(
         &self,
-        request: &ExecuteJobRequest,
-        workflow: &crate::domain::aggregates::Workflow,
-        run: &crate::domain::entities::JobRun,
-        step: &crate::domain::entities::Step,
-        state: &mut JobExecutionState,
-    ) {
+        request: &'a ExecuteJobRequest,
+        step: &'a crate::domain::entities::Step,
+        state: &'a mut JobExecutionState,
+    ) -> StepSummaryContext<'a> {
         state.step_env = self.step_path_prefixer.prefix(PrefixStepPathRequest::new(
             state.step_env.clone(),
             state.extra_path.clone(),
         ));
         let started_at = Instant::now();
-        let context = request
+        let evaluation_context = request
             .context()
             .clone()
             .with_root("steps", ContextValue::Mapping(state.step_outputs.clone()));
         let step_context = self
             .step_context_builder
             .build(BuildStepContextRequest::new(
-                context,
+                evaluation_context,
                 state.step_env.clone(),
             ));
-        self.announce_step_started(request, workflow, run, step);
-        let summarized = self.summarize_step(request, step, state, step_context, started_at);
+        StepSummaryContext {
+            request,
+            step,
+            state,
+            step_context,
+            started_at,
+        }
+    }
+
+    fn finish_step(
+        &self,
+        context: StepExecutionContext<'_>,
+        summarized: crate::dtos::responses::SummarizedStepResponse,
+    ) {
+        let StepExecutionContext {
+            request,
+            workflow,
+            run,
+            step,
+            state,
+        } = context;
         let fails_job = summarized.fails_job();
         state.job_success &= !fails_job || run.job().continues_after_failure();
-        self.announce_step_finished(request, workflow, run, summarized.summary(), !fails_job);
+        self.announce_step_finished(StepFinishedContext {
+            request,
+            workflow,
+            run,
+            summary: summarized.summary(),
+            step_success: !fails_job,
+        });
         state.steps.push(summarized.into_summary());
+        self.merge_step_exports(step, state);
+    }
+
+    fn merge_step_exports(
+        &self,
+        step: &crate::domain::entities::Step,
+        state: &mut JobExecutionState,
+    ) {
         let exports = self
             .step_exports_reader
             .read(ReadStepExportsRequest::new(), state.prepared.container());
@@ -257,36 +342,34 @@ impl ExecuteJobService {
 
     fn summarize_step(
         &self,
-        request: &ExecuteJobRequest,
-        step: &crate::domain::entities::Step,
-        state: &JobExecutionState,
-        step_context: crate::domain::value_objects::EvaluationContext,
-        started_at: Instant,
+        context: StepSummaryContext<'_>,
     ) -> crate::dtos::responses::SummarizedStepResponse {
-        if let Some(reason) =
-            step.network_policy_violation(self.network_command_classifier.as_ref())
+        if let Some(reason) = context
+            .step
+            .network_policy_violation(self.network_command_classifier.as_ref())
         {
-            return self.skipped_step(step, started_at.elapsed(), reason);
+            return self.skipped_step(context.step, context.started_at.elapsed(), reason);
         }
-        if !request.allow_network()
-            && let Some(reason) =
-                step.network_access_reason(self.network_command_classifier.as_ref())
+        if !context.request.allow_network()
+            && let Some(reason) = context
+                .step
+                .network_access_reason(self.network_command_classifier.as_ref())
         {
-            return self.skipped_step(step, started_at.elapsed(), reason);
+            return self.skipped_step(context.step, context.started_at.elapsed(), reason);
         }
         let outcome = self.command_bus.publish(
             ExecuteStepPayload::new(
-                step.clone(),
-                state.step_env.clone(),
-                step_context,
-                request.repo_path().to_path_buf(),
+                context.step.clone(),
+                context.state.step_env.clone(),
+                context.step_context,
+                context.request.repo_path().to_path_buf(),
             ),
-            state.prepared.container_handle(),
+            context.state.prepared.container_handle(),
         );
         self.step_summarizer.summarize(SummarizeStepRequest::new(
-            step,
+            context.step,
             outcome,
-            started_at.elapsed(),
+            context.started_at.elapsed(),
         ))
     }
 
@@ -341,30 +424,24 @@ impl ExecuteJobService {
             )));
     }
 
-    fn announce_step_finished(
-        &self,
-        request: &ExecuteJobRequest,
-        workflow: &crate::domain::aggregates::Workflow,
-        run: &crate::domain::entities::JobRun,
-        summary: &StepSummaryResponse,
-        step_success: bool,
-    ) {
+    fn announce_step_finished(&self, context: StepFinishedContext<'_>) {
         self.event_bus
             .publish(Event::StepFinished(StepFinishedPayload::new(
-                request.run_id().to_string(),
+                context.request.run_id().to_string(),
                 StepFinishedDetails::new(
-                    workflow
+                    context
+                        .workflow
                         .name()
-                        .or(workflow.file())
+                        .or(context.workflow.file())
                         .unwrap_or("unnamed")
                         .to_string(),
-                    run.job_id().to_string(),
-                    summary.name().to_string(),
-                    step_success,
-                    summary.exit_code(),
+                    context.run.job_id().to_string(),
+                    context.summary.name().to_string(),
+                    context.step_success,
+                    context.summary.exit_code(),
                 )
-                .with_stdout(summary.stdout().to_string())
-                .with_stderr(summary.stderr().to_string()),
+                .with_stdout(context.summary.stdout().to_string())
+                .with_stderr(context.summary.stderr().to_string()),
             )));
     }
 }

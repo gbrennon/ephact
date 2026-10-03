@@ -37,6 +37,32 @@ use crate::{
 /// summary and interprets the result for the process exit code.
 pub struct RunHandler;
 
+struct SingleWorkflowRun {
+    repository_path: PathBuf,
+    workflow: Option<String>,
+    event: Option<String>,
+    inputs: Vec<(String, String)>,
+    run_id: String,
+}
+
+impl SingleWorkflowRun {
+    fn new(
+        repository_path: PathBuf,
+        workflow: Option<String>,
+        event: Option<String>,
+        inputs: Vec<(String, String)>,
+        run_id: &str,
+    ) -> Self {
+        Self {
+            repository_path,
+            workflow,
+            event,
+            inputs,
+            run_id: run_id.to_owned(),
+        }
+    }
+}
+
 pub struct PreflightPorts<'a> {
     discover_run_inputs_port: &'a dyn RunInputsDiscovererPort,
     list_workflows_port: &'a dyn ListWorkflowsPort,
@@ -102,10 +128,31 @@ impl RunHandler {
         event: Option<String>,
         inputs: Vec<(String, String)>,
     ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
-        let repository = Self::build_repository(repository_path)?;
-        let config = Self::single_workflow_config(workflow, event, inputs);
-        let request =
-            Self::build_run_workflow_request(&config, &repository, &RunIdGenerator.generate());
+        let run_id = RunIdGenerator.generate();
+        let request = SingleWorkflowRun::new(repository_path, workflow, event, inputs, &run_id);
+        Self::execute_single_workflow(run_workflow_port, request).await
+    }
+
+    pub async fn handle_with_event_and_inputs_and_run_id(
+        run_workflow_port: &dyn RunWorkflowPort,
+        repository_path: PathBuf,
+        workflow: Option<String>,
+        event: Option<String>,
+        inputs: Vec<(String, String)>,
+    ) -> Result<(RunSummaryResponse, String), Box<dyn std::error::Error>> {
+        let run_id = RunIdGenerator.generate();
+        let request = SingleWorkflowRun::new(repository_path, workflow, event, inputs, &run_id);
+        let summary = Self::execute_single_workflow(run_workflow_port, request).await?;
+        Ok((summary, run_id))
+    }
+
+    async fn execute_single_workflow(
+        run_workflow_port: &dyn RunWorkflowPort,
+        run: SingleWorkflowRun,
+    ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
+        let repository = Self::build_repository(run.repository_path)?;
+        let config = Self::single_workflow_config(run.workflow, run.event, run.inputs);
+        let request = Self::build_run_workflow_request(&config, &repository, &run.run_id);
         Ok(run_workflow_port.execute(request).await?)
     }
 
