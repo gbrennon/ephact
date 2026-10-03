@@ -14,7 +14,7 @@ use ephact::{
     },
     domain::{
         RepoPath, Repository, RepositoryName, WorkflowRunConfig,
-        messages::events::DomainEvent,
+        messages::events::Event,
         value_objects::{WorkflowEvent, WorkflowPath},
     },
     infrastructure::workflows::execution::run_workflow_service::RunWorkflowService,
@@ -99,18 +99,18 @@ fn execute_runs_workflow_and_publishes_lifecycle_events() {
 }
 
 fn assert_run_lifecycle_events(
-    events: &[DomainEvent],
+    events: &[Event],
     run_id: &str,
     repository_path: &str,
     container_names: Vec<String>,
 ) {
     assert_eq!(events.len(), 2);
-    let DomainEvent::RunStarted(payload) = &events[0] else {
+    let Event::RunStarted(payload) = &events[0] else {
         panic!("expected RunStarted event");
     };
     assert_eq!(payload.run_id(), run_id);
     assert_eq!(payload.repository_path(), repository_path);
-    let DomainEvent::WorkflowRunCompleted(payload) = &events[1] else {
+    let Event::WorkflowRunCompleted(payload) = &events[1] else {
         panic!("expected WorkflowRunCompleted event");
     };
     assert_eq!(payload.run_id(), run_id);
@@ -140,7 +140,7 @@ fn execute_publishes_run_failed_when_workflow_read_fails() {
     assert_eq!(error.to_string(), "cannot read workflow");
     let events = event_bus.events();
     assert_eq!(events.len(), 2);
-    let DomainEvent::RunFailed(payload) = &events[1] else {
+    let Event::RunFailed(payload) = &events[1] else {
         panic!("expected RunFailed event");
     };
     assert_eq!(payload.run_id(), run_id);
@@ -169,7 +169,7 @@ fn execute_publishes_run_failed_when_event_is_missing() {
     assert_eq!(error.to_string(), "workflow event must be specified");
     let events = event_bus.events();
     assert_eq!(events.len(), 2);
-    let DomainEvent::RunFailed(payload) = &events[1] else {
+    let Event::RunFailed(payload) = &events[1] else {
         panic!("expected RunFailed event");
     };
     assert_eq!(payload.run_id(), run_id);

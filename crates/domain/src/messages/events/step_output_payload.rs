@@ -1,9 +1,9 @@
 use super::output_stream::OutputStream;
 
-/// Payload for [`DomainEvent::StepOutput`], carrying one chunk of a step's
+/// Payload for [`Event::StepOutput`], carrying one chunk of a step's
 /// output as it is produced.
 ///
-/// [`DomainEvent::StepOutput`]: super::domain_event::DomainEvent::StepOutput
+/// [`Event::StepOutput`]: crate::messages::events::Event::StepOutput
 #[derive(Debug, Clone)]
 pub struct StepOutputPayload {
     /// Name of the step that produced the output.

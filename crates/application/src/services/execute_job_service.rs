@@ -7,9 +7,9 @@ use std::{
 use crate::{
     domain::{
         messages::{
-            commands::ExecuteStepCommand,
+            commands::ExecuteStepPayload,
             events::{
-                ContainerStartedPayload, DomainEvent, StepFinishedDetails, StepFinishedPayload,
+                ContainerStartedPayload, Event, StepFinishedDetails, StepFinishedPayload,
                 StepStartedPayload,
             },
         },
@@ -45,7 +45,7 @@ use crate::{
 /// Application service coordinating the execution of one job.
 ///
 /// Builds the job environment and container through outbound ports, then
-/// publishes one [`ExecuteStepCommand`] per step: the step command handler
+/// publishes one [`ExecuteStepPayload`] per step: the step command handler
 /// runs each step, so this service never depends on the step entrypoint.
 /// Progress facts for every step are announced as domain events on the
 /// outbound [`DomainEventPublisherPort`].
@@ -199,7 +199,7 @@ impl ExecuteJobService {
 
     fn announce_container_started(&self, request: &ExecuteJobRequest, state: &JobExecutionState) {
         self.event_bus
-            .publish(DomainEvent::ContainerStarted(ContainerStartedPayload::new(
+            .publish(Event::ContainerStarted(ContainerStartedPayload::new(
                 request.run_id().to_string(),
                 state.prepared.container_name().to_string(),
             )));
@@ -274,13 +274,15 @@ impl ExecuteJobService {
         {
             return self.skipped_step(step, started_at.elapsed(), reason);
         }
-        let outcome = self.command_bus.publish(ExecuteStepCommand::new(
-            step.clone(),
-            state.step_env.clone(),
-            step_context,
+        let outcome = self.command_bus.publish(
+            ExecuteStepPayload::new(
+                step.clone(),
+                state.step_env.clone(),
+                step_context,
+                request.repo_path().to_path_buf(),
+            ),
             state.prepared.container_handle(),
-            request.repo_path().to_path_buf(),
-        ));
+        );
         self.step_summarizer.summarize(SummarizeStepRequest::new(
             step,
             outcome,
@@ -328,7 +330,7 @@ impl ExecuteJobService {
         step: &crate::domain::entities::Step,
     ) {
         self.event_bus
-            .publish(DomainEvent::StepStarted(StepStartedPayload::new(
+            .publish(Event::StepStarted(StepStartedPayload::new(
                 workflow
                     .name()
                     .or(workflow.file())
@@ -348,7 +350,7 @@ impl ExecuteJobService {
         step_success: bool,
     ) {
         self.event_bus
-            .publish(DomainEvent::StepFinished(StepFinishedPayload::new(
+            .publish(Event::StepFinished(StepFinishedPayload::new(
                 request.run_id().to_string(),
                 StepFinishedDetails::new(
                     workflow

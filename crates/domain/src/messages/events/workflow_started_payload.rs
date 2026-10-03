@@ -1,6 +1,6 @@
-/// Payload for [`DomainEvent::WorkflowStarted`].
+/// Payload for [`Event::WorkflowStarted`].
 ///
-/// [`DomainEvent::WorkflowStarted`]: super::domain_event::DomainEvent::WorkflowStarted
+/// [`Event::WorkflowStarted`]: crate::messages::events::Event::WorkflowStarted
 #[derive(Debug, Clone)]
 pub struct WorkflowStartedPayload {
     /// Name declared by the workflow being run.

@@ -8,7 +8,7 @@ use std::{
 use crate::{
     application::ports::outbound::DomainEventHandlerPort,
     domain::{
-        messages::events::{DomainEvent, StepFinishedPayload},
+        messages::events::{Event, StepFinishedPayload},
         value_objects::RepositoryName,
     },
 };
@@ -303,19 +303,19 @@ impl Default for FailureLogHandler {
 }
 
 impl DomainEventHandlerPort for FailureLogHandler {
-    fn handle(&self, event: &DomainEvent) {
+    fn handle(&self, event: &Event) {
         match event {
-            DomainEvent::RunStarted(payload) => {
+            Event::RunStarted(payload) => {
                 self.on_run_started(payload.run_id(), payload.repository_path())
             }
-            DomainEvent::StepFinished(payload) => self.on_step_finished(payload),
-            DomainEvent::RunFailed(payload) => self.on_run_failed(
+            Event::StepFinished(payload) => self.on_step_finished(payload),
+            Event::RunFailed(payload) => self.on_run_failed(
                 payload.run_id(),
                 payload.repository_path(),
                 payload.workflow_name(),
                 payload.error(),
             ),
-            DomainEvent::WorkflowRunCompleted(payload) => self.on_run_completed(
+            Event::WorkflowRunCompleted(payload) => self.on_run_completed(
                 payload.run_id(),
                 payload.repository_path(),
                 payload.success(),
@@ -395,15 +395,15 @@ mod tests {
         RunFailedPayload, RunStartedPayload, StepFinishedDetails, WorkflowRunCompletedPayload,
     };
 
-    fn started(run_id: &str, repository_path: &str) -> DomainEvent {
-        DomainEvent::RunStarted(RunStartedPayload::new(
+    fn started(run_id: &str, repository_path: &str) -> Event {
+        Event::RunStarted(RunStartedPayload::new(
             run_id.to_string(),
             repository_path.to_string(),
         ))
     }
 
-    fn finished(run_id: &str) -> DomainEvent {
-        DomainEvent::StepFinished(StepFinishedPayload::new(
+    fn finished(run_id: &str) -> Event {
+        Event::StepFinished(StepFinishedPayload::new(
             run_id.to_string(),
             StepFinishedDetails::new(
                 "Build".to_string(),
@@ -423,7 +423,7 @@ mod tests {
         let handler = FailureLogHandler::with_temp_root(temp_root.path());
         handler.handle(&started("run-1", "/repo/project"));
         handler.handle(&finished("run-1"));
-        handler.handle(&DomainEvent::WorkflowRunCompleted(
+        handler.handle(&Event::WorkflowRunCompleted(
             WorkflowRunCompletedPayload::new(
                 "run-1".to_string(),
                 "/repo/project".to_string(),
@@ -445,7 +445,7 @@ mod tests {
         let temp_root = tempfile::tempdir().unwrap();
         let handler = FailureLogHandler::with_temp_root(temp_root.path());
         handler.handle(&started("run-2", "/repo/project"));
-        handler.handle(&DomainEvent::RunFailed(RunFailedPayload::new(
+        handler.handle(&Event::RunFailed(RunFailedPayload::new(
             "run-2".to_string(),
             "/repo/project".to_string(),
             None,
@@ -466,7 +466,7 @@ mod tests {
         let handler = FailureLogHandler::with_temp_root(temp_root.path());
         handler.handle(&started("run-3", "/repo/project"));
         handler.handle(&finished("run-3"));
-        handler.handle(&DomainEvent::WorkflowRunCompleted(
+        handler.handle(&Event::WorkflowRunCompleted(
             WorkflowRunCompletedPayload::new(
                 "run-3".to_string(),
                 "/repo/project".to_string(),

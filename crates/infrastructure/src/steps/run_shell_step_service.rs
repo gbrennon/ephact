@@ -8,13 +8,13 @@ use crate::{
     },
     domain::{
         errors::StepError,
-        messages::events::{DomainEvent, OutputStream, StepOutputPayload},
+        messages::events::{Event, OutputStream, StepOutputPayload},
         value_objects::ShellCommand,
     },
 };
 
 /// Service that runs a step's shell script inside the container it was given,
-/// relaying the step's output as [`DomainEvent::StepOutput`] events while it
+/// relaying the step's output as [`Event::StepOutput`] events while it
 /// runs.
 pub struct RunShellStepService {
     event_bus: Box<dyn DomainEventPublisherPort>,
@@ -27,7 +27,7 @@ impl RunShellStepService {
 
     fn relay_output(&self, step_name: &str, stream: OutputStream, text: &str) {
         self.event_bus
-            .publish(DomainEvent::StepOutput(StepOutputPayload::new(
+            .publish(Event::StepOutput(StepOutputPayload::new(
                 step_name.to_string(),
                 stream,
                 text.to_string(),

@@ -1,6 +1,6 @@
 use crate::{
     application::ports::outbound::domain_event_handler_port::DomainEventHandlerPort,
-    domain::messages::events::DomainEvent,
+    domain::messages::events::Event,
 };
 
 /// Infrastructure event transport that fans every published event out to the
@@ -16,7 +16,7 @@ impl InMemoryEventBus {
         Self { handlers }
     }
 
-    pub fn publish(&self, event: DomainEvent) {
+    pub fn publish(&self, event: Event) {
         for handler in &self.handlers {
             handler.handle(&event);
         }

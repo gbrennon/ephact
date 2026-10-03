@@ -12,12 +12,12 @@ use crate::{
             shell_step_runner_port::ShellStepRunnerPort,
         },
     },
-    domain::{errors::StepError, messages::commands::ExecuteActionCommand},
+    domain::{errors::StepError, messages::commands::ExecuteActionPayload},
 };
 
 /// Runs one step of a composite action: shell steps go straight to the shell
 /// runner, while steps referencing another action are published as an
-/// [`ExecuteActionCommand`] so the action command handler executes them.
+/// [`ExecuteActionPayload`] so the action command handler executes them.
 pub struct RunCompositeStepService {
     shell_runner: Box<dyn ShellStepRunnerPort>,
     command_publisher: Box<dyn ActionCommandPublisherPort>,
@@ -46,14 +46,14 @@ impl RunCompositeStepPort for RunCompositeStepService {
         match request.step().uses() {
             Some(nested) => {
                 let response = self.command_publisher.publish(
-                    ExecuteActionCommand::new(
+                    ExecuteActionPayload::new(
                         nested.to_string(),
                         request.step().clone(),
                         action_request.repo_path().to_path_buf(),
                         action_env,
-                        container.clone(),
-                    )
-                    .with_context(request.context().clone()),
+                        request.context().clone(),
+                    ),
+                    container.clone(),
                 )?;
                 Ok(ExecResultResponse::new(
                     response.exit_code(),

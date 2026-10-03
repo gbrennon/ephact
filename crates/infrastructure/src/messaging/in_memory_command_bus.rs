@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use crate::{
     application::ports::outbound::{
         ActionCommandHandlerPort, JobCommandHandlerPort, StepCommandHandlerPort,
         WorkflowCommandHandlerPort, container_port::ContainerPort,
     },
     domain::messages::commands::{
-        ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
+        ExecuteActionPayload, ExecuteJobPayload, ExecuteStepPayload, ExecuteWorkflowPayload,
     },
 };
 
@@ -32,7 +34,7 @@ impl InMemoryCommandBus {
 
     pub fn handle_workflow(
         &self,
-        command: ExecuteWorkflowCommand,
+        command: ExecuteWorkflowPayload,
     ) -> Result<
         crate::application::dtos::responses::WorkflowExecutionResponse,
         crate::application::errors::ExecuteWorkflowError,
@@ -42,7 +44,7 @@ impl InMemoryCommandBus {
 
     pub fn handle_job(
         &self,
-        command: ExecuteJobCommand,
+        command: ExecuteJobPayload,
     ) -> Result<
         crate::application::dtos::responses::JobExecutionResponse,
         crate::application::errors::ExecuteJobError,
@@ -52,21 +54,23 @@ impl InMemoryCommandBus {
 
     pub fn handle_step(
         &self,
-        command: ExecuteStepCommand<dyn ContainerPort>,
+        command: ExecuteStepPayload,
+        container: Arc<dyn ContainerPort>,
     ) -> Result<
         crate::application::dtos::responses::ExecutedStepResponse,
         crate::domain::errors::StepError,
     > {
-        self.step_handler.handle(command)
+        self.step_handler.handle(command, container)
     }
 
     pub fn handle_action(
         &self,
-        command: ExecuteActionCommand<dyn ContainerPort>,
+        command: ExecuteActionPayload,
+        container: Arc<dyn ContainerPort>,
     ) -> Result<
         crate::application::dtos::responses::ExecuteActionResponse,
         crate::domain::errors::StepError,
     > {
-        self.action_handler.handle(command)
+        self.action_handler.handle(command, container)
     }
 }
