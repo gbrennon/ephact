@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     fs,
+    io::Read,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
     time::{Duration, SystemTime},
@@ -15,6 +16,7 @@ use crate::{
 };
 
 const DEFAULT_FAILURE_LOG_RETENTION_HOURS: u64 = 24;
+const FAILURE_LOG_MARKER: &str = "ephact-failure-log-v1\n";
 
 /// Shared runtime configuration for failure-log retention.
 #[derive(Clone)]
@@ -314,12 +316,23 @@ impl FailureLogHandler {
         if !file_name.starts_with("failure-") || !file_name.ends_with(".log") {
             return false;
         }
+        if !Self::has_ownership_marker(&path) {
+            return false;
+        }
         let Ok(modified) = log.metadata().and_then(|metadata| metadata.modified()) else {
             return false;
         };
         now.duration_since(modified)
             .map(|age| age > retention)
             .unwrap_or(false)
+    }
+
+    fn has_ownership_marker(path: &Path) -> bool {
+        let Ok(mut file) = fs::File::open(path) else {
+            return false;
+        };
+        let mut marker = [0; FAILURE_LOG_MARKER.len()];
+        file.read_exact(&mut marker).is_ok() && marker.as_slice() == FAILURE_LOG_MARKER.as_bytes()
     }
 
     fn on_run_started(&self, run_id: &str, repository_path: &str) {
@@ -489,7 +502,10 @@ fn safe_filename(run_id: &str) -> String {
 }
 
 fn render_log(run_id: &str, state: &FailureLogState) -> String {
-    let mut output = format!("Repository: {}\nRun ID: {run_id}\n", state.repository_path);
+    let mut output = format!(
+        "{FAILURE_LOG_MARKER}Repository: {}\nRun ID: {run_id}\n",
+        state.repository_path
+    );
     for step in &state.failed_steps {
         output.push_str("\nFailed step\n");
         output.push_str(&format!("Workflow: {}\n", step.workflow_name));
@@ -578,6 +594,57 @@ mod tests {
     }
 
     #[test]
+    fn generated_expired_log_is_pruned() {
+        let temp_root = tempfile::tempdir().unwrap();
+        let handler = FailureLogHandler::with_temp_root(temp_root.path());
+        handler.handle(&started("run-generated", "/repo/project"));
+        handler.handle(&finished("run-generated"));
+        handler.handle(&Event::WorkflowRunCompleted(
+            WorkflowRunCompletedPayload::new(
+                "run-generated".to_string(),
+                "/repo/project".to_string(),
+                Vec::new(),
+                false,
+            ),
+        ));
+
+        let generated_log = handler.path_store().take("run-generated").unwrap();
+        assert!(
+            fs::read_to_string(&generated_log)
+                .unwrap()
+                .starts_with(FAILURE_LOG_MARKER)
+        );
+        let old = SystemTime::now() - Duration::from_secs(25 * 60 * 60);
+        fs::File::open(&generated_log)
+            .unwrap()
+            .set_modified(old)
+            .unwrap();
+
+        handler.handle(&started("trigger-run", "/repo/project"));
+
+        assert!(!generated_log.exists());
+    }
+
+    #[test]
+    fn expired_unmarked_failure_log_is_not_pruned() {
+        let temp_root = tempfile::tempdir().unwrap();
+        let log_directory = temp_root.path().join("ephact/project");
+        fs::create_dir_all(&log_directory).unwrap();
+        let arbitrary_log = log_directory.join("failure-user-created.log");
+        fs::write(&arbitrary_log, "user-created").unwrap();
+        let old = SystemTime::now() - Duration::from_secs(25 * 60 * 60);
+        fs::File::open(&arbitrary_log)
+            .unwrap()
+            .set_modified(old)
+            .unwrap();
+
+        let handler = FailureLogHandler::with_temp_root(temp_root.path());
+        handler.handle(&started("trigger-run", "/repo/project"));
+
+        assert!(arbitrary_log.exists());
+    }
+
+    #[test]
     fn unrelated_expired_log_is_not_pruned() {
         let temp_root = tempfile::tempdir().unwrap();
         let log_directory = temp_root.path().join("ephact/project");
@@ -585,7 +652,7 @@ mod tests {
         let unrelated_log = log_directory.join("expired.log");
         let owned_log = log_directory.join("failure-run.log");
         fs::write(&unrelated_log, "unrelated").unwrap();
-        fs::write(&owned_log, "owned").unwrap();
+        fs::write(&owned_log, FAILURE_LOG_MARKER).unwrap();
         let old = SystemTime::now() - Duration::from_secs(25 * 60 * 60);
         fs::File::open(&unrelated_log)
             .unwrap()
@@ -609,7 +676,7 @@ mod tests {
         let log_directory = temp_root.path().join("ephact/project");
         fs::create_dir_all(&log_directory).unwrap();
         let owned_log = log_directory.join("failure-run.log");
-        fs::write(&owned_log, "owned").unwrap();
+        fs::write(&owned_log, FAILURE_LOG_MARKER).unwrap();
         let old = SystemTime::now() - Duration::from_secs(2 * 60 * 60);
         fs::File::open(&owned_log)
             .unwrap()
