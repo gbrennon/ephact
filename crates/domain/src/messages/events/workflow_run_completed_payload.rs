@@ -1,6 +1,6 @@
 /// Payload for [`Event::WorkflowRunCompleted`].
 ///
-/// [`Event::WorkflowRunCompleted`]: crate::messages::commands::Event::WorkflowRunCompleted
+/// [`Event::WorkflowRunCompleted`]: crate::messages::events::Event::WorkflowRunCompleted
 #[derive(Debug, Clone)]
 pub struct WorkflowRunCompletedPayload {
     run_id: String,

@@ -16,8 +16,8 @@ use crate::{
         },
     },
     domain::messages::{
-        commands::{Event, ExecuteWorkflowCommand},
-        events::{RunFailedPayload, RunStartedPayload, WorkflowRunCompletedPayload},
+        commands::ExecuteWorkflowPayload,
+        events::{Event, RunFailedPayload, RunStartedPayload, WorkflowRunCompletedPayload},
     },
     repositories::RepositoryResolver,
     workflows::execution::{
@@ -32,7 +32,7 @@ pub const ALL_WORKFLOWS_SUMMARY_NAME: &str = "All Workflows";
 /// Application service running every workflow found in the repository.
 ///
 /// Reads all workflow sources through an outbound port and publishes one
-/// [`ExecuteWorkflowCommand`] per workflow. When every workflow finished, the
+/// [`ExecuteWorkflowPayload`] per workflow. When every workflow finished, the
 /// completion is announced as an [`DomainEvent::WorkflowRunCompleted`] event so
 /// infrastructure handlers can clean up.
 pub struct RunAllWorkflowsService {
@@ -138,7 +138,7 @@ impl RunAllWorkflowsService {
         self.filter_workflow_sources(workflow_contents, event)
             .into_iter()
             .map(|workflow| {
-                let command = ExecuteWorkflowCommand::new(
+                let command = ExecuteWorkflowPayload::new(
                     workflow.content().to_owned(),
                     config.clone(),
                     repository.clone(),

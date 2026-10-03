@@ -2,7 +2,7 @@ use super::StepFinishedDetails;
 
 /// Payload for [`Event::StepFinished`].
 ///
-/// [`Event::StepFinished`]: crate::messages::commands::Event::StepFinished
+/// [`Event::StepFinished`]: crate::messages::events::Event::StepFinished
 #[derive(Debug, Clone)]
 pub struct StepFinishedPayload {
     run_id: String,

@@ -3,7 +3,7 @@ use super::output_stream::OutputStream;
 /// Payload for [`Event::StepOutput`], carrying one chunk of a step's
 /// output as it is produced.
 ///
-/// [`Event::StepOutput`]: crate::messages::commands::Event::StepOutput
+/// [`Event::StepOutput`]: crate::messages::events::Event::StepOutput
 #[derive(Debug, Clone)]
 pub struct StepOutputPayload {
     /// Name of the step that produced the output.

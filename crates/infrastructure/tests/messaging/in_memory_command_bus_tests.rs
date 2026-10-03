@@ -27,7 +27,7 @@ use ephact::{
         entities::Job,
         errors::StepError,
         messages::commands::{
-            ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
+            ExecuteActionPayload, ExecuteJobPayload, ExecuteStepPayload, ExecuteWorkflowPayload,
         },
         value_objects::{EvaluationContext, WorkflowTrigger},
     },
@@ -70,6 +70,10 @@ fn stub_handlers() -> (
         StepCommandHandler::new(Box::new(|_| Box::new(StubStepPort))),
         ActionCommandHandler::new(Box::new(|_| Box::new(StubActionPort))),
     )
+}
+
+fn stub_container() -> Arc<dyn ContainerPort> {
+    Arc::new(StubContainer)
 }
 
 struct StubWorkflowPort;
@@ -148,14 +152,14 @@ impl ExecuteActionPort for FailingActionPort {
     }
 }
 
-fn sample_workflow_command() -> ExecuteWorkflowCommand {
+fn sample_workflow_command() -> ExecuteWorkflowPayload {
     let tmp = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
     let repository = Repository::new(
         RepoPath::new(tmp.path().to_path_buf()).unwrap(),
         RepositoryName::new("test-repo".into()).unwrap(),
     );
-    ExecuteWorkflowCommand::new(
+    ExecuteWorkflowPayload::new(
         "name: CI\non: [push]\n".to_string(),
         WorkflowRunConfig::new(),
         repository,
@@ -164,19 +168,17 @@ fn sample_workflow_command() -> ExecuteWorkflowCommand {
     )
 }
 
-fn checkout_action_command() -> ExecuteActionCommand<dyn ContainerPort> {
+fn checkout_action_payload() -> ExecuteActionPayload {
     let step = serde_yaml::from_str::<StepYaml>("uses: actions/checkout@v4")
         .unwrap()
         .into_domain();
-    let container: Arc<dyn ContainerPort> = Arc::new(StubContainer);
-    ExecuteActionCommand::new(
+    ExecuteActionPayload::new(
         "actions/checkout@v4".into(),
         step,
         PathBuf::from("/repo"),
         HashMap::new(),
-        container,
+        EvaluationContext::new(),
     )
-    .with_context(EvaluationContext::new())
 }
 
 #[test]
@@ -195,8 +197,12 @@ fn publisher_routes_action_command_to_action_handler() {
     let (workflow, job, step, action) = stub_handlers();
     let publisher = bound_publisher(workflow, job, step, action);
 
-    let result =
-        ActionCommandPublisherPort::publish(&publisher, checkout_action_command()).unwrap();
+    let result = ActionCommandPublisherPort::publish(
+        &publisher,
+        checkout_action_payload(),
+        stub_container(),
+    )
+    .unwrap();
 
     assert_eq!(result.stdout(), "action out");
     assert_eq!(result.exit_code(), 0);
@@ -205,20 +211,18 @@ fn publisher_routes_action_command_to_action_handler() {
 #[test]
 fn action_handler_preserves_failed_action_output() {
     let handler = ActionCommandHandler::new(Box::new(|_| Box::new(FailingActionPort)));
-    let container: Arc<dyn ContainerPort> = Arc::new(StubContainer);
     let step = serde_yaml::from_str::<StepYaml>("uses: actions/checkout@v4")
         .unwrap()
         .into_domain();
-    let command = ExecuteActionCommand::new(
+    let command = ExecuteActionPayload::new(
         "actions/checkout@v4".into(),
         step,
         PathBuf::from("/repo"),
         HashMap::new(),
-        container,
-    )
-    .with_context(EvaluationContext::new());
+        EvaluationContext::new(),
+    );
 
-    let error = handler.handle(command).unwrap_err();
+    let error = handler.handle(command, stub_container()).unwrap_err();
 
     assert_eq!(error.message(), "action failed");
     assert_eq!(error.stdout(), "action output");
@@ -282,7 +286,7 @@ fn publisher_routes_job_command_to_job_handler_with_command_payload() {
         ActionCommandHandler::new(Box::new(|_| Box::new(StubActionPort))),
     );
     let repo_path = PathBuf::from("/repo/job");
-    let command = ExecuteJobCommand::new(
+    let command = ExecuteJobPayload::new(
         Job::default(),
         "build-job".to_string(),
         workflow_named("Build"),
@@ -309,16 +313,14 @@ fn publisher_routes_step_command_to_step_handler_with_command_payload() {
     let step = serde_yaml::from_str::<StepYaml>("run: echo hello")
         .unwrap()
         .into_domain();
-    let container: Arc<dyn ContainerPort> = Arc::new(StubContainer);
-    let command = ExecuteStepCommand::new(
+    let command = ExecuteStepPayload::new(
         step,
         HashMap::from([("MARKER".to_string(), "step-marker".to_string())]),
         EvaluationContext::new(),
-        container,
         PathBuf::from("/repo/step"),
     );
 
-    let result = StepCommandPublisherPort::publish(&publisher, command).unwrap();
+    let result = StepCommandPublisherPort::publish(&publisher, command, stub_container()).unwrap();
     assert_eq!(result.step().run(), Some("echo hello"));
     assert_eq!(result.response().stdout(), "step-marker");
     assert_eq!(result.response().stderr(), "/repo/step");

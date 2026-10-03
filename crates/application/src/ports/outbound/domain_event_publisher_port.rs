@@ -1,4 +1,4 @@
-use crate::domain::messages::commands::Event;
+use crate::domain::messages::events::Event;
 
 /// Publishes domain events to whichever infrastructure transport is bound.
 ///

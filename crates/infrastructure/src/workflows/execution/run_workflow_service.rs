@@ -18,8 +18,8 @@ use crate::{
     domain::{
         Repository, Validatable,
         messages::{
-            commands::{Event, ExecuteWorkflowCommand},
-            events::{RunFailedPayload, RunStartedPayload, WorkflowRunCompletedPayload},
+            commands::ExecuteWorkflowPayload,
+            events::{Event, RunFailedPayload, RunStartedPayload, WorkflowRunCompletedPayload},
         },
         value_objects::workflow_run_config::WorkflowRunConfig,
     },
@@ -182,7 +182,7 @@ impl RunWorkflowService {
         context: &RunExecutionContext,
         workflow_source: crate::application::dtos::responses::WorkflowSourceFileResponse,
     ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
-        let command = ExecuteWorkflowCommand::new(
+        let command = ExecuteWorkflowPayload::new(
             workflow_source.content().to_owned(),
             context.config.clone(),
             context.repository.clone(),

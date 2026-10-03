@@ -5,7 +5,7 @@ use ephact::{
         dtos::{requests::ExecuteWorkflowRequest, responses::WorkflowExecutionResponse},
         ports::inbound::execute_workflow_port::ExecuteWorkflowPort,
     },
-    domain::{messages::commands::Event, value_objects::EvaluationContext},
+    domain::{messages::events::Event, value_objects::EvaluationContext},
     infrastructure::workflows::execution::execute_workflow_service::ExecuteWorkflowService,
 };
 

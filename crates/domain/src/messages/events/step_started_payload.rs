@@ -1,6 +1,6 @@
 /// Payload for [`Event::StepStarted`].
 ///
-/// [`Event::StepStarted`]: crate::messages::commands::Event::StepStarted
+/// [`Event::StepStarted`]: crate::messages::events::Event::StepStarted
 #[derive(Debug, Clone)]
 pub struct StepStartedPayload {
     /// Name of the workflow the step belongs to.

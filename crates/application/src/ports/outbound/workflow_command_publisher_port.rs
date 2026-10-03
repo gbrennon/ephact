@@ -1,11 +1,11 @@
 use crate::{
-    domain::messages::commands::ExecuteWorkflowCommand, dtos::responses::WorkflowExecutionResponse,
+    domain::messages::commands::ExecuteWorkflowPayload, dtos::responses::WorkflowExecutionResponse,
     errors::ExecuteWorkflowError,
 };
 
 pub trait WorkflowCommandPublisherPort: Send + Sync {
     fn publish(
         &self,
-        command: ExecuteWorkflowCommand,
+        command: ExecuteWorkflowPayload,
     ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError>;
 }

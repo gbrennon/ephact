@@ -14,7 +14,7 @@ use ephact::{
     },
     domain::{
         RepoPath, Repository, RepositoryName, WorkflowRunConfig,
-        messages::commands::Event,
+        messages::events::Event,
         value_objects::{WorkflowEvent, WorkflowPath},
     },
     infrastructure::workflows::execution::run_workflow_service::RunWorkflowService,

@@ -20,7 +20,7 @@ use ephact::{
         entities::Step,
         errors::StepError,
         messages::commands::{
-            ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
+            ExecuteActionPayload, ExecuteJobPayload, ExecuteStepPayload, ExecuteWorkflowPayload,
         },
         value_objects::EvaluationContext,
     },
@@ -119,8 +119,8 @@ impl DispatchedActionSnapshot {
 /// what the next service does. Shares its recordings across clones.
 #[derive(Clone, Default)]
 pub struct FakeCommandBus {
-    pub dispatched_workflows: Arc<Mutex<Vec<ExecuteWorkflowCommand>>>,
-    pub dispatched_jobs: Arc<Mutex<Vec<ExecuteJobCommand>>>,
+    pub dispatched_workflows: Arc<Mutex<Vec<ExecuteWorkflowPayload>>>,
+    pub dispatched_jobs: Arc<Mutex<Vec<ExecuteJobPayload>>>,
     pub dispatched_steps: Arc<Mutex<Vec<DispatchedStepSnapshot>>>,
     pub dispatched_actions: Arc<Mutex<Vec<DispatchedActionSnapshot>>>,
     workflow_result: Option<WorkflowExecutionResponse>,
@@ -199,7 +199,7 @@ impl FakeCommandBus {
 impl WorkflowCommandPublisherPort for FakeCommandBus {
     fn publish(
         &self,
-        command: ExecuteWorkflowCommand,
+        command: ExecuteWorkflowPayload,
     ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
         self.dispatched_workflows.lock().push(command);
         Ok(self.workflow_result.clone().unwrap_or_else(|| {
@@ -214,7 +214,7 @@ impl WorkflowCommandPublisherPort for FakeCommandBus {
 }
 
 impl JobCommandPublisherPort for FakeCommandBus {
-    fn publish(&self, command: ExecuteJobCommand) -> Result<JobExecutionResponse, ExecuteJobError> {
+    fn publish(&self, command: ExecuteJobPayload) -> Result<JobExecutionResponse, ExecuteJobError> {
         let job_id = command.job_id().to_owned();
         let name = command.job().name().map(str::to_owned);
         self.dispatched_jobs.lock().push(command);
@@ -236,9 +236,10 @@ impl JobCommandPublisherPort for FakeCommandBus {
 impl StepCommandPublisherPort for FakeCommandBus {
     fn publish(
         &self,
-        command: ExecuteStepCommand<dyn ContainerPort>,
+        command: ExecuteStepPayload,
+        _container: Arc<dyn ContainerPort>,
     ) -> Result<ExecutedStepResponse, StepError> {
-        let (step, env, context, _container, repo_path) = command.into_parts();
+        let (step, env, context, repo_path) = command.into_parts();
         self.dispatched_steps
             .lock()
             .push(DispatchedStepSnapshot::new(
@@ -264,9 +265,10 @@ impl StepCommandPublisherPort for FakeCommandBus {
 impl ActionCommandPublisherPort for FakeCommandBus {
     fn publish(
         &self,
-        command: ExecuteActionCommand<dyn ContainerPort>,
+        command: ExecuteActionPayload,
+        _container: Arc<dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {
-        let (action_ref, step, repo_path, env, context, _container) = command.into_parts();
+        let (action_ref, step, repo_path, env, context) = command.into_parts();
         self.dispatched_actions
             .lock()
             .push(DispatchedActionSnapshot::new(

@@ -1,4 +1,4 @@
-use crate::domain::messages::commands::Event;
+use crate::domain::messages::events::Event;
 
 /// Handles a domain event delivered by the bound infrastructure transport.
 ///

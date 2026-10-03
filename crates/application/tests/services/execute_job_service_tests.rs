@@ -470,7 +470,7 @@ fn execute_announces_the_same_step_label_as_the_summary() {
     let payload = events
         .iter()
         .find_map(|event| match event {
-            ephact::domain::messages::commands::Event::StepStarted(payload) => Some(payload),
+            ephact::domain::messages::events::Event::StepStarted(payload) => Some(payload),
             _ => None,
         })
         .expect("a step start should be announced");
@@ -511,12 +511,12 @@ fn execute_reports_the_source_filename_in_step_progress_events() {
 
     let events = event_bus.events();
     let started = events.iter().find_map(|event| match event {
-        ephact::domain::messages::commands::Event::StepStarted(payload) => Some(payload),
+        ephact::domain::messages::events::Event::StepStarted(payload) => Some(payload),
         _ => None,
     });
     assert_eq!(started.unwrap().workflow_name(), "ci.yml");
     let finished = events.iter().find_map(|event| match event {
-        ephact::domain::messages::commands::Event::StepFinished(payload) => Some(payload),
+        ephact::domain::messages::events::Event::StepFinished(payload) => Some(payload),
         _ => None,
     });
     assert_eq!(finished.unwrap().workflow_name(), "ci.yml");
@@ -549,7 +549,7 @@ fn execute_announces_the_prepared_container_as_started_for_the_run() {
 
     let events = event_bus.events();
     let started = events.iter().find_map(|event| match event {
-        ephact::domain::messages::commands::Event::ContainerStarted(payload) => Some(payload),
+        ephact::domain::messages::events::Event::ContainerStarted(payload) => Some(payload),
         _ => None,
     });
 

@@ -8,7 +8,7 @@ use std::{
 use crate::{
     application::ports::outbound::DomainEventHandlerPort,
     domain::{
-        messages::{commands::Event, events::StepFinishedPayload},
+        messages::events::{Event, StepFinishedPayload},
         value_objects::RepositoryName,
     },
 };

@@ -1,16 +1,16 @@
 use crate::messages::{
     Message,
     commands::{
-        ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
+        ExecuteActionPayload, ExecuteJobPayload, ExecuteStepPayload, ExecuteWorkflowPayload,
     },
 };
 
 #[derive(Debug, Clone)]
-pub enum Command<C: ?Sized + Send + Sync> {
-    ExecuteAction(Box<ExecuteActionCommand<C>>),
-    ExecuteJob(Box<ExecuteJobCommand>),
-    ExecuteStep(Box<ExecuteStepCommand<C>>),
-    ExecuteWorkflow(Box<ExecuteWorkflowCommand>),
+pub enum Command {
+    ExecuteAction(Box<ExecuteActionPayload>),
+    ExecuteJob(Box<ExecuteJobPayload>),
+    ExecuteStep(Box<ExecuteStepPayload>),
+    ExecuteWorkflow(Box<ExecuteWorkflowPayload>),
 }
 
-impl<C: ?Sized + Send + Sync> Message for Command<C> {}
+impl Message for Command {}

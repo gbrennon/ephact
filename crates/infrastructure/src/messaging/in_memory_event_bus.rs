@@ -1,6 +1,6 @@
 use crate::{
     application::ports::outbound::domain_event_handler_port::DomainEventHandlerPort,
-    domain::messages::commands::Event,
+    domain::messages::events::Event,
 };
 
 /// Infrastructure event transport that fans every published event out to the

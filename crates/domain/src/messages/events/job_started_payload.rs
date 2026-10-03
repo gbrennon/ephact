@@ -1,6 +1,6 @@
 /// Payload for [`Event::JobStarted`].
 ///
-/// [`Event::JobStarted`]: crate::messages::commands::Event::JobStarted
+/// [`Event::JobStarted`]: crate::messages::events::Event::JobStarted
 #[derive(Debug, Clone)]
 pub struct JobStartedPayload {
     /// Name of the workflow the job belongs to.

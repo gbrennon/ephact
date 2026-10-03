@@ -15,7 +15,7 @@ use crate::{
     domain::{
         errors::StepError,
         messages::commands::{
-            ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
+            ExecuteActionPayload, ExecuteJobPayload, ExecuteStepPayload, ExecuteWorkflowPayload,
         },
     },
     messaging::deferred_command_bus::DeferredCommandBus,
@@ -35,14 +35,14 @@ impl CommandPublisherAdapter {
 impl WorkflowCommandPublisherPort for CommandPublisherAdapter {
     fn publish(
         &self,
-        command: ExecuteWorkflowCommand,
+        command: ExecuteWorkflowPayload,
     ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
         self.inner.route_workflow(command)
     }
 }
 
 impl JobCommandPublisherPort for CommandPublisherAdapter {
-    fn publish(&self, command: ExecuteJobCommand) -> Result<JobExecutionResponse, ExecuteJobError> {
+    fn publish(&self, command: ExecuteJobPayload) -> Result<JobExecutionResponse, ExecuteJobError> {
         self.inner.route_job(command)
     }
 }
@@ -50,17 +50,19 @@ impl JobCommandPublisherPort for CommandPublisherAdapter {
 impl StepCommandPublisherPort for CommandPublisherAdapter {
     fn publish(
         &self,
-        command: ExecuteStepCommand<dyn ContainerPort>,
+        command: ExecuteStepPayload,
+        container: Arc<dyn ContainerPort>,
     ) -> Result<ExecutedStepResponse, StepError> {
-        self.inner.route_step(command)
+        self.inner.route_step(command, container)
     }
 }
 
 impl ActionCommandPublisherPort for CommandPublisherAdapter {
     fn publish(
         &self,
-        command: ExecuteActionCommand<dyn ContainerPort>,
+        command: ExecuteActionPayload,
+        container: Arc<dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {
-        self.inner.route_action(command)
+        self.inner.route_action(command, container)
     }
 }

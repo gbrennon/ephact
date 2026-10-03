@@ -11,7 +11,7 @@ use crate::{
         },
     },
     domain::{
-        messages::commands::ExecuteWorkflowCommand,
+        messages::commands::ExecuteWorkflowPayload,
         value_objects::{ContextValue, EvaluationContext},
     },
 };
@@ -25,7 +25,7 @@ impl WorkflowCommandHandler {
         Self { executor }
     }
 
-    fn build_context(cmd: &ExecuteWorkflowCommand) -> EvaluationContext {
+    fn build_context(cmd: &ExecuteWorkflowPayload) -> EvaluationContext {
         let secrets = ContextValue::mapping(cmd.config().secrets().iter().map(|secret| {
             (
                 secret.name().to_string(),
@@ -67,7 +67,7 @@ impl WorkflowCommandHandler {
     }
     pub fn handle(
         &self,
-        cmd: ExecuteWorkflowCommand,
+        cmd: ExecuteWorkflowPayload,
     ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
         let context = Self::build_context(&cmd);
         let req = ExecuteWorkflowRequest::new(
@@ -89,7 +89,7 @@ impl WorkflowCommandHandler {
 impl WorkflowCommandHandlerPort for WorkflowCommandHandler {
     fn handle(
         &self,
-        command: ExecuteWorkflowCommand,
+        command: ExecuteWorkflowPayload,
     ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
         WorkflowCommandHandler::handle(self, command)
     }

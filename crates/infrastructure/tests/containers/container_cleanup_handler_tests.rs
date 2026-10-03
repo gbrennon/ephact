@@ -4,9 +4,8 @@ use ephact::{
     application::ports::outbound::{ContainerRuntimePort, DomainEventHandlerPort},
     domain::{
         errors::ContainerError,
-        messages::{
-            commands::Event,
-            events::{ContainerStartedPayload, RunFailedPayload, WorkflowRunCompletedPayload},
+        messages::events::{
+            ContainerStartedPayload, Event, RunFailedPayload, WorkflowRunCompletedPayload,
         },
     },
     infrastructure::containers::container_cleanup_handler::ContainerCleanupHandler,

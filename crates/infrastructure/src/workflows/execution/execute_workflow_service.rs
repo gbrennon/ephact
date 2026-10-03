@@ -21,8 +21,8 @@ use crate::{
     domain::{
         entities::JobRun,
         messages::{
-            commands::{Event, ExecuteJobCommand},
-            events::{JobFinishedPayload, JobStartedPayload, WorkflowStartedPayload},
+            commands::ExecuteJobPayload,
+            events::{Event, JobFinishedPayload, JobStartedPayload, WorkflowStartedPayload},
         },
         value_objects::EvaluationContext,
     },
@@ -31,7 +31,7 @@ use crate::{
 /// Application service coordinating the execution of a single workflow.
 ///
 /// Loads the workflow definition through an outbound port, plans its job
-/// stages, and publishes one [`ExecuteJobCommand`] per planned run. The job
+/// stages, and publishes one [`ExecuteJobPayload`] per planned run. The job
 /// command handler is what turns each command into an execution, so this
 /// service never depends on the job entrypoint itself. Progress facts are
 /// announced as domain events on the outbound [`DomainEventPublisherPort`].
@@ -210,7 +210,7 @@ impl ExecuteWorkflowService {
         let execution = self
             .command_publisher
             .publish(
-                ExecuteJobCommand::new(
+                ExecuteJobPayload::new(
                     input.run.job().clone(),
                     input.run.job_id().to_string(),
                     input.workflow.clone(),

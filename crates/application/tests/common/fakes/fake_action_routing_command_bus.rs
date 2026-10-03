@@ -7,7 +7,7 @@ use ephact::{
         },
         ports::outbound::{ActionCommandPublisherPort, ContainerPort, StepTextCodecPort},
     },
-    domain::{errors::StepError, messages::commands::ExecuteActionCommand},
+    domain::{errors::StepError, messages::commands::ExecuteActionPayload},
     infrastructure::{actions::ExecuteActionFactory, steps::JsonStepTextCodec},
 };
 
@@ -34,13 +34,14 @@ impl FakeActionRoutingCommandBus {
 impl ActionCommandPublisherPort for FakeActionRoutingCommandBus {
     fn publish(
         &self,
-        command: ExecuteActionCommand<dyn ContainerPort>,
+        command: ExecuteActionPayload,
+        container: Arc<dyn ContainerPort>,
     ) -> Result<ephact::application::dtos::responses::ExecuteActionResponse, StepError> {
         let factory = self
             .executor_factory
             .get()
             .ok_or_else(|| StepError::new("no action executor bound"))?;
-        let (action_ref, step, repo_path, env, context, container) = command.into_parts();
+        let (action_ref, step, repo_path, env, context) = command.into_parts();
         let executor = factory(container);
         let encoded_step = JsonStepTextCodec.encode(&step)?;
         executor

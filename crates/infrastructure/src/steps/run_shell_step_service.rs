@@ -8,10 +8,7 @@ use crate::{
     },
     domain::{
         errors::StepError,
-        messages::{
-            commands::Event,
-            events::{OutputStream, StepOutputPayload},
-        },
+        messages::events::{Event, OutputStream, StepOutputPayload},
         value_objects::ShellCommand,
     },
 };

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ephact::{
     application::ports::outbound::domain_event_publisher_port::DomainEventPublisherPort,
-    domain::messages::commands::Event,
+    domain::messages::events::Event,
 };
 use parking_lot::Mutex;
 

@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     application::ports::outbound::{ContainerRuntimePort, DomainEventHandlerPort},
-    domain::messages::commands::Event,
+    domain::messages::events::Event,
 };
 
 /// Removes a run's containers through the container runtime when the run ends.

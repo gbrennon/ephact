@@ -13,6 +13,9 @@ pub mod step_started_payload;
 pub mod workflow_run_completed_payload;
 pub mod workflow_started_payload;
 
+pub mod event;
+pub use event::Event;
+
 pub use self::{
     container_started_payload::ContainerStartedPayload, job_finished_payload::JobFinishedPayload,
     job_started_payload::JobStartedPayload, output_stream::OutputStream,

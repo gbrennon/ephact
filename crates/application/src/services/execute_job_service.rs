@@ -7,9 +7,9 @@ use std::{
 use crate::{
     domain::{
         messages::{
-            commands::{Event, ExecuteStepCommand},
+            commands::ExecuteStepPayload,
             events::{
-                ContainerStartedPayload, StepFinishedDetails, StepFinishedPayload,
+                ContainerStartedPayload, Event, StepFinishedDetails, StepFinishedPayload,
                 StepStartedPayload,
             },
         },
@@ -45,7 +45,7 @@ use crate::{
 /// Application service coordinating the execution of one job.
 ///
 /// Builds the job environment and container through outbound ports, then
-/// publishes one [`ExecuteStepCommand`] per step: the step command handler
+/// publishes one [`ExecuteStepPayload`] per step: the step command handler
 /// runs each step, so this service never depends on the step entrypoint.
 /// Progress facts for every step are announced as domain events on the
 /// outbound [`DomainEventPublisherPort`].
@@ -274,13 +274,15 @@ impl ExecuteJobService {
         {
             return self.skipped_step(step, started_at.elapsed(), reason);
         }
-        let outcome = self.command_bus.publish(ExecuteStepCommand::new(
-            step.clone(),
-            state.step_env.clone(),
-            step_context,
+        let outcome = self.command_bus.publish(
+            ExecuteStepPayload::new(
+                step.clone(),
+                state.step_env.clone(),
+                step_context,
+                request.repo_path().to_path_buf(),
+            ),
             state.prepared.container_handle(),
-            request.repo_path().to_path_buf(),
-        ));
+        );
         self.step_summarizer.summarize(SummarizeStepRequest::new(
             step,
             outcome,

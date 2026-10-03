@@ -10,10 +10,7 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::{
     application::ports::outbound::DomainEventHandlerPort,
-    domain::messages::{
-        commands::Event,
-        events::{JobStartedPayload, StepFinishedPayload, StepOutputPayload},
-    },
+    domain::messages::events::{Event, JobStartedPayload, StepFinishedPayload, StepOutputPayload},
 };
 /// Presentation handler that renders workflow run progress to the terminal.
 ///
