@@ -286,8 +286,13 @@ impl FailureLogHandler {
         if !Self::is_expired_log(&log, now, retention) {
             return;
         }
-        let path = log.path();
-        if let Err(error) = fs::remove_file(&path) {
+        self.remove_expired_log(&log.path());
+    }
+
+    fn remove_expired_log(&self, path: &Path) {
+        if let Err(error) = fs::remove_file(path)
+            && error.kind() != std::io::ErrorKind::NotFound
+        {
             self.errors.record(format!(
                 "failed to remove expired failure log '{}': {error}",
                 path.display()
@@ -622,6 +627,26 @@ mod tests {
         handler.handle(&started("trigger-run", "/repo/project"));
 
         assert!(!owned_log.exists());
+    }
+
+    #[test]
+    fn missing_expired_owned_log_is_idempotent() {
+        let temp_root = tempfile::tempdir().unwrap();
+        let log_directory = temp_root.path().join("ephact/project");
+        fs::create_dir_all(&log_directory).unwrap();
+        let owned_log = log_directory.join("failure-race.log");
+        fs::write(&owned_log, "owned").unwrap();
+        let old = SystemTime::now() - Duration::from_secs(25 * 60 * 60);
+        fs::File::open(&owned_log)
+            .unwrap()
+            .set_modified(old)
+            .unwrap();
+
+        let handler = FailureLogHandler::with_temp_root(temp_root.path());
+        fs::remove_file(&owned_log).unwrap();
+        handler.remove_expired_log(&owned_log);
+
+        assert!(handler.error_store().read_and_clear().is_empty());
     }
 
     #[test]
