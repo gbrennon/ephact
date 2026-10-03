@@ -36,8 +36,8 @@ impl FailureLogRetentionStore {
         Self::default()
     }
 
-    /// Replaces the active failure-log retention in hours.
-    pub fn set_hours(&self, hours: u64) {
+    /// Applies the active failure-log retention in hours.
+    pub fn apply_hours(&self, hours: u64) {
         if let Ok(mut current) = self.hours.lock() {
             *current = hours;
         }
@@ -617,7 +617,7 @@ mod tests {
             .unwrap();
 
         let retention = FailureLogRetentionStore::new();
-        retention.set_hours(1);
+        retention.apply_hours(1);
         let handler = FailureLogHandler::with_temp_root_and_stores(
             temp_root.path(),
             FailureLogErrorStore::new(),
@@ -655,7 +655,7 @@ mod tests {
         assert_eq!(store.hours(), 24);
 
         let clone = store.clone();
-        clone.set_hours(72);
+        clone.apply_hours(72);
 
         assert_eq!(store.hours(), 72);
     }

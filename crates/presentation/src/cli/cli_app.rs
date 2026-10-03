@@ -111,7 +111,7 @@ impl Cli {
     ) -> Self {
         self.settings = settings.clone();
         self.failure_log_retention_store
-            .set_hours(settings.failure_log_retention_hours());
+            .apply_hours(settings.failure_log_retention_hours());
         self.settings_store = Some(settings_store.clone());
         self.tui_runner = self
             .tui_runner
@@ -424,7 +424,7 @@ failure-log-retention-hours = {}\n",
         let mut args = args;
         args.apply_settings(&self.settings);
         if let Some(hours) = args.failure_log_retention_hours() {
-            self.failure_log_retention_store.set_hours(hours);
+            self.failure_log_retention_store.apply_hours(hours);
         }
         if args.interactive() {
             print!("{output}");
