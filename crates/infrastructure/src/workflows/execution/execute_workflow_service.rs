@@ -21,8 +21,8 @@ use crate::{
     domain::{
         entities::JobRun,
         messages::{
-            commands::ExecuteJobCommand,
-            events::{DomainEvent, JobFinishedPayload, JobStartedPayload, WorkflowStartedPayload},
+            commands::ExecuteJobPayload,
+            events::{Event, JobFinishedPayload, JobStartedPayload, WorkflowStartedPayload},
         },
         value_objects::EvaluationContext,
     },
@@ -31,7 +31,7 @@ use crate::{
 /// Application service coordinating the execution of a single workflow.
 ///
 /// Loads the workflow definition through an outbound port, plans its job
-/// stages, and publishes one [`ExecuteJobCommand`] per planned run. The job
+/// stages, and publishes one [`ExecuteJobPayload`] per planned run. The job
 /// command handler is what turns each command into an execution, so this
 /// service never depends on the job entrypoint itself. Progress facts are
 /// announced as domain events on the outbound [`DomainEventPublisherPort`].
@@ -210,7 +210,7 @@ impl ExecuteWorkflowService {
         let execution = self
             .command_publisher
             .publish(
-                ExecuteJobCommand::new(
+                ExecuteJobPayload::new(
                     input.run.job().clone(),
                     input.run.job_id().to_string(),
                     input.workflow.clone(),
@@ -228,14 +228,14 @@ impl ExecuteWorkflowService {
 
     fn announce_workflow_started(&self, workflow_name: &str) {
         self.event_publisher
-            .publish(DomainEvent::WorkflowStarted(WorkflowStartedPayload::new(
+            .publish(Event::WorkflowStarted(WorkflowStartedPayload::new(
                 workflow_name.to_string(),
             )));
     }
 
     fn announce_job_started(&self, workflow_name: &str, run: &JobRun) {
         self.event_publisher
-            .publish(DomainEvent::JobStarted(JobStartedPayload::new(
+            .publish(Event::JobStarted(JobStartedPayload::new(
                 workflow_name.to_string(),
                 run.job_id().to_string(),
                 run.job().name().map(str::to_string),
@@ -244,7 +244,7 @@ impl ExecuteWorkflowService {
 
     fn announce_job_finished(&self, workflow_name: &str, run: &JobRun, job_success: bool) {
         self.event_publisher
-            .publish(DomainEvent::JobFinished(JobFinishedPayload::new(
+            .publish(Event::JobFinished(JobFinishedPayload::new(
                 workflow_name.to_string(),
                 run.job_id().to_string(),
                 run.job().name().map(str::to_string),

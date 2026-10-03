@@ -10,7 +10,7 @@ use ephact::{
     },
     domain::{
         RepoPath, Repository, RepositoryName, WorkflowRunConfig,
-        messages::events::DomainEvent,
+        messages::events::Event,
         value_objects::{WorkflowEvent, WorkflowPath},
     },
     infrastructure::workflows::execution::run_all_workflows_service::{
@@ -136,12 +136,12 @@ fn assert_pull_request_workflows(command_bus: &FakeCommandBus) {
 fn assert_completed_events(event_bus: &FakeEventBus, run_id: &str, repository_path: &str) {
     let events = event_bus.events();
     assert_eq!(events.len(), 2);
-    let DomainEvent::RunStarted(payload) = &events[0] else {
+    let Event::RunStarted(payload) = &events[0] else {
         panic!("expected RunStarted event");
     };
     assert_eq!(payload.run_id(), run_id);
     assert_eq!(payload.repository_path(), repository_path);
-    let DomainEvent::WorkflowRunCompleted(payload) = &events[1] else {
+    let Event::WorkflowRunCompleted(payload) = &events[1] else {
         panic!("expected WorkflowRunCompleted event");
     };
     assert_eq!(payload.run_id(), run_id);
@@ -175,7 +175,7 @@ fn execute_publishes_run_failed_when_workflow_collection_fails() {
     assert_eq!(error.to_string(), "cannot list workflows");
     let events = event_bus.events();
     assert_eq!(events.len(), 2);
-    let DomainEvent::RunFailed(payload) = &events[1] else {
+    let Event::RunFailed(payload) = &events[1] else {
         panic!("expected RunFailed event");
     };
     assert_eq!(payload.run_id(), run_id);

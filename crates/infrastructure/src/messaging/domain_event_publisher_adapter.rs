@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     application::ports::outbound::domain_event_publisher_port::DomainEventPublisherPort,
-    domain::messages::events::DomainEvent, messaging::in_memory_event_bus::InMemoryEventBus,
+    domain::messages::events::Event, messaging::in_memory_event_bus::InMemoryEventBus,
 };
 
 /// Routes the application's [`DomainEventPublisherPort`] onto the infrastructure
@@ -20,7 +20,7 @@ impl DomainEventPublisherAdapter {
 }
 
 impl DomainEventPublisherPort for DomainEventPublisherAdapter {
-    fn publish(&self, event: DomainEvent) {
+    fn publish(&self, event: Event) {
         self.inner.publish(event);
     }
 }

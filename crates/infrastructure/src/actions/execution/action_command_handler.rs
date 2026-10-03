@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     actions::ExecuteActionFactory,
     application::{
@@ -11,11 +13,10 @@ use crate::{
             ActionCommandHandlerPort, StepTextCodecPort, container_port::ContainerPort,
         },
     },
-    domain::{errors::StepError, messages::commands::ExecuteActionCommand},
+    domain::{errors::StepError, messages::commands::ExecuteActionPayload},
     steps::JsonStepTextCodec,
 };
 
-/// Infrastructure command handler that processes `ExecuteActionCommand`.
 pub struct ActionCommandHandler {
     executor_factory: ExecuteActionFactory,
 }
@@ -27,9 +28,10 @@ impl ActionCommandHandler {
 
     pub fn handle(
         &self,
-        cmd: ExecuteActionCommand<dyn ContainerPort>,
+        cmd: ExecuteActionPayload,
+        container: Arc<dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {
-        let (action_ref, step, repo_path, env, context, container) = cmd.into_parts();
+        let (action_ref, step, repo_path, env, context) = cmd.into_parts();
         let req = ExecuteActionRequest::new(ExecuteActionRequestInput::new(
             action_ref,
             JsonStepTextCodec.encode(&step)?,
@@ -43,11 +45,13 @@ impl ActionCommandHandler {
         })
     }
 }
+
 impl ActionCommandHandlerPort for ActionCommandHandler {
     fn handle(
         &self,
-        command: ExecuteActionCommand<dyn ContainerPort>,
+        command: ExecuteActionPayload,
+        container: Arc<dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {
-        ActionCommandHandler::handle(self, command)
+        ActionCommandHandler::handle(self, command, container)
     }
 }

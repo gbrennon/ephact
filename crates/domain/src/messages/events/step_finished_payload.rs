@@ -1,8 +1,8 @@
 use super::StepFinishedDetails;
 
-/// Payload for [`DomainEvent::StepFinished`].
+/// Payload for [`Event::StepFinished`].
 ///
-/// [`DomainEvent::StepFinished`]: super::domain_event::DomainEvent::StepFinished
+/// [`Event::StepFinished`]: crate::messages::events::Event::StepFinished
 #[derive(Debug, Clone)]
 pub struct StepFinishedPayload {
     run_id: String,

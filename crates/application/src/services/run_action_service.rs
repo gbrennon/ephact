@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    domain::messages::commands::ExecuteActionCommand,
+    domain::messages::commands::ExecuteActionPayload,
     dtos::{requests::RunActionRequest, responses::ExecuteActionResponse},
     errors::RunActionError,
     ports::{
@@ -40,16 +40,15 @@ impl RunActionPort for RunActionService {
             .decode(request.step())
             .map_err(RunActionError::Step)?;
         let context = request.context().clone();
-        let cmd = ExecuteActionCommand::new(
+        let cmd = ExecuteActionPayload::new(
             request.action_ref().to_string(),
             step,
             request.repo_path().to_path_buf(),
             request.env().clone(),
-            self.container.clone(),
-        )
-        .with_context(context);
+            context,
+        );
         self.command_publisher
-            .publish(cmd)
+            .publish(cmd, self.container.clone())
             .map_err(RunActionError::Step)
     }
 }

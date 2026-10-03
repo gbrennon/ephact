@@ -1,4 +1,4 @@
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 
 use crate::{
     application::{
@@ -12,7 +12,7 @@ use crate::{
     domain::{
         errors::StepError,
         messages::commands::{
-            ExecuteActionCommand, ExecuteJobCommand, ExecuteStepCommand, ExecuteWorkflowCommand,
+            ExecuteActionPayload, ExecuteJobPayload, ExecuteStepPayload, ExecuteWorkflowPayload,
         },
     },
     messaging::in_memory_command_bus::InMemoryCommandBus,
@@ -43,7 +43,7 @@ impl DeferredCommandBus {
 
     pub fn route_workflow(
         &self,
-        command: ExecuteWorkflowCommand,
+        command: ExecuteWorkflowPayload,
     ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
         self.bound()
             .map_err(ExecuteWorkflowError::Workflow)
@@ -52,7 +52,7 @@ impl DeferredCommandBus {
 
     pub fn route_job(
         &self,
-        command: ExecuteJobCommand,
+        command: ExecuteJobPayload,
     ) -> Result<JobExecutionResponse, ExecuteJobError> {
         self.bound()
             .map_err(ExecuteJobError::Preparation)
@@ -61,19 +61,21 @@ impl DeferredCommandBus {
 
     pub fn route_step(
         &self,
-        command: ExecuteStepCommand<dyn ContainerPort>,
+        command: ExecuteStepPayload,
+        container: Arc<dyn ContainerPort>,
     ) -> Result<ExecutedStepResponse, StepError> {
         self.bound()
             .map_err(StepError::new)
-            .and_then(|bus| bus.handle_step(command))
+            .and_then(|bus| bus.handle_step(command, container))
     }
 
     pub fn route_action(
         &self,
-        command: ExecuteActionCommand<dyn ContainerPort>,
+        command: ExecuteActionPayload,
+        container: Arc<dyn ContainerPort>,
     ) -> Result<ExecuteActionResponse, StepError> {
         self.bound()
             .map_err(StepError::new)
-            .and_then(|bus| bus.handle_action(command))
+            .and_then(|bus| bus.handle_action(command, container))
     }
 }

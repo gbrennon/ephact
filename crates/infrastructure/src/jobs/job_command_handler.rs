@@ -4,9 +4,9 @@ use crate::{
         errors::ExecuteJobError,
         ports::{inbound::execute_job_port::ExecuteJobPort, outbound::JobCommandHandlerPort},
     },
-    domain::{entities::JobRun, messages::commands::ExecuteJobCommand},
+    domain::{entities::JobRun, messages::commands::ExecuteJobPayload},
 };
-/// Infrastructure command handler that processes `ExecuteJobCommand`.
+/// Infrastructure command handler that processes [`ExecuteJobPayload`].
 pub struct JobCommandHandler {
     executor: Box<dyn ExecuteJobPort>,
 }
@@ -16,7 +16,7 @@ impl JobCommandHandler {
         Self { executor }
     }
 
-    pub fn handle(&self, cmd: ExecuteJobCommand) -> Result<JobExecutionResponse, ExecuteJobError> {
+    pub fn handle(&self, cmd: ExecuteJobPayload) -> Result<JobExecutionResponse, ExecuteJobError> {
         let allow_network = cmd.allow_network();
         let (job, job_id, workflow, repo_path, context, run_id, allow_repo_writes) =
             cmd.into_parts();
@@ -28,7 +28,7 @@ impl JobCommandHandler {
     }
 }
 impl JobCommandHandlerPort for JobCommandHandler {
-    fn handle(&self, command: ExecuteJobCommand) -> Result<JobExecutionResponse, ExecuteJobError> {
+    fn handle(&self, command: ExecuteJobPayload) -> Result<JobExecutionResponse, ExecuteJobError> {
         JobCommandHandler::handle(self, command)
     }
 }

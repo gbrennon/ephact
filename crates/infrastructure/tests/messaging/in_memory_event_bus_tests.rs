@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ephact::{
     application::ports::outbound::DomainEventPublisherPort,
-    domain::messages::events::{DomainEvent, WorkflowRunCompletedPayload},
+    domain::messages::events::{Event, WorkflowRunCompletedPayload},
     infrastructure::{
         containers::ContainerCleanupHandler,
         messaging::{DomainEventPublisherAdapter, InMemoryEventBus},
@@ -18,7 +18,7 @@ fn publish_workflow_run_completed_reaches_bound_handler_and_cleans_up_containers
     let event_bus = Arc::new(InMemoryEventBus::new(vec![cleanup_handler]));
     let publisher = DomainEventPublisherAdapter::new(event_bus);
 
-    let event = DomainEvent::WorkflowRunCompleted(WorkflowRunCompletedPayload::new(
+    let event = Event::WorkflowRunCompleted(WorkflowRunCompletedPayload::new(
         "run-1".to_string(),
         "/repo".to_string(),
         vec!["container-a".to_string(), "container-b".to_string()],

@@ -1,16 +1,12 @@
 use std::path::PathBuf;
 
 use crate::{
-    aggregates::Workflow, entities::Job, messages::commands::command::Command,
-    value_objects::EvaluationContext,
+    aggregates::Workflow, entities::Job, messages::Message, value_objects::EvaluationContext,
 };
 
-/// Command representing the intention to execute one job of a workflow.
-///
-/// Published by the workflow coordination service once the execution plan is
-/// known, and handled by the job command handler.
+/// Data describing the intention to execute one job.
 #[derive(Debug, Clone)]
-pub struct ExecuteJobCommand {
+pub struct ExecuteJobPayload {
     job: Job,
     job_id: String,
     workflow: Workflow,
@@ -21,7 +17,7 @@ pub struct ExecuteJobCommand {
     allow_network: bool,
 }
 
-impl ExecuteJobCommand {
+impl ExecuteJobPayload {
     pub fn new(
         job: Job,
         job_id: String,
@@ -41,19 +37,22 @@ impl ExecuteJobCommand {
         }
     }
 
-    pub fn with_run_id(mut self, run_id: String) -> Self {
-        self.run_id = run_id;
-        self
+    pub fn with_run_id(self, run_id: String) -> Self {
+        Self { run_id, ..self }
     }
 
-    pub fn with_allow_repo_writes(mut self, allow_repo_writes: bool) -> Self {
-        self.allow_repo_writes = allow_repo_writes;
-        self
+    pub fn with_allow_repo_writes(self, allow_repo_writes: bool) -> Self {
+        Self {
+            allow_repo_writes,
+            ..self
+        }
     }
 
-    pub fn with_allow_network(mut self, allow_network: bool) -> Self {
-        self.allow_network = allow_network;
-        self
+    pub fn with_allow_network(self, allow_network: bool) -> Self {
+        Self {
+            allow_network,
+            ..self
+        }
     }
 
     pub fn job(&self) -> &Job {
@@ -79,6 +78,7 @@ impl ExecuteJobCommand {
     pub fn run_id(&self) -> &str {
         &self.run_id
     }
+
     pub fn allow_network(&self) -> bool {
         self.allow_network
     }
@@ -110,7 +110,7 @@ impl ExecuteJobCommand {
     }
 }
 
-impl Command for ExecuteJobCommand {}
+impl Message for ExecuteJobPayload {}
 
 #[cfg(test)]
 mod tests {
@@ -128,8 +128,8 @@ mod tests {
         )
     }
 
-    fn command_for_test() -> ExecuteJobCommand {
-        ExecuteJobCommand::new(
+    fn payload_for_test() -> ExecuteJobPayload {
+        ExecuteJobPayload::new(
             Job::new(
                 Some("Build".into()),
                 Some("ubuntu".into()),
@@ -141,51 +141,35 @@ mod tests {
             PathBuf::from("/repo"),
             EvaluationContext::new(),
         )
+        .with_run_id("run-1".into())
+        .with_allow_repo_writes(true)
+        .with_allow_network(true)
     }
 
     #[test]
-    fn new_defaults_optional_fields() {
-        let command = command_for_test();
+    fn new_exposes_every_field() {
+        let payload = payload_for_test();
 
-        assert_eq!(command.job_id(), "build");
-        assert_eq!(command.workflow(), &workflow_for_test());
-        assert_eq!(command.repo_path(), &PathBuf::from("/repo"));
-        assert!(command.context().get("source").is_none());
-        assert_eq!(command.run_id(), "");
-        assert!(!command.allow_repo_writes());
-        assert!(!command.allow_network());
-        assert_eq!(command.job().runs_on(), Some("ubuntu"));
-    }
-
-    #[test]
-    fn builders_set_optional_fields() {
-        let command = command_for_test()
-            .with_run_id("run-1".into())
-            .with_allow_repo_writes(true)
-            .with_allow_network(true);
-
-        assert_eq!(command.run_id(), "run-1");
-        assert!(command.allow_repo_writes());
-        assert!(command.allow_network());
+        assert_eq!(payload.job_id(), "build");
+        assert_eq!(payload.workflow(), &workflow_for_test());
+        assert_eq!(payload.repo_path(), &PathBuf::from("/repo"));
+        assert!(payload.context().get("source").is_none());
+        assert_eq!(payload.run_id(), "run-1");
+        assert!(payload.allow_repo_writes());
+        assert!(payload.allow_network());
+        assert_eq!(payload.job().runs_on(), Some("ubuntu"));
     }
 
     #[test]
     fn into_parts_returns_owned_fields() {
         let (_job, job_id, workflow, repo_path, context, run_id, allow_repo_writes) =
-            command_for_test().with_run_id("run-1".into()).into_parts();
+            payload_for_test().into_parts();
 
         assert_eq!(job_id, "build");
         assert_eq!(workflow, workflow_for_test());
         assert_eq!(repo_path, PathBuf::from("/repo"));
         assert!(context.get("source").is_none());
         assert_eq!(run_id, "run-1");
-        assert!(!allow_repo_writes);
-    }
-
-    #[test]
-    fn clone_preserves_fields() {
-        let command = command_for_test().clone();
-
-        assert_eq!(command.job_id(), "build");
+        assert!(allow_repo_writes);
     }
 }

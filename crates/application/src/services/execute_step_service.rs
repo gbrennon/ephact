@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    domain::{errors::StepError, messages::commands::ExecuteActionCommand},
+    domain::{errors::StepError, messages::commands::ExecuteActionPayload},
     dtos::{
         requests::{ExecuteStepRequest, RunShellStepRequest},
         responses::{ExecuteActionResponse, ExecutedStepResponse},
@@ -49,14 +49,14 @@ impl ExecuteStepService {
     ) -> Result<ExecuteActionResponse, StepError> {
         if let Some(action_ref) = step.uses() {
             return self.command_publisher.publish(
-                ExecuteActionCommand::new(
+                ExecuteActionPayload::new(
                     action_ref.to_string(),
                     step.clone(),
                     request.repo_path().to_path_buf(),
                     request.env().clone(),
-                    self.container.clone(),
-                )
-                .with_context(context.clone()),
+                    context.clone(),
+                ),
+                self.container.clone(),
             );
         }
 

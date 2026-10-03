@@ -1,6 +1,6 @@
-/// Payload for [`DomainEvent::JobFinished`].
+/// Payload for [`Event::JobFinished`].
 ///
-/// [`DomainEvent::JobFinished`]: super::domain_event::DomainEvent::JobFinished
+/// [`Event::JobFinished`]: crate::messages::events::Event::JobFinished
 #[derive(Debug, Clone)]
 pub struct JobFinishedPayload {
     /// Name of the workflow the job belongs to.
@@ -44,6 +44,7 @@ impl JobFinishedPayload {
         self.success
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -10,9 +10,7 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::{
     application::ports::outbound::DomainEventHandlerPort,
-    domain::messages::events::{
-        DomainEvent, JobStartedPayload, StepFinishedPayload, StepOutputPayload,
-    },
+    domain::messages::events::{Event, JobStartedPayload, StepFinishedPayload, StepOutputPayload},
 };
 /// Presentation handler that renders workflow run progress to the terminal.
 ///
@@ -134,23 +132,23 @@ impl RunProgressHandler {
 
     /// Renders the terminal line for an event, or `None` when the event is
     /// not shown in the current verbosity mode.
-    fn render(&self, event: &DomainEvent) -> Option<String> {
+    fn render(&self, event: &Event) -> Option<String> {
         match event {
-            DomainEvent::WorkflowStarted(payload) if self.verbose => {
+            Event::WorkflowStarted(payload) if self.verbose => {
                 Some(format!("Workflow '{}'", payload.workflow_name()))
             }
-            DomainEvent::JobStarted(payload) if self.verbose => {
+            Event::JobStarted(payload) if self.verbose => {
                 Some(format!("Job '{}'", Self::job_label(payload)))
             }
-            DomainEvent::JobFinished(payload) if self.verbose => Some(format!(
+            Event::JobFinished(payload) if self.verbose => Some(format!(
                 "Job '{}': {}",
                 payload.job_id(),
                 Self::status(payload.success())
             )),
-            DomainEvent::StepStarted(payload) => {
+            Event::StepStarted(payload) => {
                 Some(format!("Step '{}': running...", payload.step_name()))
             }
-            DomainEvent::StepFinished(payload) => Some(self.step_outcome(payload)),
+            Event::StepFinished(payload) => Some(self.step_outcome(payload)),
             _ => None,
         }
     }
@@ -161,15 +159,13 @@ impl RunProgressHandler {
 }
 
 impl DomainEventHandlerPort for RunProgressHandler {
-    fn handle(&self, event: &DomainEvent) {
+    fn handle(&self, event: &Event) {
         self.stream_progress(event);
         if self.output_suppressed.load(Ordering::Relaxed) {
             return;
         }
         match event {
-            DomainEvent::StepOutput(payload) if self.renders_output() => {
-                Self::relay_output(payload)
-            }
+            Event::StepOutput(payload) if self.renders_output() => Self::relay_output(payload),
             other => {
                 if let Some(line) = self.render(other) {
                     Self::write_line(&line);
@@ -180,7 +176,7 @@ impl DomainEventHandlerPort for RunProgressHandler {
 }
 
 impl RunProgressHandler {
-    fn stream_progress(&self, event: &DomainEvent) {
+    fn stream_progress(&self, event: &Event) {
         if !self.output_suppressed.load(Ordering::Relaxed) {
             return;
         }
@@ -190,7 +186,7 @@ impl RunProgressHandler {
         if let Some(line) = self.render(event) {
             let _ = sender.send(line);
         } else if self.renders_output()
-            && let DomainEvent::StepOutput(payload) = event
+            && let Event::StepOutput(payload) = event
         {
             let _ = sender.send(Self::output_line(payload));
         }
@@ -205,24 +201,24 @@ mod tests {
         StepFinishedPayload, StepOutputPayload, StepStartedPayload, WorkflowStartedPayload,
     };
 
-    fn step_started() -> DomainEvent {
-        DomainEvent::StepStarted(StepStartedPayload::new(
+    fn step_started() -> Event {
+        Event::StepStarted(StepStartedPayload::new(
             "Build".into(),
             "build".into(),
             "compile".into(),
         ))
     }
 
-    fn step_output(stream: OutputStream) -> DomainEvent {
-        DomainEvent::StepOutput(StepOutputPayload::new(
+    fn step_output(stream: OutputStream) -> Event {
+        Event::StepOutput(StepOutputPayload::new(
             "compile".into(),
             stream,
             "Compiling ephact\n".into(),
         ))
     }
 
-    fn step_finished(exit_code: Option<i64>) -> DomainEvent {
-        DomainEvent::StepFinished(StepFinishedPayload::new(
+    fn step_finished(exit_code: Option<i64>) -> Event {
+        Event::StepFinished(StepFinishedPayload::new(
             "run-1".into(),
             StepFinishedDetails::new(
                 "Build".into(),
@@ -262,7 +258,7 @@ mod tests {
     fn inactive_tui_stream_does_not_buffer_cli_progress() {
         let (handler, stream) = RunProgressHandler::with_tui_stream(false);
 
-        handler.handle(&DomainEvent::WorkflowStarted(WorkflowStartedPayload::new(
+        handler.handle(&Event::WorkflowStarted(WorkflowStartedPayload::new(
             "Build".into(),
         )));
 
@@ -284,14 +280,14 @@ mod tests {
         let handler = RunProgressHandler::new(false);
         assert!(
             handler
-                .render(&DomainEvent::WorkflowStarted(WorkflowStartedPayload::new(
+                .render(&Event::WorkflowStarted(WorkflowStartedPayload::new(
                     "Build".into(),
                 )))
                 .is_none()
         );
         assert!(
             handler
-                .render(&DomainEvent::JobStarted(JobStartedPayload::new(
+                .render(&Event::JobStarted(JobStartedPayload::new(
                     "Build".into(),
                     "build".into(),
                     Some("Build".into()),
@@ -300,7 +296,7 @@ mod tests {
         );
         assert!(
             handler
-                .render(&DomainEvent::JobFinished(JobFinishedPayload::new(
+                .render(&Event::JobFinished(JobFinishedPayload::new(
                     "Build".into(),
                     "build".into(),
                     Some("Build".into()),
@@ -313,7 +309,7 @@ mod tests {
     #[test]
     fn quiet_mode_hides_failed_step_output() {
         let handler = RunProgressHandler::new(false);
-        let event = DomainEvent::StepFinished(StepFinishedPayload::new(
+        let event = Event::StepFinished(StepFinishedPayload::new(
             "run-1".into(),
             StepFinishedDetails::new(
                 "Build".into(),
@@ -339,7 +335,7 @@ mod tests {
     #[test]
     fn verbose_mode_reports_failed_step_output() {
         let handler = RunProgressHandler::new(true);
-        let event = DomainEvent::StepFinished(StepFinishedPayload::new(
+        let event = Event::StepFinished(StepFinishedPayload::new(
             "run-1".into(),
             StepFinishedDetails::new(
                 "Build".into(),

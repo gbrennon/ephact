@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     application::ports::outbound::{ContainerRuntimePort, DomainEventHandlerPort},
-    domain::messages::events::DomainEvent,
+    domain::messages::events::Event,
 };
 
 /// Removes a run's containers through the container runtime when the run ends.
@@ -60,15 +60,15 @@ impl ContainerCleanupHandler {
 impl DomainEventHandlerPort for ContainerCleanupHandler {
     /// Records a started container, or removes every container of a run once
     /// that run completes or fails.
-    fn handle(&self, event: &DomainEvent) {
+    fn handle(&self, event: &Event) {
         match event {
-            DomainEvent::ContainerStarted(payload) => {
+            Event::ContainerStarted(payload) => {
                 self.record_started_container(payload.run_id(), payload.container_name())
             }
-            DomainEvent::WorkflowRunCompleted(payload) => {
+            Event::WorkflowRunCompleted(payload) => {
                 self.cleanup_run(payload.run_id(), payload.container_names())
             }
-            DomainEvent::RunFailed(payload) => self.cleanup_run(payload.run_id(), &[]),
+            Event::RunFailed(payload) => self.cleanup_run(payload.run_id(), &[]),
             _ => {}
         }
     }

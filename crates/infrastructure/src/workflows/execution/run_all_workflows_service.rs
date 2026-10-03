@@ -16,8 +16,8 @@ use crate::{
         },
     },
     domain::messages::{
-        commands::ExecuteWorkflowCommand,
-        events::{DomainEvent, RunFailedPayload, RunStartedPayload, WorkflowRunCompletedPayload},
+        commands::ExecuteWorkflowPayload,
+        events::{Event, RunFailedPayload, RunStartedPayload, WorkflowRunCompletedPayload},
     },
     repositories::RepositoryResolver,
     workflows::execution::{
@@ -32,7 +32,7 @@ pub const ALL_WORKFLOWS_SUMMARY_NAME: &str = "All Workflows";
 /// Application service running every workflow found in the repository.
 ///
 /// Reads all workflow sources through an outbound port and publishes one
-/// [`ExecuteWorkflowCommand`] per workflow. When every workflow finished, the
+/// [`ExecuteWorkflowPayload`] per workflow. When every workflow finished, the
 /// completion is announced as an [`DomainEvent::WorkflowRunCompleted`] event so
 /// infrastructure handlers can clean up.
 pub struct RunAllWorkflowsService {
@@ -74,7 +74,7 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
         let repository_path = repository.path().as_path().display().to_string();
         let run_id = request.run_id().to_string();
         self.event_publisher
-            .publish(DomainEvent::RunStarted(RunStartedPayload::new(
+            .publish(Event::RunStarted(RunStartedPayload::new(
                 run_id.clone(),
                 repository_path.clone(),
             )));
@@ -138,7 +138,7 @@ impl RunAllWorkflowsService {
         self.filter_workflow_sources(workflow_contents, event)
             .into_iter()
             .map(|workflow| {
-                let command = ExecuteWorkflowCommand::new(
+                let command = ExecuteWorkflowPayload::new(
                     workflow.content().to_owned(),
                     config.clone(),
                     repository.clone(),
@@ -177,20 +177,19 @@ impl RunAllWorkflowsService {
             .iter()
             .flat_map(|execution| execution.container_names().to_vec())
             .collect();
-        self.event_publisher
-            .publish(DomainEvent::WorkflowRunCompleted(
-                WorkflowRunCompletedPayload::new(
-                    run_id.to_string(),
-                    repository_path.to_string(),
-                    container_names,
-                    success,
-                ),
-            ));
+        self.event_publisher.publish(Event::WorkflowRunCompleted(
+            WorkflowRunCompletedPayload::new(
+                run_id.to_string(),
+                repository_path.to_string(),
+                container_names,
+                success,
+            ),
+        ));
     }
 
     fn announce_run_failed(&self, run_id: &str, repository_path: &str, error: &dyn Error) {
         self.event_publisher
-            .publish(DomainEvent::RunFailed(RunFailedPayload::new(
+            .publish(Event::RunFailed(RunFailedPayload::new(
                 run_id.to_string(),
                 repository_path.to_string(),
                 None,

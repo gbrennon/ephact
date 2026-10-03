@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     application::{
         dtos::{requests::ExecuteStepRequest, responses::ExecutedStepResponse},
@@ -5,11 +7,10 @@ use crate::{
             StepCommandHandlerPort, StepTextCodecPort, container_port::ContainerPort,
         },
     },
-    domain::{errors::StepError, messages::commands::ExecuteStepCommand},
+    domain::{errors::StepError, messages::commands::ExecuteStepPayload},
     steps::{ExecuteStepFactory, JsonStepTextCodec},
 };
 
-/// Infrastructure command handler that processes `ExecuteStepCommand`.
 pub struct StepCommandHandler {
     executor_factory: ExecuteStepFactory,
 }
@@ -21,9 +22,10 @@ impl StepCommandHandler {
 
     pub fn handle(
         &self,
-        cmd: ExecuteStepCommand<dyn ContainerPort>,
+        cmd: ExecuteStepPayload,
+        container: Arc<dyn ContainerPort>,
     ) -> Result<ExecutedStepResponse, StepError> {
-        let (step, env, context, container, repo_path) = cmd.into_parts();
+        let (step, env, context, repo_path) = cmd.into_parts();
         let req =
             ExecuteStepRequest::new(JsonStepTextCodec.encode(&step)?, context, repo_path, env);
         let executor = (self.executor_factory)(container);
@@ -32,11 +34,13 @@ impl StepCommandHandler {
             .map_err(|error| StepError::new(error.to_string()))
     }
 }
+
 impl StepCommandHandlerPort for StepCommandHandler {
     fn handle(
         &self,
-        command: ExecuteStepCommand<dyn ContainerPort>,
+        command: ExecuteStepPayload,
+        container: Arc<dyn ContainerPort>,
     ) -> Result<ExecutedStepResponse, StepError> {
-        StepCommandHandler::handle(self, command)
+        StepCommandHandler::handle(self, command, container)
     }
 }
