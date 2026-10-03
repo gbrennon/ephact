@@ -200,6 +200,31 @@ fn failure_details_render_step_output() {
     assert!(text.contains("Exit code: 1"));
     assert!(text.contains("stderr: compiler failed"));
 }
+#[test]
+fn failed_summary_renders_failure_diagnostics_path() {
+    let mut screen = RunWorkflowScreen::new(workflows());
+    screen.record_outcome_with_failure_log_path(
+        failed_summary(),
+        Some("/tmp/ephact/repository/run.log".into()),
+    );
+
+    let text = rendered_text(&screen);
+
+    assert!(text.contains("Failure diagnostics: /tmp/ephact/repository/run.log"));
+}
+
+#[test]
+fn successful_summary_does_not_render_failure_diagnostics_path() {
+    let mut screen = RunWorkflowScreen::new(workflows());
+    screen.record_outcome_with_failure_log_path(
+        RunSummaryResponse::new("CI", vec![], true, Duration::from_secs(1)),
+        Some("/tmp/ephact/repository/run.log".into()),
+    );
+
+    let text = rendered_text(&screen);
+
+    assert!(!text.contains("Failure diagnostics:"));
+}
 
 #[test]
 fn summary_scrolls_with_navigation_keys() {

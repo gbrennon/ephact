@@ -1,4 +1,7 @@
-use std::time::{Duration, Instant};
+use std::{
+    path::PathBuf,
+    time::{Duration, Instant},
+};
 
 use ratatui::{
     Frame,
@@ -31,6 +34,7 @@ pub struct RunWorkflowScreen {
     workflows: Vec<WorkflowListItemResponse>,
     selected_index: usize,
     outcome: Option<RunSummaryResponse>,
+    failure_log_path: Option<PathBuf>,
     progress_lines: Vec<String>,
     running: bool,
     showing_details: bool,
@@ -39,7 +43,6 @@ pub struct RunWorkflowScreen {
     run_started_at: Option<Instant>,
     configuration: Option<RunConfiguration>,
 }
-
 impl RunWorkflowScreen {
     const PICKER_TITLE: &'static str = "Run Workflow";
     const RESULT_TITLE: &'static str = "Run Summary";
@@ -64,6 +67,7 @@ impl RunWorkflowScreen {
             workflows,
             selected_index: Self::INITIAL_SELECTION,
             outcome: None,
+            failure_log_path: None,
             progress_lines: Vec::new(),
             running: false,
             showing_details: false,
@@ -161,8 +165,39 @@ impl RunWorkflowScreen {
     }
 
     pub fn record_outcome(&mut self, outcome: RunSummaryResponse) {
+        self.record_outcome_with_failure_log_path(outcome, None);
+    }
+
+    pub fn record_outcome_with_failure_log_path(
+        &mut self,
+        outcome: RunSummaryResponse,
+        failure_log_path: Option<PathBuf>,
+    ) {
         self.outcome = Some(outcome);
+        self.failure_log_path = failure_log_path;
         self.configuration = None;
+        self.running = false;
+        self.run_started_at = None;
+        self.showing_details = false;
+        self.details.reset();
+        self.summary_scroll = 0;
+    }
+    pub fn start_run(&mut self) {
+        self.outcome = None;
+        self.failure_log_path = None;
+        self.configuration = None;
+        self.progress_lines.clear();
+        self.running = true;
+        self.run_started_at = Some(Instant::now());
+        self.showing_details = false;
+        self.details.reset();
+        self.summary_scroll = 0;
+    }
+    pub fn reset(&mut self) {
+        self.outcome = None;
+        self.failure_log_path = None;
+        self.configuration = None;
+        self.progress_lines.clear();
         self.running = false;
         self.run_started_at = None;
         self.showing_details = false;
@@ -218,17 +253,6 @@ impl RunWorkflowScreen {
         self.showing_details
     }
 
-    pub fn start_run(&mut self) {
-        self.outcome = None;
-        self.configuration = None;
-        self.progress_lines.clear();
-        self.running = true;
-        self.run_started_at = Some(Instant::now());
-        self.showing_details = false;
-        self.details.reset();
-        self.summary_scroll = 0;
-    }
-
     pub fn record_progress(&mut self, line: String) {
         self.progress_lines.extend(normalize_lines(&line));
     }
@@ -240,18 +264,6 @@ impl RunWorkflowScreen {
 
     pub fn is_running(&self) -> bool {
         self.running
-    }
-
-    /// Discards any prior run outcome, returning the screen to the picker.
-    pub fn reset(&mut self) {
-        self.outcome = None;
-        self.configuration = None;
-        self.progress_lines.clear();
-        self.running = false;
-        self.run_started_at = None;
-        self.showing_details = false;
-        self.details.reset();
-        self.summary_scroll = 0;
     }
 
     pub fn select_next(&mut self) {
@@ -389,7 +401,7 @@ impl RunWorkflowScreen {
         ))
     }
 
-    fn summary_lines(summary: &RunSummaryResponse) -> Vec<Line<'static>> {
+    fn summary_lines(&self, summary: &RunSummaryResponse) -> Vec<Line<'static>> {
         let mut lines = vec![
             Line::from(Span::styled(
                 format!("{}{}", Self::RESULT_NAME_PREFIX, summary.name()),
@@ -397,6 +409,14 @@ impl RunWorkflowScreen {
             )),
             Self::status_line(Self::RESULT_STATUS_PREFIX, summary.success()),
         ];
+        if !summary.success()
+            && let Some(path) = self.failure_log_path.as_ref()
+        {
+            lines.push(Line::from(Span::styled(
+                format!("Failure diagnostics: {}", path.display()),
+                Theme::body_style(),
+            )));
+        }
         lines.extend(summary.job_summaries().iter().map(Self::job_line));
         lines
     }
@@ -406,7 +426,7 @@ impl RunWorkflowScreen {
         Self::status_line(&prefix, job.success())
     }
     fn render_summary(&self, frame: &mut Frame<'_>, area: Rect, summary: &RunSummaryResponse) {
-        let lines = Self::summary_lines(summary);
+        let lines = self.summary_lines(summary);
         let max_scroll = lines.len().saturating_sub(area.height as usize) as u16;
         let content = Paragraph::new(lines)
             .style(Theme::body_style())

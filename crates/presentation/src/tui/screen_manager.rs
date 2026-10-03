@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use crossterm::event::KeyEvent;
 use ratatui::{Frame, widgets::Block};
@@ -326,8 +326,17 @@ impl ScreenManager {
     }
 
     pub fn record_run_outcome(&self, outcome: RunSummaryResponse) -> Self {
+        self.record_run_outcome_with_failure_log_path(outcome, None)
+    }
+
+    pub fn record_run_outcome_with_failure_log_path(
+        &self,
+        outcome: RunSummaryResponse,
+        failure_log_path: Option<PathBuf>,
+    ) -> Self {
         let mut next = self.clone();
-        next.run_workflow.record_outcome(outcome);
+        next.run_workflow
+            .record_outcome_with_failure_log_path(outcome, failure_log_path);
         next
     }
 

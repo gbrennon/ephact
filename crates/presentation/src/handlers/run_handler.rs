@@ -102,10 +102,48 @@ impl RunHandler {
         event: Option<String>,
         inputs: Vec<(String, String)>,
     ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
+        let run_id = RunIdGenerator.generate();
+        Self::handle_with_event_and_inputs_with_run_id(
+            run_workflow_port,
+            repository_path,
+            workflow,
+            event,
+            inputs,
+            &run_id,
+        )
+        .await
+    }
+    pub async fn handle_with_event_and_inputs_and_run_id(
+        run_workflow_port: &dyn RunWorkflowPort,
+        repository_path: PathBuf,
+        workflow: Option<String>,
+        event: Option<String>,
+        inputs: Vec<(String, String)>,
+    ) -> Result<(RunSummaryResponse, String), Box<dyn std::error::Error>> {
+        let run_id = RunIdGenerator.generate();
+        let summary = Self::handle_with_event_and_inputs_with_run_id(
+            run_workflow_port,
+            repository_path,
+            workflow,
+            event,
+            inputs,
+            &run_id,
+        )
+        .await?;
+        Ok((summary, run_id))
+    }
+
+    async fn handle_with_event_and_inputs_with_run_id(
+        run_workflow_port: &dyn RunWorkflowPort,
+        repository_path: PathBuf,
+        workflow: Option<String>,
+        event: Option<String>,
+        inputs: Vec<(String, String)>,
+        run_id: &str,
+    ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
         let repository = Self::build_repository(repository_path)?;
         let config = Self::single_workflow_config(workflow, event, inputs);
-        let request =
-            Self::build_run_workflow_request(&config, &repository, &RunIdGenerator.generate());
+        let request = Self::build_run_workflow_request(&config, &repository, run_id);
         Ok(run_workflow_port.execute(request).await?)
     }
 

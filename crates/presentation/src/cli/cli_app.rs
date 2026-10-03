@@ -75,7 +75,8 @@ impl Cli {
             list_actions_port.clone(),
             run_workflow_port.clone(),
         )
-        .with_input_discovery(discover_run_inputs_port.clone());
+        .with_input_discovery(discover_run_inputs_port.clone())
+        .with_failure_log_path_store(failure_log_stores.path_store());
         Self {
             run_workflow_port,
             run_all_workflows_port,
