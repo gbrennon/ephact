@@ -197,3 +197,54 @@ fn persisted_cli_interface_makes_no_subcommand_render_help() {
 
     assert!(output.contains("Usage:"));
 }
+
+#[test]
+fn settings_set_persists_failure_log_retention_and_renders_it() {
+    let store = Arc::new(FakeSettingsStore::new(Settings::default()));
+    let cli = make_cli().with_settings(Settings::default(), store.clone());
+    let terminal = SystemTerminal;
+
+    let output = cli
+        .run_with_terminal(
+            [
+                "ephact",
+                "settings",
+                "set",
+                "failure-log-retention-hours",
+                "72",
+            ],
+            &terminal,
+        )
+        .expect("retention setting should succeed");
+
+    assert!(output.contains("failure-log-retention-hours = 72"));
+    assert_eq!(store.writes().len(), 1);
+    assert_eq!(store.writes()[0].failure_log_retention_hours(), 72);
+}
+
+#[test]
+fn invalid_failure_log_retention_values_are_rejected() {
+    for value in ["0", "-1", "not-a-number", "18446744073709551616"] {
+        let store = Arc::new(FakeSettingsStore::new(Settings::default()));
+        let cli = make_cli().with_settings(Settings::default(), store.clone());
+        let terminal = SystemTerminal;
+
+        let result = cli.run_with_terminal(
+            [
+                "ephact",
+                "settings",
+                "set",
+                "failure-log-retention-hours",
+                value,
+            ],
+            &terminal,
+        );
+
+        let error = result.expect_err("invalid retention should fail");
+        assert!(
+            error.to_string().contains("failure-log-retention-hours"),
+            "error should name the setting: {error}"
+        );
+        assert!(store.writes().is_empty());
+    }
+}

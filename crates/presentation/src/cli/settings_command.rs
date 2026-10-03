@@ -10,6 +10,7 @@ pub enum SettingsCommand {
 #[derive(Args)]
 pub struct SettingsSetArgs {
     name: SettingName,
+    #[arg(allow_hyphen_values = true)]
     value: String,
 }
 
@@ -34,4 +35,5 @@ pub enum SettingName {
     Verbose,
     Interactive,
     AllWorkflows,
+    FailureLogRetentionHours,
 }

@@ -332,6 +332,14 @@ impl Cli {
             SettingName::AllWorkflows => {
                 Self::update_bool(settings, value, Settings::with_all_workflows)
             }
+            SettingName::FailureLogRetentionHours => {
+                let hours = value.parse::<u64>().map_err(|_| {
+                    format!("failure-log-retention-hours must be a positive integer: {value}")
+                })?;
+                settings
+                    .with_failure_log_retention_hours(hours)
+                    .map_err(|error| format!("failure-log-retention-hours: {error}"))
+            }
         }
     }
 
@@ -359,7 +367,8 @@ allow-network = {}\n\
 preserve = {}\n\
 verbose = {}\n\
 interactive = {}\n\
-all-workflows = {}\n",
+all-workflows = {}\n\
+failure-log-retention-hours = {}\n",
             path.display(),
             Self::interface_name(settings.default_interface()),
             settings.allow_repo_writes(),
@@ -370,6 +379,7 @@ all-workflows = {}\n",
             settings.verbose(),
             settings.interactive(),
             settings.all_workflows(),
+            settings.failure_log_retention_hours(),
         )
     }
 

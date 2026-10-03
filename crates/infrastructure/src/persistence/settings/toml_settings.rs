@@ -32,8 +32,15 @@ pub(super) struct TomlSettings {
     interactive: bool,
     #[serde(skip_serializing_if = "Self::is_default_bool")]
     all_workflows: bool,
+    #[serde(default = "default_failure_log_retention_hours")]
+    #[serde(skip_serializing_if = "Self::is_default_failure_log_retention_hours")]
+    failure_log_retention_hours: u64,
     #[serde(default = "marker_serializer::default_marker")]
     marker: String,
+}
+
+fn default_failure_log_retention_hours() -> u64 {
+    Settings::DEFAULT_FAILURE_LOG_RETENTION_HOURS
 }
 
 impl TomlSettings {
@@ -43,6 +50,10 @@ impl TomlSettings {
 
     fn is_default_bool(value: &bool) -> bool {
         !value
+    }
+
+    fn is_default_failure_log_retention_hours(value: &u64) -> bool {
+        *value == Settings::DEFAULT_FAILURE_LOG_RETENTION_HOURS
     }
 }
 
@@ -61,18 +72,22 @@ impl From<&Settings> for TomlSettings {
             verbose: settings.verbose(),
             interactive: settings.interactive(),
             all_workflows: settings.all_workflows(),
+            failure_log_retention_hours: settings.failure_log_retention_hours(),
             marker: marker_serializer::serialize(settings.marker()),
         }
     }
 }
 
-impl From<TomlSettings> for Settings {
-    fn from(settings: TomlSettings) -> Self {
+impl TryFrom<TomlSettings> for Settings {
+    type Error = String;
+
+    fn try_from(settings: TomlSettings) -> Result<Self, Self::Error> {
         let default_interface = match settings.default_interface {
             TomlInterfaceMode::Tui => InterfaceMode::Tui,
             TomlInterfaceMode::Cli => InterfaceMode::Cli,
         };
-        Settings::default()
+        let marker = marker_serializer::deserialize(&settings.marker);
+        let settings = Settings::default()
             .with_default_interface(default_interface)
             .with_allow_repo_writes(settings.allow_repo_writes)
             .with_allow_real_container(settings.allow_real_container)
@@ -82,6 +97,7 @@ impl From<TomlSettings> for Settings {
             .with_verbose(settings.verbose)
             .with_interactive(settings.interactive)
             .with_all_workflows(settings.all_workflows)
-            .with_marker(marker_serializer::deserialize(&settings.marker))
+            .with_failure_log_retention_hours(settings.failure_log_retention_hours)?;
+        Ok(settings.with_marker(marker))
     }
 }

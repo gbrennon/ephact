@@ -55,9 +55,9 @@ impl SettingsStorePort for TomlSettingsStore {
             }
             Err(error) => return Err(SettingsStoreError::Read(error.to_string())),
         };
-        toml::from_str::<TomlSettings>(&contents)
-            .map(Into::into)
-            .map_err(|error| SettingsStoreError::Parse(error.to_string()))
+        let toml_settings = toml::from_str::<TomlSettings>(&contents)
+            .map_err(|error| SettingsStoreError::Parse(error.to_string()))?;
+        Settings::try_from(toml_settings).map_err(SettingsStoreError::Parse)
     }
 
     fn write_settings(&self, settings: &Settings) -> Result<(), SettingsStoreError> {
