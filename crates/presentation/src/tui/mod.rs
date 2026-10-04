@@ -1,3 +1,4 @@
+pub mod capabilities;
 pub mod components;
 pub mod event_reader;
 pub mod rendering;
