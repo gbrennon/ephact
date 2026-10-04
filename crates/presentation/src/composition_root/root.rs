@@ -26,6 +26,7 @@ impl CompositionRoot {
     ) -> Application {
         let failure_log_error_store = container.failure_log_error_store();
         let failure_log_path_store = container.failure_log_path_store();
+        let failure_log_retention_store = container.failure_log_retention_store();
         let (
             show_project_branding_info_port,
             run_all_workflows_port,
@@ -50,6 +51,7 @@ impl CompositionRoot {
         let stores = crate::infrastructure::logging::FailureLogStores::from_stores(
             failure_log_error_store,
             failure_log_path_store,
+            failure_log_retention_store,
         );
         let cli = match progress_stream {
             Some(stream) => {

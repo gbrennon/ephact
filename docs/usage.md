@@ -84,6 +84,34 @@ ephact settings reset
 Persisted execution defaults apply when the corresponding `run` option is
 absent. Explicit command-line options override them for the current invocation.
 
+### Failure-log retention
+
+Failed runs retain failure diagnostics for 24 hours by default. Set the
+persisted retention period in `~/.config/ephact/config.toml`:
+
+```toml
+failure_log_retention_hours = 48
+```
+
+You can set the persisted value from the command line:
+
+```sh
+ephact settings set failure-log-retention-hours 48
+```
+
+For a single run, use the run option instead:
+
+```sh
+ephact run --failure-log-retention-hours 6
+```
+
+The run option takes precedence over the persisted setting. If neither is
+provided, `ephact` uses the 24-hour default. Retention values must be valid
+positive whole numbers; invalid or non-positive values are rejected.
+
+When pruning old diagnostics, `ephact` removes only its own
+`failure-*.log` files. Unrelated files and logs are left untouched.
+
 ## Running Workflows (`ephact run`)
 
 ### Syntax
@@ -114,6 +142,7 @@ or a worktree file.
 | `--allow-real-container` | None            | Accepted but currently has no effect; a real Docker or Podman runtime on Linux is always auto-detected and used                                        | No effect                      |
 | `--allow-real-fetcher`   | None            | Accepted but currently has no effect; uncached remote actions are fetched from their forge by default                                         | No effect                      |
 | `--allow-network`        | None            | Accepted but currently has no effect; containers use the runtime's default network behavior                                                   | No effect                      |
+| `--failure-log-retention-hours` | `<HOURS>` | Retain failure diagnostics for the specified positive number of hours | `24` |
 
 ### Examples
 

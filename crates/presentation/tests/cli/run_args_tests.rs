@@ -183,6 +183,13 @@ fn verbose_flag_is_reported() {
 }
 
 #[test]
+fn parses_failure_log_retention_hours_override() {
+    let args = parse_run_test_args(&["--failure-log-retention-hours", "72"]);
+
+    assert_eq!(args.failure_log_retention_hours(), Some(72));
+}
+
+#[test]
 fn interactive_flag_is_reported() {
     let args = parse_run_test_args(&["--interactive"]);
 

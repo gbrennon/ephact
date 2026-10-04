@@ -1,15 +1,31 @@
 use crate::value_objects::{InterfaceMode, Marker, OperationMode, OutputPreferences, Permissions};
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Settings {
     default_interface: InterfaceMode,
     permissions: Permissions,
     operation_mode: OperationMode,
     output_preferences: OutputPreferences,
     marker: Marker,
+    failure_log_retention_hours: u64,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            default_interface: InterfaceMode::default(),
+            permissions: Permissions::default(),
+            operation_mode: OperationMode::default(),
+            output_preferences: OutputPreferences::default(),
+            marker: Marker::default(),
+            failure_log_retention_hours: Self::DEFAULT_FAILURE_LOG_RETENTION_HOURS,
+        }
+    }
 }
 
 impl Settings {
+    pub const DEFAULT_FAILURE_LOG_RETENTION_HOURS: u64 = 24;
+
     pub fn default_interface(&self) -> InterfaceMode {
         self.default_interface
     }
@@ -28,6 +44,10 @@ impl Settings {
 
     pub fn marker(&self) -> &Marker {
         &self.marker
+    }
+
+    pub fn failure_log_retention_hours(&self) -> u64 {
+        self.failure_log_retention_hours
     }
 
     pub fn allow_repo_writes(&self) -> bool {
@@ -85,6 +105,17 @@ impl Settings {
     pub fn with_marker(mut self, value: Marker) -> Self {
         self.marker = value;
         self
+    }
+
+    pub fn with_failure_log_retention_hours(self, hours: u64) -> Result<Self, String> {
+        if hours == 0 {
+            return Err("failure log retention hours must be greater than zero".to_string());
+        }
+
+        Ok(Self {
+            failure_log_retention_hours: hours,
+            ..self
+        })
     }
 
     pub fn with_allow_repo_writes(self, value: bool) -> Self {
@@ -230,5 +261,28 @@ mod tests {
 
         assert!(settings.interactive());
         assert!(settings.all_workflows());
+    }
+
+    #[test]
+    fn default_failure_log_retention_is_24_hours() {
+        assert_eq!(Settings::default().failure_log_retention_hours(), 24);
+    }
+
+    #[test]
+    fn positive_failure_log_retention_replaces_default() {
+        let settings = Settings::default()
+            .with_failure_log_retention_hours(72)
+            .expect("positive retention is valid");
+
+        assert_eq!(settings.failure_log_retention_hours(), 72);
+    }
+
+    #[test]
+    fn zero_failure_log_retention_is_rejected() {
+        let error = Settings::default()
+            .with_failure_log_retention_hours(0)
+            .expect_err("zero retention must be invalid");
+
+        assert!(error.contains("greater than zero"));
     }
 }

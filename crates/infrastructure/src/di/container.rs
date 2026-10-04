@@ -21,7 +21,10 @@ use crate::{
         command_bus_wiring::CommandBusWiring,
     },
     images::PlatformImageMapper,
-    logging::{FailureLogErrorStore, FailureLogHandler, FailureLogPathStore, FailureLogStores},
+    logging::{
+        FailureLogErrorStore, FailureLogHandler, FailureLogPathStore, FailureLogRetentionStore,
+        FailureLogStores,
+    },
     messaging::{CommandPublisherAdapter, DomainEventPublisherAdapter, InMemoryEventBus},
     steps::JsonStepTextCodec,
     workflows::{
@@ -156,10 +159,12 @@ impl Container {
     ) -> (DomainEventPublisherAdapter, FailureLogStores) {
         let failure_log_error_store = FailureLogErrorStore::new();
         let failure_log_path_store = FailureLogPathStore::new();
+        let failure_log_retention_store = FailureLogRetentionStore::new();
         let failure_log_handler = FailureLogHandler::with_temp_root_and_stores(
             std::env::temp_dir(),
             failure_log_error_store.clone(),
             failure_log_path_store.clone(),
+            failure_log_retention_store.clone(),
         );
         let mut handlers: Vec<Box<dyn DomainEventHandlerPort>> = vec![
             Box::new(ContainerCleanupHandler::new(runtime)),
@@ -171,7 +176,11 @@ impl Container {
         let in_memory_event_bus = Arc::new(InMemoryEventBus::new(handlers));
         (
             DomainEventPublisherAdapter::new(in_memory_event_bus),
-            FailureLogStores::from_stores(failure_log_error_store, failure_log_path_store),
+            FailureLogStores::from_stores(
+                failure_log_error_store,
+                failure_log_path_store,
+                failure_log_retention_store,
+            ),
         )
     }
 
