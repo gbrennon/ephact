@@ -38,9 +38,19 @@ runs:
             ;;
         esac
 
-        curl -fsSL --proto '=https' --tlsv1.2 \
-          -o /tmp/just.tar.gz \
-          "https://github.com/casey/just/releases/download/1.58.0/just-1.58.0-${target}.tar.gz"
+        for attempt in 1 2 3; do
+          if curl -fsSL --proto '=https' --tlsv1.2 \
+            --connect-timeout 15 --max-time 120 \
+            -o /tmp/just.tar.gz \
+            "https://github.com/casey/just/releases/download/1.58.0/just-1.58.0-${target}.tar.gz"; then
+            break
+          fi
+          if [ "$attempt" -eq 3 ]; then
+            echo "failed to download just after 3 attempts" >&2
+            exit 1
+          fi
+          sleep "$((attempt * 5))"
+        done
         tar -xzf /tmp/just.tar.gz -C /tmp just
         install -m 0755 /tmp/just /usr/local/bin/just
         rm -f /tmp/just.tar.gz /tmp/just
@@ -51,12 +61,25 @@ runs:
       run: |
         export PATH="$HOME/.cargo/bin:$PATH"
         if ! command -v rustup >/dev/null 2>&1; then
-          curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/rustup-init.sh https://sh.rustup.rs
-          sh /tmp/rustup-init.sh -y --default-toolchain 1.95.0 --profile default
+          for attempt in 1 2 3; do
+            if curl -fsSL --proto '=https' --tlsv1.2 \
+              --connect-timeout 15 --max-time 120 \
+              -o /tmp/rustup-init.sh https://sh.rustup.rs; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "failed to download rustup after 3 attempts" >&2
+              exit 1
+            fi
+            sleep "$((attempt * 5))"
+          done
+          sh /tmp/rustup-init.sh -y --default-toolchain none --profile minimal
           rm -f /tmp/rustup-init.sh
         fi
         echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-        rustup component add rustfmt clippy
+        rustup set profile minimal
+        rustup show
+        rustfmt --version
+        cargo clippy --version
         rustc --version
         cargo --version
-

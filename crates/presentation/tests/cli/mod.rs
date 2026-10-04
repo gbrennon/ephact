@@ -3,6 +3,7 @@ mod cli_dependencies_tests;
 mod cli_parser_tests;
 mod cli_tests;
 mod command_tests;
+mod input_collector_tests;
 mod list_actions_args_tests;
 mod list_actions_handler_tests;
 mod list_workflows_args_tests;
