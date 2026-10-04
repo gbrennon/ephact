@@ -127,6 +127,7 @@ cargo clippy --all-targets --locked -- -D warnings
   is a manual review convention.
 - **Architecture**: Adhere to hexagonal architecture layer boundaries (`domain`,
   `application`, `infrastructure`, and `presentation`).
+
 - **Complexity**: Target a maximum control-flow nesting depth of 2.
   `just semgrep` checks the configured nesting rule, and `just lizard` enforces
   the repository's cyclomatic-complexity, function-length, argument-count, and
@@ -136,3 +137,17 @@ cargo clippy --all-targets --locked -- -D warnings
   Clippy, and Lizard sequentially and blocks pushes when any check fails. Do
   not bypass installed hooks. Tests and workflow lint are not part of the
   current hook configuration.
+
+### Local Architecture Validation
+
+Run the architecture checks before opening a pull request:
+
+```sh
+just lint
+just semgrep
+```
+
+`just lint` runs Clippy with warnings denied. `just semgrep` checks the
+repository's configured layer-boundary, nesting, and code-quality rules.
+Together they catch structural and architectural drift locally, before the
+same failures reach CI.
