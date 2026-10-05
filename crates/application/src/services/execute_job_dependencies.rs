@@ -23,6 +23,31 @@ pub type ExecuteJobMessagingDependencies = (
     Box<dyn StepCommandPublisherPort>,
     Box<dyn DomainEventPublisherPort>,
 );
+/// Owned dependencies in the order required by job execution.
+pub type ExecuteJobDependenciesParts = (
+    Box<dyn JobEnvironmentBuilderPort>,
+    Box<dyn JobContainerPreparerPort>,
+    Box<dyn StepPathPrefixerPort>,
+    Box<dyn StepContextBuilderPort>,
+    Box<dyn StepSummarizerPort>,
+    Box<dyn StepExportsReaderPort>,
+    Box<dyn StepCommandPublisherPort>,
+    Box<dyn DomainEventPublisherPort>,
+    Box<dyn NetworkCommandClassifier>,
+);
+
+/// Borrowed dependencies in the order required by job execution.
+pub type ExecuteJobDependenciesRefs<'a> = (
+    &'a dyn JobEnvironmentBuilderPort,
+    &'a dyn JobContainerPreparerPort,
+    &'a dyn StepPathPrefixerPort,
+    &'a dyn StepContextBuilderPort,
+    &'a dyn StepSummarizerPort,
+    &'a dyn StepExportsReaderPort,
+    &'a dyn StepCommandPublisherPort,
+    &'a dyn DomainEventPublisherPort,
+    &'a dyn NetworkCommandClassifier,
+);
 
 /// Dependencies required to construct the job execution application service.
 pub struct ExecuteJobDependencies {
@@ -63,19 +88,7 @@ impl ExecuteJobDependencies {
     }
 
     /// Consumes the bundle and returns its dependencies in service field order.
-    pub fn into_parts(
-        self,
-    ) -> (
-        Box<dyn JobEnvironmentBuilderPort>,
-        Box<dyn JobContainerPreparerPort>,
-        Box<dyn StepPathPrefixerPort>,
-        Box<dyn StepContextBuilderPort>,
-        Box<dyn StepSummarizerPort>,
-        Box<dyn StepExportsReaderPort>,
-        Box<dyn StepCommandPublisherPort>,
-        Box<dyn DomainEventPublisherPort>,
-        Box<dyn NetworkCommandClassifier>,
-    ) {
+    pub fn into_parts(self) -> ExecuteJobDependenciesParts {
         (
             self.job_environment_builder,
             self.container_preparer,
@@ -89,19 +102,7 @@ impl ExecuteJobDependencies {
         )
     }
     /// Borrows the bundle's dependencies for one job execution.
-    pub fn as_parts(
-        &self,
-    ) -> (
-        &dyn JobEnvironmentBuilderPort,
-        &dyn JobContainerPreparerPort,
-        &dyn StepPathPrefixerPort,
-        &dyn StepContextBuilderPort,
-        &dyn StepSummarizerPort,
-        &dyn StepExportsReaderPort,
-        &dyn StepCommandPublisherPort,
-        &dyn DomainEventPublisherPort,
-        &dyn NetworkCommandClassifier,
-    ) {
+    pub fn as_parts(&self) -> ExecuteJobDependenciesRefs<'_> {
         (
             self.job_environment_builder.as_ref(),
             self.container_preparer.as_ref(),
