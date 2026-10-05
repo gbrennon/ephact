@@ -22,8 +22,12 @@ pub struct WoodpeckerStepYaml {
 }
 
 impl WoodpeckerStepYaml {
+    /// Parses one Woodpecker step from YAML content.
+    pub fn parse(content: &str) -> Result<Self, serde_yaml::Error> {
+        serde_yaml::from_str(content)
+    }
+
     /// Returns the step's declared name, if any.
-    #[must_use]
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
     }
@@ -32,7 +36,6 @@ impl WoodpeckerStepYaml {
     ///
     /// Woodpecker's mapping form keys each step by name, so the key supplies
     /// the name that the sequence form would carry on the step itself.
-    #[must_use]
     pub fn with_name_if_absent(mut self, name: String) -> Self {
         if self.name.is_none() {
             self.name = Some(name);
@@ -45,7 +48,6 @@ impl WoodpeckerStepYaml {
     /// The step `image` becomes the job container and `needs` carries the
     /// dependency on the preceding step, preserving Woodpecker's sequential
     /// execution order once mapped onto the parallel-by-default job model.
-    #[must_use]
     pub fn into_domain_job(self, needs: Vec<String>) -> Job {
         let script = Self::unescape_dollar_escapes(&self.commands.join("\n"));
         let step = Step::new(None, self.name.clone(), Some(script), None);

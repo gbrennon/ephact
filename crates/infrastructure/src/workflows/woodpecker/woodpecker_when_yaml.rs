@@ -3,83 +3,86 @@ use std::collections::HashMap;
 use serde::Deserialize;
 
 use crate::domain::value_objects::{RefPattern, TriggerFilter, WorkflowTrigger};
-
-#[derive(Debug, Clone, Deserialize, PartialEq)]
-#[serde(untagged)]
-enum StringOrVec {
-    One(String),
-    Many(Vec<String>),
-}
-
-impl StringOrVec {
-    fn into_vec(self) -> Vec<String> {
-        match self {
-            Self::One(value) => vec![value],
-            Self::Many(values) => values,
-        }
-    }
-}
+/// Woodpecker event and reference filters for a pipeline trigger.
+///
+/// Event and reference values are retained as YAML values until conversion
+/// into the domain trigger model.
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Default)]
-struct RefIncludeExcludeYaml {
+pub struct WoodpeckerWhenYaml {
     #[serde(default)]
-    include: Vec<String>,
-    #[serde(default)]
-    exclude: Vec<String>,
+    event: Option<serde_yaml::Value>,
+
+    #[serde(default, rename = "ref")]
+    r#ref: Option<serde_yaml::Value>,
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
-#[serde(untagged)]
-enum WoodpeckerRefYaml {
-    Pattern(StringOrVec),
-    IncludeExclude(RefIncludeExcludeYaml),
-}
+impl WoodpeckerWhenYaml {
+    /// Parses Woodpecker trigger conditions from YAML content.
+    pub fn parse(content: &str) -> Result<Self, serde_yaml::Error> {
+        serde_yaml::from_str(content)
+    }
 
-impl WoodpeckerRefYaml {
-    fn into_tag_filter(self) -> TriggerFilter {
-        match self {
-            Self::Pattern(patterns) => patterns
-                .into_vec()
-                .into_iter()
-                .fold(TriggerFilter::new(), |filter, pattern| {
-                    filter.with_included_ref(RefPattern::tag(pattern))
-                }),
-            Self::IncludeExclude(RefIncludeExcludeYaml { include, exclude }) => {
+    /// Converts the trigger conditions into domain workflow triggers.
+    pub fn into_triggers(self) -> Vec<WorkflowTrigger> {
+        let tag_filter = self.tag_filter();
+        let events = self
+            .event
+            .as_ref()
+            .map(|event| self.strings_from_value(event))
+            .unwrap_or_default();
+        events
+            .into_iter()
+            .filter_map(|event| self.trigger_for_event(&event, tag_filter.clone()))
+            .collect()
+    }
+
+    fn tag_filter(&self) -> Option<TriggerFilter> {
+        let value = self.r#ref.as_ref()?;
+        match value {
+            serde_yaml::Value::String(_) | serde_yaml::Value::Sequence(_) => Some(
+                self.strings_from_value(value)
+                    .into_iter()
+                    .fold(TriggerFilter::new(), |filter, pattern| {
+                        filter.with_included_ref(RefPattern::tag(pattern))
+                    }),
+            ),
+            serde_yaml::Value::Mapping(values) => {
+                let include = values
+                    .get("include")
+                    .map(|value| self.strings_from_value(value))
+                    .unwrap_or_default();
+                let exclude = values
+                    .get("exclude")
+                    .map(|value| self.strings_from_value(value))
+                    .unwrap_or_default();
                 let filter = include
                     .into_iter()
                     .fold(TriggerFilter::new(), |filter, pattern| {
                         filter.with_included_ref(RefPattern::tag(pattern))
                     });
-                exclude.into_iter().fold(filter, |filter, pattern| {
+                Some(exclude.into_iter().fold(filter, |filter, pattern| {
                     filter.with_excluded_ref(RefPattern::tag(pattern))
-                })
+                }))
             }
+            _ => None,
         }
     }
-}
 
-#[derive(Debug, Clone, Deserialize, PartialEq, Default)]
-pub struct WoodpeckerWhenYaml {
-    #[serde(default)]
-    event: Option<StringOrVec>,
-
-    #[serde(default, rename = "ref")]
-    r#ref: Option<WoodpeckerRefYaml>,
-}
-
-impl WoodpeckerWhenYaml {
-    #[must_use]
-    pub fn into_triggers(self) -> Vec<WorkflowTrigger> {
-        let tag_filter = self.r#ref.map(WoodpeckerRefYaml::into_tag_filter);
-        self.event
-            .map(StringOrVec::into_vec)
-            .unwrap_or_default()
-            .into_iter()
-            .filter_map(|event| Self::trigger_for_event(&event, tag_filter.clone()))
-            .collect()
+    fn strings_from_value(&self, value: &serde_yaml::Value) -> Vec<String> {
+        match value {
+            serde_yaml::Value::String(value) => vec![value.clone()],
+            serde_yaml::Value::Sequence(values) => values
+                .iter()
+                .filter_map(serde_yaml::Value::as_str)
+                .map(str::to_owned)
+                .collect(),
+            _ => Vec::new(),
+        }
     }
 
     fn trigger_for_event(
+        &self,
         event: &str,
         tag_filter: Option<TriggerFilter>,
     ) -> Option<WorkflowTrigger> {
