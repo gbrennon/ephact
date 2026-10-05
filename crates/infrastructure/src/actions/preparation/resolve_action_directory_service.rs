@@ -19,19 +19,20 @@ use crate::{
 /// runner already provides by mounting the workspace.
 const CHECKOUT_REPO: &str = "checkout";
 
-/// Forge a shorthand `owner/repo` reference resolves against when the `uses:`
-/// value omits a scheme and host. Choosing GitHub as the default is a
-/// deployment policy owned by infrastructure, not the domain.
+/// Default forge and ref values used when a shorthand action reference omits
+/// them.
 const DEFAULT_FORGE_SCHEME: &str = "https";
 const DEFAULT_FORGE_HOST: &str = "github.com";
 /// Git ref assumed when a reference omits `@ref`.
 const DEFAULT_GIT_REF: &str = "main";
 
-/// Service that decides where the action a step references lives.
+/// Resolves a workflow action reference to a local directory or a skipped
+/// result.
 ///
-/// Local references resolve inside the repository under test, remote ones are
-/// fetched from their forge, a checkout action needs no work because the
-/// workspace is already mounted, and container actions are unsupported.
+/// Local references are resolved below the repository path, remote references
+/// are fetched, the checkout action returns a skipped result because the
+/// repository is already available, and container actions return an
+/// unsupported error.
 pub struct ResolveActionDirectoryService {
     remote_fetcher: Box<dyn FetchRemoteActionPort>,
 }

@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 
-/// Response DTO for the
-/// [`ListAllWorkflowFilesPort`](crate::ports::inbound::list_all_workflow_files_port::ListAllWorkflowFilesPort)
-/// inbound port.
+/// Response data returned by the outbound operation.
 #[derive(Debug)]
 pub struct ListAllWorkflowFilesResponse {
     /// Every workflow file discovered in the repository.

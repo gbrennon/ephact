@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 
-/// Response DTO for the
-/// [`ListWorkflowDirectoryPort`](crate::ports::inbound::list_workflow_directory_port::ListWorkflowDirectoryPort)
-/// inbound port.
+/// Response data returned by the outbound operation.
 #[derive(Debug)]
 pub struct ListWorkflowDirectoryResponse {
     /// Workflow files found directly inside the directory, sorted by path.

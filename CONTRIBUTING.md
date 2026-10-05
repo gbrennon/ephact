@@ -47,7 +47,7 @@ All common contributor tasks are automated via `just`. Run `just` or
 | `just test --crate domain`     | Run coverage for one crate; supported names are `root`, `domain`, `application`, `infrastructure`, and `presentation` | `COVERAGE_THRESHOLD=80 ./scripts/check_coverage.sh --crate domain` |
 | `just test-local`              | Run all default-feature test targets without coverage; excludes feature-gated container integration                                | `cargo test`                                                                           |
 | `just lint`                    | Run Clippy and deny warnings                                                                                                       | `cargo clippy -- -D warnings`                                                          |
-| `just lint-fix *args`          | Apply Clippy fixes; optional values are cargo-clippy arguments, not source-file filters                                            | `cargo clippy --fix --allow-dirty --allow-staged {{files}}`                            |
+| `just lint-fix *args`          | Preserve staged files, then run the configured Clippy fix command with optional arguments; no arguments perform no work             | `bash scripts/lint-fix-staged.sh {{args}}`                                             |
 | `just fmt`                    | Format the entire workspace                                                                                                          | `cargo fmt`                                                                            |
 | `just fmt-check`               | Check formatting without modifying files                                                                                           | `cargo fmt --check`                                                                    |
 | `just tools`                   | Install `rustfmt`, `clippy`, and `cargo-llvm-cov`                                                                                  | `rustup component add rustfmt clippy && cargo install cargo-llvm-cov --locked --force` |
@@ -102,12 +102,14 @@ The CI workflow in `.forgejo/workflows/ci.yml` runs on pushes to `main`, pull
 requests targeting `main`, and manual dispatch:
 
 1. **Validate** runs `cargo fmt --all -- --check`.
+1. **Workflow lint** validates every `.forgejo/workflows/*.yml` file with the
+   repository configuration.
 1. **Test** runs `just test`, covering default-feature test targets with the 80%
    aggregate line threshold while excluding feature-gated container integration.
 1. **Lint** runs `cargo clippy --all-targets --locked -- -D warnings`.
 1. **Verify secrets** verifies repository secrets for same-repository runs.
-Workflow linting is available locally through `just lint-workflows`, but it is
-not currently a CI step.
+Workflow linting is available locally through `just lint-workflows` and runs in
+CI as the **Workflow lint** job.
 
 Before opening a pull request, run the CI commands locally:
 

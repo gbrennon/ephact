@@ -1,6 +1,6 @@
 use crate::entities::Step;
 
-/// The execution strategy for an action.
+/// Describes how an action is represented and executed.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ActionRuntime {
     /// Composite action: runs shell steps in the job's container.
@@ -27,7 +27,8 @@ pub enum ActionRuntime {
         main: String,
     },
 
-    /// Docker action: runs a container image (not yet executed).
+    /// Docker action identified by its image; execution currently reports an
+    /// unsupported-action error.
     Docker {
         /// Docker image to run.
         image: String,

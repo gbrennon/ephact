@@ -7,10 +7,10 @@ use crate::{
     },
 };
 
-/// A job in a workflow.
+/// A workflow job containing steps, declared dependencies, environment, and
+/// optional container and execution settings.
 ///
-/// Jobs run in parallel by default but can be sequenced with `needs`.
-/// Each job runs on a fresh virtual environment specified by `runs_on`.
+/// `needs` contributes dependency ordering during workflow planning.
 ///
 /// # Examples
 ///

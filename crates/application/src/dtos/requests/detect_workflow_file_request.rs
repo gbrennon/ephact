@@ -1,8 +1,7 @@
 use std::path::{Path, PathBuf};
 
-/// Request DTO for the
-/// [`DetectWorkflowFilePort`](crate::ports::inbound::detect_workflow_file_port::DetectWorkflowFilePort)
-/// inbound port.
+/// Request data for the outbound operation.
+/// The request identifies the repository whose default workflow is selected.
 pub struct DetectWorkflowFileRequest {
     /// Path to the repository whose workflow is detected.
     repo_path: PathBuf,

@@ -3,7 +3,8 @@ use std::collections::BTreeMap;
 use super::ContextValue;
 use crate::errors::JsonTextError;
 
-/// Recursive-descent reader turning JSON text into a [`ContextValue`].
+/// Parses one JSON text document into a [`ContextValue`], rejecting malformed
+/// input and trailing non-whitespace text with [`JsonTextError`].
 pub struct JsonTextReader<'a> {
     text: &'a str,
     position: usize,

@@ -3,23 +3,22 @@ use crate::{
     errors::ExecuteActionError,
 };
 
-/// Inbound port for executing a single action referenced by a workflow step.
+/// Executes the action referenced by a workflow step.
 ///
-/// Implementations resolve the `uses:` reference - a path inside the
-/// repository, or a repository on any forge that has to be fetched first - and
-/// run the resulting action definition inside the container supplied with the
-/// request.
+/// Local references are resolved in the repository; remote references are
+/// fetched before the action definition is loaded. Composite and JavaScript
+/// actions are executed in the supplied container. Unsupported container
+/// actions return an error rather than being skipped.
 ///
-/// The response reports the action's exit status and output; a [`StepError`] is
-/// returned only when the action could not be run at all, and it carries any
-/// output produced before the failure.
+/// The response contains the action exit status and captured output. Step
+/// failures retain output captured before the failure.
 pub trait ExecuteActionPort: Send + Sync {
-    /// Resolves and runs the requested action.
+    /// Resolves and executes the requested action.
     ///
     /// # Errors
     ///
-    /// Returns [`StepError`] when the reference cannot be resolved, the action
-    /// definition cannot be read, or the container refuses to run it.
+    /// Returns [`ExecuteActionError`] when the action cannot be resolved,
+    /// loaded, prepared, or executed.
     fn execute(
         &self,
         request: ExecuteActionRequest,

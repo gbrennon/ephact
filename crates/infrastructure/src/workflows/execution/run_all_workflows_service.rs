@@ -29,12 +29,8 @@ use crate::{
 /// Name reported for the aggregate summary of a full multi-workflow run.
 pub const ALL_WORKFLOWS_SUMMARY_NAME: &str = "All Workflows";
 
-/// Application service running every workflow found in the repository.
-///
-/// Reads all workflow sources through an outbound port and publishes one
-/// [`ExecuteWorkflowPayload`] per workflow. When every workflow finished, the
-/// completion is announced as an [`DomainEvent::WorkflowRunCompleted`] event so
-/// infrastructure handlers can clean up.
+/// Runs every repository workflow that declares the requested event, aggregates
+/// the workflow results, announces completion, and returns an overall summary.
 pub struct RunAllWorkflowsService {
     workflow_source: Box<dyn WorkflowSourcePort>,
     command_publisher: Box<dyn WorkflowCommandPublisherPort>,

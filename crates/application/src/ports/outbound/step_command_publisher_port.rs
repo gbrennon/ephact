@@ -6,7 +6,14 @@ use crate::{
     ports::outbound::container_port::ContainerPort,
 };
 
+/// Publishes step execution commands.
 pub trait StepCommandPublisherPort: Send + Sync {
+    /// Routes `command` and its container to a step handler and returns the
+    /// execution response.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StepError`] when dispatch or step execution fails.
     fn publish(
         &self,
         command: ExecuteStepPayload,

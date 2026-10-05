@@ -10,11 +10,11 @@ use crate::{
     workflows::workflow_document::WorkflowDocument,
 };
 
-/// Infrastructure adapter that reads workflow definitions from the filesystem.
+/// Reads YAML workflow files from configured repository directories.
 ///
-/// This adapter is the concrete implementation of `WorkflowSourcePort` and lives
-/// entirely in the infrastructure layer. It knows nothing about application
-/// services or ports - it simply reads workflow files and returns their contents.
+/// Exposes workflow contents, workflow listings, and referenced actions
+/// through [`WorkflowSourcePort`]. Missing files and filesystem failures are
+/// reported as [`WorkflowSourceError`].
 pub struct FilesystemWorkflowSource {
     workflow_dirs: Vec<String>,
 }

@@ -1,8 +1,12 @@
 use std::io;
 
+/// Failure while collecting repository files or copying them into a container.
+///
 #[derive(Debug)]
 pub enum CopyRepositoryToContainerError {
+    /// A filesystem operation needed to collect repository files failed.
     Filesystem(io::Error),
+    /// A container copy operation failed after the repository files were collected.
     Container(String),
 }
 

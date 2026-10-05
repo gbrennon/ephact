@@ -7,11 +7,13 @@ const SUPPORTED_WORKFLOWS: &str = ".forgejo/workflows, .github/workflows, .woodp
 #[command(
     name = "ephact",
     after_long_help = r#"EXAMPLES:
-    ephact run
-    ephact run --workflow CI --job test
+    ephact run --event pull_request
+    ephact run --event pull_request --workflow CI --job test
     ephact run --event pull_request --secret TOKEN=abc123
 
-CI host from the repository layout and manages ephemeral copies internally."#
+Noninteractive runs require `--event`; interactive mode selects a `pull_request`
+workflow. The CI host is auto-detected from the repository layout and manages
+ephemeral copies internally."#
 )]
 pub struct CliParser {
     #[command(subcommand)]
@@ -35,7 +37,7 @@ impl CliParser {
                 "Run CI workflows locally in ephemeral repositories ({platforms})"
             ))
             .long_about(format!(
-                "Runs CI workflows in an ephemeral copy of a repository using `act`. \
+                "Runs CI workflows in an ephemeral copy of a repository. \
                  The CI host is auto-detected from the repository layout; \
                  see `run --help` for the available options.\n\n\
                  Supported platforms: {platforms}\n\

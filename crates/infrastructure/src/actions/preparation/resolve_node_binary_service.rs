@@ -8,11 +8,10 @@ use crate::application::{
 /// absolute path for it.
 const NODE_COMMAND: &str = "node";
 
-/// Service that finds the node interpreter to run a JavaScript action with.
+/// Resolves the command used to run a JavaScript action in a container.
 ///
-/// Runner images commonly install node in a tool cache that only a login shell
-/// puts on `PATH`, so the binary is looked up through one; when the lookup
-/// finds nothing, the bare command is used so the failure names the missing
+/// Returns the absolute `node` path reported by the container when available;
+/// otherwise returns `node` so eventual execution reports a missing
 /// interpreter.
 pub struct ResolveNodeBinaryService;
 

@@ -1,7 +1,10 @@
 use crate::domain::errors::StepError;
 
+/// Failure while decoding, interpolating, or executing a workflow step.
+///
 #[derive(Debug)]
 pub enum ExecuteStepError {
+    /// The underlying step operation failed.
     Step(StepError),
 }
 
@@ -10,18 +13,21 @@ impl_application_error!(ExecuteStepError, |error: &ExecuteStepError| match error
 },);
 
 impl ExecuteStepError {
+    /// Returns the message stored in the underlying [`StepError`].
     pub fn message(&self) -> &str {
         match self {
             Self::Step(error) => error.message(),
         }
     }
 
+    /// Returns standard output captured by the underlying [`StepError`].
     pub fn stdout(&self) -> &str {
         match self {
             Self::Step(error) => error.stdout(),
         }
     }
 
+    /// Returns standard error captured by the underlying [`StepError`].
     pub fn stderr(&self) -> &str {
         match self {
             Self::Step(error) => error.stderr(),

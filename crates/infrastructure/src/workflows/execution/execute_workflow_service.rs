@@ -28,13 +28,8 @@ use crate::{
     },
 };
 
-/// Application service coordinating the execution of a single workflow.
-///
-/// Loads the workflow definition through an outbound port, plans its job
-/// stages, and publishes one [`ExecuteJobPayload`] per planned run. The job
-/// command handler is what turns each command into an execution, so this
-/// service never depends on the job entrypoint itself. Progress facts are
-/// announced as domain events on the outbound [`DomainEventPublisherPort`].
+/// Loads and plans one workflow, executes its planned job runs, publishes
+/// progress events, and returns their summaries and overall success.
 pub struct ExecuteWorkflowService {
     workflow_loader: Box<dyn WorkflowLoaderPort>,
     command_publisher: Box<dyn JobCommandPublisherPort>,

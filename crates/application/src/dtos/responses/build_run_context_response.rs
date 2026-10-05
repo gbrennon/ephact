@@ -1,8 +1,6 @@
 use crate::domain::value_objects::EvaluationContext;
 
-/// Response DTO for the
-/// [`BuildRunContextPort`](crate::ports::inbound::build_run_context_port::BuildRunContextPort)
-/// outbound port.
+/// Response data returned by the outbound operation.
 #[derive(Debug, Clone)]
 pub struct BuildRunContextResponse {
     /// The evaluated run context.

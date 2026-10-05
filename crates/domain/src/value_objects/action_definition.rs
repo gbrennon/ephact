@@ -2,8 +2,9 @@ use crate::value_objects::{ActionInput, ActionRuntime};
 
 /// A parsed action definition (`action.yml` / `action.yaml`).
 ///
-/// Supports composite actions (`using: composite`) with nested steps.
-/// Node and Docker actions are parsed but not yet executed.
+/// Supports composite actions with nested steps and Node actions with
+/// JavaScript entry points. Docker actions retain their image reference but
+/// report an unsupported-action error when execution is requested.
 ///
 /// # Examples
 ///
