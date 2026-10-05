@@ -3,6 +3,7 @@
 pub struct ReadStepOutputExportsRequest;
 
 impl ReadStepOutputExportsRequest {
+    /// Creates an empty request.
     pub fn new() -> Self {
         Self
     }
