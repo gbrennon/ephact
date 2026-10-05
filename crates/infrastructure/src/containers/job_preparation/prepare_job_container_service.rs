@@ -15,6 +15,9 @@ use crate::application::{
     },
 };
 
+const DEFAULT_CONTAINER_IMAGE: &str = "ubuntu:24.04";
+
+/// Prepares isolated job containers from generic container image requests.
 pub struct PrepareJobContainerService {
     image_puller: Box<dyn PullJobImagePort>,
     container_creator: Box<dyn CreateJobContainerPort>,
@@ -22,6 +25,7 @@ pub struct PrepareJobContainerService {
 }
 
 impl PrepareJobContainerService {
+    /// Creates a service with image, container, and repository adapters.
     pub fn new(
         image_puller: Box<dyn PullJobImagePort>,
         container_creator: Box<dyn CreateJobContainerPort>,
@@ -40,11 +44,10 @@ impl JobContainerPreparerPort for PrepareJobContainerService {
         &self,
         request: PrepareJobContainerRequest,
     ) -> Result<PreparedJobContainerResponse, PrepareJobContainerError> {
+        let image = request.container_image().unwrap_or(DEFAULT_CONTAINER_IMAGE);
         let image = self
             .image_puller
-            .pull(PullJobImageRequest::new(
-                request.runs_on().map(str::to_string),
-            ))
+            .pull(PullJobImageRequest::new(image.to_string()))
             .map_err(|error| PrepareJobContainerError::Image(error.to_string()))?;
         let timestamp = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)

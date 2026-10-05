@@ -5,13 +5,10 @@ use ephact::{
     infrastructure::{
         actions::GitActionFetcher,
         di::{Container, container::ContainerCollaborators},
-        images::PlatformImageMapper,
         persistence::CargoProjectBrandingStore,
     },
     presentation::composition_root::{Application, CompositionRoot},
 };
-
-use crate::e2e_fixed_image_mapper::FixedImageMapper;
 
 pub struct EphactApplication;
 
@@ -28,12 +25,7 @@ impl EphactApplication {
             ephact::PROJECT_EMBLEM,
         );
         let container = Container::with_collaborators_and_branding(
-            ContainerCollaborators::new(
-                runtime,
-                Box::new(FixedImageMapper),
-                fetcher,
-                workflow_source,
-            ),
+            ContainerCollaborators::new(runtime, fetcher, workflow_source),
             None,
             Box::new(branding_store),
         );
@@ -54,7 +46,6 @@ impl EphactApplication {
         let container = Container::with_collaborators_and_branding(
             ContainerCollaborators::new(
                 runtime,
-                Box::new(PlatformImageMapper),
                 Box::new(GitActionFetcher::with_default_cache_root()),
                 workflow_source,
             ),

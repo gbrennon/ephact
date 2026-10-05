@@ -5,12 +5,11 @@ use crate::{
     application::{
         ports::outbound::{
             ActionCommandPublisherPort, ActionFetcherPort, ContainerRuntimePort,
-            DomainEventPublisherPort, ImageMapperPort, JobCommandPublisherPort,
-            StepCommandPublisherPort, StepInterpolatorPort, StepTextCodecPort,
+            DomainEventPublisherPort, JobCommandPublisherPort, StepCommandPublisherPort,
+            StepInterpolatorPort, StepTextCodecPort,
         },
         services::{
-            execute_job_service::{ExecuteJobDependencies, ExecuteJobService},
-            execute_step_service::ExecuteStepService,
+            ExecuteJobDependencies, ExecuteJobService, execute_step_service::ExecuteStepService,
         },
     },
     containers::{
@@ -40,11 +39,9 @@ impl CommandBusWiring {
     #[must_use]
     pub fn build(
         runtime: Arc<dyn ContainerRuntimePort>,
-        image_mapper: Box<dyn ImageMapperPort>,
         action_fetcher: Box<dyn ActionFetcherPort>,
         event_bus: crate::messaging::DomainEventPublisherAdapter,
     ) -> CommandPublisherAdapter {
-        let image_mapper: Arc<dyn ImageMapperPort> = Arc::from(image_mapper);
         let deferred = Arc::new(DeferredCommandBus::new());
         let publisher = CommandPublisherAdapter::new(deferred.clone());
 
@@ -56,7 +53,6 @@ impl CommandBusWiring {
 
         let job_handler = JobCommandHandler::new(Box::new(Self::build_job_executor(
             runtime.clone(),
-            image_mapper,
             Box::new(publisher.clone()) as Box<dyn StepCommandPublisherPort>,
             Box::new(event_bus.clone()),
         )));
@@ -107,17 +103,13 @@ impl CommandBusWiring {
 
     fn build_job_executor(
         runtime: Arc<dyn ContainerRuntimePort>,
-        image_mapper: Arc<dyn ImageMapperPort>,
         command_bus: Box<dyn StepCommandPublisherPort>,
         event_bus: Box<dyn DomainEventPublisherPort>,
     ) -> ExecuteJobService {
         ExecuteJobService::new(ExecuteJobDependencies::new(
             Box::new(RunnerEnvironmentAdapter::new()),
             Box::new(PrepareJobContainerService::new(
-                Box::new(PullJobImageService::new(
-                    runtime.clone(),
-                    image_mapper.clone(),
-                )),
+                Box::new(PullJobImageService::new(runtime.clone())),
                 Box::new(CreateJobContainerService::new(runtime.clone())),
                 Box::new(RepositoryContainerCopyAdapter::new()),
             )),

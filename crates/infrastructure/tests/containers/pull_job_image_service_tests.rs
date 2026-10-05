@@ -6,59 +6,46 @@ use ephact::{
 };
 
 use crate::common::fakes::{
-    fake_image_mapper::FakeImageMapper, fake_runtime::FakeRuntime,
-    stub_failing_container_runtime::StubFailingContainerRuntime,
-    stub_pull_failing_runtime::StubPullFailingRuntime,
+    fake_runtime::FakeRuntime, stub_failing_container_runtime::StubFailingContainerRuntime,
 };
 
 #[test]
-fn execute_pulls_and_returns_the_mapped_image() {
+fn pulls_the_requested_container_image() {
     let runtime = Arc::new(FakeRuntime::new());
-    let service = PullJobImageService::new(runtime.clone(), Arc::new(FakeImageMapper));
+    let service = PullJobImageService::new(runtime.clone());
 
     let image = service
-        .pull(PullJobImageRequest::new(Some("ubuntu-22.04".to_string())))
+        .pull(PullJobImageRequest::new("python:3.12-slim".to_string()))
         .unwrap();
 
-    assert_eq!(image, "ubuntu-22.04");
-    assert_eq!(runtime.pulled_images.lock().clone(), vec!["ubuntu-22.04"]);
-}
-
-#[test]
-fn execute_maps_ubuntu_latest_when_the_job_declares_no_runner() {
-    let runtime = Arc::new(FakeRuntime::new());
-    let service = PullJobImageService::new(runtime.clone(), Arc::new(FakeImageMapper));
-
-    let image = service.pull(PullJobImageRequest::new(None)).unwrap();
-
-    assert_eq!(image, "ubuntu-latest");
-    assert_eq!(runtime.pulled_images.lock().clone(), vec!["ubuntu-latest"]);
-}
-
-#[test]
-fn execute_falls_back_to_the_mappers_default_image_when_the_first_pull_fails() {
-    let runtime = Arc::new(StubPullFailingRuntime::rejecting(vec![
-        "ubuntu-latest".to_string(),
-    ]));
-    let service = PullJobImageService::new(runtime.clone(), Arc::new(FakeImageMapper));
-
-    let image = service.pull(PullJobImageRequest::new(None)).unwrap();
-
-    assert_eq!(image, "fake-image:latest");
+    assert_eq!(image, "python:3.12-slim");
     assert_eq!(
         runtime.pulled_images.lock().clone(),
-        vec!["ubuntu-latest", "fake-image:latest"]
+        vec!["python:3.12-slim"]
     );
 }
 
 #[test]
-fn execute_errors_when_both_pulls_fail() {
-    let service = PullJobImageService::new(
-        Arc::new(StubFailingContainerRuntime),
-        Arc::new(FakeImageMapper),
-    );
+fn does_not_translate_or_fallback_from_a_runner_label() {
+    let runtime = Arc::new(FakeRuntime::new());
+    let service = PullJobImageService::new(runtime.clone());
 
-    let result = service.pull(PullJobImageRequest::new(None));
+    let image = service
+        .pull(PullJobImageRequest::new("codeberg-medium".to_string()))
+        .unwrap();
+
+    assert_eq!(image, "codeberg-medium");
+    assert_eq!(
+        runtime.pulled_images.lock().clone(),
+        vec!["codeberg-medium"]
+    );
+}
+
+#[test]
+fn propagates_a_container_image_pull_failure() {
+    let service = PullJobImageService::new(Arc::new(StubFailingContainerRuntime));
+
+    let result = service.pull(PullJobImageRequest::new("ubuntu:24.04".to_string()));
 
     assert!(result.is_err());
 }
