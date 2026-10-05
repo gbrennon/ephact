@@ -1,8 +1,7 @@
 use std::path::{Path, PathBuf};
 
-/// Request DTO for the
-/// [`ListAllWorkflowFilesPort`](crate::ports::inbound::list_all_workflow_files_port::ListAllWorkflowFilesPort)
-/// inbound port.
+/// Request data for the outbound operation.
+/// The request identifies the repository whose workflow files are listed.
 pub struct ListAllWorkflowFilesRequest {
     /// Path to the repository whose workflow files are listed.
     repo_path: PathBuf,

@@ -1,5 +1,8 @@
+/// Failure while loading, planning, or executing a workflow.
+///
 #[derive(Debug)]
 pub enum ExecuteWorkflowError {
+    /// A workflow operation failed. The contained string describes the failure.
     Workflow(String),
 }
 

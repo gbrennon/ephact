@@ -26,12 +26,9 @@ use crate::{
     repositories::RepositoryResolver,
     workflows::execution::workflow_run_config_mapper::WorkflowRunConfigMapper,
 };
-///
-/// Agnostic by construction: it never touches files, containers, or any external
-/// service. It reads the workflow definition through the outbound
-/// [`WorkflowSourcePort`], expresses the intent to execute it as a command on the
-/// outbound [`WorkflowCommandPublisherPort`], and announces the outcome as a domain event on the
-/// outbound [`DomainEventPublisherPort`].
+/// Coordinates one workflow run: resolves the repository workflow, verifies
+/// that the requested event is declared, dispatches execution, publishes
+/// lifecycle events, and returns a run summary or error.
 pub struct RunWorkflowService {
     workflow_source: Box<dyn WorkflowSourcePort>,
     command_publisher: Box<dyn WorkflowCommandPublisherPort>,

@@ -1,8 +1,7 @@
 use std::path::{Path, PathBuf};
 
-/// Request DTO for the
-/// [`CreateJobContainerPort`](crate::ports::inbound::create_job_container_port::CreateJobContainerPort)
-/// inbound port.
+/// Request data for the outbound operation.
+/// The request contains the image, names, repository path, and write policy.
 pub struct CreateJobContainerRequest {
     image: String,
     container_name: String,

@@ -1,7 +1,10 @@
 use crate::domain::errors::StepError;
 
+/// Failure while executing an action nested inside another action.
+///
 #[derive(Debug)]
 pub enum ExecuteNestedActionError {
+    /// A step-level failure occurred while executing the nested action.
     Step(StepError),
 }
 

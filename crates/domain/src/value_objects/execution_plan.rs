@@ -1,8 +1,9 @@
 use crate::value_objects::ExecutionStage;
 
-/// A plan is the complete execution order for a workflow.
+/// A dependency-ordered execution plan for a workflow.
 ///
-/// Stages execute sequentially; runs within a stage execute in parallel.
+/// Stages are processed in order; this value describes dependency levels and
+/// does not promise concurrent execution within a stage.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExecutionPlan {
     /// The ordered stages of execution.

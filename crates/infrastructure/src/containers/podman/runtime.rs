@@ -23,11 +23,11 @@ use crate::{
     domain::errors::ContainerError,
 };
 
-/// Podman-based container runtime adapter using the bollard crate.
+/// Provides [`ContainerRuntimePort`] operations through a Podman-compatible
+/// API.
 ///
-/// Podman exposes a Docker-compatible API. This adapter connects via the
-/// Podman socket, trying rootless first (`/run/user/$UID/podman/podman.sock`)
-/// then falling back to the root socket (`/run/podman/podman.sock`).
+/// Connects through the rootless Podman socket first, then falls back to the
+/// root socket.
 pub struct PodmanRuntime {
     client: Client,
     runtime: Runtime,

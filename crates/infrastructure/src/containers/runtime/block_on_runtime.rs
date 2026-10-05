@@ -1,21 +1,20 @@
 use tokio::runtime::Handle;
 
-/// Runs futures on a specific tokio runtime handle.
-///
-/// Tolerates being called from within another runtime by releasing the current
-/// worker thread with `block_in_place` before blocking, avoiding a nested
-/// runtime panic.
+/// Runs a future to completion on a supplied Tokio runtime handle, including
+/// when the caller is already inside a Tokio runtime.
 pub struct RuntimeBlocker {
     runtime: Handle,
 }
 
 impl RuntimeBlocker {
+    /// Stores the runtime handle used by later calls to [`Self::block_on`].
     pub fn new(runtime: &Handle) -> Self {
         Self {
             runtime: runtime.clone(),
         }
     }
 
+    /// Runs `future` synchronously on the stored runtime and returns its output.
     pub fn block_on<F: Future>(&self, future: F) -> F::Output {
         if Handle::try_current().is_ok() {
             tokio::task::block_in_place(|| self.runtime.block_on(future))

@@ -7,6 +7,7 @@ pub enum PlanError {
     /// A job depends on a job that doesn't exist.
     MissingDependency { job: String, dependency: String },
 
-    /// Dependencies could not be fully resolved (should not happen after cycle detection).
+    /// One or more declared dependencies prevented all jobs from being placed
+    /// in an execution stage.
     UnresolvedDependencies,
 }

@@ -1,8 +1,7 @@
 use crate::domain::{Repository, WorkflowRunConfig};
 
-/// Request DTO for the
-/// [`BuildRunContextPort`](crate::ports::inbound::build_run_context_port::BuildRunContextPort)
-/// outbound port.
+/// Request data for the outbound operation.
+/// The context is built from the run configuration and repository.
 pub struct BuildRunContextRequest {
     config: WorkflowRunConfig,
     repository: Repository,

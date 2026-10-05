@@ -1,8 +1,6 @@
 use crate::dtos::responses::FileEntryResponse;
 
-/// Response DTO for the
-/// [`CollectActionFilesPort`](crate::ports::inbound::collect_action_files_port::CollectActionFilesPort)
-/// inbound port.
+/// Response data returned by the outbound operation.
 #[derive(Debug)]
 pub struct CollectActionFilesResponse {
     /// Files making up the action, with paths relative to its directory.

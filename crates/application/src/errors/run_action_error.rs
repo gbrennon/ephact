@@ -1,7 +1,10 @@
 use crate::domain::errors::StepError;
 
+/// Failure while decoding or dispatching an action execution request.
+///
 #[derive(Debug)]
 pub enum RunActionError {
+    /// A step-level failure occurred while preparing or dispatching the action execution.
     Step(StepError),
 }
 

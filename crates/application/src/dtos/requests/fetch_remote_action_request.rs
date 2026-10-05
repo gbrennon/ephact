@@ -1,8 +1,7 @@
 use crate::domain::value_objects::RemoteActionReference;
 
-/// Request DTO for the
-/// [`FetchRemoteActionPort`](crate::ports::inbound::fetch_remote_action_port::FetchRemoteActionPort)
-/// inbound port.
+/// Request data for the outbound operation.
+/// The request identifies the remote action reference to fetch.
 pub struct FetchRemoteActionRequest {
     reference: RemoteActionReference,
 }

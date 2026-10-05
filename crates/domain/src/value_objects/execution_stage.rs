@@ -1,12 +1,12 @@
 use crate::entities::JobRun;
 
-/// A stage is a group of runs that execute in parallel.
+/// A group of runs at the same dependency level in a workflow plan.
 ///
-/// Stages are separated by dependency boundaries: all runs in a stage
-/// must complete before the next stage begins.
+/// The execution service processes stages in dependency order; this value does
+/// not promise concurrent execution of its runs.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExecutionStage {
-    /// The runs in this stage (execute in parallel).
+    /// The runs in this dependency level.
     runs: Vec<JobRun>,
 }
 

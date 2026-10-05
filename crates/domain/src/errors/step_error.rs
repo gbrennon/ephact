@@ -18,6 +18,7 @@ impl fmt::Display for StepError {
 impl std::error::Error for StepError {}
 
 impl StepError {
+    /// Creates an error with the supplied message and empty standard-output and standard-error fields.
     pub fn new(message: impl Into<String>) -> Self {
         Self {
             message: message.into(),
@@ -26,23 +27,28 @@ impl StepError {
         }
     }
 
+    /// Returns the failure message.
     pub fn message(&self) -> &str {
         &self.message
     }
 
+    /// Returns captured standard output, or an empty string when none was attached.
     pub fn stdout(&self) -> &str {
         &self.stdout
     }
 
+    /// Returns captured standard error, or an empty string when none was attached.
     pub fn stderr(&self) -> &str {
         &self.stderr
     }
 
+    /// Returns this error with its captured standard output replaced by `stdout`.
     pub fn with_stdout(mut self, stdout: impl Into<String>) -> Self {
         self.stdout = stdout.into();
         self
     }
 
+    /// Returns this error with its captured standard error replaced by `stderr`.
     pub fn with_stderr(mut self, stderr: impl Into<String>) -> Self {
         self.stderr = stderr.into();
         self

@@ -2,9 +2,8 @@ use std::path::{Path, PathBuf};
 
 use crate::domain::WorkflowRunConfig;
 
-/// Request DTO for the
-/// [`ResolveWorkflowFilesPort`](crate::ports::inbound::resolve_workflow_files_port::ResolveWorkflowFilesPort)
-/// inbound port.
+/// Request data for the outbound operation.
+/// The request supplies run selection settings and the repository path.
 pub struct ResolveWorkflowFilesRequest {
     /// Configuration naming which workflows the run executes.
     config: WorkflowRunConfig,

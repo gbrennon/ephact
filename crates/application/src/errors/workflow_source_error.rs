@@ -1,9 +1,14 @@
 use std::io;
 
+/// Failure while locating, reading, or listing workflow source files.
+///
 #[derive(Debug)]
 pub enum WorkflowSourceError {
+    /// A filesystem operation needed to access workflow source files failed.
     Io(io::Error),
+    /// The requested workflow name did not match an available workflow file.
     NotFound(String),
+    /// No workflow files were found for an unnamed workflow request.
     Empty,
 }
 

@@ -1,8 +1,14 @@
+/// Failure while reading or writing persisted settings.
+///
 #[derive(Debug)]
 pub enum SettingsStoreError {
+    /// A settings file read failed.
     Read(String),
+    /// Settings could not be serialized or written.
     Write(String),
+    /// Persisted settings could not be parsed or validated.
     Parse(String),
+    /// The configured settings path could not be resolved.
     Path(String),
 }
 

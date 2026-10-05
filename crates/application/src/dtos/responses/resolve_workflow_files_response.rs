@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 
-/// Response DTO for the
-/// [`ResolveWorkflowFilesPort`](crate::ports::inbound::resolve_workflow_files_port::ResolveWorkflowFilesPort)
-/// inbound port.
+/// Response data returned by the outbound operation.
 #[derive(Debug)]
 pub struct ResolveWorkflowFilesResponse {
     /// Workflow files the run executes, in execution order.

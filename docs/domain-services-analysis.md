@@ -10,11 +10,10 @@ A domain service is not a generic home for code that does not fit elsewhere. It 
 stateless domain operation whose inputs and outputs are domain concepts and whose rule
 cannot naturally belong to one entity or value object.
 
-For this workflow runner, the domain crate now contains aggregates, entities, value
-objects, domain errors, and domain messages. It contains no domain-service module. The
-workflow-expression evaluator has moved to the application layer because expression
-interpolation is execution orchestration, not a canonical business concept of the
-workflow aggregate.
+For this workflow runner, the domain crate contains aggregates, entities, value
+objects, domain errors, and domain messages. It contains no domain-service module.
+Expression interpolation is an application use case exposed through an outbound
+port and implemented by an infrastructure adapter.
 
 ## Findings
 
@@ -27,27 +26,28 @@ symptom and an unnecessary domain-service dependency.
 
 ### Workflow-expression evaluation
 
-`StepInterpolator` and its lexer/parser/evaluator now live under
-`crates/application/src/services/step_interpolator`.
+The application layer owns the [`StepInterpolatorPort`] contract. The
+infrastructure layer implements it in
+`crates/infrastructure/src/steps/step_interpolator`.
 
-The application execution flow owns the point at which a symbolic workflow step becomes
-a concrete execution request:
+The execution flow is:
 
 ```text
 workflow + runtime context
-        -> application StepInterpolator
+        -> application StepInterpolatorPort
+        -> infrastructure StepInterpolator
         -> concrete step/action request
-        -> outbound runner port
 ```
 
-This keeps the domain crate free of expression-language implementation and avoids making
-workflow execution syntax a domain service. The application layer still does not own
-filesystem, provider, container, or source-control behavior. It only coordinates pure
-interpolation before dispatching concrete work to outbound ports.
+This keeps expression parsing and evaluation outside the domain crate. The
+application layer coordinates interpolation through the outbound port before
+dispatching concrete work to other outbound ports. The application and domain
+layers do not own filesystem, provider, container, or source-control behavior.
 
-The expression parser, evaluator, supported functions, and interpolation errors moved
-with `StepInterpolator`. `EvaluationContext` and `ContextValue` remain passive data
-structures used to carry runtime values; they do not perform evaluation or external I/O.
+The expression parser, evaluator, supported functions, and interpolation errors
+remain with the infrastructure adapter. `EvaluationContext` and `ContextValue`
+remain passive data structures used to carry runtime values; they do not perform
+evaluation or external I/O.
 
 ### Removed wrappers
 

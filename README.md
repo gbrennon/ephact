@@ -9,12 +9,12 @@
 > a read-only mirror. The original repository lives on Codeberg:
 > [https://codeberg.org/gbrennon/ephact](https://codeberg.org/gbrennon/ephact).
 
-`ephact` is a Rust crate that runs supported Forgejo and GitHub workflows
-locally in Linux containers using Docker or Podman. The selected repository is bind-mounted
-read-only at `/workspace` by default. Pass `--allow-repo-writes` to permit
-workflow steps to modify the host working tree. Runner-managed files are
-container-local, and failed runs write diagnostics under the system temporary
-directory.
+`ephact` is a Rust crate that runs supported Forgejo, GitHub, and Woodpecker
+workflows locally in Linux containers using Docker or Podman. When repository
+writes are disabled, the selected repository is copied to `/workspace`.
+Pass `--allow-repo-writes` to bind-mount the host working tree so workflow
+steps can modify it. Runner-managed files are container-local, and failed runs
+write diagnostics under the system temporary directory.
 
 ## Quick start
 
@@ -66,14 +66,15 @@ inputs discovered from the workflow and its local actions. For each value, enter
 a literal value or `env:VARIABLE`; a blank keeps an existing or default value,
 but an unresolved required input cannot be left blank.
 
-Once configured, the workflow runs in Linux containers using Docker or Podman and live
-progress streams into the run view. Press `Esc` or `Backspace` to cancel a run
-in progress. When it finishes, a run summary reports the workflow status and
+Once configured, the workflow runs in Linux containers using Docker or Podman and
+live progress streams into the run view. Press `Esc` or `Backspace` to cancel a
+run in progress. When it finishes, a run summary reports the workflow status and
 each job result. Press `d` to open the step-by-step run details, and use the
 arrow keys to scroll.
 
-Only workflows that declare `pull_request` are eligible; execution currently
-simulates that event.
+Interactive workflow selection lists only workflows that declare `pull_request`.
+Noninteractive runs require `--event` and select workflows that declare the
+requested event.
 
 ### Settings
 
@@ -94,8 +95,9 @@ fall back to built-in defaults. The `default-interface` setting selects whether
 | Run workflow   | `Up`/`Down`/`j`/`k` move, `Enter` configure, `Esc`/`Bksp` back, `d` details, `q` quit |
 | Settings       | `Up`/`Down`/`j`/`k` move, `Enter` edit, `s` save, `Esc`/`Bksp` back |
 
-Supported platforms are **Forgejo** and **GitHub**. Workflows are discovered
-automatically from `.forgejo/workflows` and `.github/workflows`.
+Supported platforms are **Forgejo**, **GitHub**, and **Woodpecker**. Workflows are
+discovered automatically from `.forgejo/workflows`, `.github/workflows`, and
+`.woodpecker`.
 
 ## Command-line interface
 
@@ -105,9 +107,10 @@ explicit subcommand takes precedence over the persisted default interface.
 - No subcommand: Open the default interface (the TUI unless changed in
   settings).
 - `tui`: Open the terminal user interface explicitly.
-- `run [PATH]`: Run supported pull-request workflows from a Git repository
-  bind-mounted read-only into job containers by default. Use
-  `--allow-repo-writes` to enable workflow writes.
+- `run [PATH]`: Run workflows that declare the requested event from a Git
+  repository. Noninteractive runs require `--event`. The repository is copied
+  into job containers by default; use `--allow-repo-writes` to enable workflow
+  writes to the host working tree.
 - `list-workflows [PATH]`: List workflows discovered in a repository.
 - `list-actions [PATH]`: List actions referenced across workflows.
 - `settings`: Show, update, or reset persisted settings.
@@ -124,7 +127,7 @@ Built on Rust edition **2024**; the toolchain comes from
   simulation, secrets and inputs, and runtime behavior in
   [`docs/usage.md`](docs/usage.md).
 - **Architecture** — the crate follows hexagonal architecture, with `domain`,
-  `application`, `infrastructure`, and `presentation` layers under `src/`. Ports,
+  `application`, `infrastructure`, and `presentation` workspace crates. Ports,
   adapters, command bus coordination, and test suites are documented in
   [`docs/architecture.md`](docs/architecture.md).
 - **Contributing and development** — prerequisites, contribution guidelines,

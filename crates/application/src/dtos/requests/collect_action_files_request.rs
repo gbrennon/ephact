@@ -1,8 +1,7 @@
 use std::path::{Path, PathBuf};
 
-/// Request DTO for the
-/// [`CollectActionFilesPort`](crate::ports::inbound::collect_action_files_port::CollectActionFilesPort)
-/// inbound port.
+/// Request data for the outbound operation.
+/// The request identifies the action directory whose files are collected.
 pub struct CollectActionFilesRequest {
     /// Directory whose files are collected.
     action_dir: PathBuf,

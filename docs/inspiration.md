@@ -36,16 +36,17 @@ The connection to `ephact` is the project author's interpretation, not a claim
 made by Production I.G or the film's rights holders.
 
 `ephact` applies the same lens to workflow execution. Each job runs in a newly
-created Linux container through Docker or Podman with the selected repository bind-mounted at
-`/workspace`. When a run reaches completion, `ephact` attempts to stop, kill,
-and remove its job containers; cached images and changes written into the
-repository remain. **Variation** comes from executing the current workflow
-definition and inputs again. **Regeneration** is currently limited to job
-containers rather than repository workspaces. **Resilience** comes from that
-best-effort container lifecycle, while repository isolation is not currently
-implemented.
+created Linux container through Docker or Podman. When repository writes are
+disabled, the repository is copied into `/workspace`; `--allow-repo-writes`
+bind-mounts the host working tree instead. `ephact` attempts to stop, kill, and
+remove job containers after both successful and failed runs, although cleanup
+can fail. Cached images remain, and repository changes remain when the host
+working tree is bind-mounted. **Variation** comes from executing the current
+workflow definition and inputs again. **Regeneration** is currently limited to
+job containers rather than repository workspaces. **Resilience** comes from the
+best-effort container lifecycle.
 
 The analogy is deliberately practical but limited: preserve the workflow
 definition and inputs, create a container for each job, and tear it down after a
-completed run. Because the original repository is mounted into that container,
-fresh-container execution should not be described as full run isolation.
+run. Copying the repository by default provides isolation from host files; the
+`--allow-repo-writes` option intentionally removes that isolation.

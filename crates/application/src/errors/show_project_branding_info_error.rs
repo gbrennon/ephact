@@ -1,8 +1,12 @@
 use crate::{domain::errors::ProjectBrandingError, errors::ProjectBrandingStoreError};
 
+/// Failure while loading project branding for display.
+///
 #[derive(Debug)]
 pub enum ShowProjectBrandingInfoError {
+    /// Project branding failed domain validation.
     Branding(ProjectBrandingError),
+    /// The branding store could not provide project branding.
     Store(ProjectBrandingStoreError),
 }
 

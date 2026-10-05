@@ -7,21 +7,20 @@ use crate::{
     domain::errors::ContainerError,
 };
 
-/// Strategy-pattern context over a container runtime.
+/// Provides container lifecycle operations through a selected Docker- or
+/// Podman-compatible runtime.
 ///
-/// Holds an injected runtime strategy (the contract is
-/// [`ContainerRuntimePort`]) and delegates every operation to it, rewriting the
-/// literal "Docker" in error messages with the active runtime's name. Bollard
-/// always reports "Docker" even when talking to Podman, so the name is supplied
-/// at construction rather than inferred.
+/// Operations are delegated to the selected runtime. [`Self::detect`] probes
+/// Docker before Podman and reports [`ContainerError::NotAvailable`] when no
+/// supported runtime can be reached.
 pub struct ContainerRuntimeAdapter {
     runtime: Box<dyn ContainerRuntimePort>,
     runtime_name: String,
 }
 
 impl ContainerRuntimeAdapter {
-    /// Wraps `runtime`, labelling it with `runtime_name` (e.g. "Docker",
-    /// "Podman") for error rewriting.
+    /// Wraps a runtime and associates it with a human-readable name for
+    /// diagnostics.
     pub fn new(runtime: Box<dyn ContainerRuntimePort>, runtime_name: String) -> Self {
         Self {
             runtime,
