@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use crate::{
-        e2e_fixed_image_mapper::RUNNER_IMAGE, scenarios::delivery_pipeline_run::DeliveryPipelineRun,
-    };
+    use crate::scenarios::delivery_pipeline_run::DeliveryPipelineRun;
+
+    const DEFAULT_CONTAINER_IMAGE: &str = "ubuntu:24.04";
 
     struct DeliveryPipelineTests;
 
@@ -14,7 +14,10 @@ mod tests {
 
         fn every_job_runs_in_its_own_container() {
             let run = DeliveryPipelineRun::execute();
-            assert_eq!(run.activity().pulled_images(), vec![RUNNER_IMAGE; 3]);
+            assert_eq!(
+                run.activity().pulled_images(),
+                vec![DEFAULT_CONTAINER_IMAGE; 3]
+            );
         }
 
         fn jobs_run_in_the_order_their_dependencies_require() {

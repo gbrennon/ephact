@@ -17,19 +17,53 @@ use crate::common::fakes::{
 fn request(repo_path: &Path) -> PrepareJobContainerRequest {
     PrepareJobContainerRequest::new(
         "build".to_string(),
-        Some("ubuntu-latest".to_string()),
+        Some("ubuntu:24.04".to_string()),
         repo_path.to_path_buf(),
         false,
     )
 }
 
+fn request_without_image(repo_path: &Path) -> PrepareJobContainerRequest {
+    PrepareJobContainerRequest::new("build".to_string(), None, repo_path.to_path_buf(), false)
+}
+
 fn request_with_writes(repo_path: &Path) -> PrepareJobContainerRequest {
     PrepareJobContainerRequest::new(
         "build".to_string(),
-        Some("ubuntu-latest".to_string()),
+        Some("ubuntu:24.04".to_string()),
         repo_path.to_path_buf(),
         true,
     )
+}
+
+#[test]
+fn execute_pulls_the_job_container_image() {
+    let puller = FakePullJobImagePort::returning("pulled:image");
+    let service = PrepareJobContainerService::new(
+        Box::new(puller.clone()),
+        Box::new(FakeCreateJobContainerPort::new()),
+        Box::new(FakeCopyRepositoryToContainerPort::new()),
+    );
+
+    service.prepare(request(Path::new("/repo"))).unwrap();
+
+    assert_eq!(puller.requested_images(), vec!["ubuntu:24.04".to_string()]);
+}
+
+#[test]
+fn execute_uses_the_generic_container_image_by_default() {
+    let puller = FakePullJobImagePort::returning("pulled:image");
+    let service = PrepareJobContainerService::new(
+        Box::new(puller.clone()),
+        Box::new(FakeCreateJobContainerPort::new()),
+        Box::new(FakeCopyRepositoryToContainerPort::new()),
+    );
+
+    service
+        .prepare(request_without_image(Path::new("/repo")))
+        .unwrap();
+
+    assert_eq!(puller.requested_images(), vec!["ubuntu:24.04".to_string()]);
 }
 
 #[test]

@@ -2,43 +2,26 @@ use std::{error::Error, sync::Arc};
 
 use crate::application::{
     dtos::requests::PullJobImageRequest,
-    ports::outbound::{ContainerRuntimePort, ImageMapperPort, PullJobImagePort},
+    ports::outbound::{ContainerRuntimePort, PullJobImagePort},
 };
 
-/// Runner label assumed when a job declares none.
-const DEFAULT_RUNNER_LABEL: &str = "ubuntu-latest";
-
-/// Service that pulls the image a job runs in, falling back to the mapper's
-/// default image when the mapped one cannot be pulled.
+/// Pulls exactly the image requested by generic container preparation.
 pub struct PullJobImageService {
     runtime: Arc<dyn ContainerRuntimePort>,
-    image_mapper: Arc<dyn ImageMapperPort>,
 }
 
 impl PullJobImageService {
-    pub fn new(
-        runtime: Arc<dyn ContainerRuntimePort>,
-        image_mapper: Arc<dyn ImageMapperPort>,
-    ) -> Self {
-        Self {
-            runtime,
-            image_mapper,
-        }
+    /// Creates a service that performs no platform translation or fallback.
+    pub fn new(runtime: Arc<dyn ContainerRuntimePort>) -> Self {
+        Self { runtime }
     }
 }
 
 impl PullJobImagePort for PullJobImageService {
     fn pull(&self, request: PullJobImageRequest) -> Result<String, Box<dyn Error>> {
-        let runs_on = request.runs_on().unwrap_or(DEFAULT_RUNNER_LABEL);
-        let mut image = self.image_mapper.map(runs_on);
-
-        if self.runtime.pull_image(&image, None).is_err() {
-            image = self.image_mapper.fallback();
-            self.runtime
-                .pull_image(&image, None)
-                .map_err(|e| format!("{:?}", e))?;
-        }
-
-        Ok(image)
+        self.runtime
+            .pull_image(request.image(), None)
+            .map_err(|error| format!("{error:?}"))?;
+        Ok(request.image().to_string())
     }
 }

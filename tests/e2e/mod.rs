@@ -1,8 +1,6 @@
 #[path = "../common/mod.rs"]
 pub mod common;
 
-#[path = "../common/fakes/e2e_fixed_image_mapper.rs"]
-mod e2e_fixed_image_mapper;
 mod scenarios;
 mod support;
 

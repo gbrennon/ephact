@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
+pub use super::container_collaborators::ContainerCollaborators;
 use crate::{
     actions::{GitActionFetcher, RunActionFactory},
     application::{
         ports::outbound::{
-            ActionCommandPublisherPort, ActionFetcherPort, ContainerRuntimePort, ImageMapperPort,
-            ProjectBrandingStorePort, WorkflowCommandPublisherPort, WorkflowSourcePort,
+            ActionCommandPublisherPort, ActionFetcherPort, ContainerRuntimePort,
+            ProjectBrandingStorePort, WorkflowCommandPublisherPort,
             domain_event_handler_port::DomainEventHandlerPort,
             domain_event_publisher_port::DomainEventPublisherPort,
         },
@@ -20,7 +21,6 @@ use crate::{
         app_container::{AppContainer, AppContainerParts},
         command_bus_wiring::CommandBusWiring,
     },
-    images::PlatformImageMapper,
     logging::{
         FailureLogErrorStore, FailureLogHandler, FailureLogPathStore, FailureLogRetentionStore,
         FailureLogStores,
@@ -32,31 +32,6 @@ use crate::{
         RunAllWorkflowsService, RunWorkflowService, SharedWorkflowSource,
     },
 };
-
-/// Groups the pluggable infrastructure components required to assemble a container.
-pub struct ContainerCollaborators {
-    runtime: Arc<dyn ContainerRuntimePort>,
-    image_mapper: Box<dyn ImageMapperPort>,
-    action_fetcher: Box<dyn ActionFetcherPort>,
-    workflow_source: Arc<dyn WorkflowSourcePort>,
-}
-
-impl ContainerCollaborators {
-    /// Creates a set of collaborators from the supplied ports.
-    pub fn new(
-        runtime: Arc<dyn ContainerRuntimePort>,
-        image_mapper: Box<dyn ImageMapperPort>,
-        action_fetcher: Box<dyn ActionFetcherPort>,
-        workflow_source: Arc<dyn WorkflowSourcePort>,
-    ) -> Self {
-        Self {
-            runtime,
-            image_mapper,
-            action_fetcher,
-            workflow_source,
-        }
-    }
-}
 
 pub struct Container {}
 
@@ -72,7 +47,6 @@ impl Container {
         Self::with_collaborators_and_branding(
             ContainerCollaborators::new(
                 runtime,
-                Box::new(PlatformImageMapper),
                 Box::new(GitActionFetcher::with_default_cache_root()),
                 Arc::new(FilesystemWorkflowSource::default()),
             ),
@@ -86,21 +60,12 @@ impl Container {
         progress_reporter: Option<Box<dyn DomainEventHandlerPort>>,
         branding_store: Box<dyn ProjectBrandingStorePort>,
     ) -> AppContainer {
-        let ContainerCollaborators {
-            runtime,
-            image_mapper,
-            action_fetcher,
-            workflow_source,
-        } = collaborators;
+        let (runtime, action_fetcher, workflow_source) = collaborators.into_parts();
         let (event_publisher, failure_log_stores) =
             Self::build_event_bus(runtime.clone(), progress_reporter);
         let shared_workflow_source = SharedWorkflowSource::new(workflow_source);
-        let command_publisher = Self::build_command_bus(
-            runtime,
-            image_mapper,
-            action_fetcher,
-            event_publisher.clone(),
-        );
+        let command_publisher =
+            Self::build_command_bus(runtime, action_fetcher, event_publisher.clone());
         let parts = Self::build_app_parts(
             shared_workflow_source,
             command_publisher,
@@ -186,10 +151,9 @@ impl Container {
 
     fn build_command_bus(
         runtime: Arc<dyn ContainerRuntimePort>,
-        image_mapper: Box<dyn ImageMapperPort>,
         action_fetcher: Box<dyn ActionFetcherPort>,
         event_bus: DomainEventPublisherAdapter,
     ) -> CommandPublisherAdapter {
-        CommandBusWiring::build(runtime, image_mapper, action_fetcher, event_bus)
+        CommandBusWiring::build(runtime, action_fetcher, event_bus)
     }
 }

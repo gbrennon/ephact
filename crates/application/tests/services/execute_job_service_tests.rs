@@ -4,7 +4,7 @@ use ephact::{
     application::{
         dtos::requests::ExecuteJobRequest,
         ports::inbound::execute_job_port::ExecuteJobPort,
-        services::execute_job_service::{ExecuteJobDependencies, ExecuteJobService},
+        services::{ExecuteJobDependencies, ExecuteJobService},
     },
     domain::{aggregates::Workflow, value_objects::EvaluationContext},
     infrastructure::{

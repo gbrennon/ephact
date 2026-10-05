@@ -12,8 +12,8 @@ use ephact::{
 };
 
 use crate::common::fakes::{
-    fake_action_fetcher::FakeActionFetcher, fake_image_mapper::FakeImageMapper,
-    fake_runtime::FakeRuntime, fake_workflow_source::FakeWorkflowSource,
+    fake_action_fetcher::FakeActionFetcher, fake_runtime::FakeRuntime,
+    fake_workflow_source::FakeWorkflowSource,
 };
 
 #[test]
@@ -23,7 +23,6 @@ fn build_result_contains_all_ports() {
     let container: AppContainer = Container::with_collaborators_and_branding(
         ContainerCollaborators::new(
             runtime,
-            Box::new(FakeImageMapper),
             Box::new(FakeActionFetcher::returning(std::path::PathBuf::new())),
             workflow_source,
         ),

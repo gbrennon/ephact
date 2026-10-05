@@ -7,6 +7,8 @@ mod tests {
     };
 
     struct SupportedWorkflowFormatsTests;
+    const DEFAULT_CONTAINER_IMAGE: &str = "ubuntu:24.04";
+    const WOODPECKER_CONTAINER_IMAGE: &str = "alpine";
 
     impl SupportedWorkflowFormatsTests {
         fn github_actions_execute_through_the_application() {
@@ -14,7 +16,10 @@ mod tests {
 
             assert_eq!(run.outcome(), &Ok(()));
             assert!(run.activity().ran_script(GithubActionsWorkflowRun::SCRIPT));
-            assert_eq!(run.activity().pulled_images(), vec!["e2e-runner:latest"]);
+            assert_eq!(
+                run.activity().pulled_images(),
+                vec![DEFAULT_CONTAINER_IMAGE]
+            );
             assert_eq!(run.activity().stopped_containers().len(), 1);
             assert_eq!(run.activity().killed_containers().len(), 1);
         }
@@ -24,7 +29,10 @@ mod tests {
 
             assert_eq!(run.outcome(), &Ok(()));
             assert!(run.activity().ran_script(ForgejoActionsWorkflowRun::SCRIPT));
-            assert_eq!(run.activity().pulled_images(), vec!["e2e-runner:latest"]);
+            assert_eq!(
+                run.activity().pulled_images(),
+                vec![DEFAULT_CONTAINER_IMAGE]
+            );
             assert_eq!(run.activity().stopped_containers().len(), 1);
             assert_eq!(run.activity().killed_containers().len(), 1);
         }
@@ -34,7 +42,10 @@ mod tests {
 
             assert_eq!(run.outcome(), &Ok(()));
             assert!(run.activity().ran_script(WoodpeckerWorkflowRun::SCRIPT));
-            assert_eq!(run.activity().pulled_images(), vec!["e2e-runner:latest"]);
+            assert_eq!(
+                run.activity().pulled_images(),
+                vec![WOODPECKER_CONTAINER_IMAGE]
+            );
             assert_eq!(run.activity().stopped_containers().len(), 1);
             assert_eq!(run.activity().killed_containers().len(), 1);
         }

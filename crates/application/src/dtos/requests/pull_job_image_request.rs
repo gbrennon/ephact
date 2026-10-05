@@ -1,19 +1,16 @@
-/// Request DTO for the
-/// [`PullJobImagePort`](crate::ports::inbound::pull_job_image_port::PullJobImagePort)
-/// inbound port.
+/// Requests pulling one container image by its registry reference.
 pub struct PullJobImageRequest {
-    /// Runner label the job declared, when it declared one.
-    runs_on: Option<String>,
+    image: String,
 }
 
 impl PullJobImageRequest {
-    /// Creates a new request.
-    pub fn new(runs_on: Option<String>) -> Self {
-        Self { runs_on }
+    /// Creates a request for the supplied container image.
+    pub fn new(image: String) -> Self {
+        Self { image }
     }
 
-    /// Runner label the job declared, when it declared one.
-    pub fn runs_on(&self) -> Option<&str> {
-        self.runs_on.as_deref()
+    /// Returns the exact container image reference to pull.
+    pub fn image(&self) -> &str {
+        &self.image
     }
 }
