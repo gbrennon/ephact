@@ -47,9 +47,13 @@ impl WoodpeckerStepYaml {
     /// execution order once mapped onto the parallel-by-default job model.
     #[must_use]
     pub fn into_domain_job(self, needs: Vec<String>) -> Job {
-        let script = self.commands.join("\n");
+        let script = Self::unescape_dollar_escapes(&self.commands.join("\n"));
         let step = Step::new(None, self.name.clone(), Some(script), None);
         let container = self.image.map(ContainerSpecification::new);
         Job::new(self.name, None, vec![step], needs).with_container(container)
+    }
+
+    fn unescape_dollar_escapes(script: &str) -> String {
+        script.replace("$$", "$")
     }
 }
