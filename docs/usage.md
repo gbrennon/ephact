@@ -1,13 +1,14 @@
 # Using ephact
 
 `ephact` provides a terminal user interface by default and supports commands to
-inspect workflows, manage settings, and run supported pull-request workflows in
-Linux containers using Docker or Podman:
+inspect workflows, manage settings, and run supported Forgejo, GitHub, and
+Woodpecker workflows in Linux containers using Docker or Podman:
 
 - No subcommand: Open the TUI using the persisted default interface.
-- `run`: Execute pull-request workflows with the selected Git repository mounted
-  read-only at `/workspace` by default. Use `--allow-repo-writes` to enable
-  workflow writes.
+- `run`: Execute workflows that declare the requested event. Noninteractive runs
+  require `--event`; interactive mode selects a `pull_request` workflow. When
+  repository writes are disabled, the repository is copied to `/workspace`.
+  Use `--allow-repo-writes` to bind-mount it for workflow writes.
 - `list-workflows`: Discover and list named workflows in a repository.
 - `list-actions`: Discover and list unique action references across workflows.
 - `settings`: Show, update, or reset persisted settings.
@@ -35,12 +36,12 @@ workflow and its local actions. For each value, enter a literal value or
 `env:VARIABLE`; a blank keeps an existing or default value and is rejected for an
 unresolved required input.
 
-The workflow then runs in Linux containers using Docker or Podman with live progress in the
-run view. Press `Esc` or `Backspace` to cancel a run in progress. When it
-finishes, a run summary reports the workflow status and each job result; press
-`d` to open the step-by-step run details and scroll with the arrow keys. Only
-workflows declaring `pull_request` are eligible, and execution simulates that
-event.
+The workflow then runs in Linux containers using Docker or Podman with live
+progress in the run view. Press `Esc` or `Backspace` to cancel a run in
+progress. When it finishes, a run summary reports the workflow status and each
+job result; press `d` to open the step-by-step run details and scroll with the
+arrow keys. Interactive selection supports only workflows declaring
+`pull_request`; noninteractive runs require `--event` and match that event.
 
 ### Settings screen
 
@@ -50,14 +51,16 @@ go back.
 
 ### Key reference
 
-| Screen         | Keys                                                  |
-| -------------- | ----------------------------------------------------- |
-| Splash         | any key to continue                                   |
-| Home           | `Up`/`Down`/`j`/`k` move, `Enter` select, `q` quit    |
-| List workflows | `Up`/`Down`/`j`/`k` move, `Esc`/`Bksp` back, `q` quit |
-| List actions   | `Up`/`Down`/`j`/`k` move, `Esc`/`Bksp` back, `q` quit |
-| Run workflow   | `Up`/`Down`/`j`/`k` move, `Enter` configure, `Esc`/`Bksp` back, `d` details, `q` quit |
-| Settings       | `Up`/`Down`/`j`/`k` move, `Enter` edit, `s` save, `Esc`/`Bksp` back |
+- **Splash**: press any key to continue.
+- **Home**: use `Up`/`Down`/`j`/`k` to move, `Enter` to select, or `q` to quit.
+- **List workflows**: use `Up`/`Down`/`j`/`k` to move, `Esc`/`Bksp` to go
+  back, or `q` to quit.
+- **List actions**: use `Up`/`Down`/`j`/`k` to move, `Esc`/`Bksp` to go
+  back, or `q` to quit.
+- **Run workflow**: use `Up`/`Down`/`j`/`k` to move, `Enter` to configure,
+  `Esc`/`Bksp` to go back, `d` for details, or `q` to quit.
+- **Settings**: use `Up`/`Down`/`j`/`k` to move, `Enter` to edit, `s` to save,
+  or `Esc`/`Bksp` to go back.
 
 ## Settings (`ephact settings`)
 
@@ -124,38 +127,51 @@ ephact run [OPTIONS] [PATH]
 defaults to `.`, is canonicalized, and must contain `.git` as either a directory
 or a worktree file.
 
-### Options
+## Workflow options
 
-| Flag                     | Argument        | Description                                                                                                                                   | Default                        |
-| ------------------------ | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| `[PATH]`                 | Path            | Existing Git repository to inspect and mount read-only into job containers by default | `.`                            |
-| `--workflow`             | `<NAME>`        | Exact value of the workflow's top-level `name:` field                                                                                         | All pull-request workflows     |
-| `--job`                  | `<JOB>`         | Accepted by the parser but currently ignored; all jobs in each selected workflow execute                                                      | No effect                      |
-| `--event`                | `<EVENT>`       | Accepted by the parser but currently ignored; execution supports and simulates only `pull_request`                                            | `pull_request` (forced)        |
-| `--input`                | `<KEY=VALUE>`   | Add a string to the run's `inputs` and `github.event.inputs` contexts (repeatable; later duplicate keys win)                                  | None                           |
-| `--interactive`          | None            | Select a pull-request workflow by number, then enter a literal or `env:VARIABLE` value for each discovered workflow or local-action input     | Disabled                       |
-| `--secret`               | `<KEY[=VALUE]>` | Inject a secret as `${{ secrets.KEY }}`. If `=VALUE` is omitted, reads the value from the host environment (repeatable)                       | None                           |
-| `--all-workflows`        | None            | Run every discovered workflow declaring `pull_request`; the default without `--workflow`; wins and ignores the name if both options are given | Active if `--workflow` omitted |
-| `--preserve`             | None            | Accepted by the parser but currently has no effect                                                                                            | No effect                      |
-| `--allow-repo-writes`    | None            | Permit workflow steps to modify the host repository through the workspace mount | Disabled                       |
-| `--verbose`              | None            | Show workflow and job lifecycle details, live step output, and failure diagnostics in addition to step start/finish status                     | Step start/finish status       |
-| `--allow-real-container` | None            | Accepted but currently has no effect; a real Docker or Podman runtime on Linux is always auto-detected and used                                        | No effect                      |
-| `--allow-real-fetcher`   | None            | Accepted but currently has no effect; uncached remote actions are fetched from their forge by default                                         | No effect                      |
-| `--allow-network`        | None            | Accepted but currently has no effect; containers use the runtime's default network behavior                                                   | No effect                      |
-| `--failure-log-retention-hours` | `<HOURS>` | Retain failure diagnostics for the specified positive number of hours | `24` |
+- `[PATH]`: Existing Git repository to inspect and copy into job containers by
+  default. It defaults to `.`.
+- `--workflow <NAME>`: Select the workflow whose top-level `name:` matches the
+  supplied value. Without it, all workflows matching the event are selected.
+- `--job <JOB>`: Accepted by the parser but currently ignored; all jobs in each
+  selected workflow execute.
+- `--event <EVENT>`: Select the event whose workflows may run. It is required for
+  noninteractive execution and forced to `pull_request` in interactive mode.
+- `--input <KEY=VALUE>`: Add a string to the run's `inputs` and
+  `github.event.inputs` contexts. Repeatable; later duplicate keys win.
+- `--interactive`: Select a pull-request workflow by number, then enter values
+  for discovered workflow and local-action inputs.
+- `--secret <KEY[=VALUE]>`: Inject a secret as `${{ secrets.KEY }}`. Without
+  `=VALUE`, read the value from the host environment. Repeatable.
+- `--all-workflows`: Run every discovered workflow declaring the requested event.
+  It is the default without `--workflow` and wins when both options are given.
+- `--preserve`: Accepted by the parser but currently has no effect.
+- `--allow-repo-writes`: Bind-mount the host repository so workflow steps can
+  modify its working tree.
+- `--verbose`: Show workflow and job lifecycle details, live step output, and
+  failure diagnostics in addition to step start/finish status.
+- `--allow-real-container`: Accepted but currently has no effect; a real Docker
+  or Podman runtime on Linux is always auto-detected and used.
+- `--allow-real-fetcher`: Accepted but currently has no effect; uncached remote
+  actions are fetched from their forge by default.
+- `--allow-network`: Allow steps classified as requiring network access; remote-
+  mutation policy violations remain skipped.
+- `--failure-log-retention-hours <HOURS>`: Retain failure diagnostics for the
+  specified positive number of hours. The default is `24`.
+
 
 ### Examples
 
 Run all discovered workflows that declare `pull_request`:
 
 ```sh
-ephact run
+ephact run --event pull_request
 ```
 
 Run a specific workflow that declares `pull_request`:
 
 ```sh
-ephact run --workflow CI
+ephact run --event pull_request --workflow CI
 ```
 
 Select a pull-request workflow interactively:
@@ -169,9 +185,9 @@ selection. It then asks once per discovered workflow or local-action input.
 Enter a literal or `env:VARIABLE`; a blank keeps an existing or default value
 and is rejected for an unresolved required input.
 
-In interactive mode, the numeric selection replaces any `--workflow` value and
-disables `--all-workflows`. As in other modes, `--event` is ignored and
-`pull_request` is forced.
+In interactive mode, the numeric selection replaces any `--workflow` value,
+disables `--all-workflows`, and forces `pull_request`. In noninteractive mode,
+`--event` is required and workflows declaring that event are selected.
 
 `--job` is accepted but does not filter jobs; all jobs in each selected workflow
 execute.
@@ -180,22 +196,23 @@ Pass run inputs and read a secret from the host environment while showing
 verbose progress:
 
 ```sh
-ephact run --workflow CI --input greeting=World --secret GITHUB_TOKEN --verbose
+ephact run --event pull_request --workflow CI --input greeting=World --secret GITHUB_TOKEN --verbose
 ```
 
-The selected workflow must declare `pull_request`; current execution always
-simulates that event.
+The selected workflow must declare the requested event. Interactive execution
+always selects and simulates `pull_request`.
 
 Run a named pull-request workflow from another Git repository:
 
 ```sh
-ephact run /path/to/repo --workflow CI
+ephact run /path/to/repo --event pull_request --workflow CI
 ```
 
 ## Listing Workflows (`ephact list-workflows`)
 
 Inspects workflow definitions found in supported directories
-(`.forgejo/workflows` and `.github/workflows`) and prints their names.
+(`.forgejo/workflows`, `.github/workflows`, and `.woodpecker`) and prints their
+names.
 
 ### Syntax
 
@@ -216,6 +233,8 @@ List workflows in an external repository:
 ```sh
 ephact list-workflows /path/to/repo
 ```
+
+## Listing Actions (`ephact list-actions`)
 
 Parses workflow files and outputs the final action names derived from the
 references used across job steps. Different references with the same final
@@ -243,17 +262,19 @@ ephact list-actions /path/to/repo
 
 ## Runtime and Safety
 
-`ephact` requires and auto-detects a reachable Docker or Podman runtime on Linux. The
-selected repository is bind-mounted read-only at `/workspace` by default.
-Pass `--allow-repo-writes` when workflow steps must modify the host working
-tree. Runner-managed files are container-local. Pulling job images and cloning
-uncached remote actions into a persistent host cache can use the network.
-Containers use the runtime's default network behavior.
+`ephact` requires and auto-detects a reachable Docker or Podman runtime on Linux.
+When repository writes are disabled, the selected repository is copied into
+`/workspace`. Pass `--allow-repo-writes` to bind-mount the host repository so
+workflow steps can modify it. Runner-managed files are container-local. Pulling
+job images and cloning uncached remote actions into a persistent host cache can
+use the network. Containers use the runtime's default network behavior.
 
 After a normally completed run, `ephact` makes a best-effort attempt to remove
-recorded job containers. Failed runs produce external diagnostics under the
+recorded job containers. Failed runs also attempt cleanup, but failures can
+leave containers behind. Failed runs produce external diagnostics under the
 system temporary directory. `--preserve` currently has no effect.
 
 Treat secrets as visible to the workflow. Workflow steps can print them or write
-them into the mounted repository, and `--verbose` relays step output without
-secret redaction. Review untrusted workflows before running them.
+them into the container workspace. With `--allow-repo-writes`, those writes can
+reach the host repository, and `--verbose` relays step output without secret
+redaction. Review untrusted workflows before running them.

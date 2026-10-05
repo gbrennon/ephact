@@ -1,5 +1,8 @@
+/// Application-level failure reported while running one or more workflows.
+///
 #[derive(Debug)]
 pub enum ApplicationError {
+    /// A workflow operation failed. The contained string describes the failure.
     Workflow(String),
 }
 

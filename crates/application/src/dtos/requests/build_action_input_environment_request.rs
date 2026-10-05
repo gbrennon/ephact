@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-/// Request DTO for the
-/// `BuildActionInputEnvironmentPort`
-/// inbound port.
+/// Request data for the outbound operation.
 pub struct BuildActionInputEnvironmentRequest {
     env: HashMap<String, String>,
     inputs: HashMap<String, String>,

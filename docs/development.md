@@ -41,7 +41,7 @@ The project uses `just` for task automation:
 | `just test --crate domain`     | Run coverage for one crate; supported names are `root`, `domain`, `application`, `infrastructure`, and `presentation` | `COVERAGE_THRESHOLD=80 ./scripts/check_coverage.sh --crate domain` |
 | `just test-local`              | Run all default-feature test targets without coverage; excludes feature-gated container integration                                | `cargo test`                                                                           |
 | `just lint`                    | Run the same locked, all-target Clippy check used by CI                                                                             | `cargo clippy --all-targets --locked -- -D warnings`                                   |
-| `just lint-fix *args`          | Apply Clippy fixes; optional values are cargo-clippy arguments, not source-file filters                                            | `cargo clippy --fix --allow-dirty --allow-staged {{files}}`                            |
+| `just lint-fix *args`          | Preserve staged files, then run the configured Clippy fix command with optional arguments; no arguments perform no work             | `bash scripts/lint-fix-staged.sh {{args}}`                                             |
 | `just fmt`                    | Format the entire workspace                                                                                                          | `cargo fmt`                                                                            |
 | `just fmt-check`               | Check formatting without modifying files                                                                                           | `cargo fmt --check`                                                                    |
 | `just ci`                      | Run the local Validate, Test, and Lint checks in CI order                                                                          | `just fmt-check && just test && just lint`                                              |
@@ -78,13 +78,13 @@ enum Command {
 The existing `run` command is invoked through Cargo's argument separator:
 
 ```sh
-cargo run -- run --workflow CI
+cargo run -- run --event pull_request --workflow CI
 ```
 
 The first `--` passes arguments to `ephact`; `run` selects the application
 subcommand and `--workflow CI` is parsed by `RunArgs`. Follow the same pattern
 for a new command: register it in `Command`, add its arguments, and dispatch it
-from `Cli`.
+from `Cli`. Noninteractive workflow runs require `--event`.
 
 ## Running Workflows Locally
 

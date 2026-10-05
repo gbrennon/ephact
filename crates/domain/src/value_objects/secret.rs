@@ -2,8 +2,9 @@ use std::fmt;
 
 /// A named secret made available to a workflow run.
 ///
-/// The value backs `${{ secrets.<name> }}` expressions and is kept out of
-/// [`Debug`] output so run summaries and logs never leak it.
+/// The value backs `${{ secrets.<name> }}` expressions. Debug output includes
+/// the name but replaces the value with `***`; callers can obtain the raw value
+/// through [`value`](Self::value).
 pub struct Secret {
     name: String,
     value: String,

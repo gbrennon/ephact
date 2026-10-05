@@ -23,10 +23,9 @@ use crate::{
     domain::errors::ContainerError,
 };
 
-/// Docker-based container runtime adapter using the bollard crate.
+/// Provides [`ContainerRuntimePort`] operations through a local Docker daemon.
 ///
-/// Connects to the Docker daemon via the default Unix socket
-/// (`/var/run/docker.sock`).
+/// Connects to the daemon through its default Unix socket.
 pub struct DockerRuntime {
     docker: Client,
     runtime: Runtime,

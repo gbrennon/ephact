@@ -3,8 +3,8 @@ use crate::{
     domain::{ProjectBranding, ProjectDescription, ProjectEmblem, ProjectName, ProjectVersion},
 };
 
-/// Reads project branding metadata compiled into the binary from Cargo package variables
-/// and embedded text assets.
+/// Provides project branding from supplied package metadata and embedded
+/// emblem text.
 #[derive(Debug, Clone)]
 pub struct CargoProjectBrandingStore {
     name: String,
@@ -14,6 +14,7 @@ pub struct CargoProjectBrandingStore {
 }
 
 impl CargoProjectBrandingStore {
+    /// Stores package metadata and trims trailing whitespace from the emblem.
     #[must_use]
     pub fn from_metadata(name: &str, description: &str, version: &str, emblem: &str) -> Self {
         Self {

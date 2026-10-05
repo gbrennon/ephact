@@ -1,8 +1,12 @@
 use crate::domain::errors::StepError;
 
+/// Failure while preparing or executing a job.
+///
 #[derive(Debug)]
 pub enum ExecuteJobError {
+    /// A step-level failure occurred during job execution.
     Step(StepError),
+    /// Job preparation failed. The contained string describes the preparation failure.
     Preparation(String),
 }
 

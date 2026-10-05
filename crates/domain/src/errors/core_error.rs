@@ -1,5 +1,6 @@
 use std::fmt;
 
+/// Core validation errors for repository paths, names, and container engines.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CoreError {
     /// The provided repository path value is empty.

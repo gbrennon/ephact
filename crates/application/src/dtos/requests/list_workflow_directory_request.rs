@@ -1,8 +1,7 @@
 use std::path::{Path, PathBuf};
 
-/// Request DTO for the
-/// [`ListWorkflowDirectoryPort`](crate::ports::inbound::list_workflow_directory_port::ListWorkflowDirectoryPort)
-/// inbound port.
+/// Request data for the outbound operation.
+/// The request identifies the directory whose workflow files are listed.
 pub struct ListWorkflowDirectoryRequest {
     /// Directory whose workflow files are listed.
     directory: PathBuf,
