@@ -1,6 +1,8 @@
 use std::path::{Path, PathBuf};
 
 use crate::domain::value_objects::EvaluationContext;
+
+/// Inputs for executing workflow content with repository, context, identity, and permission values.
 pub struct ExecuteWorkflowRequest {
     workflow_content: String,
     repo_path: PathBuf,
@@ -12,7 +14,7 @@ pub struct ExecuteWorkflowRequest {
 }
 
 impl ExecuteWorkflowRequest {
-    /// Creates a workflow execution request from owned primitive values.
+    /// Creates a workflow execution request from owned values.
     pub fn new(
         workflow_content: String,
         repo_path: PathBuf,
@@ -48,6 +50,7 @@ impl ExecuteWorkflowRequest {
         self
     }
 
+    /// Returns the optional source filename.
     pub fn file_name(&self) -> Option<&str> {
         self.file_name.as_deref()
     }
@@ -71,11 +74,14 @@ impl ExecuteWorkflowRequest {
     pub fn allow_repo_writes(&self) -> bool {
         self.allow_repo_writes
     }
+
+    /// Sets whether network access is allowed.
     pub fn with_allow_network(mut self, allow_network: bool) -> Self {
         self.allow_network = allow_network;
         self
     }
 
+    /// Returns whether network access is allowed.
     pub fn allow_network(&self) -> bool {
         self.allow_network
     }
