@@ -47,3 +47,38 @@ fn a_step_without_an_image_has_no_container() {
 
     assert!(job.container().is_none());
 }
+
+#[test]
+fn deferred_variables_become_shell_variables() {
+    let job = job_from(
+        r#"
+name: expansion
+commands:
+  - |
+      VALUE="expected"
+      printf '%s' "$${VALUE}"
+"#,
+        Vec::new(),
+    );
+    let step = job.steps().first().expect("run step");
+
+    assert_eq!(
+        step.run(),
+        Some("VALUE=\"expected\"\nprintf '%s' \"${VALUE}\"\n")
+    );
+}
+
+#[test]
+fn a_lone_double_dollar_collapses_to_a_single_dollar() {
+    let job = job_from(
+        r#"
+name: process
+commands:
+  - printf '%s %s' "$${VALUE}" "$$"
+"#,
+        Vec::new(),
+    );
+    let step = job.steps().first().expect("run step");
+
+    assert_eq!(step.run(), Some("printf '%s %s' \"${VALUE}\" \"$\""));
+}
