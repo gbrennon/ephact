@@ -11,7 +11,6 @@ pub mod fake_detect_workflow_file_port;
 pub mod fake_detect_workflow_trigger_port;
 pub mod fake_event_bus;
 pub mod fake_fetch_remote_action_port;
-pub mod fake_image_mapper;
 pub mod fake_job_container_preparer_port;
 pub mod fake_list_actions_port;
 pub mod fake_list_all_workflow_files_port;

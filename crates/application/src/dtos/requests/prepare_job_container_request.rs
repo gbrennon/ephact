@@ -1,44 +1,45 @@
 use std::path::{Path, PathBuf};
 
-/// Request data for preparing a job container.
+/// Describes the repository and generic container image used to prepare one job.
 pub struct PrepareJobContainerRequest {
     job_id: String,
-    runs_on: Option<String>,
+    container_image: Option<String>,
     repo_path: PathBuf,
     allow_repo_writes: bool,
 }
 
 impl PrepareJobContainerRequest {
-    /// Creates a new request.
+    /// Creates a job container preparation request.
     pub fn new(
         job_id: String,
-        runs_on: Option<String>,
+        container_image: Option<String>,
         repo_path: PathBuf,
         allow_repo_writes: bool,
     ) -> Self {
         Self {
             job_id,
-            runs_on,
+            container_image,
             repo_path,
             allow_repo_writes,
         }
     }
 
-    /// Identifier of the job the container is prepared for.
+    /// Returns the job identifier used to name the isolated container.
     pub fn job_id(&self) -> &str {
         &self.job_id
     }
 
-    /// Runner label the job declared, when it declared one.
-    pub fn runs_on(&self) -> Option<&str> {
-        self.runs_on.as_deref()
+    /// Returns the explicitly requested container image, if present.
+    pub fn container_image(&self) -> Option<&str> {
+        self.container_image.as_deref()
     }
 
-    /// Repository directory mounted into the container as the workspace.
+    /// Returns the host repository path copied into the isolated container.
     pub fn repo_path(&self) -> &Path {
         &self.repo_path
     }
 
+    /// Returns whether the container can write directly to the host repository.
     pub fn allow_repo_writes(&self) -> bool {
         self.allow_repo_writes
     }
