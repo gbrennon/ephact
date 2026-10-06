@@ -1,5 +1,6 @@
 use super::run_action_execution_input::RunActionExecutionInput;
 
+/// Input data for constructing a [`super::run_action_request::RunActionRequest`].
 pub struct RunActionRequestInput {
     action_ref: String,
     step: String,
@@ -7,6 +8,7 @@ pub struct RunActionRequestInput {
 }
 
 impl RunActionRequestInput {
+    /// Creates input from an action reference, step name, and execution data.
     pub fn new(
         action_ref: impl Into<String>,
         step: impl Into<String>,
@@ -19,6 +21,7 @@ impl RunActionRequestInput {
         }
     }
 
+    /// Consumes the input and returns its action reference, step, and execution data.
     pub fn into_parts(self) -> (String, String, RunActionExecutionInput) {
         (self.action_ref, self.step, self.execution)
     }
