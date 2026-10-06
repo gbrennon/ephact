@@ -1,18 +1,24 @@
+/// Source used to resolve a workflow input value.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WorkflowInputSourceResponse {
+    /// A literal workflow input value.
     Literal(String),
+    /// An environment variable containing a workflow input value.
     EnvironmentVariable(String),
 }
 
 impl WorkflowInputSourceResponse {
+    /// Creates a literal input source.
     pub fn literal(value: impl Into<String>) -> Self {
         Self::Literal(value.into())
     }
 
+    /// Creates an environment-variable input source.
     pub fn environment_variable(name: impl Into<String>) -> Self {
         Self::EnvironmentVariable(name.into())
     }
 
+    /// Resolves the source into its input value.
     pub fn resolve(&self) -> Result<String, String> {
         match self {
             Self::Literal(value) => Ok(value.clone()),

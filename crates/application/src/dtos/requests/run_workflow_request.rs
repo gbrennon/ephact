@@ -21,172 +21,37 @@ pub struct RunWorkflowRequest {
 }
 
 impl RunWorkflowRequest {
-    /// Creates a primitive request from the domain run configuration.
+    /// Creates a request from a repository, run configuration, and run identifier.
     pub fn from_domain(
         repository: &Repository,
         config: &WorkflowRunConfig,
         run_id: impl Into<String>,
     ) -> Self {
-        RunRequestBuilder::new()
-            .repository_path(repository.path().as_path())
-            .repository_name(repository.name().as_str())
-            .workflow(config.workflow().map(|value| value.as_str()))
-            .job(config.job().map(|value| value.as_str()))
-            .event(config.event().map(|value| value.as_str()))
-            .inputs(
-                config
-                    .inputs()
-                    .iter()
-                    .map(|input| (input.key(), input.value())),
-            )
-            .secrets(
-                config
-                    .secrets()
-                    .iter()
-                    .map(|secret| (secret.name(), secret.value())),
-            )
-            .all_workflows(config.all_workflows())
-            .allow_repo_writes(config.allow_repo_writes())
-            .allow_real_container(config.allow_real_container())
-            .allow_real_fetcher(config.allow_real_fetcher())
-            .allow_network(config.allow_network())
-            .run_id(run_id)
-            .build()
-            .expect("domain values produce a valid run request")
-    }
-}
-
-/// Incrementally constructs a validated [`RunWorkflowRequest`].
-#[derive(Debug, Default)]
-pub struct RunRequestBuilder {
-    repository_path: Option<PathBuf>,
-    repository_name: Option<String>,
-    workflow: Option<String>,
-    job: Option<String>,
-    event: Option<String>,
-    inputs: Vec<(String, String)>,
-    secrets: Vec<(String, String)>,
-    all_workflows: bool,
-    allow_repo_writes: bool,
-    allow_real_container: bool,
-    allow_real_fetcher: bool,
-    allow_network: bool,
-    run_id: Option<String>,
-}
-
-impl RunRequestBuilder {
-    pub fn new() -> Self {
-        Self::default()
+        Self {
+            repository_path: repository.path().as_path().to_path_buf(),
+            repository_name: repository.name().as_str().to_string(),
+            workflow: config.workflow().map(|value| value.as_str().to_string()),
+            job: config.job().map(|value| value.as_str().to_string()),
+            event: config.event().map(|value| value.as_str().to_string()),
+            inputs: config
+                .inputs()
+                .iter()
+                .map(|input| (input.key().to_string(), input.value().to_string()))
+                .collect(),
+            secrets: config
+                .secrets()
+                .iter()
+                .map(|secret| (secret.name().to_string(), secret.value().to_string()))
+                .collect(),
+            all_workflows: config.all_workflows(),
+            allow_repo_writes: config.allow_repo_writes(),
+            allow_real_container: config.allow_real_container(),
+            allow_real_fetcher: config.allow_real_fetcher(),
+            allow_network: config.allow_network(),
+            run_id: run_id.into(),
+        }
     }
 
-    pub fn repository_path(mut self, value: &Path) -> Self {
-        self.repository_path = Some(value.to_path_buf());
-        self
-    }
-
-    pub fn repository_name(mut self, value: impl Into<String>) -> Self {
-        self.repository_name = Some(value.into());
-        self
-    }
-
-    pub fn workflow(mut self, value: Option<impl Into<String>>) -> Self {
-        self.workflow = value.map(Into::into);
-        self
-    }
-
-    pub fn job(mut self, value: Option<impl Into<String>>) -> Self {
-        self.job = value.map(Into::into);
-        self
-    }
-
-    pub fn event(mut self, value: Option<impl Into<String>>) -> Self {
-        self.event = value.map(Into::into);
-        self
-    }
-
-    pub fn inputs<I, K, V>(mut self, values: I) -> Self
-    where
-        I: IntoIterator<Item = (K, V)>,
-        K: Into<String>,
-        V: Into<String>,
-    {
-        self.inputs = values
-            .into_iter()
-            .map(|(key, value)| (key.into(), value.into()))
-            .collect();
-        self
-    }
-
-    pub fn secrets<I, K, V>(mut self, values: I) -> Self
-    where
-        I: IntoIterator<Item = (K, V)>,
-        K: Into<String>,
-        V: Into<String>,
-    {
-        self.secrets = values
-            .into_iter()
-            .map(|(key, value)| (key.into(), value.into()))
-            .collect();
-        self
-    }
-
-    pub fn all_workflows(mut self, value: bool) -> Self {
-        self.all_workflows = value;
-        self
-    }
-
-    pub fn allow_repo_writes(mut self, value: bool) -> Self {
-        self.allow_repo_writes = value;
-        self
-    }
-
-    pub fn allow_real_container(mut self, value: bool) -> Self {
-        self.allow_real_container = value;
-        self
-    }
-
-    pub fn allow_real_fetcher(mut self, value: bool) -> Self {
-        self.allow_real_fetcher = value;
-        self
-    }
-
-    pub fn allow_network(mut self, value: bool) -> Self {
-        self.allow_network = value;
-        self
-    }
-
-    pub fn run_id(mut self, value: impl Into<String>) -> Self {
-        self.run_id = Some(value.into());
-        self
-    }
-
-    pub fn build(self) -> Result<RunWorkflowRequest, &'static str> {
-        Ok(RunWorkflowRequest {
-            repository_path: required(self.repository_path, "repository path")?,
-            repository_name: required(self.repository_name, "repository name")?,
-            workflow: self.workflow,
-            job: self.job,
-            event: self.event,
-            inputs: self.inputs,
-            secrets: self.secrets,
-            all_workflows: self.all_workflows,
-            allow_repo_writes: self.allow_repo_writes,
-            allow_real_container: self.allow_real_container,
-            allow_real_fetcher: self.allow_real_fetcher,
-            allow_network: self.allow_network,
-            run_id: required(self.run_id, "run id")?,
-        })
-    }
-}
-
-fn required<T>(value: Option<T>, field: &'static str) -> Result<T, &'static str> {
-    value.ok_or(field)
-}
-
-#[cfg(test)]
-mod run_workflow_request_tests;
-
-impl RunWorkflowRequest {
     /// Returns the repository path.
     pub fn repository_path(&self) -> &Path {
         &self.repository_path
@@ -232,12 +97,12 @@ impl RunWorkflowRequest {
         self.allow_repo_writes
     }
 
-    /// Returns whether a real container is allowed.
+    /// Returns whether real container execution is allowed.
     pub fn allow_real_container(&self) -> bool {
         self.allow_real_container
     }
 
-    /// Returns whether a real fetcher is allowed.
+    /// Returns whether real action fetching is allowed.
     pub fn allow_real_fetcher(&self) -> bool {
         self.allow_real_fetcher
     }
@@ -247,8 +112,91 @@ impl RunWorkflowRequest {
         self.allow_network
     }
 
-    /// Returns the run identity.
+    /// Returns the run identifier.
     pub fn run_id(&self) -> &str {
         &self.run_id
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::{Path, PathBuf};
+
+    use crate::{
+        domain::{
+            entities::Repository,
+            value_objects::{
+                JobName, RepoPath, RepositoryName, Secret, WorkflowEvent, WorkflowInput,
+                WorkflowPath, WorkflowRunConfig,
+            },
+        },
+        dtos::requests::RunWorkflowRequest,
+    };
+
+    #[test]
+    fn from_domain_copies_configured_values() {
+        let repository = Repository::new(
+            RepoPath::new(PathBuf::from("workspace")).unwrap(),
+            RepositoryName::new("test-repo".to_owned()).unwrap(),
+        );
+        let config = WorkflowRunConfig::new()
+            .with_workflow(WorkflowPath::new(".ci/workflows/ci.yml".to_owned()))
+            .with_job(JobName::new("build".to_owned()))
+            .with_event(WorkflowEvent::new("push".to_owned()))
+            .add_input(WorkflowInput::new(
+                "environment".to_owned(),
+                "staging".to_owned(),
+            ))
+            .add_secret(Secret::new("TOKEN".to_owned(), "secret".to_owned()))
+            .with_all_workflows(true)
+            .with_allow_repo_writes(true)
+            .with_allow_real_container(true)
+            .with_allow_real_fetcher(true)
+            .with_allow_network(true);
+
+        let request = RunWorkflowRequest::from_domain(&repository, &config, "run-1");
+
+        assert_eq!(request.repository_path(), Path::new("workspace"));
+        assert_eq!(request.repository_name(), "test-repo");
+        assert_eq!(request.workflow(), Some(".ci/workflows/ci.yml"));
+        assert_eq!(request.job(), Some("build"));
+        assert_eq!(request.event(), Some("push"));
+        assert_eq!(
+            request.inputs(),
+            &[("environment".to_owned(), "staging".to_owned())]
+        );
+        assert_eq!(
+            request.secrets(),
+            &[("TOKEN".to_owned(), "secret".to_owned())]
+        );
+        assert!(request.all_workflows());
+        assert!(request.allow_repo_writes());
+        assert!(request.allow_real_container());
+        assert!(request.allow_real_fetcher());
+        assert!(request.allow_network());
+        assert_eq!(request.run_id(), "run-1");
+    }
+
+    #[test]
+    fn from_domain_preserves_empty_optional_values() {
+        let repository = Repository::new(
+            RepoPath::new(PathBuf::from("workspace")).unwrap(),
+            RepositoryName::new("test-repo".to_owned()).unwrap(),
+        );
+        let config = WorkflowRunConfig::new();
+
+        let request = RunWorkflowRequest::from_domain(&repository, &config, "run-2");
+
+        assert_eq!(request.workflow(), None);
+        assert_eq!(request.job(), None);
+        assert_eq!(request.event(), None);
+        assert!(request.inputs().is_empty());
+        assert!(request.secrets().is_empty());
+        assert!(!request.all_workflows());
+        assert!(!request.allow_repo_writes());
+        assert!(!request.allow_real_container());
+        assert!(!request.allow_real_fetcher());
+        assert!(!request.allow_network());
+        assert_eq!(request.run_id(), "run-2");
     }
 }

@@ -1,3 +1,4 @@
+/// Filesystem paths exposed to a runner context.
 #[derive(Debug, Clone)]
 pub struct RunnerContextPaths {
     workspace: String,
@@ -8,6 +9,7 @@ pub struct RunnerContextPaths {
 }
 
 impl RunnerContextPaths {
+    /// Creates runner context paths from their configured locations.
     pub fn new(
         workspace: impl Into<String>,
         home: impl Into<String>,
