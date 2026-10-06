@@ -3,6 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// Inputs for running an action entry point with input and environment entries.
 pub struct RunNodeActionRequest {
     action_dir: PathBuf,
     entry_point: String,
@@ -11,6 +12,7 @@ pub struct RunNodeActionRequest {
 }
 
 impl RunNodeActionRequest {
+    /// Creates inputs from an action directory, entry point, input entries, and environment entries.
     pub fn new(
         action_dir: impl Into<PathBuf>,
         entry_point: impl Into<String>,
@@ -25,15 +27,22 @@ impl RunNodeActionRequest {
         }
     }
 
+    /// Returns the action directory.
     pub fn action_dir(&self) -> &Path {
         &self.action_dir
     }
+
+    /// Returns the entry point.
     pub fn entry_point(&self) -> &str {
         &self.entry_point
     }
+
+    /// Returns the input entries.
     pub fn inputs(&self) -> &HashMap<String, String> {
         &self.inputs
     }
+
+    /// Returns the environment entries.
     pub fn env(&self) -> &HashMap<String, String> {
         &self.env
     }
