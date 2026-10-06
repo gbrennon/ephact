@@ -9,6 +9,7 @@ pub struct ExecuteActionResponse {
 }
 
 impl ExecuteActionResponse {
+    /// Creates a response from an exit code, standard output, and standard error.
     pub fn new(exit_code: i64, stdout: impl Into<String>, stderr: impl Into<String>) -> Self {
         Self {
             exit_code,
@@ -27,18 +28,22 @@ impl ExecuteActionResponse {
         Self::builder().stdout(message).build()
     }
 
+    /// Returns the process exit code.
     pub fn exit_code(&self) -> i64 {
         self.exit_code
     }
 
+    /// Returns standard output.
     pub fn stdout(&self) -> &str {
         &self.stdout
     }
 
+    /// Returns standard error.
     pub fn stderr(&self) -> &str {
         &self.stderr
     }
 
+    /// Consumes the response and returns its exit code and output streams.
     pub fn into_parts(self) -> (i64, String, String) {
         (self.exit_code, self.stdout, self.stderr)
     }
@@ -78,5 +83,26 @@ impl ExecuteActionResponseBuilder {
 }
 
 #[cfg(test)]
-#[path = "execute_action_response_tests.rs"]
-mod tests;
+mod tests {
+    use super::*;
+
+    #[test]
+    fn note_succeeds_and_carries_the_message() {
+        let response = ExecuteActionResponse::note("workspace already mounted\n");
+
+        assert_eq!(response.exit_code(), 0);
+        assert_eq!(response.stdout(), "workspace already mounted\n");
+        assert!(response.stderr().is_empty());
+    }
+
+    #[test]
+    fn builder_constructs_all_response_fields() {
+        let response = ExecuteActionResponse::builder()
+            .exit_code(2)
+            .stdout("output")
+            .stderr("error")
+            .build();
+
+        assert_eq!(response.into_parts(), (2, "output".into(), "error".into()));
+    }
+}
