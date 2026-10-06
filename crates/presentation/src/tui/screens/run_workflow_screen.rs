@@ -430,6 +430,7 @@ impl RunWorkflowScreen {
         let max_scroll = lines.len().saturating_sub(area.height as usize) as u16;
         let content = Paragraph::new(lines)
             .style(Theme::body_style())
+            .wrap(Wrap { trim: false })
             .scroll((self.summary_scroll.min(max_scroll), 0));
         frame.render_widget(content, area);
     }
