@@ -1,8 +1,5 @@
 use ephact::{
-    application::{
-        dtos::requests::LoadWorkflowRequest,
-        ports::outbound::workflow_loader_port::WorkflowLoaderPort,
-    },
+    application::ports::outbound::workflow_loader_port::WorkflowLoaderPort,
     domain::value_objects::TriggerKind,
     infrastructure::workflows::load_workflow_service::LoadWorkflowService,
 };
@@ -21,10 +18,7 @@ steps:
 #[test]
 fn load_parses_valid_workflow_content() {
     let workflow = LoadWorkflowService::new()
-        .load(LoadWorkflowRequest::new(
-            VALID_WORKFLOW.to_string(),
-            "ci.yml".to_string(),
-        ))
+        .load(VALID_WORKFLOW, "ci.yml")
         .unwrap();
 
     assert_eq!(workflow.name(), Some("Ci"));
@@ -39,10 +33,7 @@ fn load_parses_valid_workflow_content() {
 #[test]
 fn load_parses_woodpecker_pipeline_content() {
     let workflow = LoadWorkflowService::new()
-        .load(LoadWorkflowRequest::new(
-            WOODPECKER_WORKFLOW.to_string(),
-            "demo.yml".to_string(),
-        ))
+        .load(WOODPECKER_WORKFLOW, "demo.yml")
         .unwrap();
 
     assert_eq!(workflow.name(), Some("Demo"));
@@ -53,20 +44,14 @@ fn load_parses_woodpecker_pipeline_content() {
 
 #[test]
 fn load_errors_for_content_that_is_not_a_workflow_document() {
-    let result = LoadWorkflowService::new().load(LoadWorkflowRequest::new(
-        "- push\n- pull_request\n".to_string(),
-        "ci.yml".to_string(),
-    ));
+    let result = LoadWorkflowService::new().load("- push\n- pull_request\n", "ci.yml");
 
     assert!(result.is_err());
 }
 
 #[test]
 fn load_errors_for_malformed_yaml() {
-    let result = LoadWorkflowService::new().load(LoadWorkflowRequest::new(
-        "name: [unterminated\n".to_string(),
-        "ci.yml".to_string(),
-    ));
+    let result = LoadWorkflowService::new().load("name: [unterminated\n", "ci.yml");
 
     assert!(result.is_err());
 }
@@ -74,10 +59,7 @@ fn load_errors_for_malformed_yaml() {
 #[test]
 fn load_uses_source_filename_for_content_only_workflows() {
     let workflow = LoadWorkflowService::new()
-        .load(LoadWorkflowRequest::new(
-            "on: push\njobs: {}\n".to_string(),
-            "ci.yml".to_string(),
-        ))
+        .load("on: push\njobs: {}\n", "ci.yml")
         .unwrap();
 
     assert_eq!(workflow.name(), None);
