@@ -8,7 +8,7 @@ mod tests {
 
     struct SupportedWorkflowFormatsTests;
     const DEFAULT_CONTAINER_IMAGE: &str = "ubuntu:24.04";
-    const WOODPECKER_CONTAINER_IMAGE: &str = "alpine";
+    const WOODPECKER_CONTAINER_IMAGE: &str = "debian:bookworm-slim";
 
     impl SupportedWorkflowFormatsTests {
         fn github_actions_execute_through_the_application() {
@@ -37,11 +37,16 @@ mod tests {
             assert_eq!(run.activity().killed_containers().len(), 1);
         }
 
-        fn woodpecker_execute_through_the_application() {
+        fn woodpecker_miru_typos_execute_through_the_application() {
             let run = WoodpeckerWorkflowRun::execute();
 
             assert_eq!(run.outcome(), &Ok(()));
-            assert!(run.activity().ran_script(WoodpeckerWorkflowRun::SCRIPT));
+            assert!(
+                run.activity().ran_command_containing(
+                    WoodpeckerWorkflowRun::NORMALIZED_DOWNLOAD_URL_FRAGMENT
+                )
+            );
+            assert!(!run.activity().ran_command_containing("$$"));
             assert_eq!(
                 run.activity().pulled_images(),
                 vec![WOODPECKER_CONTAINER_IMAGE]
@@ -62,7 +67,7 @@ mod tests {
     }
 
     #[test]
-    fn woodpecker_execute_through_the_application() {
-        SupportedWorkflowFormatsTests::woodpecker_execute_through_the_application();
+    fn woodpecker_miru_typos_execute_through_the_application() {
+        SupportedWorkflowFormatsTests::woodpecker_miru_typos_execute_through_the_application();
     }
 }
