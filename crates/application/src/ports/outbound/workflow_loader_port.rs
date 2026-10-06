@@ -1,13 +1,11 @@
-use crate::{
-    domain::aggregates::Workflow, dtos::requests::LoadWorkflowRequest, errors::LoadWorkflowError,
-};
-/// Loads and parses a workflow document.
+use crate::{domain::aggregates::Workflow, errors::LoadWorkflowError};
+
+/// Loads workflow content into the domain workflow representation.
 pub trait WorkflowLoaderPort: Send + Sync {
-    /// Parses the workflow content and attaches the request's file name to the
-    /// resulting [`Workflow`].
+    /// Parses workflow content and associates it with its source filename.
     ///
     /// # Errors
     ///
-    /// Returns [`LoadWorkflowError`] when the workflow content is invalid.
-    fn load(&self, request: LoadWorkflowRequest) -> Result<Workflow, LoadWorkflowError>;
+    /// Returns [`LoadWorkflowError`] when the workflow content cannot be parsed.
+    fn load(&self, workflow_content: &str, file_name: &str) -> Result<Workflow, LoadWorkflowError>;
 }

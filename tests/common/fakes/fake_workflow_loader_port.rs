@@ -2,8 +2,7 @@ use std::sync::Arc;
 
 use ephact::{
     application::{
-        dtos::requests::LoadWorkflowRequest, errors::LoadWorkflowError,
-        ports::outbound::workflow_loader_port::WorkflowLoaderPort,
+        errors::LoadWorkflowError, ports::outbound::workflow_loader_port::WorkflowLoaderPort,
     },
     domain::aggregates::Workflow,
     infrastructure::workflows::actions::WorkflowYaml,
@@ -38,13 +37,13 @@ impl FakeWorkflowLoaderPort {
 }
 
 impl WorkflowLoaderPort for FakeWorkflowLoaderPort {
-    fn load(&self, request: LoadWorkflowRequest) -> Result<Workflow, LoadWorkflowError> {
+    fn load(&self, workflow_content: &str, file_name: &str) -> Result<Workflow, LoadWorkflowError> {
         self.loaded_contents
             .lock()
-            .push(request.workflow_content().to_string());
+            .push(workflow_content.to_string());
         match &self.yaml {
             Ok(yaml) => serde_yaml::from_str::<WorkflowYaml>(yaml)
-                .map(|workflow| workflow.into_domain().with_file(request.file_name()))
+                .map(|workflow| workflow.into_domain().with_file(file_name))
                 .map_err(|error| LoadWorkflowError::Parse(error.to_string())),
             Err(message) => Err(LoadWorkflowError::Message(message.clone())),
         }

@@ -1,7 +1,6 @@
 use crate::{
     application::{
-        dtos::requests::LoadWorkflowRequest, errors::LoadWorkflowError,
-        ports::outbound::workflow_loader_port::WorkflowLoaderPort,
+        errors::LoadWorkflowError, ports::outbound::workflow_loader_port::WorkflowLoaderPort,
     },
     domain::aggregates::Workflow,
     workflows::workflow_document::WorkflowDocument,
@@ -22,11 +21,11 @@ impl Default for LoadWorkflowService {
 }
 
 impl WorkflowLoaderPort for LoadWorkflowService {
-    fn load(&self, request: LoadWorkflowRequest) -> Result<Workflow, LoadWorkflowError> {
-        let workflow = WorkflowDocument::parse(request.workflow_content())
+    fn load(&self, workflow_content: &str, file_name: &str) -> Result<Workflow, LoadWorkflowError> {
+        let workflow = WorkflowDocument::parse(workflow_content)
             .map_err(|error| LoadWorkflowError::Parse(error.to_string()))?
             .into_domain()
-            .with_file(request.file_name().to_string());
+            .with_file(file_name.to_string());
         Ok(workflow)
     }
 }

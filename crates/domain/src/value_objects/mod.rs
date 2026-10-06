@@ -12,6 +12,7 @@ pub mod evaluation_context;
 pub mod execution_defaults;
 pub mod execution_plan;
 pub mod execution_stage;
+pub mod failure_log_retention;
 pub mod interface_mode;
 pub mod job_matrix;
 pub mod job_name;
@@ -59,6 +60,7 @@ pub use self::{
     execution_defaults::ExecutionDefaults,
     execution_plan::ExecutionPlan,
     execution_stage::ExecutionStage,
+    failure_log_retention::FailureLogRetention,
     interface_mode::InterfaceMode,
     job_matrix::JobMatrix,
     job_name::JobName,

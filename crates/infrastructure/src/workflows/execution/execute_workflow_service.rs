@@ -3,7 +3,7 @@ use std::{collections::HashSet, error::Error};
 use crate::{
     application::{
         dtos::{
-            requests::{ExecuteWorkflowRequest, LoadWorkflowRequest},
+            requests::ExecuteWorkflowRequest,
             responses::{
                 JobExecutionResponse, JobSummaryResponse, StepSummaryDetails, StepSummaryResponse,
                 StepSummaryResponseInput, WorkflowExecutionResponse,
@@ -87,10 +87,10 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
         let context = request.context().clone();
         let workflow = self
             .workflow_loader
-            .load(LoadWorkflowRequest::new(
-                request.workflow_content().to_string(),
-                request.file_name().unwrap_or("unnamed").to_string(),
-            ))
+            .load(
+                request.workflow_content(),
+                request.file_name().unwrap_or("unnamed"),
+            )
             .map_err(|error| ExecuteWorkflowError::Workflow(error.to_string()))?;
         let workflow_name = workflow.name().or(workflow.file()).unwrap_or("unnamed");
         let plan = workflow
