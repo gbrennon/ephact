@@ -1,30 +1,19 @@
-use crate::value_objects::{InterfaceMode, Marker, OperationMode, OutputPreferences, Permissions};
+use crate::value_objects::{
+    FailureLogRetention, InterfaceMode, Marker, OperationMode, OutputPreferences, Permissions,
+};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Settings {
     default_interface: InterfaceMode,
     permissions: Permissions,
     operation_mode: OperationMode,
     output_preferences: OutputPreferences,
     marker: Marker,
-    failure_log_retention_hours: u64,
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self {
-            default_interface: InterfaceMode::default(),
-            permissions: Permissions::default(),
-            operation_mode: OperationMode::default(),
-            output_preferences: OutputPreferences::default(),
-            marker: Marker::default(),
-            failure_log_retention_hours: Self::DEFAULT_FAILURE_LOG_RETENTION_HOURS,
-        }
-    }
+    failure_log_retention: FailureLogRetention,
 }
 
 impl Settings {
-    pub const DEFAULT_FAILURE_LOG_RETENTION_HOURS: u64 = 24;
+    pub const DEFAULT_FAILURE_LOG_RETENTION_HOURS: u64 = FailureLogRetention::DEFAULT_HOURS;
 
     pub fn default_interface(&self) -> InterfaceMode {
         self.default_interface
@@ -46,8 +35,12 @@ impl Settings {
         &self.marker
     }
 
+    pub fn failure_log_retention(&self) -> &FailureLogRetention {
+        &self.failure_log_retention
+    }
+
     pub fn failure_log_retention_hours(&self) -> u64 {
-        self.failure_log_retention_hours
+        self.failure_log_retention.hours()
     }
 
     pub fn allow_repo_writes(&self) -> bool {
@@ -107,15 +100,16 @@ impl Settings {
         self
     }
 
-    pub fn with_failure_log_retention_hours(self, hours: u64) -> Result<Self, String> {
-        if hours == 0 {
-            return Err("failure log retention hours must be greater than zero".to_string());
-        }
-
-        Ok(Self {
-            failure_log_retention_hours: hours,
+    pub fn with_failure_log_retention(self, value: FailureLogRetention) -> Self {
+        Self {
+            failure_log_retention: value,
             ..self
-        })
+        }
+    }
+
+    pub fn with_failure_log_retention_hours(self, hours: u64) -> Result<Self, String> {
+        let retention = FailureLogRetention::new(hours)?;
+        Ok(self.with_failure_log_retention(retention))
     }
 
     pub fn with_allow_repo_writes(self, value: bool) -> Self {
@@ -284,5 +278,14 @@ mod tests {
             .expect_err("zero retention must be invalid");
 
         assert!(error.contains("greater than zero"));
+    }
+
+    #[test]
+    fn settings_store_failure_log_retention_as_a_value_object() {
+        let retention = crate::value_objects::FailureLogRetention::new(72)
+            .expect("positive retention is valid");
+        let settings = Settings::default().with_failure_log_retention(retention);
+
+        assert_eq!(settings.failure_log_retention(), &retention);
     }
 }
