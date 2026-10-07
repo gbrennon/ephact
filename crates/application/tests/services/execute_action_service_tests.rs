@@ -1,488 +1,518 @@
-use std::{collections::HashMap, path::Path, sync::Arc};
+#[cfg(test)]
+mod tests {
+    use std::{collections::HashMap, path::Path, sync::Arc};
 
-use ephact::{
-    application::{
-        dtos::{
-            requests::{
-                ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
+    use ephact::{
+        application::{
+            dtos::{
+                requests::{
+                    ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
+                },
+                responses::{ContainerConfigOptions, ContainerConfigResponse, ExecResultResponse},
             },
-            responses::{ContainerConfigOptions, ContainerConfigResponse, ExecResultResponse},
+            ports::outbound::{
+                ActionFetcherPort, ContainerRuntimePort, StepTextCodecPort,
+                container_port::ContainerPort,
+            },
         },
-        ports::outbound::{
-            ActionFetcherPort, ContainerRuntimePort, StepTextCodecPort,
-            container_port::ContainerPort,
+        domain::{
+            entities::Step,
+            value_objects::{ContextValue, EvaluationContext},
         },
-    },
-    domain::{
-        entities::Step,
-        value_objects::{ContextValue, EvaluationContext},
-    },
-    infrastructure::{
-        actions::ExecuteActionFactory,
-        di::ActionExecutionWiring,
-        steps::{JsonStepTextCodec, StepInterpolator},
-        workflows::actions::StepYaml,
-    },
-};
+        infrastructure::{
+            actions::ExecuteActionFactory,
+            di::ActionExecutionWiring,
+            steps::{JsonStepTextCodec, StepInterpolator},
+            workflows::actions::StepYaml,
+        },
+    };
 
-use crate::common::fakes::{
-    fake_action_fetcher::FakeActionFetcher,
-    fake_action_routing_command_bus::FakeActionRoutingCommandBus, fake_command_bus::FakeCommandBus,
-    fake_event_bus::FakeEventBus, fake_runtime::FakeRuntime,
-    stub_failing_action_fetcher::StubFailingActionFetcher,
-};
+    use crate::common::fakes::{
+        fake_action_fetcher::FakeActionFetcher,
+        fake_action_routing_command_bus::FakeActionRoutingCommandBus,
+        fake_command_bus::FakeCommandBus, fake_event_bus::FakeEventBus, fake_runtime::FakeRuntime,
+        stub_failing_action_fetcher::StubFailingActionFetcher,
+    };
 
-fn wiring(fetcher: Box<dyn ActionFetcherPort>) -> ExecuteActionFactory {
-    ActionExecutionWiring::build(
-        fetcher,
-        Box::new(FakeCommandBus::new()),
-        Box::new(FakeEventBus::new()),
-        Arc::new(JsonStepTextCodec),
-        Arc::new(StepInterpolator),
-    )
-}
+    fn wiring(fetcher: Box<dyn ActionFetcherPort>) -> ExecuteActionFactory {
+        ActionExecutionWiring::build(
+            fetcher,
+            Box::new(FakeCommandBus::new()),
+            Box::new(FakeEventBus::new()),
+            Arc::new(JsonStepTextCodec),
+            Arc::new(StepInterpolator),
+        )
+    }
 
-fn container(runtime: &FakeRuntime) -> Arc<dyn ContainerPort> {
-    Arc::from(
+    fn container(runtime: &FakeRuntime) -> Arc<dyn ContainerPort> {
+        Arc::from(
+            runtime
+                .create_container(&ContainerConfigResponse::new(
+                    "image",
+                    ContainerConfigOptions::default(),
+                ))
+                .unwrap(),
+        )
+    }
+
+    fn step_from(yaml: &str) -> Step {
+        serde_yaml::from_str::<StepYaml>(yaml)
+            .unwrap()
+            .into_domain()
+    }
+
+    fn request(
+        action_ref: &str,
+        step: Step,
+        repo_path: &Path,
+        context: EvaluationContext,
+    ) -> ExecuteActionRequest {
+        ExecuteActionRequest::new(ExecuteActionRequestInput::new(
+            action_ref,
+            JsonStepTextCodec.encode(&step).unwrap(),
+            ExecuteActionExecutionInput::new(repo_path.to_path_buf(), HashMap::new(), context),
+        ))
+    }
+
+    fn write_action(dir: &Path, body: &str) {
+        std::fs::create_dir_all(dir).unwrap();
+        std::fs::write(dir.join("action.yml"), body).unwrap();
+    }
+
+    fn push_result(runtime: &FakeRuntime, exit_code: i64, stdout: &str) {
         runtime
-            .create_container(&ContainerConfigResponse::new(
-                "image",
-                ContainerConfigOptions::default(),
+            .exec_results
+            .lock()
+            .push(ExecResultResponse::new(exit_code, stdout, String::new()));
+    }
+
+    #[test]
+    fn execute_runs_the_steps_of_a_local_composite_action() {
+        let repo = tempfile::tempdir().unwrap();
+        write_action(
+            &repo.path().join("actions/greet"),
+            "name: Greet\nruns:\n  using: composite\n  steps:\n    - run: echo hi\n      shell: bash\n",
+        );
+        let runtime = FakeRuntime::new();
+        push_result(&runtime, 0, "");
+        push_result(&runtime, 0, "hi\n");
+        let container = container(&runtime);
+
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
+
+        let response = service
+            .execute(request(
+                "./actions/greet",
+                step_from("uses: ./actions/greet\n"),
+                repo.path(),
+                EvaluationContext::new(),
             ))
-            .unwrap(),
-    )
-}
+            .unwrap();
 
-fn step_from(yaml: &str) -> Step {
-    serde_yaml::from_str::<StepYaml>(yaml)
-        .unwrap()
-        .into_domain()
-}
+        assert_eq!(response.exit_code(), 0);
+        assert_eq!(response.stdout(), "hi\n");
+        assert_eq!(runtime.executed_scripts(), vec!["echo hi".to_string()]);
+    }
 
-fn request(
-    action_ref: &str,
-    step: Step,
-    repo_path: &Path,
-    context: EvaluationContext,
-) -> ExecuteActionRequest {
-    ExecuteActionRequest::new(ExecuteActionRequestInput::new(
-        action_ref,
-        JsonStepTextCodec.encode(&step).unwrap(),
-        ExecuteActionExecutionInput::new(repo_path.to_path_buf(), HashMap::new(), context),
-    ))
-}
+    #[test]
+    fn execute_passes_step_inputs_to_composite_expressions() {
+        let repo = tempfile::tempdir().unwrap();
+        write_action(
+            &repo.path().join("actions/deploy"),
+            "name: Deploy\ninputs:\n  mode:\n    description: target\n    default: production\nruns:\n  using: composite\n  steps:\n    - run: deploy ${{ inputs.mode }}\n      shell: bash\n",
+        );
+        let runtime = FakeRuntime::new();
+        let container = container(&runtime);
 
-fn write_action(dir: &Path, body: &str) {
-    std::fs::create_dir_all(dir).unwrap();
-    std::fs::write(dir.join("action.yml"), body).unwrap();
-}
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
 
-fn push_result(runtime: &FakeRuntime, exit_code: i64, stdout: &str) {
-    runtime
-        .exec_results
-        .lock()
-        .push(ExecResultResponse::new(exit_code, stdout, String::new()));
-}
+        service
+            .execute(request(
+                "./actions/deploy",
+                step_from("uses: ./actions/deploy\nwith:\n  mode: staging\n"),
+                repo.path(),
+                EvaluationContext::new(),
+            ))
+            .unwrap();
 
-#[test]
-fn execute_runs_the_steps_of_a_local_composite_action() {
-    let repo = tempfile::tempdir().unwrap();
-    write_action(
-        &repo.path().join("actions/greet"),
-        "name: Greet\nruns:\n  using: composite\n  steps:\n    - run: echo hi\n      shell: bash\n",
-    );
-    let runtime = FakeRuntime::new();
-    push_result(&runtime, 0, "");
-    push_result(&runtime, 0, "hi\n");
-    let container = container(&runtime);
+        assert_eq!(
+            runtime.executed_scripts(),
+            vec!["deploy staging".to_string()]
+        );
+    }
 
-    let service =
-        wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
+    #[test]
+    fn execute_falls_back_to_declared_input_defaults() {
+        let repo = tempfile::tempdir().unwrap();
+        write_action(
+            &repo.path().join("actions/deploy"),
+            "name: Deploy\ninputs:\n  mode:\n    description: target\n    default: production\nruns:\n  using: composite\n  steps:\n    - run: deploy ${{ inputs.mode }}\n      shell: bash\n",
+        );
+        let runtime = FakeRuntime::new();
+        let container = container(&runtime);
 
-    let response = service
-        .execute(request(
-            "./actions/greet",
-            step_from("uses: ./actions/greet\n"),
-            repo.path(),
-            EvaluationContext::new(),
-        ))
-        .unwrap();
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
 
-    assert_eq!(response.exit_code(), 0);
-    assert_eq!(response.stdout(), "hi\n");
-    assert_eq!(runtime.executed_scripts(), vec!["echo hi".to_string()]);
-}
+        service
+            .execute(request(
+                "./actions/deploy",
+                step_from("uses: ./actions/deploy\n"),
+                repo.path(),
+                EvaluationContext::new(),
+            ))
+            .unwrap();
 
-#[test]
-fn execute_passes_step_inputs_to_composite_expressions() {
-    let repo = tempfile::tempdir().unwrap();
-    write_action(
-        &repo.path().join("actions/deploy"),
-        "name: Deploy\ninputs:\n  mode:\n    description: target\n    default: production\nruns:\n  using: composite\n  steps:\n    - run: deploy ${{ inputs.mode }}\n      shell: bash\n",
-    );
-    let runtime = FakeRuntime::new();
-    let container = container(&runtime);
+        assert_eq!(
+            runtime.executed_scripts(),
+            vec!["deploy production".to_string()]
+        );
+    }
 
-    let service =
-        wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
+    #[test]
+    fn execute_resolves_secrets_from_the_run_context() {
+        let repo = tempfile::tempdir().unwrap();
+        write_action(
+            &repo.path().join("actions/publish"),
+            "name: Publish\nruns:\n  using: composite\n  steps:\n    - run: publish --token ${{ secrets.TOKEN }}\n      shell: bash\n",
+        );
+        let runtime = FakeRuntime::new();
+        let secrets = ContextValue::mapping([("TOKEN".to_string(), ContextValue::text("abc123"))]);
+        let context = EvaluationContext::new().with_root("secrets", secrets);
+        let container = container(&runtime);
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
 
-    service
-        .execute(request(
-            "./actions/deploy",
-            step_from("uses: ./actions/deploy\nwith:\n  mode: staging\n"),
-            repo.path(),
-            EvaluationContext::new(),
-        ))
-        .unwrap();
+        service
+            .execute(request(
+                "./actions/publish",
+                step_from("uses: ./actions/publish\n"),
+                repo.path(),
+                context,
+            ))
+            .unwrap();
 
-    assert_eq!(
-        runtime.executed_scripts(),
-        vec!["deploy staging".to_string()]
-    );
-}
+        assert_eq!(
+            runtime.executed_scripts(),
+            vec!["publish --token abc123".to_string()]
+        );
+    }
 
-#[test]
-fn execute_falls_back_to_declared_input_defaults() {
-    let repo = tempfile::tempdir().unwrap();
-    write_action(
-        &repo.path().join("actions/deploy"),
-        "name: Deploy\ninputs:\n  mode:\n    description: target\n    default: production\nruns:\n  using: composite\n  steps:\n    - run: deploy ${{ inputs.mode }}\n      shell: bash\n",
-    );
-    let runtime = FakeRuntime::new();
-    let container = container(&runtime);
+    #[test]
+    fn execute_stops_composite_action_at_the_first_failing_step() {
+        let repo = tempfile::tempdir().unwrap();
+        write_action(
+            &repo.path().join("actions/build"),
+            "name: Build\nruns:\n  using: composite\n  steps:\n    - run: first\n      shell: bash\n    - run: second\n      shell: bash\n",
+        );
+        let runtime = FakeRuntime::new();
+        push_result(&runtime, 0, "");
+        push_result(&runtime, 2, "boom\n");
+        let container = container(&runtime);
 
-    let service =
-        wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
 
-    service
-        .execute(request(
-            "./actions/deploy",
-            step_from("uses: ./actions/deploy\n"),
-            repo.path(),
-            EvaluationContext::new(),
-        ))
-        .unwrap();
+        let response = service
+            .execute(request(
+                "./actions/build",
+                step_from("uses: ./actions/build\n"),
+                repo.path(),
+                EvaluationContext::new(),
+            ))
+            .unwrap();
 
-    assert_eq!(
-        runtime.executed_scripts(),
-        vec!["deploy production".to_string()]
-    );
-}
+        assert_eq!(response.exit_code(), 2);
+        assert_eq!(runtime.executed_scripts(), vec!["first".to_string()]);
+    }
 
-#[test]
-fn execute_resolves_secrets_from_the_run_context() {
-    let repo = tempfile::tempdir().unwrap();
-    write_action(
-        &repo.path().join("actions/publish"),
-        "name: Publish\nruns:\n  using: composite\n  steps:\n    - run: publish --token ${{ secrets.TOKEN }}\n      shell: bash\n",
-    );
-    let runtime = FakeRuntime::new();
-    let secrets = ContextValue::mapping([("TOKEN".to_string(), ContextValue::text("abc123"))]);
-    let context = EvaluationContext::new().with_root("secrets", secrets);
-    let container = container(&runtime);
-    let service =
-        wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
+    #[test]
+    fn execute_fetches_a_remote_action_and_runs_it() {
+        let repo = tempfile::tempdir().unwrap();
+        let mirror = tempfile::tempdir().unwrap();
+        write_action(
+            mirror.path(),
+            "name: Cache\nruns:\n  using: composite\n  steps:\n    - run: restore-cache\n      shell: bash\n",
+        );
+        let runtime = FakeRuntime::new();
+        let fetcher = FakeActionFetcher::returning(mirror.path().into());
+        let container = container(&runtime);
 
-    service
-        .execute(request(
-            "./actions/publish",
-            step_from("uses: ./actions/publish\n"),
-            repo.path(),
-            context,
-        ))
-        .unwrap();
+        let service = wiring(Box::new(fetcher))(container.clone());
 
-    assert_eq!(
-        runtime.executed_scripts(),
-        vec!["publish --token abc123".to_string()]
-    );
-}
+        let response = service
+            .execute(request(
+                "https://data.forgejo.org/actions/cache@v4",
+                step_from("uses: https://data.forgejo.org/actions/cache@v4\n"),
+                repo.path(),
+                EvaluationContext::new(),
+            ))
+            .unwrap();
 
-#[test]
-fn execute_stops_composite_action_at_the_first_failing_step() {
-    let repo = tempfile::tempdir().unwrap();
-    write_action(
-        &repo.path().join("actions/build"),
-        "name: Build\nruns:\n  using: composite\n  steps:\n    - run: first\n      shell: bash\n    - run: second\n      shell: bash\n",
-    );
-    let runtime = FakeRuntime::new();
-    push_result(&runtime, 0, "");
-    push_result(&runtime, 2, "boom\n");
-    let container = container(&runtime);
+        assert_eq!(response.exit_code(), 0);
+        assert_eq!(
+            runtime.executed_scripts(),
+            vec!["restore-cache".to_string()]
+        );
+    }
 
-    let service =
-        wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
+    #[test]
+    fn execute_runs_a_javascript_action_with_inputs_as_environment_variables() {
+        let repo = tempfile::tempdir().unwrap();
+        let mirror = tempfile::tempdir().unwrap();
+        write_action(
+            mirror.path(),
+            "name: Cache\nruns:\n  using: node20\n  main: dist/index.js\n",
+        );
+        std::fs::create_dir_all(mirror.path().join("dist")).unwrap();
+        std::fs::write(mirror.path().join("dist/index.js"), "console.log('cached')").unwrap();
+        let runtime = FakeRuntime::new();
+        let container = container(&runtime);
 
-    let response = service
-        .execute(request(
-            "./actions/build",
-            step_from("uses: ./actions/build\n"),
-            repo.path(),
-            EvaluationContext::new(),
-        ))
-        .unwrap();
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(mirror.path().into())))(container.clone());
 
-    assert_eq!(response.exit_code(), 2);
-    assert_eq!(runtime.executed_scripts(), vec!["first".to_string()]);
-}
+        let response = service
+            .execute(request(
+                "https://data.forgejo.org/actions/cache@v4",
+                step_from(
+                    "uses: https://data.forgejo.org/actions/cache@v4\nwith:\n  key: build-cache\n",
+                ),
+                repo.path(),
+                EvaluationContext::new(),
+            ))
+            .unwrap();
 
-#[test]
-fn execute_fetches_a_remote_action_and_runs_it() {
-    let repo = tempfile::tempdir().unwrap();
-    let mirror = tempfile::tempdir().unwrap();
-    write_action(
-        mirror.path(),
-        "name: Cache\nruns:\n  using: composite\n  steps:\n    - run: restore-cache\n      shell: bash\n",
-    );
-    let runtime = FakeRuntime::new();
-    let fetcher = FakeActionFetcher::returning(mirror.path().into());
-    let container = container(&runtime);
-
-    let service = wiring(Box::new(fetcher))(container.clone());
-
-    let response = service
-        .execute(request(
-            "https://data.forgejo.org/actions/cache@v4",
-            step_from("uses: https://data.forgejo.org/actions/cache@v4\n"),
-            repo.path(),
-            EvaluationContext::new(),
-        ))
-        .unwrap();
-
-    assert_eq!(response.exit_code(), 0);
-    assert_eq!(
-        runtime.executed_scripts(),
-        vec!["restore-cache".to_string()]
-    );
-}
-
-#[test]
-fn execute_runs_a_javascript_action_with_inputs_as_environment_variables() {
-    let repo = tempfile::tempdir().unwrap();
-    let mirror = tempfile::tempdir().unwrap();
-    write_action(
-        mirror.path(),
-        "name: Cache\nruns:\n  using: node20\n  main: dist/index.js\n",
-    );
-    std::fs::create_dir_all(mirror.path().join("dist")).unwrap();
-    std::fs::write(mirror.path().join("dist/index.js"), "console.log('cached')").unwrap();
-    let runtime = FakeRuntime::new();
-    let container = container(&runtime);
-
-    let service =
-        wiring(Box::new(FakeActionFetcher::returning(mirror.path().into())))(container.clone());
-
-    let response = service
-        .execute(request(
-            "https://data.forgejo.org/actions/cache@v4",
-            step_from(
-                "uses: https://data.forgejo.org/actions/cache@v4\nwith:\n  key: build-cache\n",
-            ),
-            repo.path(),
-            EvaluationContext::new(),
-        ))
-        .unwrap();
-
-    assert_eq!(response.exit_code(), 0);
-    let commands = runtime.executed_commands.lock();
-    let node_command = commands
-        .iter()
-        .find(|command| command.first().map(String::as_str) == Some("node"))
-        .expect("the action entry point should run with node");
-    assert!(
-        node_command[1].ends_with("/dist/index.js"),
-        "{:?}",
-        node_command
-    );
-    assert!(
-        runtime
-            .exec_environments
-            .lock()
+        assert_eq!(response.exit_code(), 0);
+        let commands = runtime.executed_commands.lock();
+        let node_command = commands
             .iter()
-            .any(|env| { env.get("INPUT_KEY").map(String::as_str) == Some("build-cache") }),
-        "inputs should reach the action as INPUT_* variables"
-    );
-    assert_eq!(runtime.copied_paths.lock().len(), 1);
-}
+            .find(|command| command.first().map(String::as_str) == Some("node"))
+            .expect("the action entry point should run with node");
+        assert!(
+            node_command[1].ends_with("/dist/index.js"),
+            "{:?}",
+            node_command
+        );
+        assert!(
+            runtime
+                .exec_environments
+                .lock()
+                .iter()
+                .any(|env| { env.get("INPUT_KEY").map(String::as_str) == Some("build-cache") }),
+            "inputs should reach the action as INPUT_* variables"
+        );
+        assert_eq!(runtime.copied_paths.lock().len(), 1);
+    }
 
-#[test]
-fn execute_runs_a_javascript_action_with_the_interpreter_found_in_the_container() {
-    let repo = tempfile::tempdir().unwrap();
-    let mirror = tempfile::tempdir().unwrap();
-    write_action(
-        mirror.path(),
-        "name: Cache\nruns:\n  using: node20\n  main: dist/index.js\n",
-    );
-    std::fs::create_dir_all(mirror.path().join("dist")).unwrap();
-    std::fs::write(mirror.path().join("dist/index.js"), "console.log('cached')").unwrap();
-    let runtime = FakeRuntime::new();
-    push_result(&runtime, 0, "");
-    push_result(&runtime, 0, "/opt/acttoolcache/node/24/bin/node\n");
-    push_result(&runtime, 0, "cached\n");
-    let container = container(&runtime);
+    #[test]
+    fn execute_runs_a_javascript_action_with_the_interpreter_found_in_the_container() {
+        let repo = tempfile::tempdir().unwrap();
+        let mirror = tempfile::tempdir().unwrap();
+        write_action(
+            mirror.path(),
+            "name: Cache\nruns:\n  using: node20\n  main: dist/index.js\n",
+        );
+        std::fs::create_dir_all(mirror.path().join("dist")).unwrap();
+        std::fs::write(mirror.path().join("dist/index.js"), "console.log('cached')").unwrap();
+        let runtime = FakeRuntime::new();
+        push_result(&runtime, 0, "");
+        push_result(&runtime, 0, "/opt/acttoolcache/node/24/bin/node\n");
+        push_result(&runtime, 0, "cached\n");
+        let container = container(&runtime);
 
-    let service =
-        wiring(Box::new(FakeActionFetcher::returning(mirror.path().into())))(container.clone());
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(mirror.path().into())))(container.clone());
 
-    let response = service
-        .execute(request(
-            "https://data.forgejo.org/actions/cache@v4",
-            step_from("uses: https://data.forgejo.org/actions/cache@v4\n"),
+        let response = service
+            .execute(request(
+                "https://data.forgejo.org/actions/cache@v4",
+                step_from("uses: https://data.forgejo.org/actions/cache@v4\n"),
+                repo.path(),
+                EvaluationContext::new(),
+            ))
+            .unwrap();
+
+        assert_eq!(response.stdout(), "cached\n");
+        assert!(
+            runtime
+                .executed_commands
+                .lock()
+                .iter()
+                .any(|command| command.first().map(String::as_str)
+                    == Some("/opt/acttoolcache/node/24/bin/node")),
+            "{:?}",
+            runtime.executed_commands.lock()
+        );
+    }
+
+    #[test]
+    fn execute_skips_checkout_because_the_workspace_is_mounted() {
+        let repo = tempfile::tempdir().unwrap();
+        let runtime = FakeRuntime::new();
+        let container = container(&runtime);
+
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
+
+        let response = service
+            .execute(request(
+                "actions/checkout@v4",
+                step_from("uses: actions/checkout@v4\n"),
+                repo.path(),
+                EvaluationContext::new(),
+            ))
+            .unwrap();
+
+        assert_eq!(response.exit_code(), 0);
+        assert!(!response.stdout().contains("[skipped]"));
+        assert!(
+            response
+                .stdout()
+                .contains("the repository is already mounted at /workspace"),
+            "{}",
+            response.stdout()
+        );
+        assert!(runtime.executed_commands.lock().is_empty());
+    }
+
+    #[test]
+    fn execute_reports_a_failed_fetch() {
+        let repo = tempfile::tempdir().unwrap();
+        let runtime = FakeRuntime::new();
+        let container = container(&runtime);
+
+        let service = wiring(Box::new(StubFailingActionFetcher))(container.clone());
+
+        let error = service
+            .execute(request(
+                "https://data.forgejo.org/actions/cache@v4",
+                step_from("uses: https://data.forgejo.org/actions/cache@v4\n"),
+                repo.path(),
+                EvaluationContext::new(),
+            ))
+            .unwrap_err();
+
+        assert!(
+            error.message().contains("failed to fetch action"),
+            "{}",
+            error.message()
+        );
+    }
+
+    #[test]
+    fn execute_reports_container_actions_as_unsupported() {
+        let repo = tempfile::tempdir().unwrap();
+        let runtime = FakeRuntime::new();
+        let container = container(&runtime);
+
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
+
+        let error = service
+            .execute(request(
+                "docker://node:20",
+                step_from("uses: docker://node:20\n"),
+                repo.path(),
+                EvaluationContext::new(),
+            ))
+            .unwrap_err();
+
+        assert!(
+            error.message().contains("unsupported action"),
+            "{}",
+            error.message()
+        );
+    }
+    #[test]
+    fn execute_reports_dockerfile_actions_as_unsupported() {
+        let repo = tempfile::tempdir().unwrap();
+        write_action(
             repo.path(),
-            EvaluationContext::new(),
-        ))
-        .unwrap();
+            "name: Container Action\nruns:\n  using: docker\n  image: Dockerfile\n",
+        );
+        let runtime = FakeRuntime::new();
+        let container = container(&runtime);
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
 
-    assert_eq!(response.stdout(), "cached\n");
-    assert!(
-        runtime
-            .executed_commands
-            .lock()
-            .iter()
-            .any(|command| command.first().map(String::as_str)
-                == Some("/opt/acttoolcache/node/24/bin/node")),
-        "{:?}",
-        runtime.executed_commands.lock()
-    );
-}
+        let error = service
+            .execute(request(
+                "example/container-action@v1",
+                step_from("uses: example/container-action@v1\n"),
+                repo.path(),
+                EvaluationContext::new(),
+            ))
+            .unwrap_err();
 
-#[test]
-fn execute_skips_checkout_because_the_workspace_is_mounted() {
-    let repo = tempfile::tempdir().unwrap();
-    let runtime = FakeRuntime::new();
-    let container = container(&runtime);
+        assert!(
+            error.message().contains("unsupported action"),
+            "{}",
+            error.message()
+        );
+    }
 
-    let service =
-        wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
+    #[test]
+    fn execute_reports_a_missing_action_definition() {
+        let repo = tempfile::tempdir().unwrap();
+        let runtime = FakeRuntime::new();
+        let container = container(&runtime);
 
-    let response = service
-        .execute(request(
-            "actions/checkout@v4",
-            step_from("uses: actions/checkout@v4\n"),
-            repo.path(),
-            EvaluationContext::new(),
-        ))
-        .unwrap();
+        let service =
+            wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
 
-    assert_eq!(response.exit_code(), 0);
-    assert!(!response.stdout().contains("[skipped]"));
-    assert!(
-        response
-            .stdout()
-            .contains("the repository is already mounted at /workspace"),
-        "{}",
-        response.stdout()
-    );
-    assert!(runtime.executed_commands.lock().is_empty());
-}
+        let error = service
+            .execute(request(
+                "./actions/absent",
+                step_from("uses: ./actions/absent\n"),
+                repo.path(),
+                EvaluationContext::new(),
+            ))
+            .unwrap_err();
 
-#[test]
-fn execute_reports_a_failed_fetch() {
-    let repo = tempfile::tempdir().unwrap();
-    let runtime = FakeRuntime::new();
-    let container = container(&runtime);
+        assert!(
+            error.message().contains("action.yml not found"),
+            "{}",
+            error.message()
+        );
+    }
 
-    let service = wiring(Box::new(StubFailingActionFetcher))(container.clone());
+    #[test]
+    fn execute_runs_actions_nested_inside_a_composite_action() {
+        let repo = tempfile::tempdir().unwrap();
+        write_action(
+            &repo.path().join("actions/outer"),
+            "name: Outer\nruns:\n  using: composite\n  steps:\n    - uses: ./actions/inner\n",
+        );
+        write_action(
+            &repo.path().join("actions/inner"),
+            "name: Inner\nruns:\n  using: composite\n  steps:\n    - run: inner-step\n      shell: bash\n",
+        );
+        let runtime = FakeRuntime::new();
+        let command_bus = FakeActionRoutingCommandBus::new();
+        let service = Arc::new(ActionExecutionWiring::build(
+            Box::new(FakeActionFetcher::returning(repo.path().into())),
+            Box::new(command_bus.clone()),
+            Box::new(FakeEventBus::new()),
+            Arc::new(JsonStepTextCodec),
+            Arc::new(StepInterpolator),
+        ));
+        command_bus.bind(service.clone());
+        let container = container(&runtime);
+        let executor = service(container.clone());
 
-    let error = service
-        .execute(request(
-            "https://data.forgejo.org/actions/cache@v4",
-            step_from("uses: https://data.forgejo.org/actions/cache@v4\n"),
-            repo.path(),
-            EvaluationContext::new(),
-        ))
-        .unwrap_err();
+        let response = executor
+            .execute(request(
+                "./actions/outer",
+                step_from("uses: ./actions/outer\n"),
+                repo.path(),
+                EvaluationContext::new(),
+            ))
+            .unwrap();
 
-    assert!(
-        error.message().contains("failed to fetch action"),
-        "{}",
-        error.message()
-    );
-}
-
-#[test]
-fn execute_reports_container_actions_as_unsupported() {
-    let repo = tempfile::tempdir().unwrap();
-    let runtime = FakeRuntime::new();
-    let container = container(&runtime);
-
-    let service =
-        wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
-
-    let error = service
-        .execute(request(
-            "docker://node:20",
-            step_from("uses: docker://node:20\n"),
-            repo.path(),
-            EvaluationContext::new(),
-        ))
-        .unwrap_err();
-
-    assert!(
-        error.message().contains("unsupported action"),
-        "{}",
-        error.message()
-    );
-}
-
-#[test]
-fn execute_reports_a_missing_action_definition() {
-    let repo = tempfile::tempdir().unwrap();
-    let runtime = FakeRuntime::new();
-    let container = container(&runtime);
-
-    let service =
-        wiring(Box::new(FakeActionFetcher::returning(repo.path().into())))(container.clone());
-
-    let error = service
-        .execute(request(
-            "./actions/absent",
-            step_from("uses: ./actions/absent\n"),
-            repo.path(),
-            EvaluationContext::new(),
-        ))
-        .unwrap_err();
-
-    assert!(
-        error.message().contains("action.yml not found"),
-        "{}",
-        error.message()
-    );
-}
-
-#[test]
-fn execute_runs_actions_nested_inside_a_composite_action() {
-    let repo = tempfile::tempdir().unwrap();
-    write_action(
-        &repo.path().join("actions/outer"),
-        "name: Outer\nruns:\n  using: composite\n  steps:\n    - uses: ./actions/inner\n",
-    );
-    write_action(
-        &repo.path().join("actions/inner"),
-        "name: Inner\nruns:\n  using: composite\n  steps:\n    - run: inner-step\n      shell: bash\n",
-    );
-    let runtime = FakeRuntime::new();
-    let command_bus = FakeActionRoutingCommandBus::new();
-    let service = Arc::new(ActionExecutionWiring::build(
-        Box::new(FakeActionFetcher::returning(repo.path().into())),
-        Box::new(command_bus.clone()),
-        Box::new(FakeEventBus::new()),
-        Arc::new(JsonStepTextCodec),
-        Arc::new(StepInterpolator),
-    ));
-    command_bus.bind(service.clone());
-    let container = container(&runtime);
-    let executor = service(container.clone());
-
-    let response = executor
-        .execute(request(
-            "./actions/outer",
-            step_from("uses: ./actions/outer\n"),
-            repo.path(),
-            EvaluationContext::new(),
-        ))
-        .unwrap();
-
-    assert_eq!(response.exit_code(), 0);
-    assert_eq!(runtime.executed_scripts(), vec!["inner-step".to_string()]);
+        assert_eq!(response.exit_code(), 0);
+        assert_eq!(runtime.executed_scripts(), vec!["inner-step".to_string()]);
+    }
 }
