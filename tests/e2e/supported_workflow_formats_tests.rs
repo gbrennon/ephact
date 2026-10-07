@@ -7,7 +7,8 @@ mod tests {
     };
 
     struct SupportedWorkflowFormatsTests;
-    const DEFAULT_CONTAINER_IMAGE: &str = "ubuntu:24.04";
+    const DEFAULT_CONTAINER_IMAGE: &str =
+        ephact::infrastructure::containers::GITHUB_HOSTED_RUNNER_IMAGE;
     const WOODPECKER_CONTAINER_IMAGE: &str = "debian:bookworm-slim";
 
     impl SupportedWorkflowFormatsTests {
@@ -18,7 +19,8 @@ mod tests {
             assert!(run.activity().ran_script(GithubActionsWorkflowRun::SCRIPT));
             assert_eq!(
                 run.activity().pulled_images(),
-                vec![DEFAULT_CONTAINER_IMAGE]
+                vec![DEFAULT_CONTAINER_IMAGE],
+                "ComChan GitHub Actions runner baseline",
             );
             assert_eq!(run.activity().stopped_containers().len(), 1);
             assert_eq!(run.activity().killed_containers().len(), 1);
@@ -31,7 +33,8 @@ mod tests {
             assert!(run.activity().ran_script(ForgejoActionsWorkflowRun::SCRIPT));
             assert_eq!(
                 run.activity().pulled_images(),
-                vec![DEFAULT_CONTAINER_IMAGE]
+                vec![DEFAULT_CONTAINER_IMAGE],
+                "Forgejo Actions runner baseline",
             );
             assert_eq!(run.activity().stopped_containers().len(), 1);
             assert_eq!(run.activity().killed_containers().len(), 1);
@@ -49,7 +52,8 @@ mod tests {
             assert!(!run.activity().ran_command_containing("$$"));
             assert_eq!(
                 run.activity().pulled_images(),
-                vec![WOODPECKER_CONTAINER_IMAGE]
+                vec![WOODPECKER_CONTAINER_IMAGE],
+                "Vaishnav-Sabari-Girish/miru Woodpecker image",
             );
             assert_eq!(run.activity().stopped_containers().len(), 1);
             assert_eq!(run.activity().killed_containers().len(), 1);

@@ -2,6 +2,7 @@
 pub mod common;
 
 mod actions;
+mod container_integration;
 mod containers;
 mod di;
 mod jobs;
