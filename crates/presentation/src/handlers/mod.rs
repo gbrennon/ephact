@@ -12,3 +12,4 @@ pub use list_actions_handler::ListActionsHandler;
 pub use list_workflows_handler::ListWorkflowsHandler;
 pub use preflight_ports::PreflightPorts;
 pub use run_handler::RunHandler;
+pub use single_workflow_run::SingleWorkflowRun;
