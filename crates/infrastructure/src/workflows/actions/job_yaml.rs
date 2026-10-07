@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use serde::Deserialize;
+use serde::{Deserialize, de::Deserializer};
 
 use crate::{
     domain::entities::Job,
     workflows::actions::{
-        ConcurrencyGroupYaml, ContainerSpecificationYaml, JobStrategyYaml, StepYaml,
-        TokenPermissionsYaml, context_value_from_yaml, job_needs_from_yaml,
+        ConcurrencyGroupYaml, ContainerSpecificationYaml, JobNeedsVisitor, JobStrategyYaml,
+        StepYaml, TokenPermissionsYaml, WorkflowYaml,
     },
 };
 
@@ -22,7 +22,7 @@ pub struct JobYaml {
     #[serde(default)]
     steps: Vec<StepYaml>,
 
-    #[serde(default, deserialize_with = "job_needs_from_yaml")]
+    #[serde(default, deserialize_with = "JobYaml::deserialize_needs")]
     needs: Vec<String>,
 
     #[serde(rename = "if")]
@@ -79,11 +79,18 @@ impl JobYaml {
             .with_container(self.container.map(ContainerSpecificationYaml::into_domain))
             .with_services(services)
             .with_outputs(self.outputs)
-            .with_inputs(self.with.map(context_value_from_yaml))
-            .with_secrets(self.secrets.map(context_value_from_yaml))
+            .with_inputs(self.with.map(WorkflowYaml::context_value_from_yaml))
+            .with_secrets(self.secrets.map(WorkflowYaml::context_value_from_yaml))
             .with_timeout_minutes(self.timeout_minutes)
             .with_continue_on_error(self.continue_on_error)
             .with_permissions(self.permissions.map(TokenPermissionsYaml::into_domain))
             .with_concurrency(self.concurrency.map(ConcurrencyGroupYaml::into_domain))
+    }
+
+    fn deserialize_needs<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(JobNeedsVisitor)
     }
 }
