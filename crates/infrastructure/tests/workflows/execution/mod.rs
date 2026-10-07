@@ -1,3 +1,4 @@
+mod execute_workflow_service_selected_job_tests;
 mod execute_workflow_service_tests;
 mod run_all_workflows_service_tests;
 mod run_workflow_service_tests;
