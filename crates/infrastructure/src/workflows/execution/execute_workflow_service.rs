@@ -1,5 +1,6 @@
 use std::{collections::HashSet, error::Error};
 
+use super::job_execution_input::JobExecutionInput;
 use crate::{
     application::{
         dtos::{
@@ -19,12 +20,9 @@ use crate::{
         },
     },
     domain::{
+        aggregates::Workflow,
         entities::JobRun,
-        messages::{
-            commands::ExecuteJobPayload,
-            events::{Event, JobFinishedPayload, JobStartedPayload, WorkflowStartedPayload},
-        },
-        value_objects::EvaluationContext,
+        messages::events::{Event, JobFinishedPayload, JobStartedPayload, WorkflowStartedPayload},
     },
 };
 
@@ -34,35 +32,6 @@ pub struct ExecuteWorkflowService {
     workflow_loader: Box<dyn WorkflowLoaderPort>,
     command_publisher: Box<dyn JobCommandPublisherPort>,
     event_publisher: Box<dyn DomainEventPublisherPort>,
-}
-
-struct JobExecutionInput<'a> {
-    workflow: &'a crate::domain::aggregates::Workflow,
-    run: &'a crate::domain::entities::JobRun,
-    repo_path: &'a std::path::Path,
-    context: &'a crate::domain::value_objects::EvaluationContext,
-    run_id: &'a str,
-    allow_repo_writes: bool,
-    allow_network: bool,
-}
-
-impl<'a> JobExecutionInput<'a> {
-    fn new(
-        workflow: &'a crate::domain::aggregates::Workflow,
-        run: &'a crate::domain::entities::JobRun,
-        request: &'a ExecuteWorkflowRequest,
-        context: &'a EvaluationContext,
-    ) -> Self {
-        Self {
-            workflow,
-            run,
-            repo_path: request.repo_path(),
-            context,
-            run_id: request.run_id(),
-            allow_repo_writes: request.allow_repo_writes(),
-            allow_network: request.allow_network(),
-        }
-    }
 }
 
 impl ExecuteWorkflowService {
@@ -84,7 +53,6 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
         &self,
         request: ExecuteWorkflowRequest,
     ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
-        let context = request.context().clone();
         let workflow = self
             .workflow_loader
             .load(
@@ -96,11 +64,12 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
         let plan = workflow
             .plan()
             .map_err(|error| ExecuteWorkflowError::Workflow(format!("{error:?}")))?;
+        let selected_jobs = Self::selected_job_ids(&workflow, request.selected_job())?;
 
         self.announce_workflow_started(workflow_name);
 
         let executions = self
-            .execute_planned_runs(&workflow, &plan, &context, request)
+            .execute_planned_runs(&workflow, &plan, selected_jobs.as_ref(), request)
             .map_err(|error| ExecuteWorkflowError::Workflow(error.to_string()))?;
 
         let job_summaries = executions.iter().map(|e| e.job_summary().clone()).collect();
@@ -120,17 +89,67 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
 }
 
 impl ExecuteWorkflowService {
+    fn selected_job_ids(
+        workflow: &Workflow,
+        selected_job: Option<&str>,
+    ) -> Result<Option<HashSet<String>>, ExecuteWorkflowError> {
+        let Some(selected_job) = selected_job else {
+            return Ok(None);
+        };
+        Self::validate_selected_job(workflow, selected_job)?;
+        Ok(Some(Self::dependency_closure(workflow, selected_job)?))
+    }
+
+    fn validate_selected_job(
+        workflow: &Workflow,
+        selected_job: &str,
+    ) -> Result<(), ExecuteWorkflowError> {
+        if workflow.job_named(selected_job).is_none() {
+            return Err(ExecuteWorkflowError::Workflow(format!(
+                "selected job '{selected_job}' was not found"
+            )));
+        }
+        Ok(())
+    }
+
+    fn dependency_closure(
+        workflow: &Workflow,
+        selected_job: &str,
+    ) -> Result<HashSet<String>, ExecuteWorkflowError> {
+        let mut selected_jobs = HashSet::new();
+        let mut pending_jobs = vec![selected_job.to_owned()];
+        while let Some(job_id) = pending_jobs.pop() {
+            if selected_jobs.insert(job_id.clone()) {
+                let Some(job) = workflow.job_named(&job_id) else {
+                    return Err(ExecuteWorkflowError::Workflow(format!(
+                        "dependency job '{job_id}' was not found"
+                    )));
+                };
+                pending_jobs.extend(job.needs().iter().cloned());
+            }
+        }
+        Ok(selected_jobs)
+    }
+
+    fn run_is_selected(run: &JobRun, selected_jobs: Option<&HashSet<String>>) -> bool {
+        selected_jobs.is_none_or(|jobs| jobs.contains(run.job_id()))
+    }
     fn execute_planned_runs(
         &self,
-        workflow: &crate::domain::aggregates::Workflow,
+        workflow: &Workflow,
         plan: &crate::domain::value_objects::ExecutionPlan,
-        context: &EvaluationContext,
+        selected_jobs: Option<&HashSet<String>>,
         request: ExecuteWorkflowRequest,
     ) -> Result<Vec<JobExecutionResponse>, Box<dyn Error>> {
         let mut blocked_jobs = HashSet::new();
         let mut executions = Vec::new();
-        for run in plan.stages().iter().flat_map(|stage| stage.runs()) {
-            let input = JobExecutionInput::new(workflow, run, &request, context);
+        for run in plan
+            .stages()
+            .iter()
+            .flat_map(|stage| stage.runs())
+            .filter(|run| Self::run_is_selected(run, selected_jobs))
+        {
+            let input = JobExecutionInput::new(workflow, run, &request, request.context());
             executions.push(self.execute_planned_run(run, input, &mut blocked_jobs)?);
         }
         Ok(executions)
@@ -195,29 +214,22 @@ impl ExecuteWorkflowService {
     fn execute_run(
         &self,
         input: JobExecutionInput<'_>,
-    ) -> Result<crate::application::dtos::responses::JobExecutionResponse, Box<dyn Error>> {
+    ) -> Result<JobExecutionResponse, Box<dyn Error>> {
         let workflow_name = input
-            .workflow
+            .workflow()
             .name()
-            .or(input.workflow.file())
+            .or(input.workflow().file())
             .unwrap_or("unnamed");
-        self.announce_job_started(workflow_name, input.run);
+        self.announce_job_started(workflow_name, input.run());
         let execution = self
             .command_publisher
-            .publish(
-                ExecuteJobPayload::new(
-                    input.run.job().clone(),
-                    input.run.job_id().to_string(),
-                    input.workflow.clone(),
-                    input.repo_path.to_path_buf(),
-                    input.context.clone(),
-                )
-                .with_run_id(input.run_id.to_string())
-                .with_allow_repo_writes(input.allow_repo_writes)
-                .with_allow_network(input.allow_network),
-            )
+            .publish(input.execute_job_payload())
             .map_err(|error| Box::new(error) as Box<dyn Error>)?;
-        self.announce_job_finished(workflow_name, input.run, execution.job_summary().success());
+        self.announce_job_finished(
+            workflow_name,
+            input.run(),
+            execution.job_summary().success(),
+        );
         Ok(execution)
     }
 

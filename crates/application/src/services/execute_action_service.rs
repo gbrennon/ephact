@@ -177,7 +177,8 @@ impl ExecuteActionService {
             ),
             ActionRuntime::Node12 { main }
             | ActionRuntime::Node16 { main }
-            | ActionRuntime::Node20 { main } => self
+            | ActionRuntime::Node20 { main }
+            | ActionRuntime::Node24 { main } => self
                 .node_runner
                 .run(
                     RunNodeActionRequest::new(

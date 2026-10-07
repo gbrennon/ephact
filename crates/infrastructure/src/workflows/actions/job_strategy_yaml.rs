@@ -9,7 +9,7 @@ pub struct JobStrategyYaml {
     matrix: Option<JobMatrixYaml>,
 
     #[serde(rename = "fail-fast")]
-    #[serde(default = "default_fail_fast")]
+    #[serde(default = "JobStrategyYaml::default_fail_fast")]
     fail_fast: bool,
 
     #[serde(rename = "max-parallel")]
@@ -27,8 +27,8 @@ impl JobStrategyYaml {
             self.max_parallel,
         )
     }
-}
 
-fn default_fail_fast() -> bool {
-    true
+    fn default_fail_fast() -> bool {
+        true
+    }
 }

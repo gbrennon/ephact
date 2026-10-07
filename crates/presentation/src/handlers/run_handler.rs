@@ -41,6 +41,11 @@ use crate::{
 pub struct RunHandler;
 
 impl RunHandler {
+    /// Generates a unique identifier for a workflow run.
+    pub fn new_run_id() -> String {
+        RunIdGenerator.generate()
+    }
+
     /// Executes a single workflow programmatically (used by the TUI).
     ///
     /// Converts `repository_path` into a [`Repository`], builds a run request
@@ -68,22 +73,17 @@ impl RunHandler {
         event: Option<String>,
         inputs: Vec<(String, String)>,
     ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
-        let run_id = RunIdGenerator.generate();
+        let run_id = Self::new_run_id();
         let request = SingleWorkflowRun::new(repository_path, workflow, event, inputs, &run_id);
         Self::execute_single_workflow(run_workflow_port, request).await
     }
 
-    pub async fn handle_with_event_and_inputs_and_run_id(
+    /// Executes a prepared workflow run through the application port.
+    pub async fn execute(
         run_workflow_port: &dyn RunWorkflowPort,
-        repository_path: PathBuf,
-        workflow: Option<String>,
-        event: Option<String>,
-        inputs: Vec<(String, String)>,
-    ) -> Result<(RunSummaryResponse, String), Box<dyn std::error::Error>> {
-        let run_id = RunIdGenerator.generate();
-        let request = SingleWorkflowRun::new(repository_path, workflow, event, inputs, &run_id);
-        let summary = Self::execute_single_workflow(run_workflow_port, request).await?;
-        Ok((summary, run_id))
+        run: SingleWorkflowRun,
+    ) -> Result<RunSummaryResponse, Box<dyn std::error::Error>> {
+        Self::execute_single_workflow(run_workflow_port, run).await
     }
 
     async fn execute_single_workflow(

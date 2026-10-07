@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
-use crate::{domain::value_objects::JobMatrix, workflows::actions::context_value_from_yaml};
+use crate::{
+    domain::value_objects::{ContextValue, JobMatrix},
+    workflows::actions::WorkflowYaml,
+};
 
 /// The `strategy.matrix:` entry of a job as authored in YAML.
 ///
@@ -30,28 +33,31 @@ impl JobMatrixYaml {
             .map(|(name, values)| {
                 (
                     name,
-                    values.into_iter().map(context_value_from_yaml).collect(),
+                    values
+                        .into_iter()
+                        .map(WorkflowYaml::context_value_from_yaml)
+                        .collect(),
                 )
             })
             .collect();
         JobMatrix::new(
             variables,
-            map_combinations(self.include),
-            map_combinations(self.exclude),
+            Self::map_combinations(self.include),
+            Self::map_combinations(self.exclude),
         )
     }
-}
 
-fn map_combinations(
-    combinations: Vec<HashMap<String, serde_yaml::Value>>,
-) -> Vec<HashMap<String, crate::domain::value_objects::ContextValue>> {
-    combinations
-        .into_iter()
-        .map(|combination| {
-            combination
-                .into_iter()
-                .map(|(name, value)| (name, context_value_from_yaml(value)))
-                .collect()
-        })
-        .collect()
+    fn map_combinations(
+        combinations: Vec<HashMap<String, serde_yaml::Value>>,
+    ) -> Vec<HashMap<String, ContextValue>> {
+        combinations
+            .into_iter()
+            .map(|combination| {
+                combination
+                    .into_iter()
+                    .map(|(name, value)| (name, WorkflowYaml::context_value_from_yaml(value)))
+                    .collect()
+            })
+            .collect()
+    }
 }

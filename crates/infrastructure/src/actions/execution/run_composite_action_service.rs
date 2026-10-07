@@ -36,7 +36,7 @@ pub struct RunCompositeActionService {
     step_exports_reader: Box<dyn StepExportsReaderPort>,
     interpolator: Arc<dyn StepInterpolatorPort>,
 }
-pub(super) struct ActionOutput {
+pub struct ActionOutput {
     stdout: String,
     stderr: String,
 }

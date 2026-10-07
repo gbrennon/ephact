@@ -22,12 +22,13 @@ use crate::{
     },
     cli::TuiProgressStream,
     domain::Settings,
-    handlers::RunHandler,
+    handlers::{RunHandler, SingleWorkflowRun},
     infrastructure::logging::FailureLogPathStore,
 };
 
 struct RunTask {
-    handle: tokio::task::JoinHandle<Result<(RunSummaryResponse, String), String>>,
+    handle: tokio::task::JoinHandle<Result<RunSummaryResponse, String>>,
+    run_id: String,
 }
 
 struct TuiLoopState {
@@ -228,6 +229,7 @@ impl TuiRunner {
         *cancelled = true;
         if let Some(task) = run_task.as_ref() {
             task.handle.abort();
+            self.take_failure_log_path(&task.run_id);
         }
         app.record_run_outcome(Self::cancelled_summary());
     }
@@ -245,22 +247,48 @@ impl TuiRunner {
             return Ok(());
         }
         let task = run_task.take().expect("finished run task");
-        let result = task.handle.await;
         if *cancelled {
+            self.take_failure_log_path(&task.run_id);
             *cancelled = false;
             return Ok(());
         }
-        let (summary, run_id) = result
-            .map_err(|error| error.to_string())?
-            .map_err(|error| error.to_string())?;
-        let failure_log_path = self
-            .failure_log_path_store
-            .as_ref()
-            .and_then(|store| store.take(&run_id));
-        app.record_run_outcome_with_failure_log_path(summary, failure_log_path);
+        let result = task.handle.await.map_err(|error| error.to_string())?;
+        match result {
+            Ok(summary) => {
+                let failure_log_path = self.take_failure_log_path(&task.run_id);
+                app.record_run_outcome_with_failure_log_path(summary, failure_log_path);
+                Ok(())
+            }
+            Err(error) => self.record_failed_run(app, &task.run_id, error),
+        }
+    }
+
+    fn record_failed_run(
+        &self,
+        app: &mut TuiApp,
+        run_id: &str,
+        error: String,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let failure_log_path = self.take_failure_log_path(run_id);
+        let Some(failure_log_path) = failure_log_path else {
+            return Err(error.into());
+        };
+        app.record_run_outcome_with_failure_log_path(
+            Self::failed_summary(),
+            Some(failure_log_path),
+        );
         Ok(())
     }
 
+    fn take_failure_log_path(&self, run_id: &str) -> Option<PathBuf> {
+        self.failure_log_path_store
+            .as_ref()
+            .and_then(|store| store.take(run_id))
+    }
+
+    fn failed_summary() -> RunSummaryResponse {
+        RunSummaryResponse::new("Workflow failed", Vec::new(), false, Duration::ZERO)
+    }
     fn process_run_request(
         &self,
         app: &mut TuiApp,
@@ -353,21 +381,25 @@ impl TuiRunner {
         event: String,
         inputs: Vec<(String, String)>,
     ) -> RunTask {
+        let run_id = RunHandler::new_run_id();
+        let task_run_id = run_id.clone();
+        let run = SingleWorkflowRun::new(repository_path, workflow, Some(event), inputs, &run_id);
         let handle = tokio::spawn(async move {
-            RunHandler::handle_with_event_and_inputs_and_run_id(
-                &*port,
-                repository_path,
-                workflow,
-                Some(event),
-                inputs,
-            )
-            .await
-            .map_err(|error| error.to_string())
+            RunHandler::execute(&*port, run)
+                .await
+                .map_err(|error| error.to_string())
         });
-        RunTask { handle }
+        RunTask {
+            handle,
+            run_id: task_run_id,
+        }
     }
 
     fn cancelled_summary() -> RunSummaryResponse {
         RunSummaryResponse::new("Cancelled", Vec::new(), false, Duration::ZERO)
     }
 }
+
+#[cfg(test)]
+#[path = "tui_runner_tests.rs"]
+mod tui_runner_tests;

@@ -427,11 +427,25 @@ impl RunWorkflowScreen {
     }
     fn render_summary(&self, frame: &mut Frame<'_>, area: Rect, summary: &RunSummaryResponse) {
         let lines = self.summary_lines(summary);
-        let max_scroll = lines.len().saturating_sub(area.height as usize) as u16;
+        let rows = Self::wrapped_row_count(&lines, area.width);
+        let max_scroll =
+            u16::try_from(rows.saturating_sub(area.height as usize)).unwrap_or(u16::MAX);
         let content = Paragraph::new(lines)
             .style(Theme::body_style())
+            .wrap(Wrap { trim: false })
             .scroll((self.summary_scroll.min(max_scroll), 0));
         frame.render_widget(content, area);
+    }
+
+    fn wrapped_row_count(lines: &[Line<'static>], width: u16) -> usize {
+        let width = usize::from(width);
+        if width == 0 {
+            return lines.len();
+        }
+        lines
+            .iter()
+            .map(|line| line.width().max(1).div_ceil(width))
+            .sum()
     }
 
     fn status_line(prefix: &str, success: bool) -> Line<'static> {

@@ -20,14 +20,24 @@ use crate::support::{
 };
 
 const WORKFLOW: &str = r#"
-name: Woodpecker Build
 when:
   - event: push
+    branch: main
+  - event: pull_request
+
 steps:
-  - name: build
-    image: alpine
+  typos-check:
+    image: debian:bookworm-slim
     commands:
-      - echo woodpecker
+      - apt-get update -qq && apt-get install -y -qq curl ca-certificates
+      - |
+        TYPOS_VERSION="1.50.1"
+        curl -LsSf --fail "https://github.com/crate-ci/typos/releases/download/v$${TYPOS_VERSION}/typos-v$${TYPOS_VERSION}-x86_64-unknown-linux-musl.tar.gz" -o /tmp/typos.tar.gz
+        mkdir -p /tmp/typos-extract
+        tar xzf /tmp/typos.tar.gz -C /tmp/typos-extract
+        find /tmp/typos-extract -type f -name typos -exec cp {} /usr/local/bin/typos \;
+        chmod +x /usr/local/bin/typos
+      - typos
 "#;
 
 #[derive(Clone)]
@@ -124,7 +134,8 @@ pub struct WoodpeckerWorkflowRun {
 }
 
 impl WoodpeckerWorkflowRun {
-    pub const SCRIPT: &'static str = "echo woodpecker";
+    pub const NORMALIZED_DOWNLOAD_URL_FRAGMENT: &'static str =
+        "/v${TYPOS_VERSION}/typos-v${TYPOS_VERSION}";
 
     pub fn execute() -> Self {
         let repository = WorkflowRepository::named("woodpecker-e2e").with_workflow_in(

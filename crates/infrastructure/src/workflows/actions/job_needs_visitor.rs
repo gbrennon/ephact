@@ -1,9 +1,6 @@
 use std::fmt;
 
-use serde::{
-    Deserializer,
-    de::{Error, SeqAccess, Visitor},
-};
+use serde::de::{Error, SeqAccess, Visitor};
 
 /// Reads a job's `needs` entry, which a workflow may write either as a single
 /// job id or as a sequence of job ids.
@@ -36,17 +33,4 @@ impl<'de> Visitor<'de> for JobNeedsVisitor {
         }
         Ok(job_ids)
     }
-}
-
-/// Deserializes either spelling of `needs:` into the list of job ids.
-///
-/// # Errors
-///
-/// Returns the deserializer's error when the entry is neither a string nor a
-/// sequence of strings.
-pub fn job_needs_from_yaml<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    deserializer.deserialize_any(JobNeedsVisitor)
 }
