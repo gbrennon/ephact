@@ -134,6 +134,7 @@ impl ExecuteWorkflowService {
     fn run_is_selected(run: &JobRun, selected_jobs: Option<&HashSet<String>>) -> bool {
         selected_jobs.is_none_or(|jobs| jobs.contains(run.job_id()))
     }
+
     fn execute_planned_runs(
         &self,
         workflow: &Workflow,

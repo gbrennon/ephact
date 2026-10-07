@@ -74,6 +74,7 @@ impl WorkflowCommandHandler {
             ("temp".to_owned(), ContextValue::text("/tmp")),
         ])
     }
+
     pub fn handle(
         &self,
         cmd: ExecuteWorkflowPayload,
