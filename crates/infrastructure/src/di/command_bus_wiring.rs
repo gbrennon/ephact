@@ -13,8 +13,8 @@ use crate::{
         },
     },
     containers::{
-        CreateJobContainerService, PrepareJobContainerService, PullJobImageService,
-        RepositoryContainerCopyAdapter,
+        CreateJobContainerService, GITHUB_HOSTED_RUNNER_IMAGE, PrepareJobContainerService,
+        PullJobImageService, RepositoryContainerCopyAdapter,
     },
     di::action_execution_wiring::ActionExecutionWiring,
     jobs::{JobCommandHandler, RunnerEnvironmentAdapter},
@@ -108,7 +108,8 @@ impl CommandBusWiring {
     ) -> ExecuteJobService {
         ExecuteJobService::new(ExecuteJobDependencies::new(
             Box::new(RunnerEnvironmentAdapter::new()),
-            Box::new(PrepareJobContainerService::new(
+            Box::new(PrepareJobContainerService::with_default_image(
+                GITHUB_HOSTED_RUNNER_IMAGE,
                 Box::new(PullJobImageService::new(runtime.clone())),
                 Box::new(CreateJobContainerService::new(runtime.clone())),
                 Box::new(RepositoryContainerCopyAdapter::new()),
