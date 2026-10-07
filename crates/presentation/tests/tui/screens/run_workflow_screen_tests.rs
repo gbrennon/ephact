@@ -54,6 +54,26 @@ fn rendered_text(screen: &RunWorkflowScreen) -> String {
         .collect()
 }
 
+fn rendered_text_with_size(screen: &RunWorkflowScreen, width: u16, height: u16) -> String {
+    let backend = TestBackend::new(width, height);
+    let mut terminal = Terminal::new(backend).expect("test terminal");
+
+    terminal
+        .draw(|frame| {
+            let area = ScreenFrame::render(frame, "test quote");
+            screen.render(frame, area);
+        })
+        .expect("render screen");
+
+    terminal
+        .backend()
+        .buffer()
+        .content()
+        .iter()
+        .map(|cell| cell.symbol())
+        .collect()
+}
+
 fn failed_summary() -> RunSummaryResponse {
     let step = StepSummaryResponse::new(StepSummaryResponseInput::new(
         "compile",
@@ -309,6 +329,21 @@ fn summary_scrolls_with_navigation_keys() {
     screen.scroll_summary_down();
 
     assert_eq!(screen.summary_scroll(), 1);
+}
+
+#[test]
+fn summary_scroll_reaches_jobs_after_wrapping_long_diagnostics_path() {
+    let mut screen = RunWorkflowScreen::new(workflows());
+    let long_path = format!("/tmp/{}", "diagnostics/very-long-segment/".repeat(8));
+    screen.record_outcome_with_failure_log_path(failed_summary(), Some(long_path.into()));
+
+    for _ in 0..20 {
+        screen.scroll_summary_down();
+    }
+
+    let text = rendered_text_with_size(&screen, 30, 8);
+
+    assert!(text.contains("build: FAILED"), "rendered text: {text:?}");
 }
 
 #[test]

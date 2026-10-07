@@ -1,5 +1,6 @@
 use std::{
     future::Future,
+    path::PathBuf,
     pin::Pin,
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
@@ -59,6 +60,72 @@ impl RunWorkflowPort for UnusedRunWorkflowPort {
     }
 }
 
+struct FailureLogScenario {
+    temp_root: PathBuf,
+    handler: FailureLogHandler,
+    runner: TuiRunner,
+    app: TuiApp,
+}
+
+impl FailureLogScenario {
+    fn new(run_ids: &[&str]) -> Self {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock should be after unix epoch")
+            .as_nanos();
+        let temp_root = std::env::temp_dir().join(format!("ephact-tui-failure-{timestamp}"));
+        let handler = FailureLogHandler::with_temp_root(&temp_root);
+        for run_id in run_ids {
+            handler.handle(&Event::RunStarted(RunStartedPayload::new(
+                (*run_id).to_string(),
+                "/repo/project".to_string(),
+            )));
+            handler.handle(&Event::RunFailed(RunFailedPayload::new(
+                (*run_id).to_string(),
+                "/repo/project".to_string(),
+                None,
+                "workflow could not be read".to_string(),
+            )));
+        }
+        let runner = TuiRunner::new(
+            Arc::new(EmptyListWorkflowsPort),
+            Arc::new(EmptyListActionsPort),
+            Arc::new(UnusedRunWorkflowPort),
+        )
+        .with_failure_log_path_store(handler.path_store());
+        let mut app = TuiApp::new(Vec::new(), String::new());
+        app.handle_key(KeyEvent::new(KeyCode::Char('x'), KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.start_run();
+        Self {
+            temp_root,
+            handler,
+            runner,
+            app,
+        }
+    }
+
+    fn path(&self, run_id: &str) -> PathBuf {
+        self.temp_root
+            .join("ephact")
+            .join("project")
+            .join(format!("failure-{run_id}.log"))
+    }
+
+    fn cleanup(self) {
+        std::fs::remove_dir_all(self.temp_root).expect("test diagnostics should be removed");
+    }
+}
+
+#[path = "tui_runner_active_path_test.rs"]
+mod active_path_test;
+
+#[path = "tui_runner_keyed_path_test.rs"]
+mod keyed_path_test;
+
+#[path = "tui_runner_cancellation_test.rs"]
+mod cancellation_test;
+
 fn render_text(app: &TuiApp) -> String {
     let backend = TestBackend::new(100, 20);
     let mut terminal = Terminal::new(backend).expect("test terminal should be created");
@@ -72,59 +139,4 @@ fn render_text(app: &TuiApp) -> String {
         .iter()
         .map(|cell| cell.symbol().to_string())
         .collect()
-}
-
-#[tokio::test]
-async fn failed_tui_run_renders_complete_log_path_when_execution_returns_error() {
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("system clock should be after unix epoch")
-        .as_nanos();
-    let temp_root = std::env::temp_dir().join(format!("ephact-tui-failure-{timestamp}"));
-    let handler = FailureLogHandler::with_temp_root(&temp_root);
-    let run_id = "run-tui-failure";
-    handler.handle(&Event::RunStarted(RunStartedPayload::new(
-        run_id.to_string(),
-        "/repo/project".to_string(),
-    )));
-    handler.handle(&Event::RunFailed(RunFailedPayload::new(
-        run_id.to_string(),
-        "/repo/project".to_string(),
-        None,
-        "workflow could not be read".to_string(),
-    )));
-    let expected_path = temp_root
-        .join("ephact")
-        .join("project")
-        .join("failure-run-tui-failure.log");
-    assert!(
-        expected_path.exists(),
-        "expected failure log was not written"
-    );
-    let runner = TuiRunner::new(
-        Arc::new(EmptyListWorkflowsPort),
-        Arc::new(EmptyListActionsPort),
-        Arc::new(UnusedRunWorkflowPort),
-    )
-    .with_failure_log_path_store(handler.path_store());
-    let mut app = TuiApp::new(Vec::new(), String::new());
-    app.handle_key(KeyEvent::new(KeyCode::Char('x'), KeyModifiers::NONE));
-    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-    app.start_run();
-    let handle = tokio::spawn(async { Err("workflow could not be read".to_string()) });
-    let mut run_task = Some(RunTask { handle });
-    let mut cancelled = false;
-    tokio::task::yield_now().await;
-    let result = runner
-        .process_finished_run(&mut app, &mut run_task, &mut cancelled)
-        .await;
-
-    assert!(result.is_ok());
-    let text = render_text(&app);
-    let normalized_text = text.replace([' ', '│'], "");
-    assert!(
-        normalized_text.contains(&format!("Failurediagnostics:{}", expected_path.display())),
-        "rendered TUI: {text:?}"
-    );
-    std::fs::remove_dir_all(temp_root).expect("test diagnostics should be removed");
 }
