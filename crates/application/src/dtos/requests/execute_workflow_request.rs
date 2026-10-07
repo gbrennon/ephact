@@ -11,6 +11,7 @@ pub struct ExecuteWorkflowRequest {
     allow_repo_writes: bool,
     allow_network: bool,
     file_name: Option<String>,
+    selected_job: Option<String>,
 }
 
 impl ExecuteWorkflowRequest {
@@ -30,6 +31,7 @@ impl ExecuteWorkflowRequest {
             allow_repo_writes,
             allow_network: false,
             file_name: None,
+            selected_job: None,
         }
     }
 
@@ -53,6 +55,23 @@ impl ExecuteWorkflowRequest {
     /// Returns the optional source filename.
     pub fn file_name(&self) -> Option<&str> {
         self.file_name.as_deref()
+    }
+
+    /// Sets the selected job used to limit workflow execution.
+    pub fn with_selected_job(mut self, selected_job: impl Into<String>) -> Self {
+        self.selected_job = Some(selected_job.into());
+        self
+    }
+
+    /// Sets or clears the selected job used to limit workflow execution.
+    pub fn with_selected_job_opt(mut self, selected_job: Option<&str>) -> Self {
+        self.selected_job = selected_job.map(str::to_owned);
+        self
+    }
+
+    /// Returns the selected job used to limit workflow execution.
+    pub fn selected_job(&self) -> Option<&str> {
+        self.selected_job.as_deref()
     }
 
     /// Returns the repository path.
