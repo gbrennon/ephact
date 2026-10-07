@@ -29,7 +29,7 @@ use ephact::{
         messages::commands::{
             ExecuteActionPayload, ExecuteJobPayload, ExecuteStepPayload, ExecuteWorkflowPayload,
         },
-        value_objects::{EvaluationContext, WorkflowTrigger},
+        value_objects::{EvaluationContext, JobName, WorkflowTrigger},
     },
     infrastructure::{
         actions::ActionCommandHandler,
@@ -39,6 +39,7 @@ use ephact::{
         workflows::{WorkflowCommandHandler, actions::StepYaml},
     },
 };
+use parking_lot::Mutex;
 
 use crate::common::fakes::stub_container::StubContainer;
 
@@ -82,6 +83,25 @@ impl ExecuteWorkflowPort for StubWorkflowPort {
         &self,
         _request: ephact::application::dtos::requests::ExecuteWorkflowRequest,
     ) -> Result<WorkflowExecutionResponse, ephact::application::errors::ExecuteWorkflowError> {
+        Ok(WorkflowExecutionResponse::new(
+            "dispatched-wf".to_string(),
+            Vec::new(),
+            vec!["c1".to_string()],
+            true,
+        ))
+    }
+}
+
+struct RecordingWorkflowPort {
+    selected_job: Arc<Mutex<Option<String>>>,
+}
+
+impl ExecuteWorkflowPort for RecordingWorkflowPort {
+    fn execute(
+        &self,
+        request: ephact::application::dtos::requests::ExecuteWorkflowRequest,
+    ) -> Result<WorkflowExecutionResponse, ephact::application::errors::ExecuteWorkflowError> {
+        *self.selected_job.lock() = request.selected_job().map(str::to_owned);
         Ok(WorkflowExecutionResponse::new(
             "dispatched-wf".to_string(),
             Vec::new(),
@@ -153,6 +173,10 @@ impl ExecuteActionPort for FailingActionPort {
 }
 
 fn sample_workflow_command() -> ExecuteWorkflowPayload {
+    sample_workflow_command_with_config(WorkflowRunConfig::new())
+}
+
+fn sample_workflow_command_with_config(config: WorkflowRunConfig) -> ExecuteWorkflowPayload {
     let tmp = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
     let repository = Repository::new(
@@ -161,7 +185,7 @@ fn sample_workflow_command() -> ExecuteWorkflowPayload {
     );
     ExecuteWorkflowPayload::new(
         "name: CI\non: [push]\n".to_string(),
-        WorkflowRunConfig::new(),
+        config,
         repository,
         "test-run".to_string(),
         false,
@@ -190,6 +214,22 @@ fn publisher_routes_workflow_command_to_workflow_handler() {
         WorkflowCommandPublisherPort::publish(&publisher, sample_workflow_command()).unwrap();
 
     assert_eq!(result.workflow_name(), "dispatched-wf");
+}
+
+#[test]
+fn publisher_routes_selected_job_to_workflow_handler() {
+    let selected_job = Arc::new(Mutex::new(None));
+    let workflow = WorkflowCommandHandler::new(Box::new(RecordingWorkflowPort {
+        selected_job: selected_job.clone(),
+    }));
+    let (_, job, step, action) = stub_handlers();
+    let publisher = bound_publisher(workflow, job, step, action);
+    let config = WorkflowRunConfig::new().with_job(JobName::new("publish".to_string()));
+
+    WorkflowCommandPublisherPort::publish(&publisher, sample_workflow_command_with_config(config))
+        .unwrap();
+
+    assert_eq!(selected_job.lock().as_deref(), Some("publish"));
 }
 
 #[test]
