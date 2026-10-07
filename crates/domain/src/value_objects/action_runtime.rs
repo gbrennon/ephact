@@ -27,6 +27,12 @@ pub enum ActionRuntime {
         main: String,
     },
 
+    /// Node action (node24 variant).
+    Node24 {
+        /// Entry point script.
+        main: String,
+    },
+
     /// Docker action identified by its image; execution currently reports an
     /// unsupported-action error.
     Docker {

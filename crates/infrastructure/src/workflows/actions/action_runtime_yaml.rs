@@ -34,6 +34,13 @@ pub enum ActionRuntimeYaml {
         main: String,
     },
 
+    /// JavaScript action executed with Node 24.
+    #[serde(rename = "node24")]
+    Node24 {
+        /// Entry point script.
+        main: String,
+    },
+
     /// Container action executed from an image.
     #[serde(rename = "docker")]
     Docker {
@@ -44,7 +51,6 @@ pub enum ActionRuntimeYaml {
 
 impl ActionRuntimeYaml {
     /// Builds the domain action runtime this YAML describes.
-    #[must_use]
     pub fn into_domain(self) -> ActionRuntime {
         match self {
             Self::Composite { steps } => ActionRuntime::Composite {
@@ -53,6 +59,7 @@ impl ActionRuntimeYaml {
             Self::Node12 { main } => ActionRuntime::Node12 { main },
             Self::Node16 { main } => ActionRuntime::Node16 { main },
             Self::Node20 { main } => ActionRuntime::Node20 { main },
+            Self::Node24 { main } => ActionRuntime::Node24 { main },
             Self::Docker { image } => ActionRuntime::Docker { image },
         }
     }
