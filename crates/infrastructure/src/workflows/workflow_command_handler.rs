@@ -63,7 +63,16 @@ impl WorkflowCommandHandler {
             .with_root("secrets", secrets)
             .with_root("inputs", ContextValue::Mapping(inputs))
             .with_root("github", github)
-            .with_root("runner", runner_context())
+            .with_root("runner", Self::runner_context())
+    }
+
+    /// Returns the runner facts every workflow run sees in the `runner` context.
+    fn runner_context() -> ContextValue {
+        ContextValue::mapping([
+            ("os".to_owned(), ContextValue::text("Linux")),
+            ("arch".to_owned(), ContextValue::text("X64")),
+            ("temp".to_owned(), ContextValue::text("/tmp")),
+        ])
     }
     pub fn handle(
         &self,
@@ -77,7 +86,8 @@ impl WorkflowCommandHandler {
             cmd.run_id().to_string(),
             cmd.allow_repo_writes(),
         )
-        .with_allow_network(cmd.config().allow_network());
+        .with_allow_network(cmd.config().allow_network())
+        .with_selected_job_opt(cmd.config().job().map(|job| job.as_str()));
         let req = match cmd.workflow_file_name() {
             Some(file_name) => req.with_file_name(file_name),
             None => req,
@@ -93,12 +103,4 @@ impl WorkflowCommandHandlerPort for WorkflowCommandHandler {
     ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
         WorkflowCommandHandler::handle(self, command)
     }
-}
-/// Returns the runner facts every workflow run sees in the `runner` context.
-fn runner_context() -> ContextValue {
-    ContextValue::mapping([
-        ("os".to_owned(), ContextValue::text("Linux")),
-        ("arch".to_owned(), ContextValue::text("X64")),
-        ("temp".to_owned(), ContextValue::text("/tmp")),
-    ])
 }
