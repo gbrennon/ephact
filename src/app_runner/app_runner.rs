@@ -1,8 +1,11 @@
-use std::error::Error;
+use std::{error::Error, ffi::OsString};
 
 use ephact::{
     application::ports::outbound::SettingsStorePort,
-    infrastructure::{CargoProjectBrandingStore, Container, logging::stderr_filter::StderrFilter},
+    infrastructure::{
+        CargoProjectBrandingStore, Container, containers::HostSshForwardingConfig,
+        logging::stderr_filter::StderrFilter,
+    },
     presentation::{
         cli::run_progress_handler::RunProgressHandler, composition_root::CompositionRoot,
     },
@@ -29,8 +32,16 @@ impl AppRunner {
     }
 
     fn run_application_impl(&self) -> Result<(), Box<dyn Error>> {
-        let verbose = std::env::args_os()
-            .any(|arg| ephact::presentation::cli::RunArgs::is_verbose_flag(&arg));
+        let args: Vec<OsString> = std::env::args_os().collect();
+        let forward_ssh = ephact::presentation::cli::RunArgs::is_forward_ssh_command(&args);
+        let verbose = args
+            .iter()
+            .any(|arg| ephact::presentation::cli::RunArgs::is_verbose_flag(arg));
+        let ssh_forwarding = if forward_ssh {
+            HostSshForwardingConfig::enabled()
+        } else {
+            HostSshForwardingConfig::disabled()
+        };
         let (progress_reporter, progress_stream) = RunProgressHandler::with_tui_stream(verbose);
         let branding_store = CargoProjectBrandingStore::from_metadata(
             env!("CARGO_PKG_NAME"),
@@ -38,9 +49,10 @@ impl AppRunner {
             env!("CARGO_PKG_VERSION"),
             ephact::PROJECT_EMBLEM,
         );
-        let container = Container::build_with_branding(
+        let container = Container::build_with_branding_and_ssh_forwarding(
             Some(Box::new(progress_reporter)),
             Box::new(branding_store),
+            ssh_forwarding,
         );
         let settings_store = self.config_factory.create_settings_store()?;
         let settings = settings_store.read_settings()?;
@@ -50,7 +62,7 @@ impl AppRunner {
             settings,
             settings_store,
         );
-        app.run(std::env::args_os())
+        app.run(args)
     }
 
     fn finish(result: Result<(), Box<dyn Error>>) {

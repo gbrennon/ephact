@@ -1,4 +1,7 @@
-use std::path::PathBuf;
+use std::{
+    ffi::{OsStr, OsString},
+    path::PathBuf,
+};
 
 use clap::Args;
 
@@ -70,6 +73,10 @@ pub struct RunArgs {
     #[arg(long = "allow-network")]
     allow_network: bool,
 
+    /// Forward the host SSH agent into job containers.
+    #[arg(long = "forward-ssh")]
+    forward_ssh: bool,
+
     /// Show real-time step details (running steps and their output) in
     /// addition to the final status of each step.
     #[arg(long)]
@@ -111,6 +118,9 @@ impl RunArgs {
     }
 
     fn build_config(&self) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
+        if self.forward_ssh && !self.allow_network {
+            return Err("--forward-ssh requires --allow-network".into());
+        }
         let config = WorkflowRunConfig::new();
         let config = self.apply_targets(config);
         let config = config
@@ -186,6 +196,22 @@ impl RunArgs {
     /// Reports whether the given argument is the verbose flag.
     pub fn is_verbose_flag(arg: &std::ffi::OsStr) -> bool {
         arg == std::ffi::OsStr::new("--verbose")
+    }
+
+    /// Reports whether the given argument is the exact SSH forwarding flag.
+    pub fn is_forward_ssh_flag(arg: &std::ffi::OsStr) -> bool {
+        arg == std::ffi::OsStr::new("--forward-ssh")
+    }
+
+    /// Reports whether the exact SSH forwarding flag belongs to the `run` command.
+    pub fn is_forward_ssh_command(args: &[OsString]) -> bool {
+        args.get(1)
+            .is_some_and(|arg| arg.as_os_str() == OsStr::new("run"))
+            && args
+                .iter()
+                .skip(2)
+                .take_while(|arg| arg.as_os_str() != OsStr::new("--"))
+                .any(|arg| Self::is_forward_ssh_flag(arg.as_os_str()))
     }
 
     pub fn parse_key_value(s: &str) -> Result<(String, String), String> {
