@@ -28,6 +28,13 @@ impl ContainerPort for FailingPipelineContainer {
         env: &HashMap<String, String>,
     ) -> Result<ExecResultResponse, ContainerError> {
         self.activity.record_command(cmd, env);
+        if cmd.len() == 3
+            && cmd[0] == "sh"
+            && cmd[1] == "-c"
+            && cmd[2].starts_with("mkdir -p /tmp && touch ")
+        {
+            return Ok(ExecResultResponse::new(0, String::new(), String::new()));
+        }
         Ok(ExecResultResponse::new(1, String::new(), String::new()))
     }
 

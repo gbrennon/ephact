@@ -9,7 +9,10 @@ use ephact::{
     infrastructure::{jobs::RunnerEnvironmentAdapter, workflows::actions::WorkflowYaml},
 };
 
-const DEFAULT_PATH: &str = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
+const DEFAULT_PATH: &str = concat!(
+    "/opt/acttoolcache/node/24.19.0/x64/bin:",
+    "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+);
 
 fn workflow(yaml: &str) -> Workflow {
     serde_yaml::from_str::<WorkflowYaml>(yaml)
