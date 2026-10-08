@@ -13,8 +13,8 @@ use crate::{
         },
     },
     containers::{
-        CreateJobContainerService, GITHUB_HOSTED_RUNNER_IMAGE, PrepareJobContainerService,
-        PullJobImageService, RepositoryContainerCopyAdapter,
+        CreateJobContainerService, GITHUB_HOSTED_RUNNER_IMAGE, HostSshForwardingConfig,
+        PrepareJobContainerService, PullJobImageService, RepositoryContainerCopyAdapter,
     },
     di::action_execution_wiring::ActionExecutionWiring,
     jobs::{JobCommandHandler, RunnerEnvironmentAdapter},
@@ -42,6 +42,21 @@ impl CommandBusWiring {
         action_fetcher: Box<dyn ActionFetcherPort>,
         event_bus: crate::messaging::DomainEventPublisherAdapter,
     ) -> CommandPublisherAdapter {
+        Self::build_with_ssh_forwarding(
+            runtime,
+            action_fetcher,
+            event_bus,
+            HostSshForwardingConfig::disabled(),
+        )
+    }
+
+    /// Builds the command bus with explicit host SSH-agent forwarding configuration.
+    pub fn build_with_ssh_forwarding(
+        runtime: Arc<dyn ContainerRuntimePort>,
+        action_fetcher: Box<dyn ActionFetcherPort>,
+        event_bus: crate::messaging::DomainEventPublisherAdapter,
+        ssh_forwarding: HostSshForwardingConfig,
+    ) -> CommandPublisherAdapter {
         let deferred = Arc::new(DeferredCommandBus::new());
         let publisher = CommandPublisherAdapter::new(deferred.clone());
 
@@ -55,6 +70,7 @@ impl CommandBusWiring {
             runtime.clone(),
             Box::new(publisher.clone()) as Box<dyn StepCommandPublisherPort>,
             Box::new(event_bus.clone()),
+            ssh_forwarding,
         )));
 
         let interpolator: Arc<dyn StepInterpolatorPort> = Arc::new(StepInterpolator);
@@ -105,13 +121,17 @@ impl CommandBusWiring {
         runtime: Arc<dyn ContainerRuntimePort>,
         command_bus: Box<dyn StepCommandPublisherPort>,
         event_bus: Box<dyn DomainEventPublisherPort>,
+        ssh_forwarding: HostSshForwardingConfig,
     ) -> ExecuteJobService {
         ExecuteJobService::new(ExecuteJobDependencies::new(
             Box::new(RunnerEnvironmentAdapter::new()),
             Box::new(PrepareJobContainerService::with_default_image(
                 GITHUB_HOSTED_RUNNER_IMAGE,
                 Box::new(PullJobImageService::new(runtime.clone())),
-                Box::new(CreateJobContainerService::new(runtime.clone())),
+                Box::new(CreateJobContainerService::with_ssh_forwarding(
+                    runtime.clone(),
+                    ssh_forwarding,
+                )),
                 Box::new(RepositoryContainerCopyAdapter::new()),
             )),
             Box::new(FragmentNetworkCommandClassifier::new()),
