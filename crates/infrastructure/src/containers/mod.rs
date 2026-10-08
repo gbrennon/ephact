@@ -11,7 +11,8 @@ pub use container_cleanup_handler::ContainerCleanupHandler;
 pub use docker::DockerRuntime;
 pub use job_preparation::{
     BuildRunContextService, CreateJobContainerService, GITHUB_HOSTED_RUNNER_IMAGE,
-    PrepareJobContainerService, PullJobImageService, RepositoryContainerCopyAdapter,
+    HostSshForwardingConfig, PrepareJobContainerService, PullJobImageService,
+    RepositoryContainerCopyAdapter,
 };
 pub use podman::PodmanRuntime;
 pub use runtime::ContainerRuntimeAdapter;

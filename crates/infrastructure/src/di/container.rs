@@ -16,7 +16,7 @@ use crate::{
             show_project_branding_info_service::ShowProjectBrandingInfoService,
         },
     },
-    containers::{ContainerCleanupHandler, ContainerRuntimeAdapter},
+    containers::{ContainerCleanupHandler, ContainerRuntimeAdapter, HostSshForwardingConfig},
     di::{
         app_container::{AppContainer, AppContainerParts},
         command_bus_wiring::CommandBusWiring,
@@ -40,11 +40,24 @@ impl Container {
         progress_reporter: Option<Box<dyn DomainEventHandlerPort>>,
         branding_store: Box<dyn ProjectBrandingStorePort>,
     ) -> AppContainer {
+        Self::build_with_branding_and_ssh_forwarding(
+            progress_reporter,
+            branding_store,
+            HostSshForwardingConfig::disabled(),
+        )
+    }
+
+    /// Builds the application container with explicit host SSH-agent forwarding configuration.
+    pub fn build_with_branding_and_ssh_forwarding(
+        progress_reporter: Option<Box<dyn DomainEventHandlerPort>>,
+        branding_store: Box<dyn ProjectBrandingStorePort>,
+        ssh_forwarding: HostSshForwardingConfig,
+    ) -> AppContainer {
         let runtime: Arc<dyn ContainerRuntimePort> = Arc::new(
             ContainerRuntimeAdapter::detect()
                 .expect("no container runtime available (Docker or Podman required)"),
         );
-        Self::with_collaborators_and_branding(
+        Self::with_collaborators_and_branding_and_ssh_forwarding(
             ContainerCollaborators::new(
                 runtime,
                 Box::new(GitActionFetcher::with_default_cache_root()),
@@ -52,6 +65,7 @@ impl Container {
             ),
             progress_reporter,
             branding_store,
+            ssh_forwarding,
         )
     }
 
@@ -60,12 +74,31 @@ impl Container {
         progress_reporter: Option<Box<dyn DomainEventHandlerPort>>,
         branding_store: Box<dyn ProjectBrandingStorePort>,
     ) -> AppContainer {
+        Self::with_collaborators_and_branding_and_ssh_forwarding(
+            collaborators,
+            progress_reporter,
+            branding_store,
+            HostSshForwardingConfig::disabled(),
+        )
+    }
+
+    /// Builds an application container from collaborators and SSH forwarding configuration.
+    pub fn with_collaborators_and_branding_and_ssh_forwarding(
+        collaborators: ContainerCollaborators,
+        progress_reporter: Option<Box<dyn DomainEventHandlerPort>>,
+        branding_store: Box<dyn ProjectBrandingStorePort>,
+        ssh_forwarding: HostSshForwardingConfig,
+    ) -> AppContainer {
         let (runtime, action_fetcher, workflow_source) = collaborators.into_parts();
         let (event_publisher, failure_log_stores) =
             Self::build_event_bus(runtime.clone(), progress_reporter);
         let shared_workflow_source = SharedWorkflowSource::new(workflow_source);
-        let command_publisher =
-            Self::build_command_bus(runtime, action_fetcher, event_publisher.clone());
+        let command_publisher = Self::build_command_bus(
+            runtime,
+            action_fetcher,
+            event_publisher.clone(),
+            ssh_forwarding,
+        );
         let parts = Self::build_app_parts(
             shared_workflow_source,
             command_publisher,
@@ -153,7 +186,13 @@ impl Container {
         runtime: Arc<dyn ContainerRuntimePort>,
         action_fetcher: Box<dyn ActionFetcherPort>,
         event_bus: DomainEventPublisherAdapter,
+        ssh_forwarding: HostSshForwardingConfig,
     ) -> CommandPublisherAdapter {
-        CommandBusWiring::build(runtime, action_fetcher, event_bus)
+        CommandBusWiring::build_with_ssh_forwarding(
+            runtime,
+            action_fetcher,
+            event_bus,
+            ssh_forwarding,
+        )
     }
 }
