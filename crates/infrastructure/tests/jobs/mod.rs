@@ -1,1 +1,2 @@
 mod github_job_environment_adapter_tests;
+mod runner_environment_hosted_vars_tests;

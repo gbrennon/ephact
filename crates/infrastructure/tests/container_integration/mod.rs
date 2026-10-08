@@ -1,5 +1,6 @@
 mod container_runtime_detect_tests;
 mod docker_container_tests;
 mod docker_runtime_tests;
+mod hosted_runner_image_e2e_tests;
 mod podman_container_tests;
 mod podman_runtime_tests;

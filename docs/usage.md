@@ -263,6 +263,9 @@ ephact list-actions /path/to/repo
 ## Runtime and Safety
 
 `ephact` requires and auto-detects a reachable Docker or Podman runtime on Linux.
+Jobs without an explicit `container:` or step image use the
+runner-compatible `ghcr.io/catthehacker/ubuntu:act-24.04` image. Jobs with an
+explicit image keep that image, including explicit Woodpecker step images.
 When repository writes are disabled, the selected repository is copied into
 `/workspace`. Pass `--allow-repo-writes` to bind-mount the host repository so
 workflow steps can modify it. Runner-managed files are container-local. Pulling

@@ -2,7 +2,8 @@
 mod tests {
     use crate::scenarios::delivery_pipeline_run::DeliveryPipelineRun;
 
-    const DEFAULT_CONTAINER_IMAGE: &str = "ubuntu:24.04";
+    const DEFAULT_CONTAINER_IMAGE: &str =
+        ephact::infrastructure::containers::GITHUB_HOSTED_RUNNER_IMAGE;
 
     struct DeliveryPipelineTests;
 
