@@ -47,7 +47,7 @@ find_pending_release_tag() {
   local release_pattern
   local revision_range="origin/$TARGET_BRANCH"
   local latest_tag
-  release_pattern='from[[:space:]]release/(v[0-9]+\.[0-9]+\.[0-9]+)[[:space:]]into'
+  release_pattern='from[[:space:]]release/(v[0-9]+\.[0-9]+\.[0-9]+)[[:space:]]into[[:space:]]main$'
   latest_tag="$(git describe --tags --match 'v[0-9]*' --abbrev=0 \
     "origin/$TARGET_BRANCH" 2>/dev/null || true)"
   if [[ -n "$latest_tag" ]]; then

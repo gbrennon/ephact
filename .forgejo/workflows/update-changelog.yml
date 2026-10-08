@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.repository }}
+  group: changelog-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
