@@ -5,4 +5,5 @@ pub mod failing_pipeline_run;
 pub mod forgejo_actions_workflow_run;
 pub mod github_actions_workflow_run;
 pub mod remote_action_pipeline_run;
+pub mod ssh_forwarding_run;
 pub mod woodpecker_workflow_run;
