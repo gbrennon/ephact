@@ -1,14 +1,12 @@
 name: Update changelog
-description: Generate and commit the release changelog
+description: Generate and commit a changelog
 inputs:
   version:
-    description: >-
-      Release tag name (for example v0.2.0) used by git-cliff to group
-      unreleased commits under the new version header
-    required: true
+    description: Release tag name used for versioned changelog generation
+    required: false
+    default: ""
   target-branch:
-    description: >-
-      Branch to which the updated CHANGELOG.md commit is pushed (the release branch)
+    description: Branch to which the updated changelog commit is pushed
     required: true
 runs:
   using: composite
@@ -18,25 +16,4 @@ runs:
       env:
         VERSION: ${{ inputs.version }}
         TARGET_BRANCH: ${{ inputs.target-branch }}
-      run: |
-        set -euo pipefail
-        export PATH="$HOME/.cargo/bin:$PATH"
-
-        git cliff --config cliff.toml --tag "$VERSION" \
-          --no-exec --output CHANGELOG.md
-        heading="## [${VERSION#v}]"
-        if ! grep --fixed-strings --quiet "$heading" CHANGELOG.md; then
-          printf 'Generated changelog is missing heading: %s\n' "$heading" >&2
-          exit 1
-        fi
-
-        git config user.name github-actions[bot]
-        git config user.email \
-          41898282+github-actions[bot]@users.noreply.github.com
-        if git diff --quiet -- CHANGELOG.md; then
-          exit 0
-        fi
-
-        git add CHANGELOG.md
-        git commit -m "chore(release): update changelog for $VERSION"
-        git push origin "HEAD:$TARGET_BRANCH"
+      run: bash scripts/update_changelog.sh
