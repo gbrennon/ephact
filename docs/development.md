@@ -199,3 +199,20 @@ Configure the following secrets in Codeberg repository settings under
 `FORGEJO_TOKEN` is automatically created and injected by Forgejo Actions for each
 workflow run. Never add `FORGEJO_TOKEN` to repository secrets; use the built-in
 `forgejo.token` context instead.
+
+#### Forgejo Workflow Capabilities
+
+GitHub-style `permissions:` declarations are unsupported by Forgejo Actions and
+must not be placed in repository workflows. The automatic Forgejo token has write
+access to the repository that owns the workflow, so the changelog commit and push,
+release-tag push, and Codeberg release API call use the existing built-in token
+instead of a `permissions` block or a new repository secret.
+
+Capabilities beyond the automatic token require a Forgejo **Authorized
+Integration** configured in the Forgejo user settings. See the official
+[Authorized Integrations](https://forgejo.org/docs/latest/user/api/authorized-integrations/)
+documentation. The integration must be narrowly restricted to the source
+repository, workflow file, reference, and event. The workflow then enables OIDC,
+requests a JWT for the generated audience, and sends that JWT as a Bearer token.
+The generated audience is an identifier, not a secret; grant integration
+capabilities only for the resources required.
