@@ -9,7 +9,9 @@ use crate::{
         ports::outbound::{ContainerPort, ContainerRuntimePort, CreateJobContainerPort},
     },
     containers::{
-        job_preparation::host_ssh_forwarding_config::HostSshForwardingConfig,
+        job_preparation::{
+            host_ssh_forwarding_config::HostSshForwardingConfig, host_ssh_mounts::HostSshMounts,
+        },
         workspace::CONTAINER_WORKSPACE,
     },
 };
@@ -37,19 +39,18 @@ impl CreateJobContainerService {
         }
     }
 
-    fn host_ssh_mounts(&self) -> Result<(Vec<String>, HashMap<String, String>), Box<dyn Error>> {
+    fn host_ssh_mounts(&self) -> Result<HostSshMounts, Box<dyn Error>> {
         let Some(socket_path) = self
             .ssh_forwarding
             .socket_path()
             .map_err(Box::<dyn Error>::from)?
         else {
-            return Ok((Vec::new(), HashMap::new()));
+            return Ok(HostSshMounts::default());
         };
         let container_socket = "/tmp/ephact-ssh-agent.sock";
         let bind = format!("{}:{container_socket}", socket_path.display());
-        let environment =
-            HashMap::from([("SSH_AUTH_SOCK".to_string(), container_socket.to_string())]);
-        Ok((vec![bind], environment))
+        let environment = HashMap::from([("SSH_AUTH_SOCK".to_string(), container_socket.into())]);
+        Ok(HostSshMounts::new(vec![bind], environment))
     }
 }
 
@@ -63,7 +64,7 @@ impl CreateJobContainerPort for CreateJobContainerService {
             .remove_container(request.legacy_container_name());
         let _ = self.runtime.remove_container(request.container_name());
 
-        let (mut binds, environment) = self.host_ssh_mounts()?;
+        let (mut binds, environment) = self.host_ssh_mounts()?.into_parts();
         if request.allow_repo_writes() {
             binds.push(format!(
                 "{}:{}:Z",
