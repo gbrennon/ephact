@@ -115,8 +115,6 @@ commit_and_push() {
     return 0
   fi
   cp -- "$temporary_file" "$CHANGELOG_FILE"
-  git config user.name 'github-actions[bot]'
-  git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
   git add -- "$CHANGELOG_FILE"
   if git diff --cached --quiet -- "$CHANGELOG_FILE"; then
     printf 'CHANGELOG.md produced no changes\n'
