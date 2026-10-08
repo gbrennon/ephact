@@ -7,6 +7,8 @@ readonly CONFIG_FILE="${CLIFF_CONFIG:-cliff.toml}"
 readonly TARGET_BRANCH="${TARGET_BRANCH:-}"
 readonly VERSION="${VERSION:-}"
 readonly MAX_PUSH_ATTEMPTS="${MAX_PUSH_ATTEMPTS:-3}"
+readonly RELEASE_TAG_WAIT_ATTEMPTS="${RELEASE_TAG_WAIT_ATTEMPTS:-6}"
+readonly RELEASE_TAG_WAIT_SECONDS="${RELEASE_TAG_WAIT_SECONDS:-10}"
 temporary_file=""
 
 fail() {
@@ -23,15 +25,59 @@ validate_configuration() {
   command -v git-cliff >/dev/null 2>&1 || fail 'git-cliff is not installed'
   [[ "$MAX_PUSH_ATTEMPTS" =~ ^[1-9][0-9]*$ ]] || \
     fail 'MAX_PUSH_ATTEMPTS must be a positive integer'
+  [[ "$RELEASE_TAG_WAIT_ATTEMPTS" =~ ^[1-9][0-9]*$ ]] || \
+    fail 'RELEASE_TAG_WAIT_ATTEMPTS must be a positive integer'
+  [[ "$RELEASE_TAG_WAIT_SECONDS" =~ ^[0-9]+$ ]] || \
+    fail 'RELEASE_TAG_WAIT_SECONDS must be a nonnegative integer'
   if [[ -n "$VERSION" ]] && [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     fail "VERSION is invalid: $VERSION"
   fi
 }
 
 synchronize_target_branch() {
+  git fetch --quiet --tags origin
   git fetch --quiet origin \
     "$TARGET_BRANCH:refs/remotes/origin/$TARGET_BRANCH"
   git reset --hard --quiet "origin/$TARGET_BRANCH"
+}
+
+find_pending_release_tag() {
+  local subject
+  local version
+  local release_pattern
+  local revision_range="origin/$TARGET_BRANCH"
+  local latest_tag
+  release_pattern='from[[:space:]]release/(v[0-9]+\.[0-9]+\.[0-9]+)[[:space:]]into'
+  latest_tag="$(git describe --tags --match 'v[0-9]*' --abbrev=0 \
+    "origin/$TARGET_BRANCH" 2>/dev/null || true)"
+  if [[ -n "$latest_tag" ]]; then
+    revision_range="$latest_tag..origin/$TARGET_BRANCH"
+  fi
+  while IFS= read -r subject; do
+    if [[ "$subject" =~ $release_pattern ]]; then
+      version="${BASH_REMATCH[1]}"
+      if ! git show-ref --tags --verify --quiet "refs/tags/$version"; then
+        printf '%s\n' "$version"
+        return 0
+      fi
+    fi
+  done < <(git log --first-parent --merges --format='%s' "$revision_range")
+  return 1
+}
+
+wait_for_release_tag() {
+  [[ -n "$VERSION" ]] && return
+  local pending_version=""
+  for ((wait_attempt = 1; wait_attempt <= RELEASE_TAG_WAIT_ATTEMPTS; wait_attempt++)); do
+    git fetch --quiet --tags origin
+    pending_version="$(find_pending_release_tag || true)"
+    [[ -z "$pending_version" ]] && return
+    printf 'Waiting for release tag %s before generating changelog\n' \
+      "$pending_version"
+    ((wait_attempt < RELEASE_TAG_WAIT_ATTEMPTS)) || break
+    sleep "$RELEASE_TAG_WAIT_SECONDS"
+  done
+  fail "Release tag is not available: $pending_version"
 }
 
 validate_generated_changelog() {
@@ -90,6 +136,7 @@ validate_configuration
 for ((attempt = 1; attempt <= MAX_PUSH_ATTEMPTS; attempt++)); do
   printf 'Updating changelog attempt %d/%d\n' "$attempt" "$MAX_PUSH_ATTEMPTS"
   synchronize_target_branch
+  wait_for_release_tag
   generate_changelog
   if commit_and_push; then
     exit 0

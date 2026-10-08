@@ -1,7 +1,7 @@
 name: Update changelog
 
 on:
-  pull_request:
+  pull_request_target:
     types: [closed]
     branches: [main]
 
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: changelog-${{ github.repository }}
+  group: release-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
@@ -20,11 +20,11 @@ jobs:
       !startsWith(github.event.pull_request.head.ref, 'release/v')
     runs-on: codeberg-small
     steps:
-      - name: Check out merged pull request
+      - name: Check out the trusted default branch
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          ref: ${{ github.event.repository.default_branch }}
 
       - name: Install git-cliff
         uses: ./.forgejo/actions/install-git-cliff
