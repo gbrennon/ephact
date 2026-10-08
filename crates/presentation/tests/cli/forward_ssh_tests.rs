@@ -9,8 +9,12 @@ mod tests {
         let args = parse_run_test_args(&["--forward-ssh"]);
 
         let result = args.to_domain();
+        let error = match result {
+            Ok(_) => panic!("forwarding without network access must fail"),
+            Err(error) => error,
+        };
 
-        assert!(result.is_err());
+        assert_eq!(error.to_string(), "--forward-ssh requires --allow-network");
     }
 
     #[test]
@@ -38,6 +42,12 @@ mod tests {
             OsString::from("run"),
             OsString::from("--forward-ssh"),
         ];
+        let cli_run_args = vec![
+            OsString::from("ephact"),
+            OsString::from("cli"),
+            OsString::from("run"),
+            OsString::from("--forward-ssh"),
+        ];
         let tui_args = vec![
             OsString::from("ephact"),
             OsString::from("tui"),
@@ -51,6 +61,7 @@ mod tests {
         ];
 
         assert!(RunArgs::is_forward_ssh_command(&run_args));
+        assert!(RunArgs::is_forward_ssh_command(&cli_run_args));
         assert!(!RunArgs::is_forward_ssh_command(&tui_args));
         assert!(!RunArgs::is_forward_ssh_command(&escaped_args));
     }
