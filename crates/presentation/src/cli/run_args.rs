@@ -205,11 +205,19 @@ impl RunArgs {
 
     /// Reports whether the exact SSH forwarding flag belongs to the `run` command.
     pub fn is_forward_ssh_command(args: &[OsString]) -> bool {
-        args.get(1)
+        let command_index = if args
+            .get(1)
+            .is_some_and(|arg| arg.as_os_str() == OsStr::new("cli"))
+        {
+            2
+        } else {
+            1
+        };
+        args.get(command_index)
             .is_some_and(|arg| arg.as_os_str() == OsStr::new("run"))
             && args
                 .iter()
-                .skip(2)
+                .skip(command_index + 1)
                 .take_while(|arg| arg.as_os_str() != OsStr::new("--"))
                 .any(|arg| Self::is_forward_ssh_flag(arg.as_os_str()))
     }
