@@ -156,11 +156,12 @@ or a worktree file.
   actions are fetched from their forge by default.
 - `--allow-network`: Allow steps classified as requiring network access; remote-
   mutation policy violations remain skipped.
+- `--forward-ssh`: Forward the host SSH agent socket into job containers.
+  Requires `--allow-network` and a valid `SSH_AUTH_SOCK` Unix socket.
 - `--failure-log-retention-hours <HOURS>`: Retain failure diagnostics for the
   specified positive number of hours. The default is `24`.
 
-
-### Examples
+## Examples
 
 Run all discovered workflows that declare `pull_request`:
 
