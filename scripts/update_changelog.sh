@@ -60,6 +60,20 @@ wait_for_release_tag() {
   fail "Release tag is not available: $pending_version"
 }
 
+normalize_release_spacing() {
+  local generated_file="$1"
+  local normalized_file
+  normalized_file="$(mktemp)"
+  if ! awk '
+    /^## \[/ && previous_line != "" { print "" }
+    { print; previous_line = $0 }
+  ' "$generated_file" > "$normalized_file"; then
+    rm -f -- "$normalized_file"
+    fail 'Could not normalize changelog release spacing'
+  fi
+  mv -- "$normalized_file" "$generated_file"
+}
+
 generate_changelog() {
   if [[ -n "$temporary_file" ]]; then
     rm -f -- "$temporary_file"
@@ -71,6 +85,7 @@ generate_changelog() {
   else
     git cliff --config "$CONFIG_FILE" --output "$temporary_file"
   fi
+  normalize_release_spacing "$temporary_file"
   validate_generated_changelog "$temporary_file" "$VERSION"
 }
 

@@ -34,6 +34,12 @@ validate_generated_changelog() {
   local generated_file="$1"
   local version="$2"
   local unreleased_count
+  if ! awk '
+    /^## \[/ && previous_line != "" { exit 1 }
+    { previous_line = $0 }
+  ' "$generated_file"; then
+    fail 'Generated changelog is missing a blank line before a release heading'
+  fi
   unreleased_count="$(grep -c '^## \[Unreleased\]$' "$generated_file" || true)"
   if [[ -n "$version" ]]; then
     local release_heading="## [${version#v}]"
