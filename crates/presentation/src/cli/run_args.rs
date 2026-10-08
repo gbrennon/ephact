@@ -1,4 +1,7 @@
-use std::path::PathBuf;
+use std::{
+    ffi::{OsStr, OsString},
+    path::PathBuf,
+};
 
 use clap::Args;
 
@@ -198,6 +201,17 @@ impl RunArgs {
     /// Reports whether the given argument is the exact SSH forwarding flag.
     pub fn is_forward_ssh_flag(arg: &std::ffi::OsStr) -> bool {
         arg == std::ffi::OsStr::new("--forward-ssh")
+    }
+
+    /// Reports whether the exact SSH forwarding flag belongs to the `run` command.
+    pub fn is_forward_ssh_command(args: &[OsString]) -> bool {
+        args.get(1)
+            .is_some_and(|arg| arg.as_os_str() == OsStr::new("run"))
+            && args
+                .iter()
+                .skip(2)
+                .take_while(|arg| arg.as_os_str() != OsStr::new("--"))
+                .any(|arg| Self::is_forward_ssh_flag(arg.as_os_str()))
     }
 
     pub fn parse_key_value(s: &str) -> Result<(String, String), String> {
