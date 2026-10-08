@@ -50,6 +50,7 @@ impl CommandBusWiring {
         )
     }
 
+    /// Builds the command bus with explicit host SSH-agent forwarding configuration.
     pub fn build_with_ssh_forwarding(
         runtime: Arc<dyn ContainerRuntimePort>,
         action_fetcher: Box<dyn ActionFetcherPort>,

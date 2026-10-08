@@ -26,6 +26,7 @@ impl CreateJobContainerService {
         Self::with_ssh_forwarding(runtime, HostSshForwardingConfig::disabled())
     }
 
+    /// Creates a service with an explicit host SSH-agent forwarding configuration.
     pub fn with_ssh_forwarding(
         runtime: Arc<dyn ContainerRuntimePort>,
         ssh_forwarding: HostSshForwardingConfig,

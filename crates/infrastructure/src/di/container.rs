@@ -47,6 +47,7 @@ impl Container {
         )
     }
 
+    /// Builds the application container with explicit host SSH-agent forwarding configuration.
     pub fn build_with_branding_and_ssh_forwarding(
         progress_reporter: Option<Box<dyn DomainEventHandlerPort>>,
         branding_store: Box<dyn ProjectBrandingStorePort>,
@@ -81,6 +82,7 @@ impl Container {
         )
     }
 
+    /// Builds an application container from collaborators and SSH forwarding configuration.
     pub fn with_collaborators_and_branding_and_ssh_forwarding(
         collaborators: ContainerCollaborators,
         progress_reporter: Option<Box<dyn DomainEventHandlerPort>>,
