@@ -323,20 +323,17 @@ impl Cli {
         store: &dyn SettingsStorePort,
         arguments: super::settings_command::SettingsSetArgs,
     ) -> Result<String, Box<dyn std::error::Error>> {
-        if arguments.name() == SettingName::ForwardSsh {
-            let enabled = Self::parse_bool(arguments.value())?;
-            let host_ssh_settings = self
-                .host_ssh_settings
-                .as_ref()
-                .ok_or_else(|| std::io::Error::other("SSH settings store is not configured"))?;
-            host_ssh_settings.write_forward_ssh(enabled)?;
-            let settings = store.read_settings()?;
-            return Ok(Self::render_settings(
-                &settings,
-                &store.config_path(),
-                enabled,
-            ));
+        match arguments.name() {
+            SettingName::ForwardSsh => self.persist_forward_ssh(store, arguments.value()),
+            _ => self.persist_domain_setting(store, arguments),
         }
+    }
+
+    fn persist_domain_setting(
+        &self,
+        store: &dyn SettingsStorePort,
+        arguments: super::settings_command::SettingsSetArgs,
+    ) -> Result<String, Box<dyn std::error::Error>> {
         let settings =
             Self::update_setting(store.read_settings()?, arguments.name(), arguments.value())?;
         store.write_settings(&settings)?;
@@ -345,6 +342,30 @@ impl Cli {
             &store.config_path(),
             self.read_forward_ssh()?,
         ))
+    }
+
+    fn persist_forward_ssh(
+        &self,
+        store: &dyn SettingsStorePort,
+        value: &str,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let enabled = Self::parse_bool(value)?;
+        self.write_forward_ssh(enabled)?;
+        let settings = store.read_settings()?;
+        Ok(Self::render_settings(
+            &settings,
+            &store.config_path(),
+            enabled,
+        ))
+    }
+
+    fn write_forward_ssh(&self, enabled: bool) -> Result<(), Box<dyn std::error::Error>> {
+        let host_ssh_settings = self
+            .host_ssh_settings
+            .as_ref()
+            .ok_or_else(|| std::io::Error::other("SSH settings store is not configured"))?;
+        host_ssh_settings.write_forward_ssh(enabled)?;
+        Ok(())
     }
 
     fn read_forward_ssh(&self) -> Result<bool, Box<dyn std::error::Error>> {
