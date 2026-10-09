@@ -1,7 +1,7 @@
 use super::application::Application;
 use crate::{
     cli::{Cli, CliDependencies},
-    infrastructure::di::AppContainer,
+    infrastructure::{HostSshForwardingSettingsPort, di::AppContainer},
 };
 
 pub struct CompositionRoot;
@@ -18,6 +18,18 @@ impl CompositionRoot {
         store: std::sync::Arc<dyn crate::application::ports::outbound::SettingsStorePort>,
     ) -> Application {
         Self::compose_internal(container, Some(progress_stream)).with_settings(settings, store)
+    }
+
+    pub fn compose_with_tui_progress_and_settings_and_host_ssh(
+        container: AppContainer,
+        progress_stream: crate::cli::TuiProgressStream,
+        settings: crate::domain::Settings,
+        store: std::sync::Arc<dyn crate::application::ports::outbound::SettingsStorePort>,
+        host_ssh_settings: std::sync::Arc<dyn HostSshForwardingSettingsPort>,
+    ) -> Application {
+        Self::compose_internal(container, Some(progress_stream))
+            .with_settings(settings, store)
+            .with_host_ssh_settings(host_ssh_settings)
     }
 
     fn compose_internal(
