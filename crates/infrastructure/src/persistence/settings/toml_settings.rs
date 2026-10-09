@@ -35,8 +35,15 @@ pub(super) struct TomlSettings {
     #[serde(default = "default_failure_log_retention_hours")]
     #[serde(skip_serializing_if = "Self::is_default_failure_log_retention_hours")]
     failure_log_retention_hours: u64,
+    #[serde(default = "default_forward_ssh")]
+    #[serde(skip_serializing_if = "Self::is_default_bool")]
+    forward_ssh: bool,
     #[serde(default = "marker_serializer::default_marker")]
     marker: String,
+}
+
+fn default_forward_ssh() -> bool {
+    false
 }
 
 fn default_failure_log_retention_hours() -> u64 {
@@ -54,6 +61,15 @@ impl TomlSettings {
 
     fn is_default_failure_log_retention_hours(value: &u64) -> bool {
         *value == Settings::DEFAULT_FAILURE_LOG_RETENTION_HOURS
+    }
+
+    pub(super) fn forward_ssh(&self) -> bool {
+        self.forward_ssh
+    }
+
+    pub(super) fn with_forward_ssh(mut self, enabled: bool) -> Self {
+        self.forward_ssh = enabled;
+        self
     }
 }
 
@@ -73,6 +89,7 @@ impl From<&Settings> for TomlSettings {
             interactive: settings.interactive(),
             all_workflows: settings.all_workflows(),
             failure_log_retention_hours: settings.failure_log_retention_hours(),
+            forward_ssh: false,
             marker: marker_serializer::serialize(settings.marker()),
         }
     }
