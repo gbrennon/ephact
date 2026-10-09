@@ -8,3 +8,4 @@ mod prepare_job_container_service_tests;
 mod pull_job_image_service_tests;
 mod repository_container_copy_adapter_tests;
 mod ssh_forwarding_container_service_tests;
+mod ssh_forwarding_settings_tests;

@@ -16,6 +16,7 @@ use crate::{
         ports::outbound::SettingsStorePort,
     },
     domain::Settings,
+    infrastructure::HostSshForwardingSettingsPort,
 };
 
 pub struct TuiApp {
@@ -56,6 +57,22 @@ impl TuiApp {
         self
     }
 
+    pub fn with_host_ssh_settings(
+        mut self,
+        settings: Arc<dyn HostSshForwardingSettingsPort>,
+    ) -> Self {
+        self.screens = self.screens.with_host_ssh_settings(settings);
+        self
+    }
+    pub fn with_optional_host_ssh_settings(
+        self,
+        settings: Option<Arc<dyn HostSshForwardingSettingsPort>>,
+    ) -> Self {
+        match settings {
+            Some(settings) => self.with_host_ssh_settings(settings),
+            None => self,
+        }
+    }
     pub fn take_run_request(&mut self) -> bool {
         let requested = self.run_requested;
         self.run_requested = false;
