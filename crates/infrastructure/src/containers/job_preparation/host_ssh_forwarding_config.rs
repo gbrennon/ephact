@@ -45,11 +45,22 @@ impl HostSshForwardingConfig {
         if !self.enabled {
             return Ok(None);
         }
-        let socket = self
-            .socket_override
+        self.resolve_socket().map(Some)
+    }
+
+    fn resolve_socket(&self) -> Result<PathBuf, String> {
+        let socket = self.socket_candidate()?;
+        Self::validate_socket(socket)
+    }
+
+    fn socket_candidate(&self) -> Result<PathBuf, String> {
+        self.socket_override
             .clone()
             .or_else(|| env::var_os("SSH_AUTH_SOCK").map(PathBuf::from))
-            .ok_or_else(|| "SSH_AUTH_SOCK is not set".to_string())?;
+            .ok_or_else(|| "SSH_AUTH_SOCK is not set".to_string())
+    }
+
+    fn validate_socket(socket: PathBuf) -> Result<PathBuf, String> {
         let metadata = fs::metadata(&socket)
             .map_err(|error| format!("cannot inspect SSH agent socket: {error}"))?;
         if !Self::is_socket(&metadata) {
@@ -58,7 +69,7 @@ impl HostSshForwardingConfig {
                 socket.display()
             ));
         }
-        Ok(Some(socket))
+        Ok(socket)
     }
 
     #[cfg(unix)]
