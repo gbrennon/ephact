@@ -13,8 +13,8 @@ use super::super::theme::Theme;
 use crate::{
     application::ports::outbound::SettingsStorePort,
     domain::{InterfaceMode, Marker, MarkerKind, MarkerPreset, Settings},
+    infrastructure::HostSshForwardingSettingsPort,
 };
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SettingsAction {
     Continue,
@@ -27,6 +27,10 @@ pub struct SettingsScreen {
     settings: Settings,
     edit_backup: Settings,
     store: Option<Arc<dyn SettingsStorePort>>,
+    host_ssh_settings: Option<Arc<dyn HostSshForwardingSettingsPort>>,
+    forward_ssh: bool,
+    edit_backup_forward_ssh: bool,
+    retention_input: String,
     selected_index: usize,
     editing: bool,
     error: Option<String>,
@@ -34,22 +38,44 @@ pub struct SettingsScreen {
 }
 
 impl SettingsScreen {
-    const SETTING_COUNT: usize = 10;
-    const MARKER_INDEX: usize = 9;
+    const SETTING_COUNT: usize = 12;
+    const RETENTION_INDEX: usize = 9;
+    const FORWARD_SSH_INDEX: usize = 10;
+    const MARKER_INDEX: usize = 11;
     const CUSTOM_MARKER_INDEX: usize = MarkerPreset::ALL.len();
     const TITLE: &'static str = "Settings";
     const CONTENT_MIN_HEIGHT: u16 = 5;
     const FOOTER_HEIGHT: u16 = 1;
+
     pub fn new(settings: Settings, store: Option<Arc<dyn SettingsStorePort>>) -> Self {
         Self {
             edit_backup: settings.clone(),
             settings,
             store,
+            host_ssh_settings: None,
+            forward_ssh: false,
+            edit_backup_forward_ssh: false,
+            retention_input: String::new(),
             selected_index: 0,
             editing: false,
             error: None,
             marker_custom_editing: false,
         }
+    }
+
+    pub fn with_host_ssh_settings(
+        mut self,
+        host_ssh_settings: Arc<dyn HostSshForwardingSettingsPort>,
+    ) -> Self {
+        match host_ssh_settings.read_forward_ssh() {
+            Ok(value) => {
+                self.forward_ssh = value;
+                self.edit_backup_forward_ssh = value;
+            }
+            Err(error) => self.error = Some(error.to_string()),
+        }
+        self.host_ssh_settings = Some(host_ssh_settings);
+        self
     }
 
     pub fn settings(&self) -> &Settings {
@@ -73,6 +99,8 @@ impl SettingsScreen {
             }
             KeyCode::Enter => {
                 self.edit_backup = self.settings.clone();
+                self.edit_backup_forward_ssh = self.forward_ssh;
+                self.retention_input = self.settings.failure_log_retention_hours().to_string();
                 self.editing = true;
                 self.marker_custom_editing = self.selected_index == Self::MARKER_INDEX
                     && self.settings.marker().kind() == MarkerKind::CustomText;
@@ -132,6 +160,8 @@ impl SettingsScreen {
             } else {
                 "Left/Right: Choose | Enter: Confirm | Esc: Cancel | q: Quit"
             }
+        } else if self.editing && self.selected_index == Self::RETENTION_INDEX {
+            "Type: Hours | Bksp: Delete | Enter: Confirm | Esc: Cancel | q: Quit"
         } else if self.editing {
             "Left/Right: Choose | Enter: Confirm | Esc: Cancel | q: Quit"
         } else {
@@ -143,13 +173,50 @@ impl SettingsScreen {
         if self.selected_index == Self::MARKER_INDEX {
             return self.handle_marker_key(key);
         }
+        if self.selected_index == Self::RETENTION_INDEX {
+            return self.handle_retention_key(key);
+        }
         match key.code {
             KeyCode::Enter => self.editing = false,
             KeyCode::Esc => {
                 self.settings = self.edit_backup.clone();
+                self.forward_ssh = self.edit_backup_forward_ssh;
                 self.editing = false;
             }
             KeyCode::Left | KeyCode::Right => self.toggle_selected(),
+            _ => {}
+        }
+        SettingsAction::Continue
+    }
+
+    fn handle_retention_key(&mut self, key: KeyEvent) -> SettingsAction {
+        match key.code {
+            KeyCode::Char(character) if character.is_ascii_digit() => {
+                self.retention_input.push(character);
+            }
+            KeyCode::Backspace => {
+                self.retention_input.pop();
+            }
+            KeyCode::Enter => match self.retention_input.parse::<u64>() {
+                Ok(hours) if hours > 0 => {
+                    self.settings = self
+                        .settings
+                        .clone()
+                        .with_failure_log_retention_hours(hours)
+                        .expect("positive retention hours");
+                    self.editing = false;
+                    self.error = None;
+                }
+                _ => {
+                    self.error =
+                        Some("failure-log-retention-hours must be a positive integer".to_string());
+                }
+            },
+            KeyCode::Esc => {
+                self.settings = self.edit_backup.clone();
+                self.forward_ssh = self.edit_backup_forward_ssh;
+                self.editing = false;
+            }
             _ => {}
         }
         SettingsAction::Continue
@@ -182,6 +249,7 @@ impl SettingsScreen {
             }
             KeyCode::Esc => {
                 self.settings = self.edit_backup.clone();
+                self.forward_ssh = self.edit_backup_forward_ssh;
                 self.editing = false;
                 self.marker_custom_editing = false;
             }
@@ -255,20 +323,24 @@ impl SettingsScreen {
     }
 
     fn save(&mut self) -> SettingsAction {
+        if self.error.is_some() {
+            return SettingsAction::Continue;
+        }
         let Some(store) = self.store.as_ref() else {
             self.error = Some("settings store is not configured".to_string());
             return SettingsAction::Continue;
         };
-        match store.write_settings(&self.settings) {
-            Ok(()) => {
-                self.error = None;
-                SettingsAction::Saved
-            }
-            Err(error) => {
-                self.error = Some(error.to_string());
-                SettingsAction::Continue
-            }
+        let result = if let Some(host_ssh_settings) = &self.host_ssh_settings {
+            host_ssh_settings.write_settings_with_forward_ssh(&self.settings, self.forward_ssh)
+        } else {
+            store.write_settings(&self.settings)
+        };
+        if let Err(error) = result {
+            self.error = Some(error.to_string());
+            return SettingsAction::Continue;
         }
+        self.error = None;
+        SettingsAction::Saved
     }
 
     fn toggle_selected(&mut self) {
@@ -282,8 +354,13 @@ impl SettingsScreen {
             6 => self.settings.verbose(),
             7 => self.settings.interactive(),
             8 => self.settings.all_workflows(),
+            10 => self.forward_ssh,
             _ => return,
         };
+        if self.selected_index == Self::FORWARD_SSH_INDEX {
+            self.forward_ssh = !value;
+            return;
+        }
         self.settings = match self.selected_index {
             0 => self.settings.clone().with_default_interface(if value {
                 InterfaceMode::Cli
@@ -306,10 +383,33 @@ impl SettingsScreen {
         self.setting_lines_primary()
             .into_iter()
             .chain(self.setting_lines_secondary())
+            .chain(std::iter::once(self.retention_line()))
+            .chain(std::iter::once(self.forward_ssh_line()))
             .chain(std::iter::once(self.marker_line()))
             .collect()
     }
 
+    fn retention_line(&self) -> Line<'static> {
+        if self.editing && self.selected_index == Self::RETENTION_INDEX {
+            return Line::from(format!(
+                "failure-log-retention-hours = {}|",
+                self.retention_input
+            ));
+        }
+        Line::from(format!(
+            "failure-log-retention-hours = {}",
+            self.settings.failure_log_retention_hours()
+        ))
+    }
+
+    fn forward_ssh_line(&self) -> Line<'static> {
+        self.option_line(
+            Self::FORWARD_SSH_INDEX,
+            "forward-ssh",
+            bool_name(self.forward_ssh),
+            &["false", "true"],
+        )
+    }
     fn marker_line(&self) -> Line<'static> {
         if !self.editing || self.selected_index != Self::MARKER_INDEX {
             return Line::from(format!("marker = {}", self.settings.marker().as_text()));
