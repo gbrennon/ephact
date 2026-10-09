@@ -344,6 +344,7 @@ impl Cli {
                     .with_failure_log_retention_hours(hours)
                     .map_err(|error| format!("failure-log-retention-hours: {error}"))
             }
+            _ => Err("unsupported setting".to_string()),
         }
     }
 
