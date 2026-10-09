@@ -154,18 +154,24 @@ impl SettingsScreen {
     }
 
     pub fn footer(&self) -> &'static str {
-        if self.editing && self.selected_index == Self::MARKER_INDEX {
+        if self.editing {
+            self.editing_footer()
+        } else {
+            "Up/Down/j/k: Move | Enter: Edit | s: Save | Esc/Bksp: Back | q: Quit"
+        }
+    }
+
+    fn editing_footer(&self) -> &'static str {
+        if self.selected_index == Self::MARKER_INDEX {
             if self.marker_custom_editing {
                 "Type: Custom | Bksp: Delete | Enter: Confirm | Esc: Cancel | q: Quit"
             } else {
                 "Left/Right: Choose | Enter: Confirm | Esc: Cancel | q: Quit"
             }
-        } else if self.editing && self.selected_index == Self::RETENTION_INDEX {
+        } else if self.selected_index == Self::RETENTION_INDEX {
             "Type: Hours | Bksp: Delete | Enter: Confirm | Esc: Cancel | q: Quit"
-        } else if self.editing {
-            "Left/Right: Choose | Enter: Confirm | Esc: Cancel | q: Quit"
         } else {
-            "Up/Down/j/k: Move | Enter: Edit | s: Save | Esc/Bksp: Back | q: Quit"
+            "Left/Right: Choose | Enter: Confirm | Esc: Cancel | q: Quit"
         }
     }
 
