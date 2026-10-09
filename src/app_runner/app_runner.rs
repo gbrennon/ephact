@@ -36,15 +36,7 @@ impl AppRunner {
         let settings_store = self.config_factory.create_settings_store()?;
         let settings = settings_store.read_settings()?;
         let persisted_forward_ssh = settings_store.read_forward_ssh()?;
-        let explicit_forward_ssh =
-            ephact::presentation::cli::RunArgs::is_forward_ssh_command(&args);
-        let forwarding_enabled = ephact::presentation::cli::RunArgs::is_run_command(&args)
-            && (persisted_forward_ssh || explicit_forward_ssh);
-        let ssh_forwarding = if forwarding_enabled {
-            HostSshForwardingConfig::enabled()
-        } else {
-            HostSshForwardingConfig::disabled()
-        };
+        let ssh_forwarding = Self::resolve_ssh_forwarding(&args, persisted_forward_ssh);
         let verbose = args
             .iter()
             .any(|arg| ephact::presentation::cli::RunArgs::is_verbose_flag(arg));
@@ -68,6 +60,20 @@ impl AppRunner {
             settings_store,
         );
         app.run(args)
+    }
+
+    fn resolve_ssh_forwarding(
+        args: &[OsString],
+        persisted_forward_ssh: bool,
+    ) -> HostSshForwardingConfig {
+        let forwarding_enabled = ephact::presentation::cli::RunArgs::is_run_command(args)
+            && (persisted_forward_ssh
+                || ephact::presentation::cli::RunArgs::is_forward_ssh_command(args));
+        if forwarding_enabled {
+            HostSshForwardingConfig::enabled()
+        } else {
+            HostSshForwardingConfig::disabled()
+        }
     }
 
     fn finish(result: Result<(), Box<dyn Error>>) {
