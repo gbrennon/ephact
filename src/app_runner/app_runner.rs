@@ -3,8 +3,8 @@ use std::{error::Error, ffi::OsString};
 use ephact::{
     application::ports::outbound::SettingsStorePort,
     infrastructure::{
-        CargoProjectBrandingStore, Container, containers::HostSshForwardingConfig,
-        logging::stderr_filter::StderrFilter,
+        CargoProjectBrandingStore, Container, HostSshForwardingSettingsPort,
+        containers::HostSshForwardingConfig, logging::stderr_filter::StderrFilter,
     },
     presentation::{
         cli::run_progress_handler::RunProgressHandler, composition_root::CompositionRoot,
@@ -33,15 +33,21 @@ impl AppRunner {
 
     fn run_application_impl(&self) -> Result<(), Box<dyn Error>> {
         let args: Vec<OsString> = std::env::args_os().collect();
-        let forward_ssh = ephact::presentation::cli::RunArgs::is_forward_ssh_command(&args);
-        let verbose = args
-            .iter()
-            .any(|arg| ephact::presentation::cli::RunArgs::is_verbose_flag(arg));
-        let ssh_forwarding = if forward_ssh {
+        let settings_store = self.config_factory.create_settings_store()?;
+        let settings = settings_store.read_settings()?;
+        let persisted_forward_ssh = settings_store.read_forward_ssh()?;
+        let explicit_forward_ssh =
+            ephact::presentation::cli::RunArgs::is_forward_ssh_command(&args);
+        let forwarding_enabled = ephact::presentation::cli::RunArgs::is_run_command(&args)
+            && (persisted_forward_ssh || explicit_forward_ssh);
+        let ssh_forwarding = if forwarding_enabled {
             HostSshForwardingConfig::enabled()
         } else {
             HostSshForwardingConfig::disabled()
         };
+        let verbose = args
+            .iter()
+            .any(|arg| ephact::presentation::cli::RunArgs::is_verbose_flag(arg));
         let (progress_reporter, progress_stream) = RunProgressHandler::with_tui_stream(verbose);
         let branding_store = CargoProjectBrandingStore::from_metadata(
             env!("CARGO_PKG_NAME"),
@@ -54,12 +60,11 @@ impl AppRunner {
             Box::new(branding_store),
             ssh_forwarding,
         );
-        let settings_store = self.config_factory.create_settings_store()?;
-        let settings = settings_store.read_settings()?;
-        let app = CompositionRoot::compose_with_tui_progress_and_settings(
+        let app = CompositionRoot::compose_with_tui_progress_and_settings_and_host_ssh(
             container,
             progress_stream,
             settings,
+            settings_store.clone(),
             settings_store,
         );
         app.run(args)
