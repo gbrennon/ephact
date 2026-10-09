@@ -182,7 +182,22 @@ impl RunArgs {
     pub fn failure_log_retention_hours(&self) -> Option<u64> {
         self.failure_log_retention_hours
     }
-    pub(super) fn apply_settings(&mut self, settings: &crate::domain::Settings) {
+
+    /// Returns these arguments with persisted run defaults applied.
+    pub fn with_settings(mut self, settings: &crate::domain::Settings) -> Self {
+        self.interactive |= settings.interactive();
+        self.all_workflows |= settings.all_workflows();
+        self.preserve |= settings.preserve();
+        self.allow_repo_writes |= settings.allow_repo_writes();
+        self.allow_real_container |= settings.allow_real_container();
+        self.allow_real_fetcher |= settings.allow_real_fetcher();
+        self.allow_network |= settings.allow_network();
+        self.verbose |= settings.verbose();
+        self
+    }
+
+    #[doc(hidden)]
+    pub fn apply_settings(&mut self, settings: &crate::domain::Settings) {
         self.interactive |= settings.interactive();
         self.all_workflows |= settings.all_workflows();
         self.preserve |= settings.preserve();
@@ -203,8 +218,8 @@ impl RunArgs {
         arg == std::ffi::OsStr::new("--forward-ssh")
     }
 
-    /// Reports whether the exact SSH forwarding flag belongs to the `run` command.
-    pub fn is_forward_ssh_command(args: &[OsString]) -> bool {
+    /// Reports whether the command line selects the `run` command.
+    pub fn is_run_command(args: &[OsString]) -> bool {
         let command_index = if args
             .get(1)
             .is_some_and(|arg| arg.as_os_str() == OsStr::new("cli"))
@@ -215,9 +230,14 @@ impl RunArgs {
         };
         args.get(command_index)
             .is_some_and(|arg| arg.as_os_str() == OsStr::new("run"))
+    }
+
+    /// Reports whether the exact SSH forwarding flag belongs to the `run` command.
+    pub fn is_forward_ssh_command(args: &[OsString]) -> bool {
+        Self::is_run_command(args)
             && args
                 .iter()
-                .skip(command_index + 1)
+                .skip(2)
                 .take_while(|arg| arg.as_os_str() != OsStr::new("--"))
                 .any(|arg| Self::is_forward_ssh_flag(arg.as_os_str()))
     }
