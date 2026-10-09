@@ -9,7 +9,7 @@ use ephact::{
         ports::inbound::{RunActionPort, ShowProjectBrandingInfoPort},
     },
     domain::Settings,
-    infrastructure::di::AppContainer,
+    infrastructure::{TomlSettingsStore, di::AppContainer},
     presentation::{
         cli::run_progress_handler::RunProgressHandler, components::terminal::Terminal,
         composition_root::CompositionRoot,
@@ -93,11 +93,14 @@ fn compose_with_tui_progress_and_settings_configures_application() {
     let container = make_container();
     let (_, stream) = RunProgressHandler::with_tui_stream(false);
     let store = Arc::new(FakeSettingsStore::new(Settings::default()));
+    let directory = tempfile::tempdir().unwrap();
+    let host_ssh_store = Arc::new(TomlSettingsStore::new(directory.path().join("config.toml")));
     let app = CompositionRoot::compose_with_tui_progress_and_settings(
         container,
         stream,
         Settings::default(),
         store,
+        host_ssh_store,
     );
     let terminal = TestTerminal;
 
