@@ -60,7 +60,7 @@ impl AppRunner {
             Box::new(branding_store),
             ssh_forwarding,
         );
-        let app = CompositionRoot::compose_with_tui_progress_and_settings_and_host_ssh(
+        let app = CompositionRoot::compose_with_tui_progress_and_settings(
             container,
             progress_stream,
             settings,
