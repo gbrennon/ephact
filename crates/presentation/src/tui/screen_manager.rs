@@ -19,6 +19,7 @@ use crate::{
         ports::outbound::SettingsStorePort,
     },
     domain::Settings,
+    infrastructure::HostSshForwardingSettingsPort,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,6 +94,13 @@ impl ScreenManager {
         self
     }
 
+    pub fn with_host_ssh_settings(
+        mut self,
+        settings: Arc<dyn HostSshForwardingSettingsPort>,
+    ) -> Self {
+        self.settings = self.settings.with_host_ssh_settings(settings);
+        self
+    }
     pub fn home_selection(&self) -> usize {
         self.home_selection
     }
