@@ -196,18 +196,6 @@ impl RunArgs {
         self
     }
 
-    #[doc(hidden)]
-    pub fn apply_settings(&mut self, settings: &crate::domain::Settings) {
-        self.interactive |= settings.interactive();
-        self.all_workflows |= settings.all_workflows();
-        self.preserve |= settings.preserve();
-        self.allow_repo_writes |= settings.allow_repo_writes();
-        self.allow_real_container |= settings.allow_real_container();
-        self.allow_real_fetcher |= settings.allow_real_fetcher();
-        self.allow_network |= settings.allow_network();
-        self.verbose |= settings.verbose();
-    }
-
     /// Reports whether the given argument is the verbose flag.
     pub fn is_verbose_flag(arg: &std::ffi::OsStr) -> bool {
         arg == std::ffi::OsStr::new("--verbose")
