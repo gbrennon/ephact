@@ -188,6 +188,7 @@ impl SettingsScreen {
                 self.settings = self.edit_backup.clone();
                 self.forward_ssh = self.edit_backup_forward_ssh;
                 self.editing = false;
+                self.error = None;
             }
             KeyCode::Left | KeyCode::Right => self.toggle_selected(),
             _ => {}
@@ -222,6 +223,7 @@ impl SettingsScreen {
                 self.settings = self.edit_backup.clone();
                 self.forward_ssh = self.edit_backup_forward_ssh;
                 self.editing = false;
+                self.error = None;
             }
             _ => {}
         }
@@ -258,6 +260,7 @@ impl SettingsScreen {
                 self.forward_ssh = self.edit_backup_forward_ssh;
                 self.editing = false;
                 self.marker_custom_editing = false;
+                self.error = None;
             }
             KeyCode::Left => self.select_previous_marker(),
             KeyCode::Right => self.select_next_marker(),
