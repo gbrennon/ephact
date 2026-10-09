@@ -230,6 +230,30 @@ impl RunArgs {
                 .any(|arg| Self::is_forward_ssh_flag(arg.as_os_str()))
     }
 
+    /// Reports whether the command line selects the explicit `tui` command.
+    pub fn is_tui_command(args: &[OsString]) -> bool {
+        let command_index = if args
+            .get(1)
+            .is_some_and(|arg| arg.as_os_str() == OsStr::new("cli"))
+        {
+            2
+        } else {
+            1
+        };
+        args.get(command_index)
+            .is_some_and(|arg| arg.as_os_str() == OsStr::new("tui"))
+    }
+
+    /// Reports whether the `run` command explicitly allows network access.
+    pub fn is_allow_network_command(args: &[OsString]) -> bool {
+        Self::is_run_command(args)
+            && args
+                .iter()
+                .skip(2)
+                .take_while(|arg| arg.as_os_str() != OsStr::new("--"))
+                .any(|arg| arg.as_os_str() == OsStr::new("--allow-network"))
+    }
+
     pub fn parse_key_value(s: &str) -> Result<(String, String), String> {
         s.split_once('=')
             .map(|(k, v)| (k.to_string(), v.to_string()))
