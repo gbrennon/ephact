@@ -227,7 +227,7 @@ fn list_workflows_selection_bounds() {
 }
 
 #[test]
-fn splash_renders_fallback_emblem_without_true_color() {
+fn splash_renders_canonical_fallback_emblem_without_true_color() {
     let text = TuiRenderAssertions::buffer_text(&TuiRenderAssertions::rendered_buffer(|frame| {
         SplashScreen::render_with(
             frame,
@@ -237,12 +237,13 @@ fn splash_renders_fallback_emblem_without_true_color() {
         );
     }));
 
-    assert!(text.contains("@---o"));
+    let canonical_line = ephact::PROJECT_EMBLEM.lines().next().unwrap().trim();
+    assert!(text.contains(canonical_line));
     assert!(text.contains("EPHACT"));
 }
 
 #[test]
-fn splash_renders_fancy_emblem_with_true_color() {
+fn splash_renders_canonical_fancy_emblem_with_true_color() {
     let buffer = TuiRenderAssertions::rendered_buffer(|frame| {
         SplashScreen::render_with(
             frame,
@@ -257,7 +258,8 @@ fn splash_renders_fancy_emblem_with_true_color() {
         .content()
         .iter()
         .any(|cell| matches!(cell.style().fg, Some(Color::Rgb(_, _, _))));
-    assert!(text.contains("@---o"));
+    let canonical_line = ephact::PROJECT_EMBLEM.lines().next().unwrap().trim();
+    assert!(text.contains(canonical_line));
     assert!(uses_rgb);
 }
 
