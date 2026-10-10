@@ -64,6 +64,7 @@ pub struct Workflow {
 }
 
 impl Workflow {
+    /// Creates a workflow with its name, triggers, environment, and jobs.
     pub fn new(
         name: Option<String>,
         trigger: Vec<WorkflowTrigger>,
@@ -82,54 +83,66 @@ impl Workflow {
         }
     }
 
+    /// Sets the workflow's default job settings.
     pub fn with_defaults(mut self, defaults: Option<ExecutionDefaults>) -> Self {
         self.defaults = defaults;
         self
     }
 
+    /// Sets the workflow's token permissions.
     pub fn with_permissions(mut self, permissions: Option<TokenPermissions>) -> Self {
         self.permissions = permissions;
         self
     }
 
+    /// Sets the workflow's concurrency settings.
     pub fn with_concurrency(mut self, concurrency: Option<ConcurrencyGroup>) -> Self {
         self.concurrency = concurrency;
         self
     }
 
+    /// Returns the workflow's display name.
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
     }
 
+    /// Returns the workflow file name, if set.
     pub fn file(&self) -> Option<&str> {
         self.file.as_deref()
     }
 
+    /// Sets the workflow file name.
     pub fn with_file(mut self, file: impl Into<String>) -> Self {
         self.file = Some(file.into());
         self
     }
 
+    /// Returns the triggers declared by the workflow.
     pub fn trigger(&self) -> &[WorkflowTrigger] {
         &self.trigger
     }
 
+    /// Returns the workflow-wide environment variables.
     pub fn env(&self) -> &HashMap<String, String> {
         &self.env
     }
 
+    /// Returns the jobs defined by the workflow.
     pub fn jobs(&self) -> &HashMap<String, Job> {
         &self.jobs
     }
 
+    /// Returns the workflow's default job settings, if any.
     pub fn defaults(&self) -> Option<&ExecutionDefaults> {
         self.defaults.as_ref()
     }
 
+    /// Returns the workflow's token permissions, if any.
     pub fn permissions(&self) -> Option<&TokenPermissions> {
         self.permissions.as_ref()
     }
 
+    /// Returns the workflow's concurrency settings, if any.
     pub fn concurrency(&self) -> Option<&ConcurrencyGroup> {
         self.concurrency.as_ref()
     }
