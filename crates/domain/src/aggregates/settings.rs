@@ -2,6 +2,7 @@ use crate::value_objects::{
     FailureLogRetention, InterfaceMode, Marker, OperationMode, OutputPreferences, Permissions,
 };
 
+/// Workflow execution settings for interface, permissions, output, and retention.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Settings {
     default_interface: InterfaceMode,
@@ -13,93 +14,115 @@ pub struct Settings {
 }
 
 impl Settings {
+    /// The default number of hours for retaining failure logs.
     pub const DEFAULT_FAILURE_LOG_RETENTION_HOURS: u64 = FailureLogRetention::DEFAULT_HOURS;
 
+    /// Returns the configured default interface mode.
     pub fn default_interface(&self) -> InterfaceMode {
         self.default_interface
     }
 
+    /// Returns the configured permission settings.
     pub fn permissions(&self) -> &Permissions {
         &self.permissions
     }
 
+    /// Returns the configured operation mode.
     pub fn operation_mode(&self) -> &OperationMode {
         &self.operation_mode
     }
 
+    /// Returns the configured output preferences.
     pub fn output_preferences(&self) -> &OutputPreferences {
         &self.output_preferences
     }
 
+    /// Returns the configured marker.
     pub fn marker(&self) -> &Marker {
         &self.marker
     }
 
+    /// Returns the configured failure-log retention period.
     pub fn failure_log_retention(&self) -> &FailureLogRetention {
         &self.failure_log_retention
     }
 
+    /// Returns the configured failure-log retention in hours.
     pub fn failure_log_retention_hours(&self) -> u64 {
         self.failure_log_retention.hours()
     }
 
+    /// Returns whether repository writes are allowed.
     pub fn allow_repo_writes(&self) -> bool {
         self.permissions.allow_repo_writes()
     }
 
+    /// Returns whether real container execution is allowed.
     pub fn allow_real_container(&self) -> bool {
         self.permissions.allow_real_container()
     }
 
+    /// Returns whether real fetcher use is allowed.
     pub fn allow_real_fetcher(&self) -> bool {
         self.permissions.allow_real_fetcher()
     }
 
+    /// Returns whether network access is allowed.
     pub fn allow_network(&self) -> bool {
         self.permissions.allow_network()
     }
 
+    /// Returns whether output should be preserved.
     pub fn preserve(&self) -> bool {
         self.output_preferences.preserve()
     }
 
+    /// Returns whether verbose output is enabled.
     pub fn verbose(&self) -> bool {
         self.output_preferences.verbose()
     }
 
+    /// Returns whether interactive mode is enabled.
     pub fn interactive(&self) -> bool {
         self.operation_mode.interactive()
     }
 
+    /// Returns whether all workflows should be run.
     pub fn all_workflows(&self) -> bool {
         self.operation_mode.all_workflows()
     }
 
+    /// Sets the default interface mode.
     pub fn with_default_interface(mut self, value: InterfaceMode) -> Self {
         self.default_interface = value;
         self
     }
 
+    /// Sets the permission settings.
     pub fn with_permissions(mut self, value: Permissions) -> Self {
         self.permissions = value;
         self
     }
 
+    /// Sets the operation mode.
     pub fn with_operation_mode(mut self, value: OperationMode) -> Self {
         self.operation_mode = value;
         self
     }
 
+    /// Sets the output preferences.
     pub fn with_output_preferences(mut self, value: OutputPreferences) -> Self {
         self.output_preferences = value;
         self
     }
 
+    /// Sets the marker.
     pub fn with_marker(mut self, value: Marker) -> Self {
         self.marker = value;
         self
     }
 
+    /// Sets the failure-log retention period.
     pub fn with_failure_log_retention(self, value: FailureLogRetention) -> Self {
         Self {
             failure_log_retention: value,
@@ -107,46 +130,55 @@ impl Settings {
         }
     }
 
+    /// Sets the failure-log retention period in hours, rejecting zero.
     pub fn with_failure_log_retention_hours(self, hours: u64) -> Result<Self, String> {
         let retention = FailureLogRetention::new(hours)?;
         Ok(self.with_failure_log_retention(retention))
     }
 
+    /// Sets whether repository writes are allowed.
     pub fn with_allow_repo_writes(self, value: bool) -> Self {
         let permissions = self.permissions.clone().with_allow_repo_writes(value);
         self.with_permissions(permissions)
     }
 
+    /// Sets whether real container execution is allowed.
     pub fn with_allow_real_container(self, value: bool) -> Self {
         let permissions = self.permissions.clone().with_allow_real_container(value);
         self.with_permissions(permissions)
     }
 
+    /// Sets whether real fetcher use is allowed.
     pub fn with_allow_real_fetcher(self, value: bool) -> Self {
         let permissions = self.permissions.clone().with_allow_real_fetcher(value);
         self.with_permissions(permissions)
     }
 
+    /// Sets whether network access is allowed.
     pub fn with_allow_network(self, value: bool) -> Self {
         let permissions = self.permissions.clone().with_allow_network(value);
         self.with_permissions(permissions)
     }
 
+    /// Sets whether output should be preserved.
     pub fn with_preserve(self, value: bool) -> Self {
         let preferences = self.output_preferences.clone().with_preserve(value);
         self.with_output_preferences(preferences)
     }
 
+    /// Sets whether verbose output is enabled.
     pub fn with_verbose(self, value: bool) -> Self {
         let preferences = self.output_preferences.clone().with_verbose(value);
         self.with_output_preferences(preferences)
     }
 
+    /// Sets whether interactive mode is enabled.
     pub fn with_interactive(self, value: bool) -> Self {
         let mode = self.operation_mode.clone().with_interactive(value);
         self.with_operation_mode(mode)
     }
 
+    /// Sets whether all workflows should be run.
     pub fn with_all_workflows(self, value: bool) -> Self {
         let mode = self.operation_mode.clone().with_all_workflows(value);
         self.with_operation_mode(mode)
