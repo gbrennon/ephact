@@ -254,7 +254,7 @@ impl RunWorkflowScreen {
     }
 
     pub fn record_progress(&mut self, line: String) {
-        self.progress_lines.extend(normalize_lines(&line));
+        self.progress_lines.extend(Self::normalize_lines(&line));
     }
 
     pub fn finish_run(&mut self) {
@@ -499,23 +499,23 @@ impl RunWorkflowScreen {
             Self::PICKER_FOOTER
         }
     }
-}
+    fn normalize_lines(text: &str) -> Vec<String> {
+        let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
+        normalized
+            .split('\n')
+            .filter(|line| !line.is_empty())
+            .map(|line| {
+                line.chars()
+                    .map(|character| {
+                        if character.is_control() {
+                            ' '
+                        } else {
+                            character
+                        }
+                    })
+                    .collect()
+            })
+            .collect()
+    }
 
-fn normalize_lines(text: &str) -> Vec<String> {
-    let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
-    normalized
-        .split('\n')
-        .filter(|line| !line.is_empty())
-        .map(|line| {
-            line.chars()
-                .map(|character| {
-                    if character.is_control() {
-                        ' '
-                    } else {
-                        character
-                    }
-                })
-                .collect()
-        })
-        .collect()
 }
