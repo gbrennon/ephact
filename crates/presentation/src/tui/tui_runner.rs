@@ -23,7 +23,7 @@ use crate::{
     cli::TuiProgressStream,
     domain::Settings,
     handlers::{RunHandler, SingleWorkflowRun},
-    infrastructure::logging::FailureLogPathStore,
+    infrastructure::{HostSshForwardingSettingsPort, logging::FailureLogPathStore},
 };
 
 struct RunTask {
@@ -56,6 +56,7 @@ pub struct TuiRunner {
     failure_log_path_store: Option<FailureLogPathStore>,
     settings: Settings,
     settings_store: Option<Arc<dyn SettingsStorePort>>,
+    host_ssh_settings: Option<Arc<dyn HostSshForwardingSettingsPort>>,
 }
 
 impl TuiRunner {
@@ -73,6 +74,7 @@ impl TuiRunner {
             failure_log_path_store: None,
             settings: Settings::default(),
             settings_store: None,
+            host_ssh_settings: None,
         }
     }
 
@@ -105,6 +107,13 @@ impl TuiRunner {
         self
     }
 
+    pub fn with_host_ssh_settings(
+        mut self,
+        settings: Arc<dyn HostSshForwardingSettingsPort>,
+    ) -> Self {
+        self.host_ssh_settings = Some(settings);
+        self
+    }
     pub async fn run(&self, emblem: &str) -> Result<(), Box<dyn std::error::Error>> {
         let mut app = self.build_app(emblem)?;
         let _guard = TerminalGuard::enter()?;
@@ -136,7 +145,8 @@ impl TuiRunner {
         Ok(
             TuiApp::new(workflows_screen.workflows().to_vec(), emblem.to_string())
                 .with_actions(actions_screen.actions().to_vec())
-                .with_settings(self.settings.clone(), self.settings_store.clone()),
+                .with_settings(self.settings.clone(), self.settings_store.clone())
+                .with_optional_host_ssh_settings(self.host_ssh_settings.clone()),
         )
     }
 

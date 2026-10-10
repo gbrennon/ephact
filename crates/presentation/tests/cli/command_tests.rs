@@ -6,7 +6,7 @@ use ephact::{
         ports::{inbound::ShowProjectBrandingInfoPort, outbound::SettingsStorePort},
     },
     domain::{InterfaceMode, Settings},
-    infrastructure::{TomlSettingsStore, logging::FailureLogStores},
+    infrastructure::{HostSshForwardingSettingsPort, TomlSettingsStore, logging::FailureLogStores},
     presentation::{
         cli::{Cli, CliDependencies},
         components::terminal::SystemTerminal,
@@ -299,4 +299,56 @@ fn settings_set_persists_failure_log_retention_through_toml_store() {
     let persisted = store.read_settings().expect("read persisted settings");
 
     assert_eq!(persisted.failure_log_retention_hours(), 72);
+}
+
+#[test]
+fn settings_set_persists_forward_ssh_and_renders_it() {
+    let directory = tempfile::tempdir().expect("temporary directory");
+    let domain_store = Arc::new(FakeSettingsStore::new(Settings::default()));
+    let host_store = Arc::new(TomlSettingsStore::new(directory.path().join("config.toml")));
+    let cli = make_cli()
+        .with_settings(Settings::default(), domain_store)
+        .with_host_ssh_settings(host_store.clone());
+
+    let output = cli
+        .run_with_terminal(
+            ["ephact", "settings", "set", "forward-ssh", "true"],
+            &SystemTerminal,
+        )
+        .expect("forward-ssh setting should persist");
+
+    assert!(output.contains("forward-ssh = true"));
+    assert!(host_store.read_forward_ssh().unwrap());
+}
+
+#[test]
+fn settings_reset_disables_persisted_forward_ssh() {
+    let directory = tempfile::tempdir().expect("temporary directory");
+    let domain_store = Arc::new(FakeSettingsStore::new(Settings::default()));
+    let host_store = Arc::new(TomlSettingsStore::new(directory.path().join("config.toml")));
+    host_store.write_forward_ssh(true).unwrap();
+    let cli = make_cli()
+        .with_settings(Settings::default(), domain_store)
+        .with_host_ssh_settings(host_store.clone());
+
+    cli.run_with_terminal(["ephact", "settings", "reset"], &SystemTerminal)
+        .expect("settings reset should succeed");
+
+    assert!(!host_store.read_forward_ssh().unwrap());
+}
+
+#[test]
+fn settings_set_persists_marker_and_renders_it() {
+    let store = Arc::new(FakeSettingsStore::new(Settings::default()));
+    let cli = make_cli().with_settings(Settings::default(), store.clone());
+
+    let output = cli
+        .run_with_terminal(
+            ["ephact", "settings", "set", "marker", "❯"],
+            &SystemTerminal,
+        )
+        .expect("marker setting should persist");
+
+    assert!(output.contains("marker = ❯"));
+    assert_eq!(store.writes()[0].marker().as_text(), "❯");
 }

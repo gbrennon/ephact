@@ -4,6 +4,7 @@ use ephact::{
     application::ports::outbound::{ActionFetcherPort, ContainerRuntimePort, WorkflowSourcePort},
     infrastructure::{
         actions::GitActionFetcher,
+        containers::HostSshForwardingConfig,
         di::{Container, container::ContainerCollaborators},
         persistence::CargoProjectBrandingStore,
     },
@@ -28,6 +29,28 @@ impl EphactApplication {
             ContainerCollaborators::new(runtime, fetcher, workflow_source),
             None,
             Box::new(branding_store),
+        );
+
+        CompositionRoot::compose(container)
+    }
+
+    pub fn compose_with_ssh_forwarding(
+        runtime: Arc<dyn ContainerRuntimePort>,
+        fetcher: Box<dyn ActionFetcherPort>,
+        workflow_source: Arc<dyn WorkflowSourcePort>,
+        ssh_forwarding: HostSshForwardingConfig,
+    ) -> Application {
+        let branding_store = CargoProjectBrandingStore::from_metadata(
+            env!("CARGO_PKG_NAME"),
+            env!("CARGO_PKG_DESCRIPTION"),
+            env!("CARGO_PKG_VERSION"),
+            ephact::PROJECT_EMBLEM,
+        );
+        let container = Container::with_collaborators_and_branding_and_ssh_forwarding(
+            ContainerCollaborators::new(runtime, fetcher, workflow_source),
+            None,
+            Box::new(branding_store),
+            ssh_forwarding,
         );
 
         CompositionRoot::compose(container)

@@ -2,10 +2,14 @@ use std::sync::Arc;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ephact::{
-    application::dtos::responses::{
-        RunInputDeclarationResponse, RunInputSourceResponse, WorkflowListItemResponse,
+    application::{
+        dtos::responses::{
+            RunInputDeclarationResponse, RunInputSourceResponse, WorkflowListItemResponse,
+        },
+        ports::outbound::SettingsStorePort,
     },
     domain::{InterfaceMode, Marker, Settings},
+    infrastructure::{HostSshForwardingSettingsPort, TomlSettingsStore},
     presentation::tui::{TuiApp, TuiScreen, components::ScreenFrame, screens::SettingsScreen},
 };
 use ratatui::{Terminal, backend::TestBackend};
@@ -70,7 +74,7 @@ fn render_text(screen: &SettingsScreen) -> String {
 
 fn custom_marker_editor() -> SettingsScreen {
     let mut screen = SettingsScreen::new(Settings::default(), None);
-    for _ in 0..9 {
+    for _ in 0..11 {
         screen.handle_key(key(KeyCode::Down));
     }
     screen.handle_key(key(KeyCode::Enter));
@@ -159,11 +163,36 @@ fn editing_settings_renders_editing_keybinds() {
 }
 
 #[test]
-fn marker_setting_is_the_tenth_row_and_previews_presets() {
+fn settings_screen_persists_forward_ssh_with_domain_settings_atomically() {
+    let directory = tempfile::tempdir().expect("temporary directory");
+    let settings = Settings::default().with_allow_network(true);
+    let store = Arc::new(TomlSettingsStore::new(directory.path().join("config.toml")));
+    let mut screen =
+        SettingsScreen::new(settings, Some(store.clone())).with_host_ssh_settings(store.clone());
+
+    for _ in 0..10 {
+        screen.handle_key(key(KeyCode::Down));
+    }
+    screen.handle_key(key(KeyCode::Enter));
+    screen.handle_key(key(KeyCode::Right));
+    screen.handle_key(key(KeyCode::Enter));
+    let _ = screen.handle_key(save_key());
+
+    assert!(store.read_forward_ssh().expect("read forward ssh"));
+    assert!(
+        store
+            .read_settings()
+            .expect("read settings")
+            .allow_network()
+    );
+}
+
+#[test]
+fn marker_setting_is_the_twelfth_row_and_previews_presets() {
     let mut screen = SettingsScreen::new(Settings::default(), None);
     assert!(render_text(&screen).contains("marker = _"));
 
-    for _ in 0..9 {
+    for _ in 0..11 {
         screen.handle_key(key(KeyCode::Down));
     }
     screen.handle_key(key(KeyCode::Enter));
@@ -196,7 +225,7 @@ fn marker_custom_editor_accepts_unicode_shows_cursor_and_cancels() {
 #[test]
 fn marker_custom_editor_confirms_unicode_value() {
     let mut screen = SettingsScreen::new(Settings::default(), None);
-    for _ in 0..9 {
+    for _ in 0..11 {
         screen.handle_key(key(KeyCode::Down));
     }
     screen.handle_key(key(KeyCode::Enter));
@@ -226,7 +255,7 @@ fn selected_marker_controls_the_text_input_form() {
     let mut app = TuiApp::new(vec![workflow], ephact::PROJECT_EMBLEM.to_string())
         .with_settings(Settings::default(), Some(store.clone()));
     open_settings(&mut app);
-    for _ in 0..9 {
+    for _ in 0..11 {
         app.handle_key(key(KeyCode::Down));
     }
     app.handle_key(key(KeyCode::Enter));
@@ -307,7 +336,7 @@ fn settings_save_persists_custom_marker() {
         .with_settings(Settings::default(), Some(store.clone()));
     open_settings(&mut app);
 
-    for _ in 0..9 {
+    for _ in 0..11 {
         app.handle_key(key(KeyCode::Down));
     }
     app.handle_key(key(KeyCode::Enter));
@@ -395,4 +424,13 @@ fn settings_canceling_boolean_edit_with_escape_reverts_value() {
     assert_eq!(app.screen(), TuiScreen::Home);
     assert_eq!(store.writes().len(), 1);
     assert!(!store.writes()[0].allow_network());
+}
+
+#[test]
+fn settings_render_includes_forward_ssh_and_failure_retention() {
+    let screen = SettingsScreen::new(Settings::default(), None);
+    let rendered = render_text(&screen);
+
+    assert!(rendered.contains("forward-ssh"));
+    assert!(rendered.contains("failure-log-retention-hours"));
 }

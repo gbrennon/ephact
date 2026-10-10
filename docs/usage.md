@@ -87,6 +87,35 @@ ephact settings reset
 Persisted execution defaults apply when the corresponding `run` option is
 absent. Explicit command-line options override them for the current invocation.
 
+The persisted settings are:
+
+- `default-interface`: `tui` or `cli`.
+- `allow-repo-writes`, `allow-real-container`, `allow-real-fetcher`,
+  `allow-network`, `preserve`, `verbose`, `interactive`, and `all-workflows`:
+  boolean run defaults.
+- `failure-log-retention-hours`: a positive whole number.
+- `marker`: one of the built-in markers or custom text.
+- `forward-ssh`: whether `run` should forward the host SSH agent by default.
+
+SSH forwarding is infrastructure-owned and defaults to `false`. It is only
+resolved for `run`; listing, settings, and other commands never enable it.
+Effective forwarding also requires effective `allow-network` and a live Unix
+socket in `SSH_AUTH_SOCK`. Set or inspect it with:
+
+```sh
+ephact settings set forward-ssh true
+ephact settings show
+```
+
+The equivalent TOML value is:
+
+```toml
+forward_ssh = true
+```
+
+`settings reset` disables SSH forwarding as well as restoring every domain
+setting to its built-in default.
+
 ### Failure-log retention
 
 Failed runs retain failure diagnostics for 24 hours by default. Set the

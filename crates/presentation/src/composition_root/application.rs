@@ -1,5 +1,5 @@
 use super::super::cli::Cli;
-use crate::components::terminal::Terminal;
+use crate::{components::terminal::Terminal, infrastructure::HostSshForwardingSettingsPort};
 
 /// Fully-wired presentation layer, returned by [`super::CompositionRoot::compose`].
 pub struct Application {
@@ -17,6 +17,14 @@ impl Application {
         store: std::sync::Arc<dyn crate::application::ports::outbound::SettingsStorePort>,
     ) -> Self {
         self.cli = self.cli.with_settings(settings, store);
+        self
+    }
+
+    pub fn with_host_ssh_settings(
+        mut self,
+        settings: std::sync::Arc<dyn HostSshForwardingSettingsPort>,
+    ) -> Self {
+        self.cli = self.cli.with_host_ssh_settings(settings);
         self
     }
 

@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
 use ephact::{
     application::{
         dtos::responses::ShowProjectBrandingInfoResponse,
         ports::inbound::ShowProjectBrandingInfoPort,
     },
+    domain::Settings,
     presentation::{
         cli::{Cli, CliDependencies},
         components::terminal::Terminal,
@@ -16,7 +19,10 @@ use crate::{
         fake_run_all_workflows_port::FakeRunAllWorkflowsPort,
         fake_run_workflow_port::FakeRunWorkflowPort,
     },
-    fakes::fake_run_inputs_discoverer_port::FakeRunInputsDiscovererPort,
+    fakes::{
+        fake_run_inputs_discoverer_port::FakeRunInputsDiscovererPort,
+        fake_settings_store::FakeSettingsStore,
+    },
 };
 
 struct FakeShowProjectBrandingInfoPort;
@@ -155,4 +161,14 @@ fn run_subcommand_help_flag_succeeds() {
     let cli = make_cli();
     let result = cli.run(["ephact", "run", "--help"]);
     assert!(result.is_ok());
+}
+
+#[test]
+fn persisted_allow_network_satisfies_forward_ssh_validation() {
+    let settings = Settings::default().with_allow_network(true);
+    let store = Arc::new(FakeSettingsStore::new(settings.clone()));
+    let cli = make_cli().with_settings(settings, store);
+    let result = cli.run(["ephact", "run", "--forward-ssh"]);
+
+    assert!(result.is_ok(), "{result:?}");
 }

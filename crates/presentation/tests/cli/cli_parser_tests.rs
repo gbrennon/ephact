@@ -104,6 +104,33 @@ fn parses_failure_log_retention_setting_name() {
 }
 
 #[test]
+fn parses_forward_ssh_setting_name() {
+    let cli = CliParser::try_parse_from(["ephact", "settings", "set", "forward-ssh", "true"])
+        .expect("forward-ssh setting should parse");
+
+    match cli.command() {
+        Command::Settings(SettingsCommand::Set(arguments)) => {
+            assert_eq!(arguments.name(), SettingName::ForwardSsh);
+            assert_eq!(arguments.value(), "true");
+        }
+        _ => panic!("expected settings set"),
+    }
+}
+
+#[test]
+fn parses_marker_setting_name() {
+    let cli = CliParser::try_parse_from(["ephact", "settings", "set", "marker", "❯"])
+        .expect("marker setting should parse");
+
+    match cli.command() {
+        Command::Settings(SettingsCommand::Set(arguments)) => {
+            assert_eq!(arguments.name(), SettingName::Marker);
+            assert_eq!(arguments.value(), "❯");
+        }
+        _ => panic!("expected settings set"),
+    }
+}
+#[test]
 fn rejects_zero_failure_log_retention_hours_before_dispatch() {
     let error =
         match CliParser::try_parse_from(["ephact", "run", "--failure-log-retention-hours", "0"]) {

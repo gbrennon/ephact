@@ -15,6 +15,8 @@ pub use actions::GitActionFetcher;
 pub use containers::ContainerRuntimeAdapter;
 pub use di::{AppContainer, Container};
 pub use messaging::{InMemoryCommandBus, InMemoryEventBus};
-pub use persistence::{CargoProjectBrandingStore, TomlSettingsStore};
+pub use persistence::{
+    CargoProjectBrandingStore, HostSshForwardingSettingsPort, TomlSettingsStore,
+};
 pub use repositories::{RepositoryResolutionError, RepositoryResolver};
 pub use workflows::FilesystemWorkflowSource;

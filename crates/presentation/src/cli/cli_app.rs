@@ -21,10 +21,11 @@ use crate::{
         },
         outbound::{RunInputsDiscovererPort, SettingsStorePort},
     },
-    domain::{InterfaceMode, Settings},
+    domain::{InterfaceMode, Marker, MarkerPreset, Settings},
     handlers::{
         DiagnosticStores, ListActionsHandler, ListWorkflowsHandler, PreflightPorts, RunHandler,
     },
+    infrastructure::HostSshForwardingSettingsPort,
     tui::TuiRunner,
 };
 
@@ -41,6 +42,7 @@ pub struct Cli {
     tui_runner: TuiRunner,
     settings: Settings,
     settings_store: Option<Arc<dyn SettingsStorePort>>,
+    host_ssh_settings: Option<Arc<dyn HostSshForwardingSettingsPort>>,
 }
 pub use super::cli_dependencies::{
     CliDependencies, CliListDependencies, CliParts, CliRunDependencies,
@@ -91,6 +93,7 @@ impl Cli {
             tui_runner,
             settings: Settings::default(),
             settings_store: None,
+            host_ssh_settings: None,
         }
     }
 
@@ -116,6 +119,14 @@ impl Cli {
         self.tui_runner = self
             .tui_runner
             .with_settings(settings, Some(settings_store));
+        self
+    }
+    pub fn with_host_ssh_settings(
+        mut self,
+        settings: Arc<dyn HostSshForwardingSettingsPort>,
+    ) -> Self {
+        self.host_ssh_settings = Some(settings.clone());
+        self.tui_runner = self.tui_runner.with_host_ssh_settings(settings);
         self
     }
 }
@@ -282,7 +293,12 @@ impl Cli {
         store: &dyn SettingsStorePort,
     ) -> Result<String, Box<dyn std::error::Error>> {
         let settings = store.read_settings()?;
-        Ok(Self::render_settings(&settings, &store.config_path()))
+        let forward_ssh = self.read_forward_ssh()?;
+        Ok(Self::render_settings(
+            &settings,
+            &store.config_path(),
+            forward_ssh,
+        ))
     }
 
     fn reset_settings(
@@ -290,8 +306,16 @@ impl Cli {
         store: &dyn SettingsStorePort,
     ) -> Result<String, Box<dyn std::error::Error>> {
         let settings = Settings::default();
-        store.write_settings(&settings)?;
-        Ok(Self::render_settings(&settings, &store.config_path()))
+        if let Some(host_ssh_settings) = &self.host_ssh_settings {
+            host_ssh_settings.reset_settings()?;
+        } else {
+            store.write_settings(&settings)?;
+        }
+        Ok(Self::render_settings(
+            &settings,
+            &store.config_path(),
+            false,
+        ))
     }
 
     fn persist_setting(
@@ -299,10 +323,58 @@ impl Cli {
         store: &dyn SettingsStorePort,
         arguments: super::settings_command::SettingsSetArgs,
     ) -> Result<String, Box<dyn std::error::Error>> {
+        match arguments.name() {
+            SettingName::ForwardSsh => self.persist_forward_ssh(store, arguments.value()),
+            _ => self.persist_domain_setting(store, arguments),
+        }
+    }
+
+    fn persist_domain_setting(
+        &self,
+        store: &dyn SettingsStorePort,
+        arguments: super::settings_command::SettingsSetArgs,
+    ) -> Result<String, Box<dyn std::error::Error>> {
         let settings =
             Self::update_setting(store.read_settings()?, arguments.name(), arguments.value())?;
         store.write_settings(&settings)?;
-        Ok(Self::render_settings(&settings, &store.config_path()))
+        Ok(Self::render_settings(
+            &settings,
+            &store.config_path(),
+            self.read_forward_ssh()?,
+        ))
+    }
+
+    fn persist_forward_ssh(
+        &self,
+        store: &dyn SettingsStorePort,
+        value: &str,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let enabled = Self::parse_bool(value)?;
+        self.write_forward_ssh(enabled)?;
+        let settings = store.read_settings()?;
+        Ok(Self::render_settings(
+            &settings,
+            &store.config_path(),
+            enabled,
+        ))
+    }
+
+    fn write_forward_ssh(&self, enabled: bool) -> Result<(), Box<dyn std::error::Error>> {
+        let host_ssh_settings = self
+            .host_ssh_settings
+            .as_ref()
+            .ok_or_else(|| std::io::Error::other("SSH settings store is not configured"))?;
+        host_ssh_settings.write_forward_ssh(enabled)?;
+        Ok(())
+    }
+
+    fn read_forward_ssh(&self) -> Result<bool, Box<dyn std::error::Error>> {
+        Ok(self
+            .host_ssh_settings
+            .as_ref()
+            .map(|settings| settings.read_forward_ssh())
+            .transpose()?
+            .unwrap_or(false))
     }
 
     fn update_setting(
@@ -344,6 +416,10 @@ impl Cli {
                     .with_failure_log_retention_hours(hours)
                     .map_err(|error| format!("failure-log-retention-hours: {error}"))
             }
+            SettingName::Marker => Ok(settings.with_marker(Self::parse_marker(value))),
+            SettingName::ForwardSsh => {
+                Err("forward-ssh is stored outside domain settings".to_string())
+            }
         }
     }
 
@@ -352,15 +428,26 @@ impl Cli {
         value: &str,
         update: fn(Settings, bool) -> Settings,
     ) -> Result<Settings, String> {
-        let parsed = match value {
-            "true" => true,
-            "false" => false,
-            _ => return Err("setting value must be true or false".to_string()),
-        };
-        Ok(update(settings, parsed))
+        Ok(update(settings, Self::parse_bool(value)?))
     }
 
-    fn render_settings(settings: &Settings, path: &std::path::Path) -> String {
+    fn parse_bool(value: &str) -> Result<bool, String> {
+        match value {
+            "true" => Ok(true),
+            "false" => Ok(false),
+            _ => Err("setting value must be true or false".to_string()),
+        }
+    }
+
+    fn parse_marker(value: &str) -> Marker {
+        MarkerPreset::ALL
+            .into_iter()
+            .find(|preset| preset.as_text() == value)
+            .map(Marker::preset)
+            .unwrap_or_else(|| Marker::custom_text(value))
+    }
+
+    fn render_settings(settings: &Settings, path: &std::path::Path, forward_ssh: bool) -> String {
         format!(
             "Config: {}\n\
 default-interface = {}\n\
@@ -372,7 +459,9 @@ preserve = {}\n\
 verbose = {}\n\
 interactive = {}\n\
 all-workflows = {}\n\
-failure-log-retention-hours = {}\n",
+failure-log-retention-hours = {}\n\
+forward-ssh = {}\n\
+marker = {}\n",
             path.display(),
             Self::interface_name(settings.default_interface()),
             settings.allow_repo_writes(),
@@ -384,6 +473,8 @@ failure-log-retention-hours = {}\n",
             settings.interactive(),
             settings.all_workflows(),
             settings.failure_log_retention_hours(),
+            forward_ssh,
+            settings.marker().value(),
         )
     }
 
@@ -421,8 +512,7 @@ failure-log-retention-hours = {}\n",
         terminal: &dyn Terminal,
         output: &mut String,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let mut args = args;
-        args.apply_settings(&self.settings);
+        let args = args.with_settings(&self.settings);
         if let Some(hours) = args.failure_log_retention_hours() {
             self.failure_log_retention_store.apply_hours(hours);
         }
