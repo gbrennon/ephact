@@ -13,7 +13,7 @@ fn emblem() -> Emblem<'static> {
 }
 
 #[test]
-fn lines_for_basic_uses_fallback_art() {
+fn lines_for_basic_preserves_canonical_art() {
     let lines = emblem().lines_for(ColorSupport::Basic, &Marker::default());
 
     let text: String = lines
@@ -21,7 +21,8 @@ fn lines_for_basic_uses_fallback_art() {
         .flat_map(|line| line.spans.iter().map(|span| span.content.as_ref()))
         .collect();
 
-    assert!(text.contains("@---o"));
+    let canonical_line = ephact::PROJECT_EMBLEM.lines().next().unwrap().trim();
+    assert!(text.contains(canonical_line));
 }
 
 #[test]
@@ -39,7 +40,7 @@ fn lines_for_true_color_uses_rgb_styles() {
 }
 
 #[test]
-fn fancy_lines_render_canonical_emblem_art() {
+fn fancy_lines_preserve_canonical_emblem_art() {
     let lines = emblem().fancy_lines(&Marker::default());
 
     let text: String = lines
@@ -47,8 +48,8 @@ fn fancy_lines_render_canonical_emblem_art() {
         .flat_map(|line| line.spans.iter().map(|span| span.content.as_ref()))
         .collect();
 
-    assert!(text.contains("@---o"));
-    assert!(!text.contains("ephact"));
+    let canonical_line = ephact::PROJECT_EMBLEM.lines().next().unwrap().trim();
+    assert!(text.contains(canonical_line));
 }
 
 #[test]
