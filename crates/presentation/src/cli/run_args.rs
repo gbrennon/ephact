@@ -85,22 +85,22 @@ pub struct RunArgs {
     #[arg(
         long = "failure-log-retention-hours",
         value_name = "HOURS",
-        value_parser = parse_positive_hours
+        value_parser = RunArgs::parse_positive_hours
     )]
     failure_log_retention_hours: Option<u64>,
 }
 
-fn parse_positive_hours(value: &str) -> Result<u64, String> {
-    let hours = value
-        .parse::<u64>()
-        .map_err(|_| "failure-log-retention-hours must be a positive integer".to_string())?;
-    if hours == 0 {
-        return Err("failure-log-retention-hours must be greater than zero".to_string());
-    }
-    Ok(hours)
-}
-
 impl RunArgs {
+    fn parse_positive_hours(value: &str) -> Result<u64, String> {
+        let hours = value
+            .parse::<u64>()
+            .map_err(|_| "failure-log-retention-hours must be a positive integer".to_string())?;
+        if hours == 0 {
+            return Err("failure-log-retention-hours must be greater than zero".to_string());
+        }
+        Ok(hours)
+    }
+
     /// Converts CLI arguments into the domain model: an [`WorkflowRunConfig`] and a
     /// [`Repository`].
     ///
