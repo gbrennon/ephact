@@ -1,5 +1,6 @@
 use crate::value_objects::{RepoPath, RepositoryName};
 
+/// A repository with its local path and name.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Repository {
     path: RepoPath,
