@@ -7,6 +7,7 @@ pub struct ActionInput {
 }
 
 impl ActionInput {
+    /// Creates an action input declaration.
     pub fn new(description: Option<String>, required: bool, default: Option<String>) -> Self {
         Self {
             description,
@@ -15,18 +16,22 @@ impl ActionInput {
         }
     }
 
+    /// Returns the input description, if one was provided.
     pub fn description(&self) -> Option<&str> {
         self.description.as_deref()
     }
 
+    /// Returns whether the input is required.
     pub fn required(&self) -> bool {
         self.required
     }
 
+    /// Returns the input's declared default value, if present.
     pub fn default_value(&self) -> Option<&str> {
         self.default.as_deref()
     }
 
+    /// Returns the input's default value, if present.
     pub fn default(&self) -> Option<&str> {
         self.default.as_deref()
     }
