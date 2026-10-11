@@ -15,6 +15,7 @@ pub struct ExecuteActionPayload {
 }
 
 impl ExecuteActionPayload {
+    /// Creates a payload for executing an action with the given step and context.
     pub fn new(
         action_ref: String,
         step: Step,
@@ -31,26 +32,32 @@ impl ExecuteActionPayload {
         }
     }
 
+    /// Returns the action reference associated with this payload.
     pub fn action_ref(&self) -> &str {
         &self.action_ref
     }
 
+    /// Returns the step to execute as part of the action.
     pub fn step(&self) -> &Step {
         &self.step
     }
 
+    /// Returns the repository path where the action runs.
     pub fn repo_path(&self) -> &PathBuf {
         &self.repo_path
     }
 
+    /// Returns environment variables for the action execution.
     pub fn env(&self) -> &HashMap<String, String> {
         &self.env
     }
 
+    /// Returns the evaluation context for the action.
     pub fn context(&self) -> &EvaluationContext {
         &self.context
     }
 
+    /// Decomposes the payload into its constituent action data.
     pub fn into_parts(
         self,
     ) -> (
