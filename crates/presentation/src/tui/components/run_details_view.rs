@@ -109,7 +109,7 @@ impl RunDetailsView {
             .highlight_style(Theme::selection_style());
         let mut state = ListState::default();
         state.select(Some(selected));
-        *state.offset_mut() = list_offset(selected, self.last_row_count.get(), area.height);
+        *state.offset_mut() = Self::list_offset(selected, self.last_row_count.get(), area.height);
         frame.render_stateful_widget(list, area, &mut state);
     }
 
@@ -189,6 +189,12 @@ impl RunDetailsView {
         append_stream(rows, "stdout", data.stdout(), Theme::muted_style(), width);
         append_stream(rows, "stderr", data.stderr(), stderr_style(data), width);
     }
+    fn list_offset(selected: usize, row_count: usize, height: u16) -> usize {
+        let viewport = height as usize;
+        let target = viewport * 70 / 100;
+        let max_offset = row_count.saturating_sub(viewport);
+        selected.saturating_sub(target).min(max_offset)
+    }
 }
 
 impl Default for RunDetailsView {
@@ -208,13 +214,6 @@ fn row_item(row: Row) -> ListItem<'static> {
     match row {
         Row::Node(_, line) | Row::Output(line) => ListItem::new(line),
     }
-}
-
-fn list_offset(selected: usize, row_count: usize, height: u16) -> usize {
-    let viewport = height as usize;
-    let target = viewport * 70 / 100;
-    let max_offset = row_count.saturating_sub(viewport);
-    selected.saturating_sub(target).min(max_offset)
 }
 
 fn job_display(summary: &RunSummaryResponse, job: usize) -> String {
@@ -464,9 +463,9 @@ mod tests {
 
     #[test]
     fn list_offset_keeps_selection_near_seventy_percent_until_content_ends() {
-        assert_eq!(list_offset(14, 100, 20), 0);
-        assert_eq!(list_offset(15, 100, 20), 1);
-        assert_eq!(list_offset(99, 100, 20), 80);
+        assert_eq!(RunDetailsView::list_offset(14, 100, 20), 0);
+        assert_eq!(RunDetailsView::list_offset(15, 100, 20), 1);
+        assert_eq!(RunDetailsView::list_offset(99, 100, 20), 80);
     }
 
     #[test]
