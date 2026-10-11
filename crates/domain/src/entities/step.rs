@@ -65,6 +65,7 @@ pub struct Step {
 }
 
 impl Step {
+    /// Creates a step with the given identifier, name, run command, and action reference.
     pub fn new(
         id: Option<String>,
         name: Option<String>,
@@ -86,45 +87,54 @@ impl Step {
         }
     }
 
+    /// Sets the condition that controls whether this step runs.
     pub fn with_if_condition(mut self, condition: Option<String>) -> Self {
         self.r#if = condition;
         self
     }
 
+    /// Sets the shell used to execute this step's `run` command.
     pub fn with_shell(mut self, shell: Option<String>) -> Self {
         self.shell = shell;
         self
     }
 
+    /// Sets the working directory for this step's `run` command.
     pub fn with_working_directory(mut self, working_directory: Option<String>) -> Self {
         self.working_directory = working_directory;
         self
     }
 
+    /// Sets the input parameters for this step's `uses` action.
     pub fn with_inputs(mut self, inputs: HashMap<String, String>) -> Self {
         self.with = inputs;
         self
     }
 
+    /// Sets the environment variables scoped to this step.
     pub fn with_env(mut self, env: HashMap<String, String>) -> Self {
         self.env = env;
         self
     }
 
+    /// Sets whether the job continues when this step fails.
     pub fn with_continue_on_error(mut self, value: Option<String>) -> Self {
         self.continue_on_error = value;
         self
     }
 
+    /// Sets the maximum number of minutes this step may run.
     pub fn with_timeout_minutes(mut self, timeout_minutes: Option<f64>) -> Self {
         self.timeout_minutes = timeout_minutes;
         self
     }
 
+    /// Returns the step identifier, if one is set.
     pub fn id(&self) -> Option<&str> {
         self.id.as_deref()
     }
 
+    /// Returns the display name of the step, if one is set.
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
     }
@@ -139,34 +149,42 @@ impl Step {
             .unwrap_or("unnamed step")
     }
 
+    /// Returns the condition controlling whether this step runs.
     pub fn r#if(&self) -> Option<&str> {
         self.r#if.as_deref()
     }
 
+    /// Returns the condition controlling whether this step runs.
     pub fn if_condition(&self) -> Option<&str> {
         self.r#if.as_deref()
     }
 
+    /// Returns the shell configured for this step.
     pub fn shell(&self) -> Option<&str> {
         self.shell.as_deref()
     }
 
+    /// Returns the working directory configured for this step.
     pub fn working_directory(&self) -> Option<&str> {
         self.working_directory.as_deref()
     }
 
+    /// Returns the input parameters for this step's `uses` action.
     pub fn with(&self) -> &HashMap<String, String> {
         &self.with
     }
 
+    /// Returns the environment variables scoped to this step.
     pub fn env(&self) -> &HashMap<String, String> {
         &self.env
     }
 
+    /// Returns whether the job continues when this step fails.
     pub fn continue_on_error(&self) -> Option<&str> {
         self.continue_on_error.as_deref()
     }
 
+    /// Returns the maximum runtime for this step in minutes.
     pub fn timeout_minutes(&self) -> Option<f64> {
         self.timeout_minutes
     }
@@ -223,6 +241,7 @@ impl Step {
             .is_some_and(|v| v.eq_ignore_ascii_case("true"))
     }
 
+    /// Returns the reason this step requires network access, if any.
     pub fn network_access_reason(
         &self,
         classifier: &dyn NetworkCommandClassifier,
@@ -231,6 +250,7 @@ impl Step {
         StepNetworkPolicy::new(script).network_access_reason(classifier)
     }
 
+    /// Returns the network-policy violation reason for this step, if any.
     pub fn network_policy_violation(
         &self,
         classifier: &dyn NetworkCommandClassifier,
