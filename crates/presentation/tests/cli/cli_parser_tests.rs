@@ -142,6 +142,21 @@ fn rejects_zero_failure_log_retention_hours_before_dispatch() {
 }
 
 #[test]
+fn rejects_non_numeric_failure_log_retention_hours_before_dispatch() {
+    let error = match CliParser::try_parse_from([
+        "ephact",
+        "run",
+        "--failure-log-retention-hours",
+        "invalid",
+    ]) {
+        Ok(_) => panic!("non-numeric retention should fail during argument parsing"),
+        Err(error) => error,
+    };
+
+    assert!(error.to_string().contains("positive integer"));
+}
+
+#[test]
 fn no_args_selects_tui_by_default() {
     let cli = CliParser::try_parse_from(["ephact"]).expect("no subcommand should parse");
 
