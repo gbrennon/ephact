@@ -50,6 +50,10 @@ impl ContainerRuntimePort for FailingPipelineRuntime {
     }
 
     fn get_host_info(&self) -> Result<HostInfoResponse, ContainerError> {
-        Ok(HostInfoResponse::new("linux", "x86_64", "e2e"))
+        Ok(HostInfoResponse::new(
+            "linux".to_owned(),
+            "x86_64".to_owned(),
+            "e2e".to_owned(),
+        ))
     }
 }
