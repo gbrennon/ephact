@@ -25,7 +25,7 @@ impl RunWorkflowRequest {
     pub fn from_domain(
         repository: &Repository,
         config: &WorkflowRunConfig,
-        run_id: impl Into<String>,
+        run_id: String,
     ) -> Self {
         Self {
             repository_path: repository.path().as_path().to_path_buf(),
@@ -48,7 +48,7 @@ impl RunWorkflowRequest {
             allow_real_container: config.allow_real_container(),
             allow_real_fetcher: config.allow_real_fetcher(),
             allow_network: config.allow_network(),
-            run_id: run_id.into(),
+            run_id,
         }
     }
 
@@ -154,7 +154,7 @@ mod tests {
             .with_allow_real_fetcher(true)
             .with_allow_network(true);
 
-        let request = RunWorkflowRequest::from_domain(&repository, &config, "run-1");
+        let request = RunWorkflowRequest::from_domain(&repository, &config, "run-1".to_owned());
 
         assert_eq!(request.repository_path(), Path::new("workspace"));
         assert_eq!(request.repository_name(), "test-repo");
@@ -185,7 +185,7 @@ mod tests {
         );
         let config = WorkflowRunConfig::new();
 
-        let request = RunWorkflowRequest::from_domain(&repository, &config, "run-2");
+        let request = RunWorkflowRequest::from_domain(&repository, &config, "run-2".to_owned());
 
         assert_eq!(request.workflow(), None);
         assert_eq!(request.job(), None);
