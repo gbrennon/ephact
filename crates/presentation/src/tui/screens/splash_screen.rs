@@ -54,20 +54,31 @@ impl SplashScreen {
         title: &str,
         marker: &Marker,
     ) {
-        let area = Self::centered_area(frame.area(), Self::WIDTH_PERCENT, Self::HEIGHT_PERCENT);
+        let lines = Self::body_lines(emblem, support, marker);
+        let emblem_width = Emblem::new(emblem).width() as u16;
+        let area = Self::centered_area(
+            frame.area(),
+            Self::WIDTH_PERCENT,
+            Self::HEIGHT_PERCENT,
+            emblem_width
+                .saturating_add(2)
+                .saturating_add(Self::HORIZONTAL_PADDING * 2),
+            (lines.len() as u16)
+                .saturating_add(2)
+                .saturating_add(Self::VERTICAL_PADDING * 2),
+        );
+        let horizontal_padding = Self::horizontal_padding(area.width, emblem_width);
         let block = Block::default()
             .borders(Borders::ALL)
             .border_style(Theme::border_style())
             .style(Theme::window_style())
             .padding(Padding::symmetric(
-                Self::HORIZONTAL_PADDING,
+                horizontal_padding,
                 Self::VERTICAL_PADDING,
             ))
             .title(Span::styled(title.to_string(), Theme::title_style()));
         let inner = block.inner(area);
         frame.render_widget(block, area);
-
-        let lines = Self::body_lines(emblem, support, marker);
         let content = Self::vertically_centered(inner, lines.len() as u16);
         frame.render_widget(
             Paragraph::new(lines)
@@ -115,22 +126,28 @@ impl SplashScreen {
         ))
     }
 
-    fn centered_area(area: Rect, width_percent: u16, height_percent: u16) -> Rect {
-        let vertical = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Percentage((100 - height_percent) / 2),
-                Constraint::Percentage(height_percent),
-                Constraint::Percentage((100 - height_percent) / 2),
-            ])
-            .split(area);
-        Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([
-                Constraint::Percentage((100 - width_percent) / 2),
-                Constraint::Percentage(width_percent),
-                Constraint::Percentage((100 - width_percent) / 2),
-            ])
-            .split(vertical[1])[1]
+    fn centered_area(
+        area: Rect,
+        width_percent: u16,
+        height_percent: u16,
+        minimum_width: u16,
+        minimum_height: u16,
+    ) -> Rect {
+        let width = (area.width * width_percent / 100)
+            .max(minimum_width)
+            .min(area.width);
+        let height = (area.height * height_percent / 100)
+            .max(minimum_height)
+            .min(area.height);
+        Rect::new(
+            area.x + (area.width - width) / 2,
+            area.y + (area.height - height) / 2,
+            width,
+            height,
+        )
+    }
+
+    fn horizontal_padding(area_width: u16, content_width: u16) -> u16 {
+        Self::HORIZONTAL_PADDING.min(area_width.saturating_sub(2).saturating_sub(content_width) / 2)
     }
 }
