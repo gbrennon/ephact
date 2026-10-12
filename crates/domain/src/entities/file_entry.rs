@@ -1,3 +1,4 @@
+/// A repository file with its path, content, and file mode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileEntry {
     path: String,
@@ -6,6 +7,7 @@ pub struct FileEntry {
 }
 
 impl FileEntry {
+    /// Creates a file entry from a path, content bytes, and file mode.
     pub fn new(path: impl Into<String>, content: Vec<u8>, mode: u32) -> Self {
         Self {
             path: path.into(),
@@ -14,18 +16,22 @@ impl FileEntry {
         }
     }
 
+    /// Returns the file path.
     pub fn path(&self) -> &str {
         &self.path
     }
 
+    /// Returns the file contents.
     pub fn content(&self) -> &[u8] {
         &self.content
     }
 
+    /// Returns the file mode.
     pub fn mode(&self) -> u32 {
         self.mode
     }
 
+    /// Consumes the entry and returns its path, content, and mode.
     pub fn into_parts(self) -> (String, Vec<u8>, u32) {
         (self.path, self.content, self.mode)
     }

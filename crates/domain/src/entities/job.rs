@@ -80,6 +80,7 @@ pub struct Job {
 }
 
 impl Job {
+    /// Creates a job with its name, runner, steps, and dependencies.
     pub fn new(
         name: Option<String>,
         runs_on: Option<String>,
@@ -106,130 +107,159 @@ impl Job {
         }
     }
 
+    /// Sets the condition that controls whether this job runs.
     pub fn with_if_condition(mut self, condition: Option<String>) -> Self {
         self.r#if = condition;
         self
     }
 
+    /// Sets the matrix strategy for this job.
     pub fn with_strategy(mut self, strategy: Option<JobStrategy>) -> Self {
         self.strategy = strategy;
         self
     }
 
+    /// Sets the environment variables scoped to this job.
     pub fn with_env(mut self, env: HashMap<String, String>) -> Self {
         self.env = env;
         self
     }
 
+    /// Sets the container in which this job runs.
     pub fn with_container(mut self, container: Option<ContainerSpecification>) -> Self {
         self.container = container;
         self
     }
 
+    /// Sets the service containers available to this job.
     pub fn with_services(mut self, services: HashMap<String, ContainerSpecification>) -> Self {
         self.services = services;
         self
     }
 
+    /// Sets the outputs produced for dependent jobs.
     pub fn with_outputs(mut self, outputs: HashMap<String, String>) -> Self {
         self.outputs = outputs;
         self
     }
 
+    /// Sets the input parameters passed to this job.
     pub fn with_inputs(mut self, inputs: Option<ContextValue>) -> Self {
         self.with = inputs;
         self
     }
 
+    /// Sets the secrets available to this job.
     pub fn with_secrets(mut self, secrets: Option<ContextValue>) -> Self {
         self.secrets = secrets;
         self
     }
 
+    /// Sets the maximum runtime for this job in minutes.
     pub fn with_timeout_minutes(mut self, timeout_minutes: Option<f64>) -> Self {
         self.timeout_minutes = timeout_minutes;
         self
     }
 
+    /// Sets whether this job may fail without stopping the workflow.
     pub fn with_continue_on_error(mut self, value: Option<String>) -> Self {
         self.continue_on_error = value;
         self
     }
 
+    /// Sets the token permissions for this job.
     pub fn with_permissions(mut self, permissions: Option<TokenPermissions>) -> Self {
         self.permissions = permissions;
         self
     }
 
+    /// Sets the concurrency settings for this job.
     pub fn with_concurrency(mut self, concurrency: Option<ConcurrencyGroup>) -> Self {
         self.concurrency = concurrency;
         self
     }
 
+    /// Returns the job's display name.
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
     }
 
+    /// Returns the machine type assigned to this job.
     pub fn runs_on(&self) -> Option<&str> {
         self.runs_on.as_deref()
     }
 
+    /// Returns the steps executed by this job.
     pub fn steps(&self) -> &[Step] {
         &self.steps
     }
 
+    /// Returns the identifiers of jobs that must complete first.
     pub fn needs(&self) -> &[String] {
         &self.needs
     }
 
+    /// Returns this job's run condition.
     pub fn r#if(&self) -> Option<&str> {
         self.r#if.as_deref()
     }
 
+    /// Returns the condition controlling whether this job runs.
     pub fn if_condition(&self) -> Option<&str> {
         self.r#if.as_deref()
     }
 
+    /// Returns this job's matrix strategy.
     pub fn strategy(&self) -> Option<&JobStrategy> {
         self.strategy.as_ref()
     }
 
+    /// Returns the environment variables scoped to this job.
     pub fn env(&self) -> &HashMap<String, String> {
         &self.env
     }
 
+    /// Returns the container specification for this job.
     pub fn container(&self) -> Option<&ContainerSpecification> {
         self.container.as_ref()
     }
 
+    /// Returns the service container specifications for this job.
     pub fn services(&self) -> &HashMap<String, ContainerSpecification> {
         &self.services
     }
 
+    /// Returns the outputs produced by this job.
     pub fn outputs(&self) -> &HashMap<String, String> {
         &self.outputs
     }
 
+    /// Returns the input parameters passed to this job.
     pub fn with(&self) -> Option<&ContextValue> {
         self.with.as_ref()
     }
 
+    /// Returns the secrets available to this job.
     pub fn secrets(&self) -> Option<&ContextValue> {
         self.secrets.as_ref()
     }
 
+    /// Returns the maximum runtime for this job in minutes.
     pub fn timeout_minutes(&self) -> Option<f64> {
         self.timeout_minutes
     }
 
+    /// Returns whether this job may continue after failure.
     pub fn continue_on_error(&self) -> Option<&str> {
         self.continue_on_error.as_deref()
     }
 
+    /// Returns the token permissions for this job.
     pub fn permissions(&self) -> Option<&TokenPermissions> {
         self.permissions.as_ref()
     }
 
+    /// Returns the concurrency settings for this job.
     pub fn concurrency(&self) -> Option<&ConcurrencyGroup> {
         self.concurrency.as_ref()
     }

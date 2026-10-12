@@ -52,6 +52,10 @@ impl FailureLogRetentionStore {
             .map(|hours| *hours)
             .unwrap_or(DEFAULT_FAILURE_LOG_RETENTION_HOURS)
     }
+
+    fn retention_duration(hours: u64) -> Duration {
+        Duration::from_secs(hours.saturating_mul(60 * 60))
+    }
 }
 
 /// Shared status for filesystem failures encountered while writing diagnostics.
@@ -338,7 +342,7 @@ impl FailureLogHandler {
     fn on_run_started(&self, run_id: &str, repository_path: &str) {
         self.prune_expired_logs(
             SystemTime::now(),
-            retention_duration(self.retention.hours()),
+            FailureLogRetentionStore::retention_duration(self.retention.hours()),
         );
         if let Ok(mut states) = self.states.lock() {
             states.insert(
@@ -436,10 +440,6 @@ impl FailureLogHandler {
         })?;
         Ok(path)
     }
-}
-
-fn retention_duration(hours: u64) -> Duration {
-    Duration::from_secs(hours.saturating_mul(60 * 60))
 }
 
 impl Default for FailureLogHandler {
@@ -714,6 +714,18 @@ mod tests {
         handler.remove_expired_log(&owned_log);
 
         assert!(handler.error_store().read_and_clear().is_empty());
+    }
+
+    #[test]
+    fn retention_duration_converts_hours_without_overflow() {
+        assert_eq!(
+            FailureLogRetentionStore::retention_duration(2),
+            Duration::from_secs(2 * 60 * 60)
+        );
+        assert_eq!(
+            FailureLogRetentionStore::retention_duration(u64::MAX),
+            Duration::from_secs(u64::MAX)
+        );
     }
 
     #[test]

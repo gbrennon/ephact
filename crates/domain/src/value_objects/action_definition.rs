@@ -38,6 +38,7 @@ pub struct ActionDefinition {
 }
 
 impl ActionDefinition {
+    /// Creates an action definition from its name, description, inputs, and runtime.
     pub fn new(
         name: impl Into<String>,
         description: Option<String>,
@@ -52,18 +53,22 @@ impl ActionDefinition {
         }
     }
 
+    /// Returns the action name.
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    /// Returns the action description, if one was provided.
     pub fn description(&self) -> Option<&str> {
         self.description.as_deref()
     }
 
+    /// Returns the action's declared input parameters.
     pub fn inputs(&self) -> &std::collections::HashMap<String, ActionInput> {
         &self.inputs
     }
 
+    /// Returns how the action executes.
     pub fn runs(&self) -> &ActionRuntime {
         &self.runs
     }

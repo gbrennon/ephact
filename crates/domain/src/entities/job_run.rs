@@ -22,6 +22,7 @@ pub struct JobRun {
 }
 
 impl JobRun {
+    /// Creates a job run with its workflow, job identifier, definition, and matrix values.
     pub fn new(
         workflow_name: Option<String>,
         job_id: String,
@@ -36,18 +37,22 @@ impl JobRun {
         }
     }
 
+    /// Returns the workflow name for this run, if available.
     pub fn workflow_name(&self) -> Option<&str> {
         self.workflow_name.as_deref()
     }
 
+    /// Returns the identifier of the job represented by this run.
     pub fn job_id(&self) -> &str {
         &self.job_id
     }
 
+    /// Returns the job definition for this run.
     pub fn job(&self) -> &Job {
         &self.job
     }
 
+    /// Returns the matrix values for this run, if any.
     pub fn matrix_values(&self) -> Option<&HashMap<String, String>> {
         self.matrix_values.as_ref()
     }
