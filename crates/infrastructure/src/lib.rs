@@ -8,6 +8,8 @@ pub mod logging;
 pub mod messaging;
 pub mod persistence;
 pub mod repositories;
+#[path = "workflows/source_name.rs"]
+mod source_name;
 pub mod steps;
 pub mod workflows;
 

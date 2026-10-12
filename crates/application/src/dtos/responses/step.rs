@@ -75,7 +75,7 @@ impl StepSummaryDetails {
         }
     }
 
-    pub(crate) fn into_parts(self) -> (Option<i64>, bool, std::time::Duration, String, String) {
+    fn into_parts(self) -> (Option<i64>, bool, std::time::Duration, String, String) {
         (
             self.exit_code,
             self.continue_on_error,
@@ -102,7 +102,7 @@ impl StepSummaryResponseInput {
         }
     }
 
-    pub(crate) fn into_parts(self) -> (String, StepType, StepSummaryDetails) {
+    fn into_parts(self) -> (String, StepType, StepSummaryDetails) {
         (self.name, self.step_type, self.details)
     }
 }

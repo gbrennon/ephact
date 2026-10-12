@@ -4,8 +4,8 @@ use std::{
 };
 
 use super::{
-    super::atomic_write, host_ssh_forwarding_settings_port::HostSshForwardingSettingsPort,
-    toml_settings::TomlSettings,
+    super::atomic_write::AtomicFileWriter,
+    host_ssh_forwarding_settings_port::HostSshForwardingSettingsPort, toml_settings::TomlSettings,
 };
 use crate::{
     application::{errors::SettingsStoreError, ports::outbound::SettingsStorePort},
@@ -60,7 +60,7 @@ impl TomlSettingsStore {
         fs::create_dir_all(parent).map_err(|error| SettingsStoreError::Write(error.to_string()))?;
         let contents = toml::to_string_pretty(settings)
             .map_err(|error| SettingsStoreError::Write(error.to_string()))?;
-        atomic_write::write(&self.path, contents)
+        AtomicFileWriter::write(&self.path, contents)
             .map_err(|error| SettingsStoreError::Write(error.to_string()))
     }
 }

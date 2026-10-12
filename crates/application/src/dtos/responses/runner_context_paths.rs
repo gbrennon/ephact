@@ -26,7 +26,8 @@ impl RunnerContextPaths {
         }
     }
 
-    pub(crate) fn into_parts(self) -> (String, String, String, String, String) {
+    /// Consumes the paths and returns their owned values.
+    pub fn into_parts(self) -> (String, String, String, String, String) {
         (
             self.workspace,
             self.home,
