@@ -1,314 +1,317 @@
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+#[cfg(test)]
+mod tests {
+    use std::{
+        collections::HashMap,
+        path::{Path, PathBuf},
+        sync::Arc,
+    };
 
-use ephact::{
-    application::{
-        dtos::{
-            requests::{
-                ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
-                RunCompositeActionRequest,
+    use ephact::{
+        application::{
+            dtos::{
+                requests::{
+                    ExecuteActionExecutionInput, ExecuteActionRequest, ExecuteActionRequestInput,
+                    RunCompositeActionRequest,
+                },
+                responses::ExecResultResponse,
             },
-            responses::ExecResultResponse,
+            ports::outbound::{
+                StepTextCodecPort, composite_action_runner_port::CompositeActionRunnerPort,
+                container_port::ContainerPort,
+            },
         },
-        ports::outbound::{
-            StepTextCodecPort, composite_action_runner_port::CompositeActionRunnerPort,
-            container_port::ContainerPort,
+        domain::{
+            entities::Step,
+            errors::StepError,
+            value_objects::{ContextValue, EvaluationContext},
         },
-    },
-    domain::{
-        entities::Step,
-        errors::StepError,
-        value_objects::{ContextValue, EvaluationContext},
-    },
-    infrastructure::{
-        actions::execution::run_composite_action_service::RunCompositeActionService,
-        steps::{JsonStepTextCodec, StepInterpolator},
-        workflows::actions::StepYaml,
-    },
-};
+        infrastructure::{
+            actions::execution::run_composite_action_service::RunCompositeActionService,
+            steps::{JsonStepTextCodec, StepInterpolator},
+            workflows::actions::StepYaml,
+        },
+    };
 
-use crate::common::fakes::{
-    fake_copy_action_to_container_port::FakeCopyActionToContainerPort,
-    fake_run_composite_step_port::FakeRunCompositeStepPort,
-    fake_step_exports_reader_port::FakeStepExportsReaderPort, stub_container::StubContainer,
-};
+    use crate::common::fakes::{
+        fake_copy_action_to_container_port::FakeCopyActionToContainerPort,
+        fake_run_composite_step_port::FakeRunCompositeStepPort,
+        fake_step_exports_reader_port::FakeStepExportsReaderPort, stub_container::StubContainer,
+    };
 
-fn steps(yaml: &str) -> Vec<Step> {
-    serde_yaml::from_str::<Vec<StepYaml>>(yaml)
-        .unwrap()
-        .into_iter()
-        .map(StepYaml::into_domain)
-        .collect()
-}
+    fn steps(yaml: &str) -> Vec<Step> {
+        serde_yaml::from_str::<Vec<StepYaml>>(yaml)
+            .unwrap()
+            .into_iter()
+            .map(StepYaml::into_domain)
+            .collect()
+    }
 
-fn action_request(container: &dyn ContainerPort) -> ExecuteActionRequest {
-    action_request_with_context(container, EvaluationContext::new())
-}
+    fn action_request(container: &dyn ContainerPort) -> ExecuteActionRequest {
+        action_request_with_context(container, EvaluationContext::new())
+    }
 
-fn action_request_with_context(
-    _container: &dyn ContainerPort,
-    context: EvaluationContext,
-) -> ExecuteActionRequest {
-    ExecuteActionRequest::new(ExecuteActionRequestInput::new(
-        "./actions/outer",
-        JsonStepTextCodec
-            .encode(
-                &serde_yaml::from_str::<StepYaml>("uses: ./actions/outer\n")
-                    .unwrap()
-                    .into_domain(),
-            )
-            .unwrap(),
-        ExecuteActionExecutionInput::new(
-            PathBuf::from("/repo"),
-            HashMap::from([("GITHUB_OUTPUT".to_owned(), "/tmp/.ephact_output".to_owned())]),
-            context,
-        ),
-    ))
-}
-fn service(runner: FakeRunCompositeStepPort) -> RunCompositeActionService {
-    service_with_exports(runner, FakeStepExportsReaderPort::new())
-}
-
-fn service_with_exports(
-    runner: FakeRunCompositeStepPort,
-    exports_reader: FakeStepExportsReaderPort,
-) -> RunCompositeActionService {
-    RunCompositeActionService::new(
-        Box::new(runner),
-        Box::new(FakeCopyActionToContainerPort::returning("/actions/outer")),
-        Box::new(exports_reader),
-        Arc::new(StepInterpolator),
-    )
-}
-
-fn result(exit_code: i64, stdout: &str) -> ExecResultResponse {
-    result_with_output(exit_code, stdout, "")
-}
-
-fn result_with_output(exit_code: i64, stdout: &str, stderr: &str) -> ExecResultResponse {
-    ExecResultResponse::new(exit_code, stdout, stderr)
-}
-
-#[test]
-fn execute_runs_every_step_and_concatenates_their_output() {
-    let runner = FakeRunCompositeStepPort::queueing(vec![result(0, "one"), result(0, "two")]);
-    let service = service(runner.clone());
-    let container = StubContainer;
-    let request_owner = action_request(&container);
-
-    let response = service
-        .run(
-            RunCompositeActionRequest::new(
-                &steps("- run: one\n- run: two\n"),
-                &HashMap::new(),
-                Path::new("/repo/actions/outer"),
-                &request_owner,
+    fn action_request_with_context(
+        _container: &dyn ContainerPort,
+        context: EvaluationContext,
+    ) -> ExecuteActionRequest {
+        ExecuteActionRequest::new(ExecuteActionRequestInput::new(
+            "./actions/outer",
+            JsonStepTextCodec
+                .encode(
+                    &serde_yaml::from_str::<StepYaml>("uses: ./actions/outer\n")
+                        .unwrap()
+                        .into_domain(),
+                )
+                .unwrap(),
+            ExecuteActionExecutionInput::new(
+                PathBuf::from("/repo"),
+                HashMap::from([("GITHUB_OUTPUT".to_owned(), "/tmp/.ephact_output".to_owned())]),
+                context,
             ),
-            Arc::new(container),
+        ))
+    }
+    fn service(runner: FakeRunCompositeStepPort) -> RunCompositeActionService {
+        service_with_exports(runner, FakeStepExportsReaderPort::new())
+    }
+
+    fn service_with_exports(
+        runner: FakeRunCompositeStepPort,
+        exports_reader: FakeStepExportsReaderPort,
+    ) -> RunCompositeActionService {
+        RunCompositeActionService::new(
+            Box::new(runner),
+            Box::new(FakeCopyActionToContainerPort::returning("/actions/outer")),
+            Box::new(exports_reader),
+            Arc::new(StepInterpolator),
         )
-        .unwrap();
+    }
 
-    assert_eq!(response.exit_code(), 0);
-    assert_eq!(response.stdout(), "onetwo");
-    assert_eq!(runner.steps().len(), 2);
-}
+    fn result(exit_code: i64, stdout: &str) -> ExecResultResponse {
+        result_with_output(exit_code, stdout, "")
+    }
 
-#[test]
-fn execute_stops_at_the_first_failing_step() {
-    let runner = FakeRunCompositeStepPort::queueing(vec![result(3, "one"), result(0, "two")]);
-    let service = service(runner.clone());
-    let container = StubContainer;
-    let request_owner = action_request(&container);
+    fn result_with_output(exit_code: i64, stdout: &str, stderr: &str) -> ExecResultResponse {
+        ExecResultResponse::new(exit_code, stdout, stderr)
+    }
 
-    let response = service
-        .run(
-            RunCompositeActionRequest::new(
-                &steps("- run: one\n- run: two\n"),
-                &HashMap::new(),
-                Path::new("/repo/actions/outer"),
-                &request_owner,
-            ),
-            Arc::new(container),
-        )
-        .unwrap();
+    #[test]
+    fn execute_runs_every_step_and_concatenates_their_output() {
+        let runner = FakeRunCompositeStepPort::queueing(vec![result(0, "one"), result(0, "two")]);
+        let service = service(runner.clone());
+        let container = StubContainer;
+        let request_owner = action_request(&container);
 
-    assert_eq!(response.exit_code(), 3);
-    assert_eq!(response.stdout(), "one");
-    assert_eq!(runner.steps().len(), 1);
-}
-
-#[test]
-fn execute_carries_earlier_output_into_a_step_error() {
-    let runner = FakeRunCompositeStepPort::sequence(vec![
-        Ok(result_with_output(0, "one", "first")),
-        Err(StepError::new("boom".to_string())
-            .with_stdout("partial".to_string())
-            .with_stderr("bad".to_string())),
-    ]);
-    let service = service(runner);
-    let container = StubContainer;
-    let request_owner = action_request(&container);
-
-    let error = service
-        .run(
-            RunCompositeActionRequest::new(
-                &steps("- run: one\n- run: two\n"),
-                &HashMap::new(),
-                Path::new("/repo/actions/outer"),
-                &request_owner,
-            ),
-            Arc::new(container),
-        )
-        .unwrap_err();
-
-    assert_eq!(error.message(), "boom");
-    assert_eq!(error.stdout(), "onepartial");
-    assert_eq!(error.stderr(), "firstbad");
-}
-
-#[test]
-fn execute_exposes_the_actions_inputs_to_its_steps() {
-    let runner = FakeRunCompositeStepPort::queueing(vec![result(0, "")]);
-    let service = service(runner.clone());
-    let container = StubContainer;
-    let request_owner = action_request(&container);
-    let mut inputs = HashMap::new();
-    inputs.insert("mode".to_string(), "staging".to_string());
-
-    service
-        .run(
-            RunCompositeActionRequest::new(
-                &steps("- run: deploy ${{ inputs.mode }}\n"),
-                &inputs,
-                Path::new("/repo/actions/outer"),
-                &request_owner,
-            ),
-            Arc::new(container),
-        )
-        .unwrap();
-
-    assert_eq!(runner.steps()[0].run(), Some("deploy staging"));
-}
-
-#[test]
-fn execute_skips_steps_when_their_condition_is_false() {
-    let runner = FakeRunCompositeStepPort::queueing(vec![result(0, "linux")]);
-    let service = service(runner.clone());
-    let container = StubContainer;
-    let context = EvaluationContext::new().with_root(
-        "runner",
-        ContextValue::mapping([("os".to_owned(), ContextValue::text("Linux"))]),
-    );
-    let request_owner = action_request_with_context(&container, context);
-
-    let response = service
-        .run(
-            RunCompositeActionRequest::new(
-                &steps(
-                    "- if: runner.os == 'Windows'\n  run: echo windows\n\
-                     - run: echo linux\n",
+        let response = service
+            .run(
+                RunCompositeActionRequest::new(
+                    &steps("- run: one\n- run: two\n"),
+                    &HashMap::new(),
+                    Path::new("/repo/actions/outer"),
+                    &request_owner,
                 ),
-                &HashMap::new(),
-                Path::new("/repo/actions/outer"),
-                &request_owner,
-            ),
-            Arc::new(container),
-        )
-        .unwrap();
+                Arc::new(container),
+            )
+            .unwrap();
 
-    assert_eq!(response.exit_code(), 0);
-    assert_eq!(runner.steps().len(), 1);
-    assert_eq!(runner.steps()[0].run(), Some("echo linux"));
-}
+        assert_eq!(response.exit_code(), 0);
+        assert_eq!(response.stdout(), "onetwo");
+        assert_eq!(runner.steps().len(), 2);
+    }
 
-fn run_composite(
-    yaml: &str,
-    runner: FakeRunCompositeStepPort,
-    exports_reader: FakeStepExportsReaderPort,
-) {
-    let service = service_with_exports(runner, exports_reader);
-    let container = StubContainer;
-    let request_owner = action_request(&container);
-    service
-        .run(
-            RunCompositeActionRequest::new(
-                &steps(yaml),
-                &HashMap::new(),
-                Path::new("/repo/actions/outer"),
-                &request_owner,
-            ),
-            Arc::new(container),
-        )
-        .unwrap();
-}
+    #[test]
+    fn execute_stops_at_the_first_failing_step() {
+        let runner = FakeRunCompositeStepPort::queueing(vec![result(3, "one"), result(0, "two")]);
+        let service = service(runner.clone());
+        let container = StubContainer;
+        let request_owner = action_request(&container);
 
-#[test]
-fn execute_passes_runner_exports_to_following_steps() {
-    let runner = FakeRunCompositeStepPort::queueing(vec![result(0, ""), result(0, "")]);
-    let mut environment_exports = HashMap::new();
-    environment_exports.insert("TOKEN".to_owned(), "secret".to_owned());
-    let mut output_exports = HashMap::new();
-    output_exports.insert("artifact".to_owned(), "ready".to_owned());
-    let exports_reader = FakeStepExportsReaderPort::queueing_with_outputs(vec![(
-        vec!["/opt/tool/bin".to_owned()],
-        environment_exports,
-        output_exports,
-    )]);
+        let response = service
+            .run(
+                RunCompositeActionRequest::new(
+                    &steps("- run: one\n- run: two\n"),
+                    &HashMap::new(),
+                    Path::new("/repo/actions/outer"),
+                    &request_owner,
+                ),
+                Arc::new(container),
+            )
+            .unwrap();
 
-    run_composite(
-        "- id: produce\n  run: echo produce\n\
-         - run: echo ${{ steps.produce.outputs.artifact }}\n",
-        runner.clone(),
-        exports_reader,
-    );
+        assert_eq!(response.exit_code(), 3);
+        assert_eq!(response.stdout(), "one");
+        assert_eq!(runner.steps().len(), 1);
+    }
 
-    let contexts = runner.contexts();
-    let environments = runner.environments();
-    assert_eq!(runner.steps()[1].run(), Some("echo ready"));
-    assert_eq!(
-        environments[1].get("PATH").map(String::as_str),
-        Some("/opt/tool/bin"),
-    );
-    assert_eq!(
-        environments[1].get("TOKEN").map(String::as_str),
-        Some("secret"),
-    );
-    assert_eq!(
-        contexts[1]
-            .get("steps")
-            .and_then(|steps| steps.property("produce"))
-            .and_then(|step| step.property("outputs"))
-            .and_then(|outputs| outputs.property("artifact"))
-            .and_then(ContextValue::as_text),
-        Some("ready"),
-    );
-}
+    #[test]
+    fn execute_carries_earlier_output_into_a_step_error() {
+        let runner = FakeRunCompositeStepPort::sequence(vec![
+            Ok(result_with_output(0, "one", "first")),
+            Err(StepError::new("boom".to_string())
+                .with_stdout("partial".to_string())
+                .with_stderr("bad".to_string())),
+        ]);
+        let service = service(runner);
+        let container = StubContainer;
+        let request_owner = action_request(&container);
 
-#[test]
-fn execute_exposes_the_container_action_path_to_composite_steps() {
-    let runner = FakeRunCompositeStepPort::queueing(vec![result(0, "")]);
-    run_composite(
-        "- run: echo ready\n",
-        runner.clone(),
-        FakeStepExportsReaderPort::new(),
-    );
-    let contexts = runner.contexts();
-    let environments = runner.environments();
+        let error = service
+            .run(
+                RunCompositeActionRequest::new(
+                    &steps("- run: one\n- run: two\n"),
+                    &HashMap::new(),
+                    Path::new("/repo/actions/outer"),
+                    &request_owner,
+                ),
+                Arc::new(container),
+            )
+            .unwrap_err();
 
-    assert_eq!(
-        environments[0]
-            .get("GITHUB_ACTION_PATH")
-            .map(String::as_str),
-        Some("/actions/outer"),
-    );
-    assert_eq!(
-        contexts[0]
-            .get("github")
-            .and_then(|github| github.property("action_path"))
-            .and_then(ContextValue::as_text),
-        Some("/actions/outer"),
-    );
+        assert_eq!(error.message(), "boom");
+        assert_eq!(error.stdout(), "onepartial");
+        assert_eq!(error.stderr(), "firstbad");
+    }
+
+    #[test]
+    fn execute_exposes_the_actions_inputs_to_its_steps() {
+        let runner = FakeRunCompositeStepPort::queueing(vec![result(0, "")]);
+        let service = service(runner.clone());
+        let container = StubContainer;
+        let request_owner = action_request(&container);
+        let mut inputs = HashMap::new();
+        inputs.insert("mode".to_string(), "staging".to_string());
+
+        service
+            .run(
+                RunCompositeActionRequest::new(
+                    &steps("- run: deploy ${{ inputs.mode }}\n"),
+                    &inputs,
+                    Path::new("/repo/actions/outer"),
+                    &request_owner,
+                ),
+                Arc::new(container),
+            )
+            .unwrap();
+
+        assert_eq!(runner.steps()[0].run(), Some("deploy staging"));
+    }
+
+    #[test]
+    fn execute_skips_steps_when_their_condition_is_false() {
+        let runner = FakeRunCompositeStepPort::queueing(vec![result(0, "linux")]);
+        let service = service(runner.clone());
+        let container = StubContainer;
+        let context = EvaluationContext::new().with_root(
+            "runner",
+            ContextValue::mapping([("os".to_owned(), ContextValue::text("Linux"))]),
+        );
+        let request_owner = action_request_with_context(&container, context);
+
+        let response = service
+            .run(
+                RunCompositeActionRequest::new(
+                    &steps(
+                        "- if: runner.os == 'Windows'\n  run: echo windows\n\
+                         - run: echo linux\n",
+                    ),
+                    &HashMap::new(),
+                    Path::new("/repo/actions/outer"),
+                    &request_owner,
+                ),
+                Arc::new(container),
+            )
+            .unwrap();
+
+        assert_eq!(response.exit_code(), 0);
+        assert_eq!(runner.steps().len(), 1);
+        assert_eq!(runner.steps()[0].run(), Some("echo linux"));
+    }
+
+    fn run_composite(
+        yaml: &str,
+        runner: FakeRunCompositeStepPort,
+        exports_reader: FakeStepExportsReaderPort,
+    ) {
+        let service = service_with_exports(runner, exports_reader);
+        let container = StubContainer;
+        let request_owner = action_request(&container);
+        service
+            .run(
+                RunCompositeActionRequest::new(
+                    &steps(yaml),
+                    &HashMap::new(),
+                    Path::new("/repo/actions/outer"),
+                    &request_owner,
+                ),
+                Arc::new(container),
+            )
+            .unwrap();
+    }
+
+    #[test]
+    fn execute_passes_runner_exports_to_following_steps() {
+        let runner = FakeRunCompositeStepPort::queueing(vec![result(0, ""), result(0, "")]);
+        let mut environment_exports = HashMap::new();
+        environment_exports.insert("TOKEN".to_owned(), "secret".to_owned());
+        let mut output_exports = HashMap::new();
+        output_exports.insert("artifact".to_owned(), "ready".to_owned());
+        let exports_reader = FakeStepExportsReaderPort::queueing_with_outputs(vec![(
+            vec!["/opt/tool/bin".to_owned()],
+            environment_exports,
+            output_exports,
+        )]);
+
+        run_composite(
+            "- id: produce\n  run: echo produce\n\
+             - run: echo ${{ steps.produce.outputs.artifact }}\n",
+            runner.clone(),
+            exports_reader,
+        );
+
+        let contexts = runner.contexts();
+        let environments = runner.environments();
+        assert_eq!(runner.steps()[1].run(), Some("echo ready"));
+        assert_eq!(
+            environments[1].get("PATH").map(String::as_str),
+            Some("/opt/tool/bin"),
+        );
+        assert_eq!(
+            environments[1].get("TOKEN").map(String::as_str),
+            Some("secret"),
+        );
+        assert_eq!(
+            contexts[1]
+                .get("steps")
+                .and_then(|steps| steps.property("produce"))
+                .and_then(|step| step.property("outputs"))
+                .and_then(|outputs| outputs.property("artifact"))
+                .and_then(ContextValue::as_text),
+            Some("ready"),
+        );
+    }
+
+    #[test]
+    fn execute_exposes_the_container_action_path_to_composite_steps() {
+        let runner = FakeRunCompositeStepPort::queueing(vec![result(0, "")]);
+        run_composite(
+            "- run: echo ready\n",
+            runner.clone(),
+            FakeStepExportsReaderPort::new(),
+        );
+        let contexts = runner.contexts();
+        let environments = runner.environments();
+
+        assert_eq!(
+            environments[0]
+                .get("GITHUB_ACTION_PATH")
+                .map(String::as_str),
+            Some("/actions/outer"),
+        );
+        assert_eq!(
+            contexts[0]
+                .get("github")
+                .and_then(|github| github.property("action_path"))
+                .and_then(ContextValue::as_text),
+            Some("/actions/outer"),
+        );
+    }
 }
