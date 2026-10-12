@@ -82,7 +82,7 @@ mod tests {
         app.begin_run_configuration(
             vec!["push".to_string()],
             vec![RunInputDeclarationResponse::new(
-            "include-sysroot".to_owned(),
+                "include-sysroot".to_owned(),
                 RunInputSourceResponse::Workflow,
                 None,
                 false,
@@ -129,7 +129,7 @@ mod tests {
         app.begin_run_configuration(
             vec!["push".to_string()],
             vec![RunInputDeclarationResponse::new(
-            "rustc-version".to_owned(),
+                "rustc-version".to_owned(),
                 RunInputSourceResponse::Workflow,
                 None,
                 false,
@@ -188,7 +188,8 @@ mod tests {
         let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string());
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-    let summary = RunSummaryResponse::new("CI".to_owned(), vec![], true, Duration::from_secs(1));
+        let summary =
+            RunSummaryResponse::new("CI".to_owned(), vec![], true, Duration::from_secs(1));
 
         app.record_run_outcome(summary.clone());
 
@@ -235,7 +236,7 @@ mod tests {
         app.begin_run_configuration(
             vec!["push".to_string()],
             vec![RunInputDeclarationResponse::new(
-            "rustc-version".to_owned(),
+                "rustc-version".to_owned(),
                 RunInputSourceResponse::Workflow,
                 None,
                 false,
@@ -308,7 +309,7 @@ mod tests {
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.record_run_outcome(RunSummaryResponse::new(
-        "CI".to_owned(),
+            "CI".to_owned(),
             vec![],
             false,
             Duration::from_secs(1),
@@ -348,7 +349,7 @@ mod tests {
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.record_run_outcome(RunSummaryResponse::new(
-        "CI".to_owned(),
+            "CI".to_owned(),
             vec![],
             true,
             Duration::from_secs(1),
@@ -365,7 +366,7 @@ mod tests {
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.record_run_outcome(RunSummaryResponse::new(
-        "CI".to_owned(),
+            "CI".to_owned(),
             vec![],
             true,
             Duration::from_secs(1),
@@ -382,7 +383,7 @@ mod tests {
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.record_run_outcome(RunSummaryResponse::new(
-        "CI".to_owned(),
+            "CI".to_owned(),
             vec![],
             false,
             Duration::from_secs(1),
@@ -400,7 +401,7 @@ mod tests {
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.record_run_outcome(RunSummaryResponse::new(
-        "CI".to_owned(),
+            "CI".to_owned(),
             vec![],
             false,
             Duration::from_secs(1),

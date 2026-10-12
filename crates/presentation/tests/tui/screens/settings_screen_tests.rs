@@ -283,7 +283,7 @@ mod tests {
         app.begin_run_configuration(
             vec!["push".to_string()],
             vec![RunInputDeclarationResponse::new(
-            "rustc-version".to_owned(),
+                "rustc-version".to_owned(),
                 RunInputSourceResponse::Workflow,
                 None,
                 false,
