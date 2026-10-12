@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod tests {
     //! End-to-end detection tests across the supported CI platforms.
 
