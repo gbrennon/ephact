@@ -449,7 +449,7 @@ impl RunHandler {
         repository: &crate::domain::Repository,
         run_id: &str,
     ) -> RunAllWorkflowsRequest {
-        RunAllWorkflowsRequest::from_domain(repository, config, run_id)
+        RunAllWorkflowsRequest::from_domain(repository, config, run_id.to_owned())
     }
 
     fn build_run_workflow_request(
@@ -457,7 +457,7 @@ impl RunHandler {
         repository: &crate::domain::Repository,
         run_id: &str,
     ) -> RunWorkflowRequest {
-        RunWorkflowRequest::from_domain(repository, config, run_id)
+        RunWorkflowRequest::from_domain(repository, config, run_id.to_owned())
     }
 
     pub fn render(summary: &RunSummaryResponse) -> String {

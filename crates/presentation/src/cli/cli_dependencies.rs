@@ -42,7 +42,8 @@ impl CliDependencies {
         }
     }
 
-    pub(crate) fn into_parts(self) -> CliParts {
+    /// Consumes the dependencies and returns their owned port parts.
+    pub fn into_parts(self) -> CliParts {
         let (run_workflow_port, run_all_workflows_port, discover_run_inputs_port) =
             self.run_dependencies;
         let (list_workflows_port, list_actions_port, show_project_branding_info_port) =
