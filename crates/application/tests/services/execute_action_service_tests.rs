@@ -80,10 +80,11 @@ mod tests {
     }
 
     fn push_result(runtime: &FakeRuntime, exit_code: i64, stdout: &str) {
-        runtime
-            .exec_results
-            .lock()
-            .push(ExecResultResponse::new(exit_code, stdout, String::new()));
+        runtime.exec_results.lock().push(ExecResultResponse::new(
+            exit_code,
+            stdout.to_owned(),
+            String::new(),
+        ));
     }
 
     #[test]

@@ -118,7 +118,7 @@ mod tests {
 
     impl RunFake {
         fn noop_summary() -> RunSummaryResponse {
-            RunSummaryResponse::new("noop", Vec::new(), true, Duration::ZERO)
+            RunSummaryResponse::new("noop".to_owned(), Vec::new(), true, Duration::ZERO)
         }
     }
 

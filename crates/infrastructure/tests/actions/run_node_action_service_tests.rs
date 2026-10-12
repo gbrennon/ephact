@@ -1,10 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::{
-        collections::HashMap,
-        path::{Path, PathBuf},
-        sync::Arc,
-    };
+    use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
     use ephact::{
         application::{

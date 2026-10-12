@@ -4,8 +4,10 @@ mod tests {
         future::Future,
         path::PathBuf,
         pin::Pin,
-        sync::Arc,
-        time::{SystemTime, UNIX_EPOCH},
+        sync::{
+            Arc,
+            atomic::{AtomicU64, Ordering},
+        },
     };
 
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -62,6 +64,8 @@ mod tests {
         }
     }
 
+    static NEXT_SCENARIO_ID: AtomicU64 = AtomicU64::new(0);
+
     struct FailureLogScenario {
         temp_root: PathBuf,
         handler: FailureLogHandler,
@@ -71,11 +75,11 @@ mod tests {
 
     impl FailureLogScenario {
         fn new(run_ids: &[&str]) -> Self {
-            let timestamp = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("system clock should be after unix epoch")
-                .as_nanos();
-            let temp_root = std::env::temp_dir().join(format!("ephact-tui-failure-{timestamp}"));
+            let sequence = NEXT_SCENARIO_ID.fetch_add(1, Ordering::Relaxed);
+            let temp_root = std::env::temp_dir().join(format!(
+                "ephact-tui-failure-{}-{sequence}",
+                std::process::id()
+            ));
             let handler = FailureLogHandler::with_temp_root(&temp_root);
             for run_id in run_ids {
                 handler.handle(&Event::RunStarted(RunStartedPayload::new(

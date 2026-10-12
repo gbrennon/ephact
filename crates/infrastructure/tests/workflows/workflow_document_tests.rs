@@ -2,36 +2,38 @@
 mod tests {
     use ephact::infrastructure::workflows::workflow_document::WorkflowDocument;
 
-    const ACTIONS_CONTENT: &str = r#"name: CI
-    on: push
-    jobs:
-      build:
-        runs-on: linux
-        steps:
-          - run: echo ok
-    "#;
-
-    const WOODPECKER_CONTENT: &str = r#"name: CI
-    when:
-      - event: push
+    const ACTIONS_CONTENT: &str = r#"
+name: CI
+on: push
+jobs:
+  build:
+    runs-on: linux
     steps:
-      - name: build
-        image: alpine
-        commands:
-          - echo ok
-    "#;
+      - run: echo ok
+"#;
+    const WOODPECKER_CONTENT: &str = r#"
+name: CI
+when:
+  - event: push
+steps:
+  - name: build
+    image: alpine
+    commands:
+      - echo ok
+"#;
 
     #[test]
     fn parse_selects_actions_for_jobs_documents() {
         let document = WorkflowDocument::parse(
-            r#"name: CI
-    on: push
-    jobs:
-      build:
-        runs-on: linux
-        steps:
-          - run: echo ok
-    "#,
+            r#"
+name: CI
+on: push
+jobs:
+  build:
+    runs-on: linux
+    steps:
+      - run: echo ok
+"#,
         )
         .expect("Actions workflow should parse");
 
@@ -41,15 +43,16 @@ mod tests {
     #[test]
     fn parse_selects_woodpecker_for_when_and_steps_documents() {
         let document = WorkflowDocument::parse(
-            r#"name: CI
-    when:
-      - event: push
-    steps:
-      - name: build
-        image: alpine
-        commands:
-          - echo ok
-    "#,
+            r#"
+name: CI
+when:
+  - event: push
+steps:
+  - name: build
+    image: alpine
+    commands:
+      - echo ok
+"#,
         )
         .expect("Woodpecker pipeline should parse");
 
@@ -70,13 +73,14 @@ mod tests {
 
     #[test]
     fn actions_document_without_name_returns_none() {
-        let content = r#"on: push
-    jobs:
-      build:
-        runs-on: linux
-        steps:
-          - run: echo ok
-    "#;
+        let content = r#"
+on: push
+jobs:
+  build:
+    runs-on: linux
+    steps:
+      - run: echo ok
+"#;
         let document = WorkflowDocument::parse(content).expect("should parse");
         assert_eq!(document.name(), None);
     }
@@ -114,14 +118,15 @@ mod tests {
     /// Regression: a nested job `name` field must not be returned as the workflow name.
     #[test]
     fn nested_job_name_is_not_returned_as_workflow_name() {
-        let content = r#"on: push
-    jobs:
-      build:
-        name: My Build Job
-        runs-on: linux
-        steps:
-          - run: echo ok
-    "#;
+        let content = r#"
+on: push
+jobs:
+  build:
+    name: My Build Job
+    runs-on: linux
+    steps:
+      - run: echo ok
+"#;
         let document = WorkflowDocument::parse(content).expect("should parse");
         assert_eq!(
             document.name(),

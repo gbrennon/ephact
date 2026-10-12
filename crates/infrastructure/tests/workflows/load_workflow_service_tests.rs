@@ -7,15 +7,16 @@ mod tests {
     };
 
     const VALID_WORKFLOW: &str = "name: Ci\non: push\nenv:\n  MODE: staging\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n";
-    const WOODPECKER_WORKFLOW: &str = r"name: Demo
-    when:
-      - event: pull_request
-    steps:
-      - name: verify
-        image: alpine:3.20
-        commands:
-          - printf demo
-    ";
+    const WOODPECKER_WORKFLOW: &str = r#"
+name: Demo
+when:
+  - event: pull_request
+steps:
+  - name: verify
+    image: alpine:3.20
+    commands:
+      - printf demo
+"#;
 
     #[test]
     fn load_parses_valid_workflow_content() {
