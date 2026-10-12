@@ -33,4 +33,5 @@ pub(super) fn deserialize(value: &str) -> Marker {
 }
 
 #[cfg(test)]
+#[path = "../../../tests/persistence/settings/marker_serializer_tests.rs"]
 mod marker_serializer_tests;

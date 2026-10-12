@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use super::{super::containers::workspace::RUNNER_ENV_FILE, runner_export_parser};
+use super::{
+    super::containers::workspace::RUNNER_ENV_FILE, runner_export_parser::RunnerExportParser,
+};
 use crate::application::{
     dtos::requests::ReadStepEnvExportsRequest, ports::outbound::ReadStepEnvExportsPort,
 };
@@ -37,7 +39,7 @@ impl ReadStepEnvExportsPort for ReadStepEnvExportsService {
                 &HashMap::new(),
             )
             .map(|result| {
-                let mut exports = runner_export_parser::parse(result.stdout());
+                let mut exports = RunnerExportParser::parse(result.stdout());
                 exports.retain(|name, _| {
                     !name.starts_with("GITHUB_")
                         && !name.starts_with("RUNNER_")
