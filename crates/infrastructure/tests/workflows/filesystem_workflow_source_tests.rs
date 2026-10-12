@@ -1,461 +1,467 @@
-use std::{fs, path::Path};
-
-use ephact::{
-    application::ports::outbound::WorkflowSourcePort,
-    domain::{
-        entities::repository::Repository,
-        value_objects::{RepoPath, RepositoryName},
-    },
-    infrastructure::{repositories::RepositoryResolver, workflows::FilesystemWorkflowSource},
-};
-use tempfile::TempDir;
-
-/// `RepoPath::new` rejects any directory without a `.git` entry, so every fixture
-/// repository needs one before it can be handed to the port.
-fn git_repository_dir() -> TempDir {
-    let tmp = tempfile::tempdir().unwrap();
-    fs::create_dir_all(tmp.path().join(".git")).unwrap();
-    tmp
-}
-
-fn repository(root: &Path) -> Repository {
-    Repository::new(
-        RepoPath::new(root.to_path_buf()).unwrap(),
-        RepositoryName::new("test-repo".to_string()).unwrap(),
-    )
-}
-
-fn write_workflow(root: &Path, file: &str, body: &str) {
-    write_workflow_in(root, ".forgejo/workflows", file, body);
-}
-
-fn write_github_workflow(root: &Path, file: &str, body: &str) {
-    write_workflow_in(root, ".github/workflows", file, body);
-}
-
-fn write_workflow_in(root: &Path, dir: &str, file: &str, body: &str) {
-    let workflows_dir = root.join(dir);
-    fs::create_dir_all(&workflows_dir).unwrap();
-    fs::write(workflows_dir.join(file), body).unwrap();
-}
-
-fn source() -> FilesystemWorkflowSource {
-    FilesystemWorkflowSource::default()
-}
-
-fn names(items: &[ephact::application::dtos::responses::WorkflowListItemResponse]) -> Vec<String> {
-    items
-        .iter()
-        .map(|item| item.name().unwrap_or_default().to_string())
-        .collect()
-}
-
-#[test]
-fn list_workflows_reports_name_and_path_of_forgejo_workflow() {
-    let tmp = git_repository_dir();
-    write_workflow(
-        tmp.path(),
-        "ci.yml",
-        "name: CI\non: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n",
-    );
-
-    let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
-
-    assert_eq!(workflows.len(), 1);
-    assert_eq!(workflows[0].name(), Some("CI"));
-    let file = workflows[0].file().expect("workflow file path");
-    assert!(
-        file.ends_with(".forgejo/workflows/ci.yml"),
-        "expected the full workflow path, got {file:?}"
-    );
-}
-
-#[test]
-fn list_workflows_finds_workflow_in_github_directory() {
-    let tmp = git_repository_dir();
-    write_github_workflow(
-        tmp.path(),
-        "build.yml",
-        "name: Build\non: [push]\njobs:\n  build:\n    runs-on: ubuntu-latest\n",
-    );
-
-    let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
-
-    assert_eq!(workflows.len(), 1);
-    assert_eq!(workflows[0].name(), Some("Build"));
-    let file = workflows[0].file().expect("workflow file path");
-    assert!(
-        file.ends_with(".github/workflows/build.yml"),
-        "expected the full workflow path, got {file:?}"
-    );
-}
-
-#[test]
-fn list_workflows_accepts_the_yaml_extension() {
-    let tmp = git_repository_dir();
-    write_workflow(tmp.path(), "ci.yaml", "name: CI\non: [push]\n");
-
-    let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
-
-    assert_eq!(names(&workflows), vec!["CI"]);
-}
+#[cfg(test)]
+mod tests {
+    use std::{fs, path::Path};
+
+    use ephact::{
+        application::ports::outbound::WorkflowSourcePort,
+        domain::{
+            entities::repository::Repository,
+            value_objects::{RepoPath, RepositoryName},
+        },
+        infrastructure::{repositories::RepositoryResolver, workflows::FilesystemWorkflowSource},
+    };
+    use tempfile::TempDir;
+
+    /// `RepoPath::new` rejects any directory without a `.git` entry, so every fixture
+    /// repository needs one before it can be handed to the port.
+    fn git_repository_dir() -> TempDir {
+        let tmp = tempfile::tempdir().unwrap();
+        fs::create_dir_all(tmp.path().join(".git")).unwrap();
+        tmp
+    }
+
+    fn repository(root: &Path) -> Repository {
+        Repository::new(
+            RepoPath::new(root.to_path_buf()).unwrap(),
+            RepositoryName::new("test-repo".to_string()).unwrap(),
+        )
+    }
+
+    fn write_workflow(root: &Path, file: &str, body: &str) {
+        write_workflow_in(root, ".forgejo/workflows", file, body);
+    }
+
+    fn write_github_workflow(root: &Path, file: &str, body: &str) {
+        write_workflow_in(root, ".github/workflows", file, body);
+    }
+
+    fn write_workflow_in(root: &Path, dir: &str, file: &str, body: &str) {
+        let workflows_dir = root.join(dir);
+        fs::create_dir_all(&workflows_dir).unwrap();
+        fs::write(workflows_dir.join(file), body).unwrap();
+    }
+
+    fn source() -> FilesystemWorkflowSource {
+        FilesystemWorkflowSource::default()
+    }
+
+    fn names(
+        items: &[ephact::application::dtos::responses::WorkflowListItemResponse],
+    ) -> Vec<String> {
+        items
+            .iter()
+            .map(|item| item.name().unwrap_or_default().to_string())
+            .collect()
+    }
+
+    #[test]
+    fn list_workflows_reports_name_and_path_of_forgejo_workflow() {
+        let tmp = git_repository_dir();
+        write_workflow(
+            tmp.path(),
+            "ci.yml",
+            "name: CI\non: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n",
+        );
+
+        let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
+
+        assert_eq!(workflows.len(), 1);
+        assert_eq!(workflows[0].name(), Some("CI"));
+        let file = workflows[0].file().expect("workflow file path");
+        assert!(
+            file.ends_with(".forgejo/workflows/ci.yml"),
+            "expected the full workflow path, got {file:?}"
+        );
+    }
+
+    #[test]
+    fn list_workflows_finds_workflow_in_github_directory() {
+        let tmp = git_repository_dir();
+        write_github_workflow(
+            tmp.path(),
+            "build.yml",
+            "name: Build\non: [push]\njobs:\n  build:\n    runs-on: ubuntu-latest\n",
+        );
+
+        let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
+
+        assert_eq!(workflows.len(), 1);
+        assert_eq!(workflows[0].name(), Some("Build"));
+        let file = workflows[0].file().expect("workflow file path");
+        assert!(
+            file.ends_with(".github/workflows/build.yml"),
+            "expected the full workflow path, got {file:?}"
+        );
+    }
+
+    #[test]
+    fn list_workflows_accepts_the_yaml_extension() {
+        let tmp = git_repository_dir();
+        write_workflow(tmp.path(), "ci.yaml", "name: CI\non: [push]\n");
+
+        let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
 
-#[test]
-fn list_workflows_ignores_files_without_a_workflow_extension() {
-    let tmp = git_repository_dir();
-    write_workflow(tmp.path(), "README.md", "name: CI\n");
-    write_workflow(tmp.path(), "Makefile", "name: CI\n");
+        assert_eq!(names(&workflows), vec!["CI"]);
+    }
 
-    let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
-
-    assert!(workflows.is_empty());
-}
+    #[test]
+    fn list_workflows_ignores_files_without_a_workflow_extension() {
+        let tmp = git_repository_dir();
+        write_workflow(tmp.path(), "README.md", "name: CI\n");
+        write_workflow(tmp.path(), "Makefile", "name: CI\n");
 
-#[test]
-fn list_workflows_strips_quotes_from_the_workflow_name() {
-    let tmp = git_repository_dir();
-    write_workflow(tmp.path(), "ci.yml", "name: \"CI Pipeline\"\non: [push]\n");
+        let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
 
-    let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
+        assert!(workflows.is_empty());
+    }
 
-    assert_eq!(workflows[0].name(), Some("CI Pipeline"));
-}
-
-#[test]
-fn list_workflows_uses_the_filename_when_a_workflow_has_no_name_key() {
-    let tmp = git_repository_dir();
-    write_workflow(
-        tmp.path(),
-        "ci.yml",
-        "on: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n",
-    );
+    #[test]
+    fn list_workflows_strips_quotes_from_the_workflow_name() {
+        let tmp = git_repository_dir();
+        write_workflow(tmp.path(), "ci.yml", "name: \"CI Pipeline\"\non: [push]\n");
 
-    let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
-
-    assert_eq!(names(&workflows), vec!["ci.yml"]);
-}
-
-#[test]
-fn list_workflows_uses_the_filename_when_a_workflow_name_is_blank() {
-    let tmp = git_repository_dir();
-    write_workflow(tmp.path(), "ci.yml", "name: \"  \"\non: [push]\n");
-
-    let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
-
-    assert_eq!(names(&workflows), vec!["ci.yml"]);
-}
-
-#[test]
-fn list_workflows_keeps_named_workflow_when_a_sibling_file_has_no_name() {
-    let tmp = git_repository_dir();
-    write_workflow(tmp.path(), "anonymous.yml", "on: [push]\n");
-    write_workflow(tmp.path(), "deploy.yml", "name: Deploy\non: [release]\n");
-
-    let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
-
-    assert_eq!(names(&workflows), vec!["anonymous.yml", "Deploy"]);
-}
-
-#[test]
-fn list_workflows_is_empty_when_repository_has_no_workflow_directories() {
-    let tmp = git_repository_dir();
-
-    let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
-
-    assert!(workflows.is_empty());
-}
-
-#[test]
-fn list_workflows_is_empty_when_the_workflow_directory_disappeared() {
-    let tmp = git_repository_dir();
-    write_workflow(tmp.path(), "ci.yml", "name: CI\non: [push]\n");
-    let repository = repository(tmp.path());
-    fs::remove_dir_all(tmp.path().join(".forgejo")).unwrap();
-
-    let workflows = source().list_workflows(&repository).unwrap();
-
-    assert!(workflows.is_empty());
-}
-
-#[test]
-fn repository_resolver_rejects_nonexistent_paths() {
-    let tmp = git_repository_dir();
-
-    assert!(RepositoryResolver::resolve_from_path(tmp.path().join("nonexistent")).is_err());
-    assert!(RepositoryResolver::resolve_from_path("/nonexistent").is_err());
-}
-
-#[test]
-fn list_actions_collects_uses_references_in_both_line_forms() {
-    let tmp = git_repository_dir();
-    write_workflow(
-        tmp.path(),
-        "ci.yml",
-        "jobs:\n  test:\n    steps:\n      - uses: actions/checkout@v4\n        uses: ./local-action\n",
-    );
-
-    let actions = source().list_actions(&repository(tmp.path())).unwrap();
-
-    assert_eq!(actions, vec!["./local-action", "actions/checkout@v4"]);
-}
-
-#[test]
-fn list_actions_deduplicates_repeated_references() {
-    let tmp = git_repository_dir();
-    write_workflow(
-        tmp.path(),
-        "ci.yml",
-        "jobs:\n  test:\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/checkout@v4\n",
-    );
-
-    let actions = source().list_actions(&repository(tmp.path())).unwrap();
-
-    assert_eq!(actions, vec!["actions/checkout@v4"]);
-}
-
-#[test]
-fn list_actions_skips_empty_and_comment_only_values() {
-    let tmp = git_repository_dir();
-    write_workflow(
-        tmp.path(),
-        "ci.yml",
-        "steps:\n  - uses:\n  - uses: # pinned elsewhere\n  - uses: actions/checkout@v4\n",
-    );
-
-    let actions = source().list_actions(&repository(tmp.path())).unwrap();
-
-    assert_eq!(actions, vec!["actions/checkout@v4"]);
-}
-
-#[test]
-fn list_actions_collects_across_both_workflow_directories() {
-    let tmp = git_repository_dir();
-    write_workflow(
-        tmp.path(),
-        "ci.yml",
-        "steps:\n  - uses: actions/checkout@v4\n",
-    );
-    write_github_workflow(
-        tmp.path(),
-        "build.yml",
-        "steps:\n  - uses: actions/cache@v4\n",
-    );
-
-    let actions = source().list_actions(&repository(tmp.path())).unwrap();
-
-    assert_eq!(actions, vec!["actions/cache@v4", "actions/checkout@v4"]);
-}
-
-#[test]
-fn list_actions_is_empty_when_no_uses_reference_exists() {
-    let tmp = git_repository_dir();
-    write_workflow(
-        tmp.path(),
-        "ci.yml",
-        "jobs:\n  test:\n    steps:\n      - run: echo hello\n",
-    );
-
-    let actions = source().list_actions(&repository(tmp.path())).unwrap();
-
-    assert!(actions.is_empty());
-}
-
-#[test]
-fn list_actions_is_empty_when_repository_has_no_workflow_directories() {
-    let tmp = git_repository_dir();
-
-    let actions = source().list_actions(&repository(tmp.path())).unwrap();
-
-    assert!(actions.is_empty());
-}
-
-#[test]
-fn read_workflow_returns_the_content_of_the_workflow_with_the_requested_name() {
-    let tmp = git_repository_dir();
-    write_workflow(tmp.path(), "ci.yml", "name: CI\non: [push]\n");
-    let deploy = "name: Deploy\non: [release]\n";
-    write_workflow(tmp.path(), "deploy.yml", deploy);
-
-    let workflow = source()
-        .read_workflow(&repository(tmp.path()), Some("Deploy"))
-        .unwrap();
-
-    assert_eq!(workflow.content(), deploy);
-    assert_eq!(workflow.file_name(), "deploy.yml");
-}
-
-#[test]
-fn read_workflow_errors_when_no_workflow_carries_the_requested_name() {
-    let tmp = git_repository_dir();
-    write_workflow(tmp.path(), "ci.yml", "name: CI\non: [push]\n");
-
-    let error = source()
-        .read_workflow(&repository(tmp.path()), Some("Deploy"))
-        .unwrap_err();
-
-    assert!(
-        error.to_string().contains("not found"),
-        "unexpected error: {error}"
-    );
-}
-
-#[test]
-fn read_workflow_matches_the_name_key_and_not_the_file_stem() {
-    let tmp = git_repository_dir();
-    write_workflow(tmp.path(), "ci.yml", "name: CI\non: [push]\n");
-
-    let error = source()
-        .read_workflow(&repository(tmp.path()), Some("ci.yml"))
-        .unwrap_err();
-
-    assert!(
-        error.to_string().contains("not found"),
-        "unexpected error: {error}"
-    );
-}
-
-#[test]
-fn read_workflow_without_a_name_returns_the_first_workflow_by_path() {
-    let tmp = git_repository_dir();
-    let ci = "name: CI\non: [push]\n";
-    write_workflow(tmp.path(), "ci.yml", ci);
-    write_workflow(tmp.path(), "deploy.yml", "name: Deploy\non: [release]\n");
-
-    let content = source()
-        .read_workflow(&repository(tmp.path()), None)
-        .unwrap();
-
-    assert_eq!(content.content(), ci);
-    assert_eq!(content.file_name(), "ci.yml");
-}
-
-#[test]
-fn read_workflow_without_a_name_errors_when_no_workflow_file_exists() {
-    let tmp = git_repository_dir();
-
-    let error = source()
-        .read_workflow(&repository(tmp.path()), None)
-        .unwrap_err();
-
-    assert!(
-        error.to_string().contains("no workflow files found"),
-        "unexpected error: {error}"
-    );
-}
-
-#[test]
-fn read_workflow_without_a_name_reads_an_unnamed_workflow_file() {
-    let tmp = git_repository_dir();
-    let body = "on: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n";
-    write_workflow(tmp.path(), "ci.yml", body);
-
-    let workflow = source()
-        .read_workflow(&repository(tmp.path()), None)
-        .unwrap();
-
-    assert_eq!(workflow.content(), body);
-    assert_eq!(workflow.file_name(), "ci.yml");
-}
-
-#[test]
-fn read_workflow_selects_an_unnamed_workflow_by_filename() {
-    let tmp = git_repository_dir();
-    let body = "on: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n";
-    write_workflow(tmp.path(), "ci.yml", body);
-
-    let workflow = source()
-        .read_workflow(&repository(tmp.path()), Some("ci.yml"))
-        .unwrap();
-
-    assert_eq!(workflow.content(), body);
-    assert_eq!(workflow.file_name(), "ci.yml");
-}
-
-#[test]
-fn read_workflow_uses_only_the_top_level_name_for_selection() {
-    let tmp = git_repository_dir();
-    let body = "on: [push]\njobs:\n  build:\n    name: Nested build\n    runs-on: ubuntu-latest\n";
-    write_workflow(tmp.path(), "ci.yml", body);
-
-    let workflow = source()
-        .read_workflow(&repository(tmp.path()), Some("ci.yml"))
-        .unwrap();
-    assert_eq!(workflow.file_name(), "ci.yml");
-
-    let error = source()
-        .read_workflow(&repository(tmp.path()), Some("Nested build"))
-        .unwrap_err();
-    assert!(error.to_string().contains("not found"));
-}
-
-#[test]
-fn read_all_workflows_returns_the_content_of_every_workflow_file() {
-    let tmp = git_repository_dir();
-    let ci = "name: CI\non: [push]\n";
-    let deploy = "name: Deploy\non: [release]\n";
-    let build = "name: Build\non: [push]\n";
-    write_workflow(tmp.path(), "ci.yml", ci);
-    write_workflow(tmp.path(), "deploy.yml", deploy);
-    write_github_workflow(tmp.path(), "build.yml", build);
-
-    let contents = source()
-        .read_all_workflows(&repository(tmp.path()))
-        .unwrap();
-
-    assert_eq!(contents.len(), 3);
-    assert_eq!(contents[0].content(), ci);
-    assert_eq!(contents[0].file_name(), "ci.yml");
-    assert_eq!(contents[1].content(), deploy);
-    assert_eq!(contents[1].file_name(), "deploy.yml");
-    assert_eq!(contents[2].content(), build);
-    assert_eq!(contents[2].file_name(), "build.yml");
-}
-
-#[test]
-fn read_all_workflows_includes_workflow_files_without_a_name() {
-    let tmp = git_repository_dir();
-    let body = "on: [push]\n";
-    write_workflow(tmp.path(), "ci.yml", body);
-
-    let contents = source()
-        .read_all_workflows(&repository(tmp.path()))
-        .unwrap();
-
-    assert_eq!(contents.len(), 1);
-    assert_eq!(contents[0].content(), body);
-    assert_eq!(contents[0].file_name(), "ci.yml");
-}
-
-#[test]
-fn read_all_workflows_is_empty_when_repository_has_no_workflow_directories() {
-    let tmp = git_repository_dir();
-
-    let contents = source()
-        .read_all_workflows(&repository(tmp.path()))
-        .unwrap();
-
-    assert!(contents.is_empty());
-}
-
-#[test]
-fn new_discovers_workflows_in_the_configured_directories_only() {
-    let tmp = git_repository_dir();
-    write_workflow_in(tmp.path(), "custom/workflows", "ci.yml", "name: CI\n");
-    write_workflow(tmp.path(), "ignored.yml", "name: Ignored\n");
-
-    let workflows = FilesystemWorkflowSource::new(&["custom/workflows"])
-        .list_workflows(&repository(tmp.path()))
-        .unwrap();
-
-    assert_eq!(names(&workflows), vec!["CI"]);
-}
-
-#[test]
-fn default_ignores_directories_outside_the_standard_workflow_layout() {
-    let tmp = git_repository_dir();
-    write_workflow_in(tmp.path(), "custom/workflows", "ci.yml", "name: CI\n");
-
-    let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
-
-    assert!(workflows.is_empty());
+        let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
+
+        assert_eq!(workflows[0].name(), Some("CI Pipeline"));
+    }
+
+    #[test]
+    fn list_workflows_uses_the_filename_when_a_workflow_has_no_name_key() {
+        let tmp = git_repository_dir();
+        write_workflow(
+            tmp.path(),
+            "ci.yml",
+            "on: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n",
+        );
+
+        let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
+
+        assert_eq!(names(&workflows), vec!["ci.yml"]);
+    }
+
+    #[test]
+    fn list_workflows_uses_the_filename_when_a_workflow_name_is_blank() {
+        let tmp = git_repository_dir();
+        write_workflow(tmp.path(), "ci.yml", "name: \"  \"\non: [push]\n");
+
+        let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
+
+        assert_eq!(names(&workflows), vec!["ci.yml"]);
+    }
+
+    #[test]
+    fn list_workflows_keeps_named_workflow_when_a_sibling_file_has_no_name() {
+        let tmp = git_repository_dir();
+        write_workflow(tmp.path(), "anonymous.yml", "on: [push]\n");
+        write_workflow(tmp.path(), "deploy.yml", "name: Deploy\non: [release]\n");
+
+        let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
+
+        assert_eq!(names(&workflows), vec!["anonymous.yml", "Deploy"]);
+    }
+
+    #[test]
+    fn list_workflows_is_empty_when_repository_has_no_workflow_directories() {
+        let tmp = git_repository_dir();
+
+        let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
+
+        assert!(workflows.is_empty());
+    }
+
+    #[test]
+    fn list_workflows_is_empty_when_the_workflow_directory_disappeared() {
+        let tmp = git_repository_dir();
+        write_workflow(tmp.path(), "ci.yml", "name: CI\non: [push]\n");
+        let repository = repository(tmp.path());
+        fs::remove_dir_all(tmp.path().join(".forgejo")).unwrap();
+
+        let workflows = source().list_workflows(&repository).unwrap();
+
+        assert!(workflows.is_empty());
+    }
+
+    #[test]
+    fn repository_resolver_rejects_nonexistent_paths() {
+        let tmp = git_repository_dir();
+
+        assert!(RepositoryResolver::resolve_from_path(tmp.path().join("nonexistent")).is_err());
+        assert!(RepositoryResolver::resolve_from_path("/nonexistent").is_err());
+    }
+
+    #[test]
+    fn list_actions_collects_uses_references_in_both_line_forms() {
+        let tmp = git_repository_dir();
+        write_workflow(
+            tmp.path(),
+            "ci.yml",
+            "jobs:\n  test:\n    steps:\n      - uses: actions/checkout@v4\n        uses: ./local-action\n",
+        );
+
+        let actions = source().list_actions(&repository(tmp.path())).unwrap();
+
+        assert_eq!(actions, vec!["./local-action", "actions/checkout@v4"]);
+    }
+
+    #[test]
+    fn list_actions_deduplicates_repeated_references() {
+        let tmp = git_repository_dir();
+        write_workflow(
+            tmp.path(),
+            "ci.yml",
+            "jobs:\n  test:\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/checkout@v4\n",
+        );
+
+        let actions = source().list_actions(&repository(tmp.path())).unwrap();
+
+        assert_eq!(actions, vec!["actions/checkout@v4"]);
+    }
+
+    #[test]
+    fn list_actions_skips_empty_and_comment_only_values() {
+        let tmp = git_repository_dir();
+        write_workflow(
+            tmp.path(),
+            "ci.yml",
+            "steps:\n  - uses:\n  - uses: # pinned elsewhere\n  - uses: actions/checkout@v4\n",
+        );
+
+        let actions = source().list_actions(&repository(tmp.path())).unwrap();
+
+        assert_eq!(actions, vec!["actions/checkout@v4"]);
+    }
+
+    #[test]
+    fn list_actions_collects_across_both_workflow_directories() {
+        let tmp = git_repository_dir();
+        write_workflow(
+            tmp.path(),
+            "ci.yml",
+            "steps:\n  - uses: actions/checkout@v4\n",
+        );
+        write_github_workflow(
+            tmp.path(),
+            "build.yml",
+            "steps:\n  - uses: actions/cache@v4\n",
+        );
+
+        let actions = source().list_actions(&repository(tmp.path())).unwrap();
+
+        assert_eq!(actions, vec!["actions/cache@v4", "actions/checkout@v4"]);
+    }
+
+    #[test]
+    fn list_actions_is_empty_when_no_uses_reference_exists() {
+        let tmp = git_repository_dir();
+        write_workflow(
+            tmp.path(),
+            "ci.yml",
+            "jobs:\n  test:\n    steps:\n      - run: echo hello\n",
+        );
+
+        let actions = source().list_actions(&repository(tmp.path())).unwrap();
+
+        assert!(actions.is_empty());
+    }
+
+    #[test]
+    fn list_actions_is_empty_when_repository_has_no_workflow_directories() {
+        let tmp = git_repository_dir();
+
+        let actions = source().list_actions(&repository(tmp.path())).unwrap();
+
+        assert!(actions.is_empty());
+    }
+
+    #[test]
+    fn read_workflow_returns_the_content_of_the_workflow_with_the_requested_name() {
+        let tmp = git_repository_dir();
+        write_workflow(tmp.path(), "ci.yml", "name: CI\non: [push]\n");
+        let deploy = "name: Deploy\non: [release]\n";
+        write_workflow(tmp.path(), "deploy.yml", deploy);
+
+        let workflow = source()
+            .read_workflow(&repository(tmp.path()), Some("Deploy"))
+            .unwrap();
+
+        assert_eq!(workflow.content(), deploy);
+        assert_eq!(workflow.file_name(), "deploy.yml");
+    }
+
+    #[test]
+    fn read_workflow_errors_when_no_workflow_carries_the_requested_name() {
+        let tmp = git_repository_dir();
+        write_workflow(tmp.path(), "ci.yml", "name: CI\non: [push]\n");
+
+        let error = source()
+            .read_workflow(&repository(tmp.path()), Some("Deploy"))
+            .unwrap_err();
+
+        assert!(
+            error.to_string().contains("not found"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[test]
+    fn read_workflow_matches_the_name_key_and_not_the_file_stem() {
+        let tmp = git_repository_dir();
+        write_workflow(tmp.path(), "ci.yml", "name: CI\non: [push]\n");
+
+        let error = source()
+            .read_workflow(&repository(tmp.path()), Some("ci.yml"))
+            .unwrap_err();
+
+        assert!(
+            error.to_string().contains("not found"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[test]
+    fn read_workflow_without_a_name_returns_the_first_workflow_by_path() {
+        let tmp = git_repository_dir();
+        let ci = "name: CI\non: [push]\n";
+        write_workflow(tmp.path(), "ci.yml", ci);
+        write_workflow(tmp.path(), "deploy.yml", "name: Deploy\non: [release]\n");
+
+        let content = source()
+            .read_workflow(&repository(tmp.path()), None)
+            .unwrap();
+
+        assert_eq!(content.content(), ci);
+        assert_eq!(content.file_name(), "ci.yml");
+    }
+
+    #[test]
+    fn read_workflow_without_a_name_errors_when_no_workflow_file_exists() {
+        let tmp = git_repository_dir();
+
+        let error = source()
+            .read_workflow(&repository(tmp.path()), None)
+            .unwrap_err();
+
+        assert!(
+            error.to_string().contains("no workflow files found"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[test]
+    fn read_workflow_without_a_name_reads_an_unnamed_workflow_file() {
+        let tmp = git_repository_dir();
+        let body = "on: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n";
+        write_workflow(tmp.path(), "ci.yml", body);
+
+        let workflow = source()
+            .read_workflow(&repository(tmp.path()), None)
+            .unwrap();
+
+        assert_eq!(workflow.content(), body);
+        assert_eq!(workflow.file_name(), "ci.yml");
+    }
+
+    #[test]
+    fn read_workflow_selects_an_unnamed_workflow_by_filename() {
+        let tmp = git_repository_dir();
+        let body = "on: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n";
+        write_workflow(tmp.path(), "ci.yml", body);
+
+        let workflow = source()
+            .read_workflow(&repository(tmp.path()), Some("ci.yml"))
+            .unwrap();
+
+        assert_eq!(workflow.content(), body);
+        assert_eq!(workflow.file_name(), "ci.yml");
+    }
+
+    #[test]
+    fn read_workflow_uses_only_the_top_level_name_for_selection() {
+        let tmp = git_repository_dir();
+        let body =
+            "on: [push]\njobs:\n  build:\n    name: Nested build\n    runs-on: ubuntu-latest\n";
+        write_workflow(tmp.path(), "ci.yml", body);
+
+        let workflow = source()
+            .read_workflow(&repository(tmp.path()), Some("ci.yml"))
+            .unwrap();
+        assert_eq!(workflow.file_name(), "ci.yml");
+
+        let error = source()
+            .read_workflow(&repository(tmp.path()), Some("Nested build"))
+            .unwrap_err();
+        assert!(error.to_string().contains("not found"));
+    }
+
+    #[test]
+    fn read_all_workflows_returns_the_content_of_every_workflow_file() {
+        let tmp = git_repository_dir();
+        let ci = "name: CI\non: [push]\n";
+        let deploy = "name: Deploy\non: [release]\n";
+        let build = "name: Build\non: [push]\n";
+        write_workflow(tmp.path(), "ci.yml", ci);
+        write_workflow(tmp.path(), "deploy.yml", deploy);
+        write_github_workflow(tmp.path(), "build.yml", build);
+
+        let contents = source()
+            .read_all_workflows(&repository(tmp.path()))
+            .unwrap();
+
+        assert_eq!(contents.len(), 3);
+        assert_eq!(contents[0].content(), ci);
+        assert_eq!(contents[0].file_name(), "ci.yml");
+        assert_eq!(contents[1].content(), deploy);
+        assert_eq!(contents[1].file_name(), "deploy.yml");
+        assert_eq!(contents[2].content(), build);
+        assert_eq!(contents[2].file_name(), "build.yml");
+    }
+
+    #[test]
+    fn read_all_workflows_includes_workflow_files_without_a_name() {
+        let tmp = git_repository_dir();
+        let body = "on: [push]\n";
+        write_workflow(tmp.path(), "ci.yml", body);
+
+        let contents = source()
+            .read_all_workflows(&repository(tmp.path()))
+            .unwrap();
+
+        assert_eq!(contents.len(), 1);
+        assert_eq!(contents[0].content(), body);
+        assert_eq!(contents[0].file_name(), "ci.yml");
+    }
+
+    #[test]
+    fn read_all_workflows_is_empty_when_repository_has_no_workflow_directories() {
+        let tmp = git_repository_dir();
+
+        let contents = source()
+            .read_all_workflows(&repository(tmp.path()))
+            .unwrap();
+
+        assert!(contents.is_empty());
+    }
+
+    #[test]
+    fn new_discovers_workflows_in_the_configured_directories_only() {
+        let tmp = git_repository_dir();
+        write_workflow_in(tmp.path(), "custom/workflows", "ci.yml", "name: CI\n");
+        write_workflow(tmp.path(), "ignored.yml", "name: Ignored\n");
+
+        let workflows = FilesystemWorkflowSource::new(&["custom/workflows"])
+            .list_workflows(&repository(tmp.path()))
+            .unwrap();
+
+        assert_eq!(names(&workflows), vec!["CI"]);
+    }
+
+    #[test]
+    fn default_ignores_directories_outside_the_standard_workflow_layout() {
+        let tmp = git_repository_dir();
+        write_workflow_in(tmp.path(), "custom/workflows", "ci.yml", "name: CI\n");
+
+        let workflows = source().list_workflows(&repository(tmp.path())).unwrap();
+
+        assert!(workflows.is_empty());
+    }
 }
