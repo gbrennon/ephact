@@ -18,7 +18,7 @@ mod tests {
         };
 
         fn run_summary(success: bool) -> RunSummaryResponse {
-        RunSummaryResponse::new("CI".to_owned(), vec![], success, Duration::from_secs(1))
+            RunSummaryResponse::new("CI".to_owned(), vec![], success, Duration::from_secs(1))
         }
 
         fn current_repository_path() -> std::path::PathBuf {
@@ -133,7 +133,7 @@ mod tests {
         }
 
         fn job(job_id: &str, name: Option<&str>, success: bool) -> JobSummaryResponse {
-        JobSummaryResponse::new(job_id.to_owned(), name.map(Into::into), vec![], success)
+            JobSummaryResponse::new(job_id.to_owned(), name.map(Into::into), vec![], success)
         }
 
         fn summary(
@@ -141,7 +141,7 @@ mod tests {
             jobs: Vec<JobSummaryResponse>,
             duration: Duration,
         ) -> RunSummaryResponse {
-        RunSummaryResponse::new("test".to_owned(), jobs, success, duration)
+            RunSummaryResponse::new("test".to_owned(), jobs, success, duration)
         }
 
         #[test]
@@ -169,13 +169,13 @@ mod tests {
         #[test]
         fn render_includes_workflow_and_every_step_status() {
             let summary = RunSummaryResponse::new(
-            "Build".to_owned(),
+                "Build".to_owned(),
                 vec![JobSummaryResponse::new(
-                "compile".to_owned(),
+                    "compile".to_owned(),
                     Some("Compile".to_string()),
                     vec![
                         StepSummaryResponse::new(StepSummaryResponseInput::new(
-                        "Checkout".to_owned(),
+                            "Checkout".to_owned(),
                             StepType::Run,
                             StepSummaryDetails::new(
                                 Some(0),
@@ -186,7 +186,7 @@ mod tests {
                             ),
                         )),
                         StepSummaryResponse::new(StepSummaryResponseInput::new(
-                        "Build".to_owned(),
+                            "Build".to_owned(),
                             StepType::Run,
                             StepSummaryDetails::new(
                                 Some(1),
@@ -213,19 +213,19 @@ mod tests {
         #[test]
         fn render_reports_failed_step_status_without_output_details() {
             let summary = RunSummaryResponse::new(
-            "test".to_owned(),
+                "test".to_owned(),
                 vec![JobSummaryResponse::new(
-                "lint".to_owned(),
+                    "lint".to_owned(),
                     Some("Lint".to_string()),
                     vec![StepSummaryResponse::new(StepSummaryResponseInput::new(
-                    "Clippy".to_owned(),
+                        "Clippy".to_owned(),
                         StepType::Run,
                         StepSummaryDetails::new(
                             Some(101),
                             false,
                             Duration::ZERO,
                             String::new(),
-                        "clippy failed".to_owned(),
+                            "clippy failed".to_owned(),
                         ),
                     ))],
                     false,

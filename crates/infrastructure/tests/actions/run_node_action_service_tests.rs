@@ -1,6 +1,10 @@
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, path::Path, sync::Arc};
+    use std::{
+        collections::HashMap,
+        path::{Path, PathBuf},
+        sync::Arc,
+    };
 
     use ephact::{
         application::{
@@ -41,8 +45,8 @@ mod tests {
         ))
         .run(
             RunNodeActionRequest::new(
-            PathBuf::from("/repo/actions/cache"),
-            "dist/index.js".to_owned(),
+                PathBuf::from("/repo/actions/cache"),
+                "dist/index.js".to_owned(),
                 HashMap::new(),
                 HashMap::new(),
             ),
@@ -68,8 +72,8 @@ mod tests {
         ))
         .run(
             RunNodeActionRequest::new(
-            PathBuf::from("/repo/actions/cache"),
-            "dist/index.js".to_owned(),
+                PathBuf::from("/repo/actions/cache"),
+                "dist/index.js".to_owned(),
                 HashMap::new(),
                 HashMap::new(),
             ),
@@ -93,8 +97,8 @@ mod tests {
         ))
         .run(
             RunNodeActionRequest::new(
-            PathBuf::from("/repo/actions/cache"),
-            "dist/index.js".to_owned(),
+                PathBuf::from("/repo/actions/cache"),
+                "dist/index.js".to_owned(),
                 HashMap::new(),
                 HashMap::new(),
             ),
@@ -112,8 +116,8 @@ mod tests {
         ))
         .run(
             RunNodeActionRequest::new(
-            PathBuf::from("/repo/actions/cache"),
-            "dist/index.js".to_owned(),
+                PathBuf::from("/repo/actions/cache"),
+                "dist/index.js".to_owned(),
                 HashMap::new(),
                 HashMap::new(),
             ),

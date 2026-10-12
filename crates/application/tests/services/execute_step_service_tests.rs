@@ -1,6 +1,10 @@
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, path::Path, sync::Arc};
+    use std::{
+        collections::HashMap,
+        path::{Path, PathBuf},
+        sync::Arc,
+    };
 
     use ephact::{
         application::{
@@ -67,7 +71,7 @@ mod tests {
             .execute(ExecuteStepRequest::new(
                 JsonStepTextCodec.encode(&step).unwrap(),
                 EvaluationContext::new(),
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 HashMap::new(),
             ))
             .unwrap();
@@ -92,7 +96,7 @@ mod tests {
             .execute(ExecuteStepRequest::new(
                 JsonStepTextCodec.encode(&step).unwrap(),
                 EvaluationContext::new(),
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 env.clone(),
             ))
             .unwrap();
@@ -117,7 +121,7 @@ mod tests {
             .execute(ExecuteStepRequest::new(
                 JsonStepTextCodec.encode(&step).unwrap(),
                 EvaluationContext::new(),
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 HashMap::new(),
             ))
             .unwrap();
@@ -137,7 +141,7 @@ mod tests {
             .execute(ExecuteStepRequest::new(
                 JsonStepTextCodec.encode(&authored).unwrap(),
                 EvaluationContext::new(),
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 HashMap::new(),
             ))
             .unwrap();
@@ -158,7 +162,7 @@ mod tests {
             .execute(ExecuteStepRequest::new(
                 JsonStepTextCodec.encode(&step).unwrap(),
                 EvaluationContext::new(),
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 HashMap::new(),
             ))
             .unwrap_err();
@@ -187,7 +191,7 @@ mod tests {
             .execute(ExecuteStepRequest::new(
                 JsonStepTextCodec.encode(&step).unwrap(),
                 EvaluationContext::new(),
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 HashMap::new(),
             ))
             .unwrap_err();

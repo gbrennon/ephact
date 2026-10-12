@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, path::Path};
+    use std::{
+        collections::HashMap,
+        path::{Path, PathBuf},
+    };
 
     use ephact::{
         application::{
@@ -80,9 +83,9 @@ mod tests {
         )
         .execute(
             ExecuteJobRequest::new(
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 EvaluationContext::new(),
-            "test-run".to_owned(),
+                "test-run".to_owned(),
                 false,
             ),
             run,
@@ -109,9 +112,9 @@ mod tests {
         )
         .execute(
             ExecuteJobRequest::new(
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 EvaluationContext::new(),
-            "test-run".to_owned(),
+                "test-run".to_owned(),
                 false,
             ),
             run,
@@ -143,9 +146,9 @@ mod tests {
         )
         .execute(
             ExecuteJobRequest::new(
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 EvaluationContext::new(),
-            "test-run".to_owned(),
+                "test-run".to_owned(),
                 false,
             )
             .with_allow_network(true),
@@ -172,9 +175,9 @@ mod tests {
         )
         .execute(
             ExecuteJobRequest::new(
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 EvaluationContext::new(),
-            "test-run".to_owned(),
+                "test-run".to_owned(),
                 false,
             ),
             run,
@@ -200,9 +203,9 @@ mod tests {
         )
         .execute(
             ExecuteJobRequest::new(
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 EvaluationContext::new(),
-            "test-run".to_owned(),
+                "test-run".to_owned(),
                 false,
             )
             .with_allow_network(true),
@@ -234,9 +237,9 @@ mod tests {
         )
         .execute(
             ExecuteJobRequest::new(
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 EvaluationContext::new(),
-            "test-run".to_owned(),
+                "test-run".to_owned(),
                 false,
             ),
             run,
@@ -263,9 +266,9 @@ mod tests {
         )
         .execute(
             ExecuteJobRequest::new(
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 EvaluationContext::new(),
-            "test-run".to_owned(),
+                "test-run".to_owned(),
                 false,
             ),
             run,
@@ -300,9 +303,9 @@ mod tests {
         )
         .execute(
             ExecuteJobRequest::new(
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 EvaluationContext::new(),
-            "test-run".to_owned(),
+                "test-run".to_owned(),
                 false,
             ),
             run,
@@ -331,9 +334,9 @@ mod tests {
         )
         .execute(
             ExecuteJobRequest::new(
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 EvaluationContext::new(),
-            "test-run".to_owned(),
+                "test-run".to_owned(),
                 false,
             ),
             run,
@@ -365,9 +368,9 @@ mod tests {
         )
         .execute(
             ExecuteJobRequest::new(
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 EvaluationContext::new(),
-            "test-run".to_owned(),
+                "test-run".to_owned(),
                 false,
             ),
             run,
@@ -396,9 +399,9 @@ mod tests {
         )
         .execute(
             ExecuteJobRequest::new(
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 EvaluationContext::new(),
-            "test-run".to_owned(),
+                "test-run".to_owned(),
                 false,
             ),
             run,
@@ -429,9 +432,9 @@ mod tests {
         )
         .execute(
             ExecuteJobRequest::new(
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 EvaluationContext::new(),
-            "test-run".to_owned(),
+                "test-run".to_owned(),
                 false,
             ),
             run,
@@ -458,9 +461,9 @@ mod tests {
         )
         .execute(
             ExecuteJobRequest::new(
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 EvaluationContext::new(),
-            "test-run".to_owned(),
+                "test-run".to_owned(),
                 false,
             ),
             run,
@@ -501,9 +504,9 @@ mod tests {
         )
         .execute(
             ExecuteJobRequest::new(
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 EvaluationContext::new(),
-            "test-run".to_owned(),
+                "test-run".to_owned(),
                 false,
             ),
             run,
@@ -539,9 +542,9 @@ mod tests {
         )
         .execute(
             ExecuteJobRequest::new(
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 EvaluationContext::new(),
-            "test-run".to_owned(),
+                "test-run".to_owned(),
                 false,
             ),
             run,
@@ -583,9 +586,9 @@ mod tests {
         )
         .execute(
             ExecuteJobRequest::new(
-            PathBuf::from("/repo"),
+                PathBuf::from("/repo"),
                 EvaluationContext::new(),
-            "test-run".to_owned(),
+                "test-run".to_owned(),
                 false,
             ),
             run,

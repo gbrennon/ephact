@@ -46,7 +46,7 @@ mod tests {
             &self,
             _request: RunActionRequest,
         ) -> Result<ExecuteActionResponse, RunActionError> {
-        Ok(ExecuteActionResponse::note("action completed".to_owned()))
+            Ok(ExecuteActionResponse::note("action completed".to_owned()))
         }
     }
 

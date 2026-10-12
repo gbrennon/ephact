@@ -44,7 +44,7 @@ mod tests {
         _container: &dyn ephact::application::ports::outbound::container_port::ContainerPort,
     ) -> ExecuteActionRequest {
         ExecuteActionRequest::new(ExecuteActionRequestInput::new(
-        "./actions/outer".to_owned(),
+            "./actions/outer".to_owned(),
             JsonStepTextCodec
                 .encode(&step_from("uses: ./actions/outer\n"))
                 .unwrap(),

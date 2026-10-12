@@ -15,7 +15,7 @@ mod tests {
     };
 
     fn entry() -> FileEntryResponse {
-    FileEntryResponse::new("action.yml".to_owned(), b"name: Greet\n".to_vec(), 0o644)
+        FileEntryResponse::new("action.yml".to_owned(), b"name: Greet\n".to_vec(), 0o644)
     }
 
     #[test]

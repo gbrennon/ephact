@@ -30,10 +30,7 @@ mod tests {
     #[test]
     fn resolve_source_name_uses_the_filename_for_whitespace_only_names() {
         assert_eq!(
-            SourceNameResolver::resolve(
-                Some("  \t"),
-                Path::new(".forgejo/workflows/build.yml"),
-            ),
+            SourceNameResolver::resolve(Some("  \t"), Path::new(".forgejo/workflows/build.yml"),),
             Some("build.yml".to_string())
         );
     }

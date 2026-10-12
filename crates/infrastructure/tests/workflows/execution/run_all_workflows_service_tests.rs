@@ -40,7 +40,7 @@ mod tests {
         config: WorkflowRunConfig,
         repository: Repository,
     ) -> RunAllWorkflowsRequest {
-    RunAllWorkflowsRequest::from_domain(&repository, &config, "test-run".to_owned())
+        RunAllWorkflowsRequest::from_domain(&repository, &config, "test-run".to_owned())
     }
 
     #[test]
@@ -55,7 +55,7 @@ mod tests {
             FakeCommandBus::new().with_workflow_result(WorkflowExecutionResponse::new(
                 "TestWF".to_string(),
                 vec![JobSummaryResponse::new(
-            "build".to_owned(),
+                    "build".to_owned(),
                     Some("build".to_string()),
                     Vec::new(),
                     true,

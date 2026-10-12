@@ -35,13 +35,13 @@ mod tests {
 
     fn summary(success: bool) -> RunSummaryResponse {
         RunSummaryResponse::new(
-        "test".to_owned(),
-        vec![JobSummaryResponse::new(
-            "job".to_owned(),
-            None,
-            vec![],
-            success,
-        )],
+            "test".to_owned(),
+            vec![JobSummaryResponse::new(
+                "job".to_owned(),
+                None,
+                vec![],
+                success,
+            )],
             success,
             Duration::ZERO,
         )
@@ -384,14 +384,14 @@ mod tests {
     fn declared_preflight_inputs() -> Vec<RunInputDeclarationResponse> {
         vec![
             RunInputDeclarationResponse::new(
-            "cache-key-prefix".to_owned(),
+                "cache-key-prefix".to_owned(),
                 RunInputSourceResponse::Action("./.forgejo/actions/cache-rust-deps".into()),
                 Some("Prefix for the cache key".into()),
                 true,
                 None,
             ),
             RunInputDeclarationResponse::new(
-            "rustc-version".to_owned(),
+                "rustc-version".to_owned(),
                 RunInputSourceResponse::Action("./.forgejo/actions/cache-rust-deps".into()),
                 Some("Rust compiler version".into()),
                 false,

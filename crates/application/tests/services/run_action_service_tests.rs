@@ -36,7 +36,7 @@ mod tests {
             .into_domain();
 
         let request = RunActionRequest::new(RunActionRequestInput::new(
-        "actions/checkout@v4".to_owned(),
+            "actions/checkout@v4".to_owned(),
             JsonStepTextCodec.encode(&step).unwrap(),
             RunActionExecutionInput::new(
                 PathBuf::from("/repo"),

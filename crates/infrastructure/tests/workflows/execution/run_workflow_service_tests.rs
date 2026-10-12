@@ -54,7 +54,7 @@ mod tests {
     }
 
     fn primitive_request(config: WorkflowRunConfig, repository: Repository) -> RunWorkflowRequest {
-    RunWorkflowRequest::from_domain(&repository, &config, "test-run".to_owned())
+        RunWorkflowRequest::from_domain(&repository, &config, "test-run".to_owned())
     }
 
     #[test]
@@ -67,7 +67,7 @@ mod tests {
             .with_workflow_file_name("ci.yml");
         let command_bus =
             FakeCommandBus::new().with_workflow_result(WorkflowExecutionResponse::new(
-        "CI".to_owned(),
+                "CI".to_owned(),
                 Vec::new(),
                 vec!["test-container-1".to_string()],
                 true,

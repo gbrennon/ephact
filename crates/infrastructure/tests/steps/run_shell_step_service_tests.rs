@@ -27,7 +27,7 @@ mod tests {
     fn container(runtime: &dyn ContainerRuntimePort) -> Box<dyn ContainerPort> {
         runtime
             .create_container(&ContainerConfigResponse::new(
-            "image".to_owned(),
+                "image".to_owned(),
                 ContainerConfigOptions::default(),
             ))
             .unwrap()
@@ -42,10 +42,11 @@ mod tests {
     #[test]
     fn execute_runs_the_steps_script_through_bash() {
         let runtime = FakeRuntime::new();
-        runtime
-            .exec_results
-            .lock()
-        .push(ExecResultResponse::new(0, "hi\n".to_owned(), String::new()));
+        runtime.exec_results.lock().push(ExecResultResponse::new(
+            0,
+            "hi\n".to_owned(),
+            String::new(),
+        ));
         let container = container(&runtime);
         let step = step_from("run: echo hi\n");
 
