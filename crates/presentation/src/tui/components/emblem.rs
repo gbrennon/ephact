@@ -67,10 +67,9 @@ impl<'a> Emblem<'a> {
             .lines()
             .nth(MARKER_LINE_INDEX as usize)
             .unwrap_or("");
-        let gutter = self.left_gutter();
         let marker_column = line
             .find(MARKER_GLYPH)
-            .map(|index| line[..index].chars().count().saturating_sub(gutter))
+            .map(|index| line[..index].chars().count())
             .unwrap_or(0);
         let emblem_width = self.emblem_width() as u16;
         Rect::new(
@@ -123,13 +122,9 @@ impl<'a> Emblem<'a> {
     }
 
     fn padded_with_marker(&self, text: &str, marker: &Marker) -> (String, Option<usize>) {
-        let gutter = self.left_gutter();
         let source = Self::replace_marker(text, marker);
-        let marker_start = source.1.map(|start| start.saturating_sub(gutter));
-        let trimmed = source.0.chars().skip(gutter).collect::<String>();
-        let width = self.emblem_width().saturating_sub(gutter);
-        let padding = width.saturating_sub(trimmed.width());
-        (format!("{trimmed}{}", " ".repeat(padding)), marker_start)
+        let padding = self.emblem_width().saturating_sub(source.0.width());
+        (format!("{}{}", source.0, " ".repeat(padding)), source.1)
     }
 
     fn replace_marker(text: &str, marker: &Marker) -> (String, Option<usize>) {
@@ -146,6 +141,9 @@ impl<'a> Emblem<'a> {
     }
 
     fn marker_slot(marker: &Marker) -> String {
+        if marker.as_text() == "_" {
+            return "_".to_owned();
+        }
         let slot = marker
             .as_text()
             .chars()
@@ -172,18 +170,6 @@ impl<'a> Emblem<'a> {
             .max()
             .unwrap_or(0)
             .saturating_add(MARKER_SLOT_WIDTH - 1)
-    }
-
-    fn left_gutter(&self) -> usize {
-        self.text
-            .lines()
-            .map(|line| {
-                line.chars()
-                    .take_while(|glyph| glyph.is_whitespace())
-                    .count()
-            })
-            .min()
-            .unwrap_or(0)
     }
 
     fn fancy_span(glyph: char) -> Span<'static> {
