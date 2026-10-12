@@ -14,15 +14,15 @@ pub struct ExecuteJobRequest {
 impl ExecuteJobRequest {
     /// Creates job execution inputs with network access disabled.
     pub fn new(
-        repo_path: impl Into<PathBuf>,
+        repo_path: PathBuf,
         context: EvaluationContext,
-        run_id: impl Into<String>,
+        run_id: String,
         allow_repo_writes: bool,
     ) -> Self {
         Self {
-            repo_path: repo_path.into(),
+            repo_path,
             context,
-            run_id: run_id.into(),
+            run_id,
             allow_repo_writes,
             allow_network: false,
         }
