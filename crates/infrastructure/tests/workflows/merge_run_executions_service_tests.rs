@@ -17,10 +17,10 @@ mod tests {
 
     fn job(job_id: &str, name: Option<&str>, success: bool) -> JobSummaryResponse {
         JobSummaryResponse::new(
-            job_id,
+        job_id.to_owned(),
             name.map(str::to_string),
             vec![StepSummaryResponse::new(StepSummaryResponseInput::new(
-                "step",
+            "step".to_owned(),
                 StepType::Run,
                 StepSummaryDetails::new(
                     Some(0),

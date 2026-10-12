@@ -174,13 +174,13 @@ mod tests {
 
     fn run_summary() -> RunSummaryResponse {
         RunSummaryResponse::new(
-            "Build",
+            "Build".to_owned(),
             vec![JobSummaryResponse::new(
-                "build",
+                "build".to_owned(),
                 Some("Build job".into()),
                 vec![
                     StepSummaryResponse::new(StepSummaryResponseInput::new(
-                        "Checkout",
+                        "Checkout".to_owned(),
                         StepType::Run,
                         StepSummaryDetails::new(
                             Some(0),
@@ -191,7 +191,7 @@ mod tests {
                         ),
                     )),
                     StepSummaryResponse::new(StepSummaryResponseInput::new(
-                        "Compile",
+                        "Compile".to_owned(),
                         StepType::Run,
                         StepSummaryDetails::new(
                             Some(0),

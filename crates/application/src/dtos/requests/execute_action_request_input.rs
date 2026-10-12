@@ -9,14 +9,10 @@ pub struct ExecuteActionRequestInput {
 
 impl ExecuteActionRequestInput {
     /// Creates input from an action reference, step name, and execution data.
-    pub fn new(
-        action_ref: impl Into<String>,
-        step: impl Into<String>,
-        execution: ExecuteActionExecutionInput,
-    ) -> Self {
+    pub fn new(action_ref: String, step: String, execution: ExecuteActionExecutionInput) -> Self {
         Self {
-            action_ref: action_ref.into(),
-            step: step.into(),
+            action_ref,
+            step,
             execution,
         }
     }

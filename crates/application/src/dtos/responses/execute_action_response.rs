@@ -10,11 +10,11 @@ pub struct ExecuteActionResponse {
 
 impl ExecuteActionResponse {
     /// Creates a response from an exit code, standard output, and standard error.
-    pub fn new(exit_code: i64, stdout: impl Into<String>, stderr: impl Into<String>) -> Self {
+    pub fn new(exit_code: i64, stdout: String, stderr: String) -> Self {
         Self {
             exit_code,
-            stdout: stdout.into(),
-            stderr: stderr.into(),
+            stdout,
+            stderr,
         }
     }
 
@@ -24,7 +24,7 @@ impl ExecuteActionResponse {
     }
 
     /// Creates a successful response containing a user-facing note.
-    pub fn note(message: impl Into<String>) -> Self {
+    pub fn note(message: String) -> Self {
         Self::builder().stdout(message).build()
     }
 
@@ -65,14 +65,14 @@ impl ExecuteActionResponseBuilder {
     }
 
     /// Sets standard output.
-    pub fn stdout(mut self, stdout: impl Into<String>) -> Self {
-        self.stdout = stdout.into();
+    pub fn stdout(mut self, stdout: String) -> Self {
+        self.stdout = stdout;
         self
     }
 
     /// Sets standard error.
-    pub fn stderr(mut self, stderr: impl Into<String>) -> Self {
-        self.stderr = stderr.into();
+    pub fn stderr(mut self, stderr: String) -> Self {
+        self.stderr = stderr;
         self
     }
 
@@ -88,7 +88,7 @@ mod tests {
 
     #[test]
     fn note_succeeds_and_carries_the_message() {
-        let response = ExecuteActionResponse::note("workspace already mounted\n");
+        let response = ExecuteActionResponse::note("workspace already mounted\n".to_owned());
 
         assert_eq!(response.exit_code(), 0);
         assert_eq!(response.stdout(), "workspace already mounted\n");
@@ -99,8 +99,8 @@ mod tests {
     fn builder_constructs_all_response_fields() {
         let response = ExecuteActionResponse::builder()
             .exit_code(2)
-            .stdout("output")
-            .stderr("error")
+            .stdout("output".to_owned())
+            .stderr("error".to_owned())
             .build();
 
         assert_eq!(response.into_parts(), (2, "output".into(), "error".into()));

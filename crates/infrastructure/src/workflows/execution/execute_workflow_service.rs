@@ -80,7 +80,7 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
         let success = executions.iter().all(|e| e.job_summary().success());
 
         Ok(WorkflowExecutionResponse::new(
-            workflow_name,
+            workflow_name.to_owned(),
             job_summaries,
             container_names,
             success,
@@ -187,17 +187,17 @@ impl ExecuteWorkflowService {
             .iter()
             .map(|step| {
                 StepSummaryResponse::new(StepSummaryResponseInput::new(
-                    step.display_name(),
+                    step.display_name().to_owned(),
                     step.step_type(),
                     StepSummaryDetails::new(
                         None,
                         step.continues_on_error(),
                         std::time::Duration::ZERO,
-                        "",
-                        "",
+                        String::new(),
+                        String::new(),
                     ),
                 ))
-                .with_skip_reason("dependency failed")
+                .with_skip_reason("dependency failed".to_owned())
             })
             .collect();
         JobExecutionResponse::new(
@@ -207,8 +207,8 @@ impl ExecuteWorkflowService {
                 steps,
                 false,
             )
-            .with_skip_reason("dependency failed"),
-            "",
+            .with_skip_reason("dependency failed".to_owned()),
+            String::new(),
         )
     }
 

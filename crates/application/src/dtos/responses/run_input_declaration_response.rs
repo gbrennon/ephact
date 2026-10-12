@@ -16,14 +16,14 @@ pub struct RunInputDeclarationResponse {
 impl RunInputDeclarationResponse {
     /// Creates a response for one declared input.
     pub fn new(
-        name: impl Into<String>,
+        name: String,
         source: RunInputSourceResponse,
         description: Option<String>,
         required: bool,
         default: Option<String>,
     ) -> Self {
         Self {
-            name: name.into(),
+            name,
             source,
             description,
             required,

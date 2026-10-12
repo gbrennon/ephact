@@ -83,18 +83,18 @@ mod tests {
 
     fn failed_summary() -> RunSummaryResponse {
         let step = StepSummaryResponse::new(StepSummaryResponseInput::new(
-            "compile",
+        "compile".to_owned(),
             StepType::Run,
             StepSummaryDetails::new(
                 Some(1),
                 false,
                 Duration::from_secs(1),
-                "",
-                "compiler failed",
+            String::new(),
+            "compiler failed".to_owned(),
             ),
         ));
-        let job = JobSummaryResponse::new("build", Some("build".into()), vec![step], false);
-        RunSummaryResponse::new("CI", vec![job], false, Duration::from_secs(1))
+    let job = JobSummaryResponse::new("build".to_owned(), Some("build".into()), vec![step], false);
+    RunSummaryResponse::new("CI".to_owned(), vec![job], false, Duration::from_secs(1))
     }
 
     fn rendered_line_containing(screen: &RunWorkflowScreen, text: &str) -> String {
@@ -123,7 +123,7 @@ mod tests {
         screen.begin_configuration(
             vec!["push".to_string()],
             vec![RunInputDeclarationResponse::new(
-                "environment",
+            "environment".to_owned(),
                 RunInputSourceResponse::Workflow,
                 None,
                 true,
@@ -237,8 +237,8 @@ mod tests {
     #[test]
     fn recording_outcome_renders_run_summary_with_status() {
         let mut screen = RunWorkflowScreen::new(workflows());
-        let job = JobSummaryResponse::new("build", Some("build".into()), vec![], true);
-        let summary = RunSummaryResponse::new("CI", vec![job], true, Duration::from_secs(1));
+    let job = JobSummaryResponse::new("build".to_owned(), Some("build".into()), vec![], true);
+    let summary = RunSummaryResponse::new("CI".to_owned(), vec![job], true, Duration::from_secs(1));
 
         screen.record_outcome(summary);
 
@@ -274,7 +274,7 @@ mod tests {
     fn successful_summary_offers_details() {
         let mut screen = RunWorkflowScreen::new(workflows());
         screen.record_outcome(RunSummaryResponse::new(
-            "CI",
+        "CI".to_owned(),
             vec![],
             true,
             Duration::from_secs(1),
@@ -315,7 +315,7 @@ mod tests {
     fn successful_summary_does_not_render_failure_diagnostics_path() {
         let mut screen = RunWorkflowScreen::new(workflows());
         screen.record_outcome_with_failure_log_path(
-            RunSummaryResponse::new("CI", vec![], true, Duration::from_secs(1)),
+        RunSummaryResponse::new("CI".to_owned(), vec![], true, Duration::from_secs(1)),
             Some("/tmp/ephact/repository/run.log".into()),
         );
 
@@ -328,7 +328,7 @@ mod tests {
     fn summary_scrolls_with_navigation_keys() {
         let mut screen = RunWorkflowScreen::new(workflows());
         screen.record_outcome(RunSummaryResponse::new(
-            "CI",
+        "CI".to_owned(),
             vec![],
             true,
             Duration::from_secs(1),
@@ -358,7 +358,7 @@ mod tests {
     fn summary_and_details_render_their_keybinds() {
         let mut screen = RunWorkflowScreen::new(workflows());
         screen.record_outcome(RunSummaryResponse::new(
-            "CI",
+        "CI".to_owned(),
             vec![],
             true,
             Duration::from_secs(1),
@@ -380,7 +380,7 @@ mod tests {
     fn successful_summary_opens_details() {
         let mut screen = RunWorkflowScreen::new(workflows());
         screen.record_outcome(RunSummaryResponse::new(
-            "CI",
+        "CI".to_owned(),
             vec![],
             true,
             Duration::from_secs(1),
@@ -428,7 +428,7 @@ mod tests {
         screen.begin_configuration(
             vec!["push".to_string()],
             vec![RunInputDeclarationResponse::new(
-                "rustc-version",
+            "rustc-version".to_owned(),
                 RunInputSourceResponse::Workflow,
                 None,
                 false,
@@ -447,7 +447,7 @@ mod tests {
         screen.begin_configuration_with_marker(
             vec!["push".to_string()],
             vec![RunInputDeclarationResponse::new(
-                "rustc-version",
+            "rustc-version".to_owned(),
                 RunInputSourceResponse::Workflow,
                 None,
                 false,
@@ -468,7 +468,7 @@ mod tests {
             vec!["push".to_string()],
             vec![
                 RunInputDeclarationResponse::new(
-                    "include-sysroot",
+                "include-sysroot".to_owned(),
                     RunInputSourceResponse::Workflow,
                     None,
                     false,
@@ -506,7 +506,7 @@ mod tests {
         screen.begin_configuration(
             vec!["push".to_string(), "schedule".to_string()],
             vec![RunInputDeclarationResponse::new(
-                "environment",
+            "environment".to_owned(),
                 RunInputSourceResponse::Workflow,
                 None,
                 true,
@@ -540,7 +540,7 @@ mod tests {
         screen.begin_configuration(
             vec!["push".to_string()],
             vec![RunInputDeclarationResponse::new(
-                "environment",
+            "environment".to_owned(),
                 RunInputSourceResponse::Workflow,
                 None,
                 true,
@@ -584,7 +584,7 @@ mod tests {
     fn reset_returns_screen_to_picker() {
         let mut screen = RunWorkflowScreen::new(workflows());
         screen.record_outcome(RunSummaryResponse::new(
-            "CI",
+        "CI".to_owned(),
             vec![],
             true,
             Duration::from_secs(1),

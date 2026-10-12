@@ -13,7 +13,7 @@ mod tests {
     };
 
     fn ci_summary() -> RunSummaryResponse {
-        RunSummaryResponse::new("CI", vec![], true, Duration::from_secs(1))
+    RunSummaryResponse::new("CI".to_owned(), vec![], true, Duration::from_secs(1))
     }
 
     #[tokio::test]

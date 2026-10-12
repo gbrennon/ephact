@@ -7,11 +7,11 @@ pub struct ExecResultResponse {
 }
 
 impl ExecResultResponse {
-    pub fn new(exit_code: i64, stdout: impl Into<String>, stderr: impl Into<String>) -> Self {
+    pub fn new(exit_code: i64, stdout: String, stderr: String) -> Self {
         Self {
             exit_code,
-            stdout: stdout.into(),
-            stderr: stderr.into(),
+            stdout,
+            stderr,
         }
     }
 

@@ -8,9 +8,9 @@ mod tests {
     #[test]
     fn qualifies_job_names_with_their_workflow_name() {
         let executions = vec![WorkflowExecutionResponse::new(
-            "build",
+        "build".to_owned(),
             vec![JobSummaryResponse::new(
-                "job-id",
+            "job-id".to_owned(),
                 Some("test".to_owned()),
                 vec![],
                 true,
@@ -27,8 +27,13 @@ mod tests {
     #[test]
     fn preserves_jobs_without_names() {
         let executions = vec![WorkflowExecutionResponse::new(
-            "build",
-            vec![JobSummaryResponse::new("job-id", None, vec![], true)],
+        "build".to_owned(),
+        vec![JobSummaryResponse::new(
+            "job-id".to_owned(),
+            None,
+            vec![],
+            true,
+        )],
             vec![],
             true,
         )];
@@ -42,9 +47,9 @@ mod tests {
     fn aggregates_jobs_from_all_workflows_in_order() {
         let executions = vec![
             WorkflowExecutionResponse::new(
-                "build",
+            "build".to_owned(),
                 vec![JobSummaryResponse::new(
-                    "build-job",
+                "build-job".to_owned(),
                     Some("compile".to_owned()),
                     vec![],
                     true,
@@ -53,9 +58,9 @@ mod tests {
                 true,
             ),
             WorkflowExecutionResponse::new(
-                "test",
+            "test".to_owned(),
                 vec![JobSummaryResponse::new(
-                    "test-job",
+                "test-job".to_owned(),
                     Some("unit".to_owned()),
                     vec![],
                     true,

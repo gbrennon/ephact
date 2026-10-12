@@ -11,18 +11,18 @@ pub struct RunnerContextPaths {
 impl RunnerContextPaths {
     /// Creates runner context paths from their configured locations.
     pub fn new(
-        workspace: impl Into<String>,
-        home: impl Into<String>,
-        action_path: impl Into<String>,
-        temp: impl Into<String>,
-        tool_cache: impl Into<String>,
+        workspace: String,
+        home: String,
+        action_path: String,
+        temp: String,
+        tool_cache: String,
     ) -> Self {
         Self {
-            workspace: workspace.into(),
-            home: home.into(),
-            action_path: action_path.into(),
-            temp: temp.into(),
-            tool_cache: tool_cache.into(),
+            workspace,
+            home,
+            action_path,
+            temp,
+            tool_cache,
         }
     }
 

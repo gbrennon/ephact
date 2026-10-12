@@ -55,7 +55,7 @@ mod tests {
         context: EvaluationContext,
     ) -> ExecuteActionRequest {
         ExecuteActionRequest::new(ExecuteActionRequestInput::new(
-            "./actions/outer",
+        "./actions/outer".to_owned(),
             JsonStepTextCodec
                 .encode(
                     &serde_yaml::from_str::<StepYaml>("uses: ./actions/outer\n")
@@ -91,7 +91,7 @@ mod tests {
     }
 
     fn result_with_output(exit_code: i64, stdout: &str, stderr: &str) -> ExecResultResponse {
-        ExecResultResponse::new(exit_code, stdout, stderr)
+    ExecResultResponse::new(exit_code, stdout.to_owned(), stderr.to_owned())
     }
 
     #[test]

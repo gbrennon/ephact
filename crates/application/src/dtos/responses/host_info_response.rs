@@ -7,15 +7,11 @@ pub struct HostInfoResponse {
 }
 
 impl HostInfoResponse {
-    pub fn new(
-        os: impl Into<String>,
-        arch: impl Into<String>,
-        engine_version: impl Into<String>,
-    ) -> Self {
+    pub fn new(os: String, arch: String, engine_version: String) -> Self {
         Self {
-            os: os.into(),
-            arch: arch.into(),
-            engine_version: engine_version.into(),
+            os,
+            arch,
+            engine_version,
         }
     }
 

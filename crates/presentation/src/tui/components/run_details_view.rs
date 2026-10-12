@@ -369,26 +369,43 @@ mod tests {
 
     fn summary_with_output(output: &str) -> RunSummaryResponse {
         let step = StepSummaryResponse::new(StepSummaryResponseInput::new(
-            "compile",
+            "compile".to_owned(),
             StepType::Run,
-            StepSummaryDetails::new(Some(0), false, Duration::ZERO, output, ""),
+            StepSummaryDetails::new(
+                Some(0),
+                false,
+                Duration::ZERO,
+                output.to_owned(),
+                String::new(),
+            ),
         ));
-        let job = JobSummaryResponse::new("build", Some("Build".to_string()), vec![step], true);
-        RunSummaryResponse::new("CI", vec![job], true, Duration::ZERO)
+        let job = JobSummaryResponse::new(
+            "build".to_owned(),
+            Some("Build".to_string()),
+            vec![step],
+            true,
+        );
+        RunSummaryResponse::new("CI".to_owned(), vec![job], true, Duration::ZERO)
     }
     fn summary_with_stderr(exit_code: i64, stderr: &str) -> RunSummaryResponse {
         let step = StepSummaryResponse::new(StepSummaryResponseInput::new(
-            "compile",
+            "compile".to_owned(),
             StepType::Run,
-            StepSummaryDetails::new(Some(exit_code), false, Duration::ZERO, "", stderr),
+            StepSummaryDetails::new(
+                Some(exit_code),
+                false,
+                Duration::ZERO,
+                String::new(),
+                stderr.to_owned(),
+            ),
         ));
         let job = JobSummaryResponse::new(
-            "build",
+            "build".to_owned(),
             Some("Build".to_string()),
             vec![step],
             exit_code == 0,
         );
-        RunSummaryResponse::new("CI", vec![job], exit_code == 0, Duration::ZERO)
+        RunSummaryResponse::new("CI".to_owned(), vec![job], exit_code == 0, Duration::ZERO)
     }
 
     #[test]

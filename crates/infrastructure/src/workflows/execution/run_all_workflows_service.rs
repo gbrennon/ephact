@@ -87,7 +87,7 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
         self.announce_run_completed(&run_id, &repository_path, &executions, success);
 
         Ok(RunSummaryResponse::new(
-            ALL_WORKFLOWS_SUMMARY_NAME,
+            ALL_WORKFLOWS_SUMMARY_NAME.to_owned(),
             WorkflowExecutionAggregator::new().aggregate(&executions),
             success,
             started_at.elapsed(),

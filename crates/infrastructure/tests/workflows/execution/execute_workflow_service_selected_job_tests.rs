@@ -75,7 +75,7 @@ mod tests {
                 "test-run".to_string(),
                 false,
             )
-            .with_selected_job(selected_job),
+            .with_selected_job(selected_job.to_owned()),
         )
     }
 }

@@ -9,9 +9,9 @@ pub struct FileEntryResponse {
 }
 
 impl FileEntryResponse {
-    pub fn new(path: impl Into<String>, content: Vec<u8>, mode: u32) -> Self {
+    pub fn new(path: String, content: Vec<u8>, mode: u32) -> Self {
         Self {
-            path: path.into(),
+            path,
             content,
             mode,
         }

@@ -48,7 +48,7 @@ mod tests {
         Arc::from(
             runtime
                 .create_container(&ContainerConfigResponse::new(
-                    "image",
+                    "image".to_owned(),
                     ContainerConfigOptions::default(),
                 ))
                 .unwrap(),
@@ -68,7 +68,7 @@ mod tests {
         context: EvaluationContext,
     ) -> ExecuteActionRequest {
         ExecuteActionRequest::new(ExecuteActionRequestInput::new(
-            action_ref,
+            action_ref.to_owned(),
             JsonStepTextCodec.encode(&step).unwrap(),
             ExecuteActionExecutionInput::new(repo_path.to_path_buf(), HashMap::new(), context),
         ))

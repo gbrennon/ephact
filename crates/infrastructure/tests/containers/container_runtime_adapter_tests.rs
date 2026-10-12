@@ -14,7 +14,7 @@ mod tests {
     };
     fn make_config(name: &str) -> ContainerConfigResponse {
         ContainerConfigResponse::new(
-            "alpine:latest",
+        "alpine:latest".to_owned(),
             ContainerConfigOptions::default()
                 .with_cmd(Some(vec!["sleep".into(), "infinity".into()]))
                 .with_name(Some(name.into())),

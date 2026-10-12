@@ -67,7 +67,7 @@ mod tests {
             .execute(ExecuteStepRequest::new(
                 JsonStepTextCodec.encode(&step).unwrap(),
                 EvaluationContext::new(),
-                Path::new("/repo"),
+            PathBuf::from("/repo"),
                 HashMap::new(),
             ))
             .unwrap();
@@ -92,7 +92,7 @@ mod tests {
             .execute(ExecuteStepRequest::new(
                 JsonStepTextCodec.encode(&step).unwrap(),
                 EvaluationContext::new(),
-                Path::new("/repo"),
+            PathBuf::from("/repo"),
                 env.clone(),
             ))
             .unwrap();
@@ -117,7 +117,7 @@ mod tests {
             .execute(ExecuteStepRequest::new(
                 JsonStepTextCodec.encode(&step).unwrap(),
                 EvaluationContext::new(),
-                Path::new("/repo"),
+            PathBuf::from("/repo"),
                 HashMap::new(),
             ))
             .unwrap();
@@ -137,7 +137,7 @@ mod tests {
             .execute(ExecuteStepRequest::new(
                 JsonStepTextCodec.encode(&authored).unwrap(),
                 EvaluationContext::new(),
-                Path::new("/repo"),
+            PathBuf::from("/repo"),
                 HashMap::new(),
             ))
             .unwrap();
@@ -158,7 +158,7 @@ mod tests {
             .execute(ExecuteStepRequest::new(
                 JsonStepTextCodec.encode(&step).unwrap(),
                 EvaluationContext::new(),
-                Path::new("/repo"),
+            PathBuf::from("/repo"),
                 HashMap::new(),
             ))
             .unwrap_err();
@@ -187,7 +187,7 @@ mod tests {
             .execute(ExecuteStepRequest::new(
                 JsonStepTextCodec.encode(&step).unwrap(),
                 EvaluationContext::new(),
-                Path::new("/repo"),
+            PathBuf::from("/repo"),
                 HashMap::new(),
             ))
             .unwrap_err();

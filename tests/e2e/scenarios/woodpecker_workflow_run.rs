@@ -79,7 +79,11 @@ impl ContainerRuntimePort for WoodpeckerScenarioFake {
     }
 
     fn get_host_info(&self) -> Result<HostInfoResponse, ContainerError> {
-        Ok(HostInfoResponse::new("linux", "x86_64", "woodpecker"))
+        Ok(HostInfoResponse::new(
+            "linux".to_owned(),
+            "x86_64".to_owned(),
+            "woodpecker".to_owned(),
+        ))
     }
 }
 

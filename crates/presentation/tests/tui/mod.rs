@@ -606,7 +606,7 @@ mod tests {
             vec![],
         )];
         let mut app = TuiApp::new(workflows, ephact::PROJECT_EMBLEM.to_string());
-        let summary = RunSummaryResponse::new("CI", vec![], true, Duration::from_secs(1));
+    let summary = RunSummaryResponse::new("CI".to_owned(), vec![], true, Duration::from_secs(1));
 
         app.record_run_outcome(summary.clone());
 

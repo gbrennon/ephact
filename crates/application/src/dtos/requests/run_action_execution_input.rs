@@ -12,12 +12,12 @@ pub struct RunActionExecutionInput {
 impl RunActionExecutionInput {
     /// Creates execution input from a repository path, environment entries, and an evaluation context.
     pub fn new(
-        repo_path: impl Into<PathBuf>,
+        repo_path: PathBuf,
         env: HashMap<String, String>,
         context: EvaluationContext,
     ) -> Self {
         Self {
-            repo_path: repo_path.into(),
+            repo_path,
             env,
             context,
         }

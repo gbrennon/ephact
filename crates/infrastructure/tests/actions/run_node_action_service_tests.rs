@@ -41,8 +41,8 @@ mod tests {
         ))
         .run(
             RunNodeActionRequest::new(
-                Path::new("/repo/actions/cache"),
-                "dist/index.js",
+            PathBuf::from("/repo/actions/cache"),
+            "dist/index.js".to_owned(),
                 HashMap::new(),
                 HashMap::new(),
             ),
@@ -68,8 +68,8 @@ mod tests {
         ))
         .run(
             RunNodeActionRequest::new(
-                Path::new("/repo/actions/cache"),
-                "dist/index.js",
+            PathBuf::from("/repo/actions/cache"),
+            "dist/index.js".to_owned(),
                 HashMap::new(),
                 HashMap::new(),
             ),
@@ -93,8 +93,8 @@ mod tests {
         ))
         .run(
             RunNodeActionRequest::new(
-                Path::new("/repo/actions/cache"),
-                "dist/index.js",
+            PathBuf::from("/repo/actions/cache"),
+            "dist/index.js".to_owned(),
                 HashMap::new(),
                 HashMap::new(),
             ),
@@ -112,8 +112,8 @@ mod tests {
         ))
         .run(
             RunNodeActionRequest::new(
-                Path::new("/repo/actions/cache"),
-                "dist/index.js",
+            PathBuf::from("/repo/actions/cache"),
+            "dist/index.js".to_owned(),
                 HashMap::new(),
                 HashMap::new(),
             ),

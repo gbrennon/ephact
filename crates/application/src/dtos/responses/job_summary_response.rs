@@ -10,13 +10,13 @@ pub struct JobSummaryResponse {
 
 impl JobSummaryResponse {
     pub fn new(
-        job_id: impl Into<String>,
+        job_id: String,
         name: Option<String>,
         steps: Vec<crate::dtos::responses::StepSummaryResponse>,
         success: bool,
     ) -> Self {
         Self {
-            job_id: job_id.into(),
+            job_id,
             name,
             steps,
             success,
@@ -48,8 +48,8 @@ impl JobSummaryResponse {
         self.skip_reason.as_deref()
     }
 
-    pub fn with_skip_reason(mut self, reason: impl Into<String>) -> Self {
-        self.skip_reason = Some(reason.into());
+    pub fn with_skip_reason(mut self, reason: String) -> Self {
+        self.skip_reason = Some(reason);
         self
     }
 
