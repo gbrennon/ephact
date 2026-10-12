@@ -411,5 +411,5 @@ impl TuiRunner {
 }
 
 #[cfg(test)]
-#[path = "tui_runner_tests.rs"]
+#[path = "../../tests/tui/tui_runner_private_tests.rs"]
 mod tui_runner_tests;

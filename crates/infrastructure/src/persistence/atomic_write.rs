@@ -18,4 +18,5 @@ fn temporary_path(path: &Path) -> PathBuf {
 }
 
 #[cfg(test)]
+#[path = "../../tests/persistence/atomic_write_tests.rs"]
 mod atomic_write_tests;
