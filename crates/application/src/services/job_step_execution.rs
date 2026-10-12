@@ -89,11 +89,11 @@ impl<'a> JobStepExecution<'a> {
                     None,
                     step.continues_on_error(),
                     Duration::ZERO,
-                    "",
-                    "previous step failed",
+                    String::new(),
+                    "previous step failed".to_owned(),
                 ),
             ))
-            .with_skip_reason("previous step failed"),
+            .with_skip_reason("previous step failed".to_owned()),
             false,
         );
         state.complete_step(step, skipped, None, continues_after_failure);
@@ -124,11 +124,11 @@ impl<'a> JobStepExecution<'a> {
                         None,
                         step.continues_on_error(),
                         started_at.elapsed(),
-                        "",
-                        reason,
+                        String::new(),
+                        reason.to_owned(),
                     ),
                 ))
-                .with_skip_reason(reason),
+                .with_skip_reason(reason.to_owned()),
                 false,
             );
         }

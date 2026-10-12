@@ -8,11 +8,8 @@ pub struct ParseError {
 }
 
 impl ParseError {
-    pub fn new(message: impl Into<String>, position: usize) -> Self {
-        Self {
-            message: message.into(),
-            position,
-        }
+    pub fn new(message: String, position: usize) -> Self {
+        Self { message, position }
     }
 
     pub fn message(&self) -> &str {
