@@ -3,7 +3,7 @@ mod tests {
     use ephact::presentation::tui::{components::ColorSupport, screens::SplashScreen};
     use ratatui::{Terminal, backend::TestBackend};
 
-    use crate::tui::TuiRenderAssertions;
+    use crate::tui::tests::TuiRenderAssertions;
 
     #[test]
     fn splash_renders_its_keybind_hint() {
