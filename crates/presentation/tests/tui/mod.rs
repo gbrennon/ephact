@@ -1,9 +1,14 @@
 #[cfg(test)]
 mod tests {
+    #[path = "../components/mod.rs"]
     mod components;
+    #[path = "../event_reader_tests.rs"]
     mod event_reader_tests;
+    #[path = "../screens/mod.rs"]
     mod screens;
+    #[path = "../tui_app_tests.rs"]
     mod tui_app_tests;
+    #[path = "../tui_runner_tests.rs"]
     mod tui_runner_tests;
 
     use std::{env, time::Duration};
@@ -30,7 +35,8 @@ mod tests {
     };
 
     use crate::common::fakes::{
-        fake_list_actions_port::FakeListActionsPort, fake_list_workflows_port::FakeListWorkflowsPort,
+        fake_list_actions_port::FakeListActionsPort,
+        fake_list_workflows_port::FakeListWorkflowsPort,
     };
 
     const QUIT_KEY: char = '\x71';
@@ -231,14 +237,15 @@ mod tests {
 
     #[test]
     fn splash_renders_canonical_fallback_emblem_without_true_color() {
-        let text = TuiRenderAssertions::buffer_text(&TuiRenderAssertions::rendered_buffer(|frame| {
-            SplashScreen::render_with(
-                frame,
-                ephact::PROJECT_EMBLEM,
-                ColorSupport::Basic,
-                SplashQuotes::select(0),
-            );
-        }));
+        let text =
+            TuiRenderAssertions::buffer_text(&TuiRenderAssertions::rendered_buffer(|frame| {
+                SplashScreen::render_with(
+                    frame,
+                    ephact::PROJECT_EMBLEM,
+                    ColorSupport::Basic,
+                    SplashQuotes::select(0),
+                );
+            }));
 
         let canonical_line = ephact::PROJECT_EMBLEM.lines().next().unwrap().trim();
         assert!(text.contains(canonical_line));
@@ -268,10 +275,9 @@ mod tests {
 
     #[test]
     fn home_renders_initial_menu() {
-        let text =
-            TuiRenderAssertions::buffer_text(&TuiRenderAssertions::rendered_screen(|frame, area| {
-                HomeScreen::render(frame, area, 0)
-            }));
+        let text = TuiRenderAssertions::buffer_text(&TuiRenderAssertions::rendered_screen(
+            |frame, area| HomeScreen::render(frame, area, 0),
+        ));
 
         assert!(text.contains("Run workflow"));
         assert!(text.contains("List workflows"));
@@ -284,7 +290,8 @@ mod tests {
             HomeScreen::render(frame, area, 0);
         });
 
-        let title_styles = TuiRenderAssertions::styles_for_label(&buffer, "What would you like to do?");
+        let title_styles =
+            TuiRenderAssertions::styles_for_label(&buffer, "What would you like to do?");
 
         assert!(
             title_styles
@@ -316,7 +323,9 @@ mod tests {
         let screen = ListWorkflowsScreen::new(vec![]);
         let buffer = TuiRenderAssertions::rendered_screen(|frame, area| screen.render(frame, area));
 
-        assert!(TuiRenderAssertions::buffer_text(&buffer).contains("No workflows found in repository"));
+        assert!(
+            TuiRenderAssertions::buffer_text(&buffer).contains("No workflows found in repository")
+        );
     }
 
     #[test]
@@ -479,7 +488,9 @@ mod tests {
         let screen = ListActionsScreen::new(vec![]);
         let buffer = TuiRenderAssertions::rendered_screen(|frame, area| screen.render(frame, area));
 
-        assert!(TuiRenderAssertions::buffer_text(&buffer).contains("No actions found in repository"));
+        assert!(
+            TuiRenderAssertions::buffer_text(&buffer).contains("No actions found in repository")
+        );
     }
 
     #[test]
@@ -606,7 +617,8 @@ mod tests {
             vec![],
         )];
         let mut app = TuiApp::new(workflows, ephact::PROJECT_EMBLEM.to_string());
-    let summary = RunSummaryResponse::new("CI".to_owned(), vec![], true, Duration::from_secs(1));
+        let summary =
+            RunSummaryResponse::new("CI".to_owned(), vec![], true, Duration::from_secs(1));
 
         app.record_run_outcome(summary.clone());
 

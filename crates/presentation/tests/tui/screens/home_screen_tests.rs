@@ -2,7 +2,7 @@
 mod tests {
     use ephact::presentation::tui::screens::HomeScreen;
 
-    use crate::tui::TuiRenderAssertions;
+    use crate::tui::tests::TuiRenderAssertions;
 
     #[test]
     fn home_renders_keybind_footer() {
