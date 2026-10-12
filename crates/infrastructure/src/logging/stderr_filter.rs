@@ -58,6 +58,11 @@ impl StderrFilter {
             let _ = handle.join();
         }
     }
+    fn line_should_be_suppressed(line: &str) -> bool {
+        SUPPRESSED_LINE_PREFIXES
+            .iter()
+            .any(|prefix| line.starts_with(prefix))
+    }
 }
 
 fn spawn_filter_thread(read_end: libc::c_int, real_stderr: libc::c_int) -> JoinHandle<()> {
@@ -65,7 +70,7 @@ fn spawn_filter_thread(read_end: libc::c_int, real_stderr: libc::c_int) -> JoinH
         let reader = BufReader::new(unsafe { File::from_raw_fd(read_end) });
         let mut real = ManuallyDrop::new(unsafe { File::from_raw_fd(real_stderr) });
         for line in reader.lines().map_while(Result::ok) {
-            if line_should_be_suppressed(&line) {
+            if StderrFilter::line_should_be_suppressed(&line) {
                 continue;
             }
             let _ = writeln!(&*real, "{line}");
@@ -74,35 +79,31 @@ fn spawn_filter_thread(read_end: libc::c_int, real_stderr: libc::c_int) -> JoinH
     })
 }
 
-fn line_should_be_suppressed(line: &str) -> bool {
-    SUPPRESSED_LINE_PREFIXES
-        .iter()
-        .any(|prefix| line.starts_with(prefix))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn crun_missing_bash_line_is_suppressed() {
-        assert!(line_should_be_suppressed(
+        assert!(StderrFilter::line_should_be_suppressed(
             "Error: crun: executable file `bash` not found in $PATH"
         ));
     }
 
     #[test]
     fn unix_packet_error_line_is_suppressed() {
-        assert!(line_should_be_suppressed(
+        assert!(StderrFilter::line_should_be_suppressed(
             "Error: read unixpacket @/run/whatever: broken pipe"
         ));
     }
 
     #[test]
     fn ordinary_lines_are_not_suppressed() {
-        assert!(!line_should_be_suppressed("Compiling ephact v0.1.0"));
-        assert!(!line_should_be_suppressed(""));
-        assert!(!line_should_be_suppressed(
+        assert!(!StderrFilter::line_should_be_suppressed(
+            "Compiling ephact v0.1.0"
+        ));
+        assert!(!StderrFilter::line_should_be_suppressed(""));
+        assert!(!StderrFilter::line_should_be_suppressed(
             "Warning: crun: executable file `bash` not found"
         ));
     }
