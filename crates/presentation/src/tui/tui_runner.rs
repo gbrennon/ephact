@@ -297,7 +297,12 @@ impl TuiRunner {
     }
 
     fn failed_summary() -> RunSummaryResponse {
-        RunSummaryResponse::new("Workflow failed", Vec::new(), false, Duration::ZERO)
+        RunSummaryResponse::new(
+            "Workflow failed".to_owned(),
+            Vec::new(),
+            false,
+            Duration::ZERO,
+        )
     }
     fn process_run_request(
         &self,
@@ -406,10 +411,10 @@ impl TuiRunner {
     }
 
     fn cancelled_summary() -> RunSummaryResponse {
-        RunSummaryResponse::new("Cancelled", Vec::new(), false, Duration::ZERO)
+        RunSummaryResponse::new("Cancelled".to_owned(), Vec::new(), false, Duration::ZERO)
     }
 }
 
 #[cfg(test)]
-#[path = "tui_runner_tests.rs"]
+#[path = "../../tests/tui/tui_runner_private_tests.rs"]
 mod tui_runner_tests;
