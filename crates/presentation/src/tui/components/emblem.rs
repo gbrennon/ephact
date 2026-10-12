@@ -13,19 +13,22 @@ use crate::{
     tui::{components::color_support::ColorSupport, theme::Theme},
 };
 
-const PROMPT_GLYPHS: [char; 2] = ['>', '_'];
-const NODE_GLYPHS: [char; 2] = ['@', 'o'];
-const MARKER_GLYPH: char = '_';
-const MARKER_SLOT_WIDTH: usize = 2;
-const MARKER_LINE_INDEX: u16 = 2;
-
 pub struct Emblem<'a> {
     text: &'a str,
 }
 
 impl<'a> Emblem<'a> {
+    const PROMPT_GLYPHS: [char; 2] = ['>', '_'];
+    const NODE_GLYPHS: [char; 2] = ['@', 'o'];
+    const MARKER_GLYPH: char = '_';
+    const MARKER_SLOT_WIDTH: usize = 2;
+    const MARKER_LINE_INDEX: u16 = 2;
     pub fn new(text: &'a str) -> Self {
         Self { text }
+    }
+
+    pub fn width(&self) -> usize {
+        self.emblem_width()
     }
 
     pub fn lines_for(&self, support: ColorSupport, marker: &Marker) -> Vec<Line<'static>> {
@@ -65,10 +68,10 @@ impl<'a> Emblem<'a> {
         let line = self
             .text
             .lines()
-            .nth(MARKER_LINE_INDEX as usize)
+            .nth(Self::MARKER_LINE_INDEX as usize)
             .unwrap_or("");
         let marker_column = line
-            .find(MARKER_GLYPH)
+            .find(Self::MARKER_GLYPH)
             .map(|index| line[..index].chars().count())
             .unwrap_or(0);
         let emblem_width = self.emblem_width() as u16;
@@ -76,8 +79,8 @@ impl<'a> Emblem<'a> {
             area.x
                 .saturating_add(area.width.saturating_sub(emblem_width) / 2)
                 .saturating_add(marker_column as u16),
-            area.y.saturating_add(MARKER_LINE_INDEX),
-            MARKER_SLOT_WIDTH as u16,
+            area.y.saturating_add(Self::MARKER_LINE_INDEX),
+            Self::MARKER_SLOT_WIDTH as u16,
             1,
         )
     }
@@ -106,9 +109,9 @@ impl<'a> Emblem<'a> {
             line.chars()
                 .enumerate()
                 .map(|(index, glyph)| {
-                    match marker_start
-                        .is_some_and(|start| index >= start && index < start + MARKER_SLOT_WIDTH)
-                    {
+                    match marker_start.is_some_and(|start| {
+                        index >= start && index < start + Self::MARKER_SLOT_WIDTH
+                    }) {
                         true => Span::styled(glyph.to_string(), Theme::prompt_style()),
                         false => Self::fancy_span(glyph),
                     }
@@ -128,11 +131,11 @@ impl<'a> Emblem<'a> {
     }
 
     fn replace_marker(text: &str, marker: &Marker) -> (String, Option<usize>) {
-        let Some(byte_index) = text.find(MARKER_GLYPH) else {
+        let Some(byte_index) = text.find(Self::MARKER_GLYPH) else {
             return (text.to_owned(), None);
         };
         let prefix = &text[..byte_index];
-        let suffix = &text[byte_index + MARKER_GLYPH.len_utf8()..];
+        let suffix = &text[byte_index + Self::MARKER_GLYPH.len_utf8()..];
         let marker_text = Self::marker_slot(marker);
         (
             format!("{prefix}{marker_text}{suffix}"),
@@ -149,18 +152,18 @@ impl<'a> Emblem<'a> {
             .chars()
             .scan(0usize, |width, glyph| {
                 let glyph_width = glyph.width().unwrap_or(0);
-                (*width + glyph_width <= MARKER_SLOT_WIDTH).then(|| {
+                (*width + glyph_width <= Self::MARKER_SLOT_WIDTH).then(|| {
                     *width += glyph_width;
                     glyph
                 })
             })
             .collect::<String>();
         let slot = match slot.is_empty() {
-            true => MARKER_GLYPH.to_string(),
+            true => Self::MARKER_GLYPH.to_string(),
             false => slot,
         };
         let width = slot.width();
-        format!("{slot}{}", " ".repeat(MARKER_SLOT_WIDTH - width))
+        format!("{slot}{}", " ".repeat(Self::MARKER_SLOT_WIDTH - width))
     }
 
     fn emblem_width(&self) -> usize {
@@ -169,7 +172,7 @@ impl<'a> Emblem<'a> {
             .map(str::width)
             .max()
             .unwrap_or(0)
-            .saturating_add(MARKER_SLOT_WIDTH - 1)
+            .saturating_add(Self::MARKER_SLOT_WIDTH - 1)
     }
 
     fn fancy_span(glyph: char) -> Span<'static> {
@@ -178,8 +181,8 @@ impl<'a> Emblem<'a> {
 
     fn glyph_style(glyph: char) -> Style {
         match glyph {
-            glyph if PROMPT_GLYPHS.contains(&glyph) => Theme::prompt_style(),
-            glyph if NODE_GLYPHS.contains(&glyph) => Theme::node_style(),
+            glyph if Self::PROMPT_GLYPHS.contains(&glyph) => Theme::prompt_style(),
+            glyph if Self::NODE_GLYPHS.contains(&glyph) => Theme::node_style(),
             _ => Theme::active_style(),
         }
     }
