@@ -46,8 +46,9 @@ pub struct RunDetailsView {
 impl Renderable for RunDetailsView {
     type Context = RunSummaryResponse;
 
-    fn render(&self, frame: &mut Frame<'_>, area: Rect, summary: &Self::Context) {
+    fn render(&self, frame: &mut Frame<'_>, area: Rect, summary: &Self::Context) -> Rect {
         self.render(frame, area, summary);
+        area
     }
 }
 

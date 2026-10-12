@@ -4,7 +4,7 @@ use crossterm::event::KeyEvent;
 use ratatui::{Frame, widgets::Block};
 
 use super::{
-    components::{ConfigurationAction, RunConfigurationValues, ScreenFrame},
+    components::{ConfigurationAction, Renderable, RunConfigurationValues, ScreenFrame},
     screens::{
         HomeScreen, ListActionsScreen, ListWorkflowsScreen, RunWorkflowScreen, SettingsAction,
         SettingsScreen, SplashScreen,
@@ -129,7 +129,8 @@ impl ScreenManager {
             );
             return;
         }
-        let content_area = ScreenFrame::render(frame, splash_quote);
+        let frame_area = frame.area();
+        let content_area = ScreenFrame.render(frame, frame_area, splash_quote);
         match self.current_screen {
             TuiScreen::Home | TuiScreen::Exit => {
                 HomeScreen::render(frame, content_area, self.home_selection)

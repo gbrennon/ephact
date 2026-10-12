@@ -55,8 +55,9 @@ pub struct RunConfiguration {
 impl Renderable for RunConfiguration {
     type Context = ();
 
-    fn render(&self, frame: &mut Frame<'_>, area: Rect, _context: &Self::Context) {
+    fn render(&self, frame: &mut Frame<'_>, area: Rect, _context: &Self::Context) -> Rect {
         self.render(frame, area);
+        area
     }
 }
 
