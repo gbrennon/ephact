@@ -8,10 +8,7 @@ use ratatui::{
 
 use crate::{
     domain::value_objects::Marker,
-    tui::{
-        components::{ColorSupport, Emblem},
-        theme::Theme,
-    },
+    tui::{components::ColorSupport, rendering::emblem::Emblem, theme::Theme},
 };
 
 /// Splash screen shown before the home menu.

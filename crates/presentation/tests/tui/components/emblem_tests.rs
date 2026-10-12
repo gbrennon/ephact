@@ -2,7 +2,7 @@ use std::fs::File;
 
 use ephact::{
     domain::value_objects::Marker,
-    presentation::tui::components::{ColorSupport, Emblem},
+    presentation::tui::{components::ColorSupport, rendering::emblem::Emblem},
 };
 use image::{ImageBuffer, Rgba, codecs::gif::GifEncoder};
 use ratatui::{Terminal, backend::TestBackend, layout::Rect};
