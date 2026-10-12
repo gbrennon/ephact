@@ -9,12 +9,16 @@ use crate::{
 /// A parsed `uses:` value, classified by how the action must be resolved.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActionReference {
+    /// A local action reference.
     Local(String),
+    /// A remote action reference.
     Remote(RemoteActionReference),
+    /// A Docker action reference.
     Docker(String),
 }
 
 impl ActionReference {
+    /// Parses a raw `uses:` value using the supplied remote defaults.
     pub fn parse(raw: &str, defaults: &RemoteReferenceDefaults) -> Result<Self, ActionError> {
         let reference = raw.trim();
         if reference.is_empty() {
@@ -29,6 +33,7 @@ impl ActionReference {
         Self::parse_remote(reference, raw, defaults)
     }
 
+    /// Returns the remote reference, if this is a remote action.
     pub fn as_remote(&self) -> Option<&RemoteActionReference> {
         match self {
             Self::Remote(remote) => Some(remote),

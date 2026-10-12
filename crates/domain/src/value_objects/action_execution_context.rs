@@ -14,6 +14,7 @@ pub struct ActionExecutionContext {
 }
 
 impl ActionExecutionContext {
+    /// Creates an execution context from an action directory, definition, and resolved inputs.
     pub fn new(
         action_directory: PathBuf,
         definition: ActionDefinition,
@@ -26,14 +27,17 @@ impl ActionExecutionContext {
         }
     }
 
+    /// Returns the directory containing the action.
     pub fn action_directory(&self) -> &Path {
         &self.action_directory
     }
 
+    /// Returns the action definition.
     pub fn definition(&self) -> &ActionDefinition {
         &self.definition
     }
 
+    /// Returns the resolved input values.
     pub fn inputs(&self) -> &HashMap<String, String> {
         &self.inputs
     }
