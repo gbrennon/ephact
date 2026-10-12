@@ -3,14 +3,19 @@ use std::{
     path::{Path, PathBuf},
 };
 
-/// Writes content through a uniquely named sibling file and atomically replaces the target.
-pub(crate) fn write(path: &Path, contents: impl AsRef<[u8]>) -> io::Result<()> {
-    let temporary_path = temporary_path(path);
-    fs::write(&temporary_path, contents)
-        .and_then(|_| fs::rename(&temporary_path, path))
-        .inspect_err(|_| {
-            let _ = fs::remove_file(&temporary_path);
-        })
+/// Writes content through a uniquely named sibling file before atomically replacing the target.
+pub struct AtomicFileWriter;
+
+impl AtomicFileWriter {
+    /// Writes content through a uniquely named sibling file and atomically replaces the target.
+    pub fn write(path: &Path, contents: impl AsRef<[u8]>) -> io::Result<()> {
+        let temporary_path = temporary_path(path);
+        fs::write(&temporary_path, contents)
+            .and_then(|_| fs::rename(&temporary_path, path))
+            .inspect_err(|_| {
+                let _ = fs::remove_file(&temporary_path);
+            })
+    }
 }
 
 fn temporary_path(path: &Path) -> PathBuf {
@@ -18,4 +23,5 @@ fn temporary_path(path: &Path) -> PathBuf {
 }
 
 #[cfg(test)]
+#[path = "../../tests/persistence/atomic_write_tests.rs"]
 mod atomic_write_tests;
