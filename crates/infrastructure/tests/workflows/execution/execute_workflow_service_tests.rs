@@ -151,7 +151,7 @@ mod tests {
                 "test-run".to_string(),
                 false,
             )
-            .with_file_name("ci.yml"),
+            .with_file_name("ci.yml".to_owned()),
         )
         .unwrap();
 

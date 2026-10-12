@@ -80,7 +80,7 @@ impl FilesystemRunInputDiscoveryService {
                 Self::add_declaration(
                     declarations,
                     RunInputDeclarationResponse::new(
-                        name,
+                        name.to_owned(),
                         RunInputSourceResponse::Workflow,
                         input.description().map(str::to_owned),
                         input.required(),
