@@ -12,13 +12,13 @@ pub struct WorkflowExecutionResponse {
 impl WorkflowExecutionResponse {
     /// Creates a response from workflow, job, container, and success data.
     pub fn new(
-        workflow_name: impl Into<String>,
+        workflow_name: String,
         job_summaries: Vec<JobSummaryResponse>,
         container_names: Vec<String>,
         success: bool,
     ) -> Self {
         Self {
-            workflow_name: workflow_name.into(),
+            workflow_name,
             job_summaries,
             container_names,
             success,

@@ -9,13 +9,13 @@ pub enum WorkflowInputSourceResponse {
 
 impl WorkflowInputSourceResponse {
     /// Creates a literal input source.
-    pub fn literal(value: impl Into<String>) -> Self {
-        Self::Literal(value.into())
+    pub fn literal(value: String) -> Self {
+        Self::Literal(value)
     }
 
     /// Creates an environment-variable input source.
-    pub fn environment_variable(name: impl Into<String>) -> Self {
-        Self::EnvironmentVariable(name.into())
+    pub fn environment_variable(name: String) -> Self {
+        Self::EnvironmentVariable(name)
     }
 
     /// Resolves the source into its input value.
@@ -35,7 +35,7 @@ mod tests {
 
     #[test]
     fn literal_resolves_to_the_supplied_value() {
-        let source = WorkflowInputSourceResponse::literal("staging");
+        let source = WorkflowInputSourceResponse::literal("staging".to_owned());
 
         assert_eq!(source.resolve().unwrap(), "staging");
     }
@@ -45,8 +45,9 @@ mod tests {
         unsafe {
             std::env::set_var("EPHACT_WORKFLOW_INPUT_SOURCE_TEST", "production");
         }
-        let source =
-            WorkflowInputSourceResponse::environment_variable("EPHACT_WORKFLOW_INPUT_SOURCE_TEST");
+        let source = WorkflowInputSourceResponse::environment_variable(
+            "EPHACT_WORKFLOW_INPUT_SOURCE_TEST".to_owned(),
+        );
 
         assert_eq!(source.resolve().unwrap(), "production");
     }
@@ -57,7 +58,7 @@ mod tests {
             std::env::remove_var("EPHACT_WORKFLOW_INPUT_SOURCE_MISSING_TEST");
         }
         let source = WorkflowInputSourceResponse::environment_variable(
-            "EPHACT_WORKFLOW_INPUT_SOURCE_MISSING_TEST",
+            "EPHACT_WORKFLOW_INPUT_SOURCE_MISSING_TEST".to_owned(),
         );
 
         let error = source.resolve().unwrap_err();
