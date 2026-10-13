@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use super::{super::containers::workspace::RUNNER_OUTPUT_FILE, runner_export_parser};
+use super::{
+    super::containers::workspace::RUNNER_OUTPUT_FILE, runner_export_parser::RunnerExportParser,
+};
 use crate::application::{
     dtos::requests::ReadStepOutputExportsRequest,
     ports::outbound::{ContainerPort, ReadStepOutputExportsPort},
@@ -36,7 +38,7 @@ impl ReadStepOutputExportsPort for ReadStepOutputExportsService {
                 None,
                 &HashMap::new(),
             )
-            .map(|result| runner_export_parser::parse(result.stdout()))
+            .map(|result| RunnerExportParser::parse(result.stdout()))
             .unwrap_or_default()
     }
 }

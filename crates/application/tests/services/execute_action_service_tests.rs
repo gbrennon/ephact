@@ -48,7 +48,7 @@ mod tests {
         Arc::from(
             runtime
                 .create_container(&ContainerConfigResponse::new(
-                    "image",
+                    "image".to_owned(),
                     ContainerConfigOptions::default(),
                 ))
                 .unwrap(),
@@ -68,7 +68,7 @@ mod tests {
         context: EvaluationContext,
     ) -> ExecuteActionRequest {
         ExecuteActionRequest::new(ExecuteActionRequestInput::new(
-            action_ref,
+            action_ref.to_owned(),
             JsonStepTextCodec.encode(&step).unwrap(),
             ExecuteActionExecutionInput::new(repo_path.to_path_buf(), HashMap::new(), context),
         ))
@@ -80,10 +80,11 @@ mod tests {
     }
 
     fn push_result(runtime: &FakeRuntime, exit_code: i64, stdout: &str) {
-        runtime
-            .exec_results
-            .lock()
-            .push(ExecResultResponse::new(exit_code, stdout, String::new()));
+        runtime.exec_results.lock().push(ExecResultResponse::new(
+            exit_code,
+            stdout.to_owned(),
+            String::new(),
+        ));
     }
 
     #[test]

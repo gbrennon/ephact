@@ -1,122 +1,126 @@
-use ephact::{
-    domain::{aggregates::Workflow, value_objects::TriggerKind},
-    infrastructure::workflows::woodpecker::WoodpeckerPipelineYaml,
-};
+#[cfg(test)]
+mod tests {
+    use ephact::{
+        domain::{aggregates::Workflow, value_objects::TriggerKind},
+        infrastructure::workflows::woodpecker::WoodpeckerPipelineYaml,
+    };
 
-const PIPELINE: &str = r#"
-name: Woodpecker CI
+    const PIPELINE: &str = r#"
+    name: Woodpecker CI
 
-when:
-  - event: [push, pull_request]
+    when:
+      - event: [push, pull_request]
 
-steps:
-  - name: build
-    image: alpine
-    commands:
-      - echo one
-      - echo two
-  - name: test
-    image: rust
-    commands:
-      - cargo test
-"#;
+    steps:
+      - name: build
+        image: alpine
+        commands:
+          - echo one
+          - echo two
+      - name: test
+        image: rust
+        commands:
+          - cargo test
+    "#;
 
-struct WoodpeckerPipelineYamlTest;
+    struct WoodpeckerPipelineYamlTest;
 
-impl WoodpeckerPipelineYamlTest {
-    fn workflow_from(yaml: &str) -> Workflow {
-        WoodpeckerPipelineYaml::parse(yaml)
-            .expect("pipeline parses")
-            .into_domain()
+    impl WoodpeckerPipelineYamlTest {
+        fn workflow_from(yaml: &str) -> Workflow {
+            WoodpeckerPipelineYaml::parse(yaml)
+                .expect("pipeline parses")
+                .into_domain()
+        }
     }
-}
 
-#[test]
-fn into_domain_keeps_the_pipeline_name() {
-    assert_eq!(
-        WoodpeckerPipelineYamlTest::workflow_from(PIPELINE).name(),
-        Some("Woodpecker CI")
-    );
-}
+    #[test]
+    fn into_domain_keeps_the_pipeline_name() {
+        assert_eq!(
+            WoodpeckerPipelineYamlTest::workflow_from(PIPELINE).name(),
+            Some("Woodpecker CI")
+        );
+    }
 
-#[test]
-fn the_when_conditions_become_domain_triggers() {
-    let workflow = WoodpeckerPipelineYamlTest::workflow_from(PIPELINE);
+    #[test]
+    fn the_when_conditions_become_domain_triggers() {
+        let workflow = WoodpeckerPipelineYamlTest::workflow_from(PIPELINE);
 
-    assert!(workflow.triggers_on(TriggerKind::Push));
-    assert!(workflow.triggers_on(TriggerKind::PullRequest));
-}
+        assert!(workflow.triggers_on(TriggerKind::Push));
+        assert!(workflow.triggers_on(TriggerKind::PullRequest));
+    }
 
-#[test]
-fn every_step_becomes_a_job() {
-    assert_eq!(
-        WoodpeckerPipelineYamlTest::workflow_from(PIPELINE)
-            .jobs()
-            .len(),
-        2
-    );
-}
+    #[test]
+    fn every_step_becomes_a_job() {
+        assert_eq!(
+            WoodpeckerPipelineYamlTest::workflow_from(PIPELINE)
+                .jobs()
+                .len(),
+            2
+        );
+    }
 
-#[test]
-fn the_first_step_job_has_no_dependencies() {
-    let workflow = WoodpeckerPipelineYamlTest::workflow_from(PIPELINE);
-    let job = workflow.jobs().get("step-0").expect("first step job");
+    #[test]
+    fn the_first_step_job_has_no_dependencies() {
+        let workflow = WoodpeckerPipelineYamlTest::workflow_from(PIPELINE);
+        let job = workflow.jobs().get("step-0").expect("first step job");
 
-    assert!(job.needs().is_empty());
-}
+        assert!(job.needs().is_empty());
+    }
 
-#[test]
-fn later_step_jobs_depend_on_their_predecessor_to_preserve_order() {
-    let workflow = WoodpeckerPipelineYamlTest::workflow_from(PIPELINE);
-    let job = workflow.jobs().get("step-1").expect("second step job");
+    #[test]
+    fn later_step_jobs_depend_on_their_predecessor_to_preserve_order() {
+        let workflow = WoodpeckerPipelineYamlTest::workflow_from(PIPELINE);
+        let job = workflow.jobs().get("step-1").expect("second step job");
 
-    assert_eq!(job.needs(), ["step-0"]);
-}
+        assert_eq!(job.needs(), ["step-0"]);
+    }
 
-#[test]
-fn an_empty_pipeline_parses_to_a_workflow_without_jobs() {
-    assert!(
-        WoodpeckerPipelineYamlTest::workflow_from("steps: []")
-            .jobs()
-            .is_empty()
-    );
-}
+    #[test]
+    fn an_empty_pipeline_parses_to_a_workflow_without_jobs() {
+        assert!(
+            WoodpeckerPipelineYamlTest::workflow_from("steps: []")
+                .jobs()
+                .is_empty()
+        );
+    }
 
-const MAPPING_PIPELINE: &str = r#"
-when:
-  - event: tag
-    ref: refs/tags/v*
+    const MAPPING_PIPELINE: &str = r#"
+    when:
+      - event: tag
+        ref: refs/tags/v*
 
-steps:
-  build:
-    image: ubuntu:24.04
-    commands:
-      - echo build
-  package:
-    image: ubuntu:24.04
-    commands:
-      - echo package
-"#;
+    steps:
+      build:
+        image: ubuntu:24.04
+        commands:
+          - echo build
+      package:
+        image: ubuntu:24.04
+        commands:
+          - echo package
+    "#;
 
-#[test]
-fn mapping_form_steps_become_jobs_in_declaration_order() {
-    let workflow = WoodpeckerPipelineYamlTest::workflow_from(MAPPING_PIPELINE);
+    #[test]
+    fn mapping_form_steps_become_jobs_in_declaration_order() {
+        let workflow = WoodpeckerPipelineYamlTest::workflow_from(MAPPING_PIPELINE);
 
-    assert_eq!(workflow.jobs().len(), 2);
-    assert!(workflow.jobs().get("step-1").expect("second job").needs() == ["step-0"]);
-}
+        assert_eq!(workflow.jobs().len(), 2);
+        assert!(workflow.jobs().get("step-1").expect("second job").needs() == ["step-0"]);
+    }
 
-#[test]
-fn mapping_form_steps_take_their_name_from_the_key() {
-    let workflow = WoodpeckerPipelineYamlTest::workflow_from(MAPPING_PIPELINE);
-    let job = workflow.jobs().get("step-0").expect("first job");
+    #[test]
+    fn mapping_form_steps_take_their_name_from_the_key() {
+        let workflow = WoodpeckerPipelineYamlTest::workflow_from(MAPPING_PIPELINE);
+        let job = workflow.jobs().get("step-0").expect("first job");
 
-    assert_eq!(job.steps()[0].name(), Some("build"));
-}
+        assert_eq!(job.steps()[0].name(), Some("build"));
+    }
 
-#[test]
-fn a_tag_pipeline_declares_a_supported_tag_trigger() {
-    assert!(
-        WoodpeckerPipelineYamlTest::workflow_from(MAPPING_PIPELINE).triggers_on(TriggerKind::Tag)
-    );
+    #[test]
+    fn a_tag_pipeline_declares_a_supported_tag_trigger() {
+        assert!(
+            WoodpeckerPipelineYamlTest::workflow_from(MAPPING_PIPELINE)
+                .triggers_on(TriggerKind::Tag)
+        );
+    }
 }

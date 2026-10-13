@@ -1,71 +1,79 @@
-use ephact::{
-    application::dtos::responses::{JobSummaryResponse, WorkflowExecutionResponse},
-    infrastructure::workflows::execution::WorkflowExecutionAggregator,
-};
+#[cfg(test)]
+mod tests {
+    use ephact::{
+        application::dtos::responses::{JobSummaryResponse, WorkflowExecutionResponse},
+        infrastructure::workflows::execution::WorkflowExecutionAggregator,
+    };
 
-#[test]
-fn qualifies_job_names_with_their_workflow_name() {
-    let executions = vec![WorkflowExecutionResponse::new(
-        "build",
-        vec![JobSummaryResponse::new(
-            "job-id",
-            Some("test".to_owned()),
-            vec![],
-            true,
-        )],
-        vec![],
-        true,
-    )];
-
-    let summaries = WorkflowExecutionAggregator::new().aggregate(&executions);
-
-    assert_eq!(summaries[0].name(), Some("build / test"));
-}
-
-#[test]
-fn preserves_jobs_without_names() {
-    let executions = vec![WorkflowExecutionResponse::new(
-        "build",
-        vec![JobSummaryResponse::new("job-id", None, vec![], true)],
-        vec![],
-        true,
-    )];
-
-    let summaries = WorkflowExecutionAggregator::new().aggregate(&executions);
-
-    assert_eq!(summaries[0].name(), None);
-}
-
-#[test]
-fn aggregates_jobs_from_all_workflows_in_order() {
-    let executions = vec![
-        WorkflowExecutionResponse::new(
-            "build",
+    #[test]
+    fn qualifies_job_names_with_their_workflow_name() {
+        let executions = vec![WorkflowExecutionResponse::new(
+            "build".to_owned(),
             vec![JobSummaryResponse::new(
-                "build-job",
-                Some("compile".to_owned()),
+                "job-id".to_owned(),
+                Some("test".to_owned()),
                 vec![],
                 true,
             )],
             vec![],
             true,
-        ),
-        WorkflowExecutionResponse::new(
-            "test",
+        )];
+
+        let summaries = WorkflowExecutionAggregator::new().aggregate(&executions);
+
+        assert_eq!(summaries[0].name(), Some("build / test"));
+    }
+
+    #[test]
+    fn preserves_jobs_without_names() {
+        let executions = vec![WorkflowExecutionResponse::new(
+            "build".to_owned(),
             vec![JobSummaryResponse::new(
-                "test-job",
-                Some("unit".to_owned()),
+                "job-id".to_owned(),
+                None,
                 vec![],
                 true,
             )],
             vec![],
             true,
-        ),
-    ];
+        )];
 
-    let summaries = WorkflowExecutionAggregator::new().aggregate(&executions);
+        let summaries = WorkflowExecutionAggregator::new().aggregate(&executions);
 
-    assert_eq!(summaries.len(), 2);
-    assert_eq!(summaries[0].job_id(), "build-job");
-    assert_eq!(summaries[1].job_id(), "test-job");
+        assert_eq!(summaries[0].name(), None);
+    }
+
+    #[test]
+    fn aggregates_jobs_from_all_workflows_in_order() {
+        let executions = vec![
+            WorkflowExecutionResponse::new(
+                "build".to_owned(),
+                vec![JobSummaryResponse::new(
+                    "build-job".to_owned(),
+                    Some("compile".to_owned()),
+                    vec![],
+                    true,
+                )],
+                vec![],
+                true,
+            ),
+            WorkflowExecutionResponse::new(
+                "test".to_owned(),
+                vec![JobSummaryResponse::new(
+                    "test-job".to_owned(),
+                    Some("unit".to_owned()),
+                    vec![],
+                    true,
+                )],
+                vec![],
+                true,
+            ),
+        ];
+
+        let summaries = WorkflowExecutionAggregator::new().aggregate(&executions);
+
+        assert_eq!(summaries.len(), 2);
+        assert_eq!(summaries[0].job_id(), "build-job");
+        assert_eq!(summaries[1].job_id(), "test-job");
+    }
 }

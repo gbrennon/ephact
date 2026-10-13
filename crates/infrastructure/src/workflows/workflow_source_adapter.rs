@@ -1,12 +1,13 @@
 use std::{collections::BTreeSet, fs};
 
-use super::{source_name::resolve_source_name, workflow_directories::WORKFLOW_DIRECTORIES};
+use super::workflow_directories::WORKFLOW_DIRECTORIES;
 use crate::{
     application::{
         dtos::responses::WorkflowSourceFileResponse, errors::WorkflowSourceError,
         ports::outbound::WorkflowSourcePort,
     },
     domain::entities::repository::Repository,
+    source_name::SourceNameResolver,
     workflows::workflow_document::WorkflowDocument,
 };
 
@@ -97,7 +98,7 @@ impl FilesystemWorkflowSource {
     ) -> Result<Option<WorkflowSourceFileResponse>, WorkflowSourceError> {
         for file in files {
             let content = Self::read_file_content(file)?;
-            if resolve_source_name(Self::extract_name(&content).as_deref(), file).as_deref()
+            if SourceNameResolver::resolve(Self::extract_name(&content).as_deref(), file).as_deref()
                 == Some(name)
             {
                 let file_name = file
@@ -206,7 +207,7 @@ impl WorkflowSourcePort for FilesystemWorkflowSource {
 
         for file in files {
             let content = Self::read_file_content(&file)?;
-            let name = resolve_source_name(Self::extract_name(&content).as_deref(), &file);
+            let name = SourceNameResolver::resolve(Self::extract_name(&content).as_deref(), &file);
             items.push(
                 crate::application::dtos::responses::WorkflowListItemResponse::new(
                     name,

@@ -1,61 +1,65 @@
-use std::path::PathBuf;
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
 
-use ephact::{
-    application::dtos::requests::FetchRemoteActionRequest,
-    domain::value_objects::RemoteActionReference,
-    infrastructure::actions::acquisition::fetch_remote_action_service::FetchRemoteActionService,
-};
-use ephact_application::ports::outbound::FetchRemoteActionPort;
+    use ephact::{
+        application::dtos::requests::FetchRemoteActionRequest,
+        domain::value_objects::RemoteActionReference,
+        infrastructure::actions::acquisition::fetch_remote_action_service::FetchRemoteActionService,
+    };
+    use ephact_application::ports::outbound::FetchRemoteActionPort;
 
-use crate::common::fakes::{
-    fake_action_fetcher::FakeActionFetcher, stub_failing_action_fetcher::StubFailingActionFetcher,
-};
+    use crate::common::fakes::{
+        fake_action_fetcher::FakeActionFetcher,
+        stub_failing_action_fetcher::StubFailingActionFetcher,
+    };
 
-fn reference(directory: Option<&str>) -> RemoteActionReference {
-    RemoteActionReference::new(
-        "https".into(),
-        "data.forgejo.org".into(),
-        "actions".into(),
-        "cache".into(),
-        "v4".into(),
-    )
-    .with_directory(directory.map(str::to_string))
-}
+    fn reference(directory: Option<&str>) -> RemoteActionReference {
+        RemoteActionReference::new(
+            "https".into(),
+            "data.forgejo.org".into(),
+            "actions".into(),
+            "cache".into(),
+            "v4".into(),
+        )
+        .with_directory(directory.map(str::to_string))
+    }
 
-#[test]
-fn execute_returns_the_fetched_directory() {
-    let fetched = PathBuf::from("/cache/actions-cache");
-    let service =
-        FetchRemoteActionService::new(Box::new(FakeActionFetcher::returning(fetched.clone())));
+    #[test]
+    fn execute_returns_the_fetched_directory() {
+        let fetched = PathBuf::from("/cache/actions-cache");
+        let service =
+            FetchRemoteActionService::new(Box::new(FakeActionFetcher::returning(fetched.clone())));
 
-    let directory = service
-        .fetch(FetchRemoteActionRequest::new(reference(None)))
-        .unwrap();
+        let directory = service
+            .fetch(FetchRemoteActionRequest::new(reference(None)))
+            .unwrap();
 
-    assert_eq!(directory, fetched);
-}
+        assert_eq!(directory, fetched);
+    }
 
-#[test]
-fn execute_narrows_to_the_referenced_subdirectory() {
-    let fetched = PathBuf::from("/cache/actions-cache");
-    let service =
-        FetchRemoteActionService::new(Box::new(FakeActionFetcher::returning(fetched.clone())));
+    #[test]
+    fn execute_narrows_to_the_referenced_subdirectory() {
+        let fetched = PathBuf::from("/cache/actions-cache");
+        let service =
+            FetchRemoteActionService::new(Box::new(FakeActionFetcher::returning(fetched.clone())));
 
-    let directory = service
-        .fetch(FetchRemoteActionRequest::new(reference(Some("save"))))
-        .unwrap();
+        let directory = service
+            .fetch(FetchRemoteActionRequest::new(reference(Some("save"))))
+            .unwrap();
 
-    assert_eq!(directory, fetched.join("save"));
-}
+        assert_eq!(directory, fetched.join("save"));
+    }
 
-#[test]
-fn execute_propagates_a_fetch_failure() {
-    let service = FetchRemoteActionService::new(Box::new(StubFailingActionFetcher));
+    #[test]
+    fn execute_propagates_a_fetch_failure() {
+        let service = FetchRemoteActionService::new(Box::new(StubFailingActionFetcher));
 
-    let error = service
-        .fetch(FetchRemoteActionRequest::new(reference(None)))
-        .unwrap_err()
-        .to_string();
+        let error = service
+            .fetch(FetchRemoteActionRequest::new(reference(None)))
+            .unwrap_err()
+            .to_string();
 
-    assert!(error.contains("failed to fetch action"), "{error}");
+        assert!(error.contains("failed to fetch action"), "{error}");
+    }
 }

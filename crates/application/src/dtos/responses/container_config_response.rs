@@ -20,11 +20,11 @@ pub struct ContainerConfigResponse {
 }
 
 impl ContainerConfigResponse {
-    pub fn new(image: impl Into<String>, options: ContainerConfigOptions) -> Self {
+    pub fn new(image: String, options: ContainerConfigOptions) -> Self {
         let (platform, env, binds, workdir, cmd, entrypoint, network, name, runner_context) =
             options.into_parts();
         Self {
-            image: image.into(),
+            image,
             platform,
             env,
             binds,

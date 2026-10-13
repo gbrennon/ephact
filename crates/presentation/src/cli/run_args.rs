@@ -264,8 +264,8 @@ impl RunArgs {
         let (key, value) = Self::parse_key_value(s)?;
         let source = value
             .strip_prefix("env:")
-            .map(WorkflowInputSourceResponse::environment_variable)
-            .unwrap_or_else(|| WorkflowInputSourceResponse::literal(value));
+            .map(|name| WorkflowInputSourceResponse::environment_variable(name.to_owned()))
+            .unwrap_or_else(|| WorkflowInputSourceResponse::literal(value.to_owned()));
         Ok((key, source))
     }
 

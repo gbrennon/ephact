@@ -83,7 +83,8 @@ impl ContainerConfigOptions {
         self
     }
 
-    pub(crate) fn into_parts(self) -> ContainerConfigOptionsParts {
+    /// Consumes the options and returns their owned configuration parts.
+    pub fn into_parts(self) -> ContainerConfigOptionsParts {
         (
             self.platform,
             self.env,

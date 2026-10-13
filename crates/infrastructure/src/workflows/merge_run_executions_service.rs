@@ -33,7 +33,7 @@ impl MergeRunExecutionsService {
             job.success(),
         );
         match job.skip_reason() {
-            Some(reason) => prefixed.with_skip_reason(reason),
+            Some(reason) => prefixed.with_skip_reason(reason.to_owned()),
             None => prefixed,
         }
     }
@@ -73,7 +73,7 @@ impl MergeRunExecutionsPort for MergeRunExecutionsService {
         }
 
         Ok(WorkflowExecutionResponse::new(
-            ALL_WORKFLOWS_SUMMARY_NAME,
+            ALL_WORKFLOWS_SUMMARY_NAME.to_owned(),
             merged_jobs,
             merged_containers,
             merged_success,

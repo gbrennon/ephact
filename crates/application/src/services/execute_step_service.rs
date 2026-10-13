@@ -67,8 +67,8 @@ impl ExecuteStepService {
         ))?;
         Ok(ExecuteActionResponse::new(
             result.exit_code(),
-            result.stdout(),
-            result.stderr(),
+            result.stdout().to_owned(),
+            result.stderr().to_owned(),
         ))
     }
 }

@@ -182,15 +182,19 @@ impl ExecuteActionService {
                 .node_runner
                 .run(
                     RunNodeActionRequest::new(
-                        context.action_directory(),
-                        main.as_str(),
+                        context.action_directory().to_path_buf(),
+                        main.as_str().to_owned(),
                         context.inputs().clone(),
                         request.env().clone(),
                     ),
                     self.container.clone(),
                 )
                 .map(|result| {
-                    ExecuteActionResponse::new(result.exit_code(), result.stdout(), result.stderr())
+                    ExecuteActionResponse::new(
+                        result.exit_code(),
+                        result.stdout().to_owned(),
+                        result.stderr().to_owned(),
+                    )
                 }),
             ActionRuntime::Docker { image } => Err(StepError::new(
                 ActionError::Unsupported(format!(

@@ -92,6 +92,10 @@ impl ContainerRuntimePort for FakeRuntime {
     }
 
     fn get_host_info(&self) -> Result<HostInfoResponse, ContainerError> {
-        Ok(HostInfoResponse::new("linux", "amd64", "1.0"))
+        Ok(HostInfoResponse::new(
+            "linux".to_owned(),
+            "amd64".to_owned(),
+            "1.0".to_owned(),
+        ))
     }
 }

@@ -8,10 +8,10 @@ pub struct JobExecutionResponse {
 }
 
 impl JobExecutionResponse {
-    pub fn new(job_summary: JobSummaryResponse, container_name: impl Into<String>) -> Self {
+    pub fn new(job_summary: JobSummaryResponse, container_name: String) -> Self {
         Self {
             job_summary,
-            container_name: container_name.into(),
+            container_name,
         }
     }
 

@@ -9,7 +9,7 @@ pub mod read_step_output_exports_service;
 pub mod read_step_path_exports_service;
 pub mod run_composite_step_service;
 pub mod run_shell_step_service;
-pub mod runner_export_parser;
+mod runner_export_parser;
 pub mod step_command_handler;
 pub mod step_interpolator;
 pub mod summarize_step_service;

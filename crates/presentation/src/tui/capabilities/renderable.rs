@@ -3,9 +3,10 @@ use ratatui::{Frame, layout::Rect};
 /// Common rendering contract for TUI components.
 ///
 /// Components choose the context they need while sharing the same frame and area
-/// arguments. Stateless components can use `()` as their context.
+/// arguments. Stateless components can use `()` as their context. Implementations
+/// return the area they rendered.
 pub trait Renderable {
     type Context: ?Sized;
 
-    fn render(&self, frame: &mut Frame<'_>, area: Rect, context: &Self::Context);
+    fn render(&self, frame: &mut Frame<'_>, area: Rect, context: &Self::Context) -> Rect;
 }

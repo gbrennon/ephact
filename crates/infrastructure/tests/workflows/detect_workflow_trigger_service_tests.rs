@@ -1,24 +1,27 @@
-use ephact::{
-    application::ports::outbound::DetectWorkflowTriggerPort,
-    infrastructure::workflows::DetectWorkflowTriggerService,
-};
+#[cfg(test)]
+mod tests {
+    use ephact::{
+        application::ports::outbound::DetectWorkflowTriggerPort,
+        infrastructure::workflows::DetectWorkflowTriggerService,
+    };
 
-#[test]
-fn detects_pull_request_event_in_woodpecker_pipeline() {
-    let content = "name: Demo\nwhen:\n  - event: pull_request\nsteps: []\n";
+    #[test]
+    fn detects_pull_request_event_in_woodpecker_pipeline() {
+        let content = "name: Demo\nwhen:\n  - event: pull_request\nsteps: []\n";
 
-    let triggers = DetectWorkflowTriggerService::new();
+        let triggers = DetectWorkflowTriggerService::new();
 
-    let triggers_pull_request = triggers.triggers_on_event(content, "pull_request");
+        let triggers_pull_request = triggers.triggers_on_event(content, "pull_request");
 
-    assert!(triggers_pull_request);
-}
+        assert!(triggers_pull_request);
+    }
 
-#[test]
-fn detects_tag_event_in_woodpecker_pipeline() {
-    let content = "name: Release\nwhen:\n  - event: tag\n    ref: refs/tags/v*\nsteps: []\n";
+    #[test]
+    fn detects_tag_event_in_woodpecker_pipeline() {
+        let content = "name: Release\nwhen:\n  - event: tag\n    ref: refs/tags/v*\nsteps: []\n";
 
-    let triggers = DetectWorkflowTriggerService::new();
+        let triggers = DetectWorkflowTriggerService::new();
 
-    assert!(triggers.triggers_on_event(content, "tag"));
+        assert!(triggers.triggers_on_event(content, "tag"));
+    }
 }

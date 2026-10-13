@@ -1,3 +1,4 @@
+#[cfg(test)]
 mod tests {
     use std::{cell::RefCell, io};
 
@@ -79,7 +80,7 @@ mod tests {
     fn collect_declared_inputs_prompts_for_required_values() {
         let terminal = ScriptedTerminal::new(&["staging"], true);
         let declarations = vec![RunInputDeclarationResponse::new(
-            "environment",
+            "environment".to_owned(),
             RunInputSourceResponse::Action("workflow.yml".into()),
             Some("Deployment environment".into()),
             true,
@@ -100,7 +101,7 @@ mod tests {
     fn collect_declared_inputs_reports_missing_required_noninteractive_values() {
         let terminal = ScriptedTerminal::new(&[], false);
         let declarations = vec![RunInputDeclarationResponse::new(
-            "token",
+            "token".to_owned(),
             RunInputSourceResponse::Action("workflow.yml".into()),
             None,
             true,

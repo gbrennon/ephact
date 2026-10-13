@@ -16,15 +16,15 @@ pub struct ExecuteStepRequest {
 impl ExecuteStepRequest {
     /// Creates step execution inputs.
     pub fn new(
-        step: impl Into<String>,
+        step: String,
         context: EvaluationContext,
-        repo_path: impl Into<PathBuf>,
+        repo_path: PathBuf,
         env: HashMap<String, String>,
     ) -> Self {
         Self {
-            step: step.into(),
+            step,
             context,
-            repo_path: repo_path.into(),
+            repo_path,
             env,
         }
     }

@@ -41,8 +41,8 @@ impl ExecuteWorkflowRequest {
     }
 
     /// Sets the source filename used when the workflow has no YAML name.
-    pub fn with_file_name(mut self, file_name: impl Into<String>) -> Self {
-        self.file_name = Some(file_name.into());
+    pub fn with_file_name(mut self, file_name: String) -> Self {
+        self.file_name = Some(file_name);
         self
     }
 
@@ -58,8 +58,8 @@ impl ExecuteWorkflowRequest {
     }
 
     /// Sets the selected job used to limit workflow execution.
-    pub fn with_selected_job(mut self, selected_job: impl Into<String>) -> Self {
-        self.selected_job = Some(selected_job.into());
+    pub fn with_selected_job(mut self, selected_job: String) -> Self {
+        self.selected_job = Some(selected_job);
         self
     }
 

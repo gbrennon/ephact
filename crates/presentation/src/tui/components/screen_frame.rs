@@ -14,19 +14,7 @@ pub struct ScreenFrame;
 impl Renderable for ScreenFrame {
     type Context = str;
 
-    fn render(&self, frame: &mut Frame<'_>, _area: Rect, title: &Self::Context) {
-        Self::render(frame, title);
-    }
-}
-
-impl ScreenFrame {
-    const BLOCK_TITLE: &'static str = "ephact";
-    const MARGIN: u16 = 2;
-    const TITLE_HEIGHT: u16 = 3;
-    const CONTENT_MIN_HEIGHT: u16 = 5;
-
-    /// Renders the application title and returns the area for the active screen.
-    pub fn render(frame: &mut Frame<'_>, title: &str) -> Rect {
+    fn render(&self, frame: &mut Frame<'_>, _area: Rect, title: &Self::Context) -> Rect {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(Self::MARGIN)
@@ -45,4 +33,11 @@ impl ScreenFrame {
         frame.render_widget(title, chunks[0]);
         chunks[1]
     }
+}
+
+impl ScreenFrame {
+    const BLOCK_TITLE: &'static str = "ephact";
+    const MARGIN: u16 = 2;
+    const TITLE_HEIGHT: u16 = 3;
+    const CONTENT_MIN_HEIGHT: u16 = 5;
 }

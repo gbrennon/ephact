@@ -63,19 +63,19 @@ impl StepSummaryDetails {
         exit_code: Option<i64>,
         continue_on_error: bool,
         duration: std::time::Duration,
-        stdout: impl Into<String>,
-        stderr: impl Into<String>,
+        stdout: String,
+        stderr: String,
     ) -> Self {
         Self {
             exit_code,
             continue_on_error,
             duration,
-            stdout: stdout.into(),
-            stderr: stderr.into(),
+            stdout,
+            stderr,
         }
     }
 
-    pub(crate) fn into_parts(self) -> (Option<i64>, bool, std::time::Duration, String, String) {
+    fn into_parts(self) -> (Option<i64>, bool, std::time::Duration, String, String) {
         (
             self.exit_code,
             self.continue_on_error,
@@ -94,15 +94,15 @@ pub struct StepSummaryResponseInput {
 }
 
 impl StepSummaryResponseInput {
-    pub fn new(name: impl Into<String>, step_type: StepType, details: StepSummaryDetails) -> Self {
+    pub fn new(name: String, step_type: StepType, details: StepSummaryDetails) -> Self {
         Self {
-            name: name.into(),
+            name,
             step_type,
             details,
         }
     }
 
-    pub(crate) fn into_parts(self) -> (String, StepType, StepSummaryDetails) {
+    fn into_parts(self) -> (String, StepType, StepSummaryDetails) {
         (self.name, self.step_type, self.details)
     }
 }
@@ -164,8 +164,8 @@ impl StepSummaryResponse {
         self.skip_reason.as_deref()
     }
 
-    pub fn with_skip_reason(mut self, reason: impl Into<String>) -> Self {
-        self.skip_reason = Some(reason.into());
+    pub fn with_skip_reason(mut self, reason: String) -> Self {
+        self.skip_reason = Some(reason);
         self
     }
 

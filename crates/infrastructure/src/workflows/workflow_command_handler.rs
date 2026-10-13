@@ -90,7 +90,7 @@ impl WorkflowCommandHandler {
         .with_allow_network(cmd.config().allow_network())
         .with_selected_job_opt(cmd.config().job().map(|job| job.as_str()));
         let req = match cmd.workflow_file_name() {
-            Some(file_name) => req.with_file_name(file_name),
+            Some(file_name) => req.with_file_name(file_name.to_owned()),
             None => req,
         };
         self.executor.execute(req)
