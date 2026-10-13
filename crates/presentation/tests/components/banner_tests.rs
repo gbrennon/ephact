@@ -108,7 +108,7 @@ mod tests {
                 .iter()
                 .enumerate()
                 .filter_map(|(index, glyph)| (!glyph.is_whitespace()).then_some(index))
-                .last()
+                .next_back()
                 .expect("find content end");
             let content_center = first + last + 2 * (left_border + 1);
             assert!(
