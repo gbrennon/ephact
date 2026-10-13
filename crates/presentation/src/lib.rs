@@ -1,6 +1,7 @@
 pub use ephact_application as application;
 pub use ephact_domain as domain;
 pub use ephact_infrastructure as infrastructure;
+pub use tui::components::PROJECT_EMBLEM;
 pub mod cli;
 pub mod components;
 pub mod composition_root;
