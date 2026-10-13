@@ -7,6 +7,7 @@ use ratatui::{
 };
 
 use crate::{
+    components::{ProjectBranding, text_alignment::TextAlignment},
     domain::value_objects::Marker,
     tui::{
         components::{ColorSupport, Emblem},
@@ -22,39 +23,44 @@ use crate::{
 pub struct SplashScreen;
 
 impl SplashScreen {
-    const TITLE: &'static str = "EPHACT";
-    const SUBTITLE: &'static str = "run workflows locally in containers";
-    const HINT: &'static str = "press any key to continue";
     const WIDTH_PERCENT: u16 = 60;
     const HEIGHT_PERCENT: u16 = 70;
     const HORIZONTAL_PADDING: u16 = 4;
     const VERTICAL_PADDING: u16 = 1;
 
-    /// Renders the splash with `title`, using the color capability from the environment.
-    pub fn render(frame: &mut Frame<'_>, emblem: &str, title: &str) {
+    /// Renders the splash with `title` and a caller-provided continuation hint.
+    pub fn render(frame: &mut Frame<'_>, emblem: &str, title: &str, hint: &str) {
         Self::render_with_marker(
             frame,
             emblem,
             ColorSupport::from_env(),
             title,
+            hint,
             &Marker::default(),
         );
     }
 
-    /// Renders the splash with `title` and an explicit color capability.
-    pub fn render_with(frame: &mut Frame<'_>, emblem: &str, support: ColorSupport, title: &str) {
-        Self::render_with_marker(frame, emblem, support, title, &Marker::default());
+    /// Renders the splash with `title`, `hint`, and explicit color capability.
+    pub fn render_with(
+        frame: &mut Frame<'_>,
+        emblem: &str,
+        support: ColorSupport,
+        title: &str,
+        hint: &str,
+    ) {
+        Self::render_with_marker(frame, emblem, support, title, hint, &Marker::default());
     }
 
-    /// Renders the splash with the configured marker and terminal capability.
+    /// Renders the splash with the configured marker, hint, and terminal capability.
     pub fn render_with_marker(
         frame: &mut Frame<'_>,
         emblem: &str,
         support: ColorSupport,
         title: &str,
+        hint: &str,
         marker: &Marker,
     ) {
-        let lines = Self::body_lines(emblem, support, marker);
+        let lines = Self::body_lines(emblem, support, hint, marker);
         let emblem_width = Emblem::new(emblem).width() as u16;
         let area = Self::centered_area(
             frame.area(),
@@ -89,14 +95,19 @@ impl SplashScreen {
         Emblem::new(emblem).render_graphical_marker(frame, content, marker, support);
     }
 
-    fn body_lines(emblem: &str, support: ColorSupport, marker: &Marker) -> Vec<Line<'static>> {
+    fn body_lines(
+        emblem: &str,
+        support: ColorSupport,
+        hint: &str,
+        marker: &Marker,
+    ) -> Vec<Line<'static>> {
         let mut lines = Emblem::new(emblem).lines_for(support, marker);
         lines.push(Line::from(""));
         lines.push(Self::title_line(support));
         lines.push(Line::from(""));
         lines.push(Self::subtitle_line());
         lines.push(Line::from(""));
-        lines.push(Self::hint_line());
+        lines.push(Self::hint_line(hint));
         lines
     }
 
@@ -112,16 +123,19 @@ impl SplashScreen {
     }
 
     fn title_line(_support: ColorSupport) -> Line<'static> {
-        Line::from(Span::styled(Self::TITLE, Theme::title_style()))
+        Line::from(Span::styled(ProjectBranding::TITLE, Theme::title_style()))
     }
 
     fn subtitle_line() -> Line<'static> {
-        Line::from(Span::styled(Self::SUBTITLE, Theme::muted_style()))
+        Line::from(Span::styled(
+            ProjectBranding::SUBTITLE,
+            Theme::muted_style(),
+        ))
     }
 
-    fn hint_line() -> Line<'static> {
+    fn hint_line(hint: &str) -> Line<'static> {
         Line::from(Span::styled(
-            Self::HINT,
+            hint.to_owned(),
             Theme::muted_style().add_modifier(Modifier::DIM),
         ))
     }
@@ -148,6 +162,9 @@ impl SplashScreen {
     }
 
     fn horizontal_padding(area_width: u16, content_width: u16) -> u16 {
-        Self::HORIZONTAL_PADDING.min(area_width.saturating_sub(2).saturating_sub(content_width) / 2)
+        Self::HORIZONTAL_PADDING.min(TextAlignment::Center.offset(
+            area_width.saturating_sub(2) as usize,
+            content_width as usize,
+        ) as u16)
     }
 }
