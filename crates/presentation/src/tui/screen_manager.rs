@@ -18,6 +18,7 @@ use crate::{
         },
         ports::outbound::SettingsStorePort,
     },
+    components::ProjectBranding,
     domain::Settings,
     infrastructure::HostSshForwardingSettingsPort,
 };
@@ -126,6 +127,7 @@ impl ScreenManager {
                 &self.emblem,
                 crate::tui::components::ColorSupport::from_env(),
                 splash_quote,
+                ProjectBranding::TUI_HINT,
             );
             return;
         }
