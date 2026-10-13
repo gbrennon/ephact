@@ -25,10 +25,6 @@ mod tests {
 
         assert!(lines.iter().all(|line| line.len() == 30));
         assert_eq!(lines[0], "    +-------------------+     ");
-        assert!(
-            lines
-                .iter()
-                .any(|line| *line == "    |       Title       |     ")
-        );
+        assert!(lines.contains(&"    |       Title       |     "));
     }
 }
