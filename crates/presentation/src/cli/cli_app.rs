@@ -2,6 +2,7 @@ use std::{ffi::OsString, sync::Arc};
 
 use super::{
     super::components::{
+        ProjectBranding, SplashQuotes,
         banner::Banner,
         box_component::BoxComponent,
         content::ContentComponent,
@@ -190,8 +191,7 @@ impl Cli {
     }
 
     async fn run_tui(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let branding = self.show_project_branding_info_port.execute()?;
-        self.tui_runner.run(branding.emblem()).await
+        self.tui_runner.run().await
     }
     async fn execute_cli(
         &self,
@@ -256,7 +256,12 @@ impl Cli {
             Command::Settings(settings) => self.execute_settings(settings),
             command => {
                 let branding = self.show_project_branding_info_port.execute()?;
-                let mut output = BoxComponent::new(Banner::new(&branding), terminal).render();
+                let mut output = BoxComponent::centered(
+                    Banner::new(&branding, ProjectBranding::CLI_HINT),
+                    terminal,
+                )
+                .with_title(SplashQuotes::random())
+                .render();
                 self.execute_command(command, terminal, &mut output).await?;
                 Ok(output)
             }
