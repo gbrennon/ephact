@@ -9,9 +9,13 @@ use ratatui_image::{Image, Resize, picker::Picker};
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 use crate::{
+    components::{EmblemLayout, TextAlignment},
     domain::value_objects::Marker,
     tui::{components::color_support::ColorSupport, theme::Theme},
 };
+
+/// Canonical project emblem loaded from the repository asset.
+pub const PROJECT_EMBLEM: &str = include_str!("../../../../../assets/project_emblem.txt");
 
 pub struct Emblem<'a> {
     text: &'a str,
@@ -70,14 +74,18 @@ impl<'a> Emblem<'a> {
             .lines()
             .nth(Self::MARKER_LINE_INDEX as usize)
             .unwrap_or("");
+        let layout = EmblemLayout::new(self.text);
+        let gutter = layout.gutter();
         let marker_column = line
             .find(Self::MARKER_GLYPH)
-            .map(|index| line[..index].chars().count())
+            .map(|index| line[..index].chars().count().saturating_sub(gutter))
             .unwrap_or(0);
         let emblem_width = self.emblem_width() as u16;
+        let emblem_offset =
+            TextAlignment::Center.offset(area.width as usize, emblem_width as usize) as u16;
         Rect::new(
             area.x
-                .saturating_add(area.width.saturating_sub(emblem_width) / 2)
+                .saturating_add(emblem_offset)
                 .saturating_add(marker_column as u16),
             area.y.saturating_add(Self::MARKER_LINE_INDEX),
             Self::MARKER_SLOT_WIDTH as u16,
@@ -125,9 +133,11 @@ impl<'a> Emblem<'a> {
     }
 
     fn padded_with_marker(&self, text: &str, marker: &Marker) -> (String, Option<usize>) {
+        let layout = EmblemLayout::new(self.text);
         let source = Self::replace_marker(text, marker);
-        let padding = self.emblem_width().saturating_sub(source.0.width());
-        (format!("{}{}", source.0, " ".repeat(padding)), source.1)
+        let marker_start = source.1.map(|start| start.saturating_sub(layout.gutter()));
+        let line = layout.normalize_line(&source.0, self.emblem_width());
+        (line, marker_start)
     }
 
     fn replace_marker(text: &str, marker: &Marker) -> (String, Option<usize>) {
@@ -167,12 +177,7 @@ impl<'a> Emblem<'a> {
     }
 
     fn emblem_width(&self) -> usize {
-        self.text
-            .lines()
-            .map(str::width)
-            .max()
-            .unwrap_or(0)
-            .saturating_add(Self::MARKER_SLOT_WIDTH - 1)
+        EmblemLayout::new(self.text).width_with_slot(Self::MARKER_SLOT_WIDTH)
     }
 
     fn fancy_span(glyph: char) -> Span<'static> {
