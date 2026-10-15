@@ -29,4 +29,6 @@ jobs:
       - name: Update unreleased changelog
         uses: ./.forgejo/actions/update-changelog
         with:
+          git-user-name: ${{ github.event.pull_request.user.login }}
+          git-user-email: ${{ github.event.pull_request.user.login }}@users.noreply.codeberg.org
           target-branch: main

@@ -12,6 +12,12 @@ inputs:
     description: Initial delay between changelog push retries
     required: false
     default: "5"
+  git-user-name:
+    description: Name used for the changelog commit
+    required: true
+  git-user-email:
+    description: Email used for the changelog commit
+    required: true
 runs:
   using: composite
   steps:
@@ -21,4 +27,6 @@ runs:
         VERSION: ${{ inputs.version }}
         TARGET_BRANCH: ${{ inputs.target-branch }}
         PUSH_RETRY_DELAY_SECONDS: ${{ inputs.push-retry-delay-seconds }}
+        GIT_USER_NAME: ${{ inputs.git-user-name }}
+        GIT_USER_EMAIL: ${{ inputs.git-user-email }}
       run: bash scripts/update_changelog.sh

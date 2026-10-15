@@ -9,6 +9,8 @@ readonly TARGET_BRANCH="${TARGET_BRANCH:-}"
 readonly VERSION="${VERSION:-}"
 readonly MAX_PUSH_ATTEMPTS="${MAX_PUSH_ATTEMPTS:-3}"
 readonly PUSH_RETRY_DELAY_SECONDS="${PUSH_RETRY_DELAY_SECONDS:-5}"
+readonly GIT_USER_NAME="${GIT_USER_NAME:-}"
+readonly GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
 readonly RELEASE_TAG_WAIT_ATTEMPTS="${RELEASE_TAG_WAIT_ATTEMPTS:-40}"
 readonly RELEASE_TAG_WAIT_SECONDS="${RELEASE_TAG_WAIT_SECONDS:-15}"
 temporary_file=""
@@ -101,7 +103,11 @@ commit_and_push() {
     printf 'CHANGELOG.md produced no changes\n'
     return 0
   fi
-  git commit --message 'chore(release): update changelog'
+  if ! git -c user.name="$GIT_USER_NAME" \
+    -c user.email="$GIT_USER_EMAIL" \
+    commit --message 'chore(release): update changelog'; then
+    return 1
+  fi
   if git push origin "HEAD:$TARGET_BRANCH"; then
     printf 'Updated changelog on %s\n' "$TARGET_BRANCH"
     return 0

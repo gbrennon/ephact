@@ -22,6 +22,8 @@ git -C "$source_repo" add CHANGELOG.md cliff.toml
 git -C "$source_repo" commit --quiet --message 'chore(test): initialize changelog fixture'
 git -C "$source_repo" remote add origin "$origin"
 git -C "$source_repo" push --quiet origin main
+git -C "$source_repo" config --unset user.name
+git -C "$source_repo" config --unset user.email
 
 cat > "$bin_dir/git-cliff" <<'EOF'
 #!/usr/bin/env bash
@@ -79,6 +81,8 @@ chmod +x "$origin/hooks/pre-receive"
     TEST_ROOT="$test_root" \
     TARGET_BRANCH=main \
     CLIFF_CONFIG=cliff.toml \
+    GIT_USER_NAME='pull-request-author' \
+    GIT_USER_EMAIL='pull-request-author@users.noreply.codeberg.org' \
     MAX_PUSH_ATTEMPTS=3 \
     PUSH_RETRY_DELAY_SECONDS=2 \
     RELEASE_TAG_WAIT_ATTEMPTS=1 \
@@ -88,5 +92,7 @@ chmod +x "$origin/hooks/pre-receive"
 test "$(cat "$origin/pre-receive-count")" = 3
 test "$(cat "$test_root/sleep-delays")" = $'2\n4'
 test "$(git -C "$origin" rev-parse main)" != "$(git -C "$source_repo" rev-parse HEAD~1)"
+test "$(git -C "$origin" log -1 --format='%an <%ae>')" = \
+  'pull-request-author <pull-request-author@users.noreply.codeberg.org>'
 grep --fixed-strings --quiet '## [Unreleased]' "$source_repo/CHANGELOG.md"
 printf '%s\n' 'changelog retry regression passed'
