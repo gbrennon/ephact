@@ -11,8 +11,9 @@ validate_configuration() {
   local config_file="$2"
   local version="$3"
   local max_push_attempts="$4"
-  local release_tag_wait_attempts="$5"
-  local release_tag_wait_seconds="$6"
+  local push_retry_delay_seconds="$5"
+  local release_tag_wait_attempts="$6"
+  local release_tag_wait_seconds="$7"
 
   [[ -n "$target_branch" ]] || fail 'TARGET_BRANCH is required'
   [[ "$target_branch" =~ ^[A-Za-z0-9._/-]+$ ]] || fail 'TARGET_BRANCH is invalid'
@@ -21,6 +22,8 @@ validate_configuration() {
   command -v git-cliff >/dev/null 2>&1 || fail 'git-cliff is not installed'
   [[ "$max_push_attempts" =~ ^[1-9][0-9]*$ ]] || \
     fail 'MAX_PUSH_ATTEMPTS must be a positive integer'
+  [[ "$push_retry_delay_seconds" =~ ^[0-9]+$ ]] || \
+    fail 'PUSH_RETRY_DELAY_SECONDS must be a nonnegative integer'
   [[ "$release_tag_wait_attempts" =~ ^[1-9][0-9]*$ ]] || \
     fail 'RELEASE_TAG_WAIT_ATTEMPTS must be a positive integer'
   [[ "$release_tag_wait_seconds" =~ ^[0-9]+$ ]] || \
