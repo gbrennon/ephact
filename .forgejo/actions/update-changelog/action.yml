@@ -8,6 +8,10 @@ inputs:
   target-branch:
     description: Branch to which the updated changelog commit is pushed
     required: true
+  push-retry-delay-seconds:
+    description: Initial delay between changelog push retries
+    required: false
+    default: "5"
 runs:
   using: composite
   steps:
@@ -16,4 +20,4 @@ runs:
       env:
         VERSION: ${{ inputs.version }}
         TARGET_BRANCH: ${{ inputs.target-branch }}
-      run: bash scripts/update_changelog.sh
+        PUSH_RETRY_DELAY_SECONDS: ${{ inputs.push-retry-delay-seconds }}
