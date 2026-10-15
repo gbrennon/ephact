@@ -1,31 +1,29 @@
-use figlet_rs::FIGlet;
-
 use super::component::Component;
-use crate::application::dtos::responses::ShowProjectBrandingInfoResponse;
+use crate::{
+    application::dtos::responses::ShowProjectBrandingInfoResponse,
+    components::{EmblemLayout, ProjectBranding},
+};
 
 pub struct Banner<'a> {
     response: &'a ShowProjectBrandingInfoResponse,
+    hint: &'a str,
 }
 
 impl<'a> Banner<'a> {
-    pub fn new(response: &'a ShowProjectBrandingInfoResponse) -> Self {
-        Self { response }
+    pub fn new(response: &'a ShowProjectBrandingInfoResponse, hint: &'a str) -> Self {
+        Self { response, hint }
     }
 }
 
 impl Component for Banner<'_> {
     fn render(&self) -> String {
-        let font = FIGlet::standard().expect("the bundled standard FIGlet font must be valid");
-        let ascii_name = font
-            .convert(self.response.name())
-            .expect("the crate name must be renderable by the bundled standard FIGlet font");
-
+        let emblem = EmblemLayout::new(self.response.emblem()).lines().join("\n");
         format!(
-            "{}\n\n{}\n\n{}\n\nVersion {}",
-            ascii_name.as_str().trim_end(),
-            self.response.emblem(),
-            self.response.description(),
-            self.response.version()
+            "{}\n\n{}\n\n{}\n\n{}",
+            emblem,
+            ProjectBranding::TITLE,
+            ProjectBranding::SUBTITLE,
+            self.hint
         )
     }
 }

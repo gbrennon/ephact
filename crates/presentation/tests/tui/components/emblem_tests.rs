@@ -14,6 +14,29 @@ mod tests {
         Emblem::new(ephact::PROJECT_EMBLEM)
     }
 
+    fn marker_area() -> Rect {
+        let line = ephact::PROJECT_EMBLEM.lines().nth(2).unwrap();
+        let gutter = ephact::PROJECT_EMBLEM
+            .lines()
+            .map(|row| {
+                row.chars()
+                    .take_while(|glyph| glyph.is_whitespace())
+                    .count()
+            })
+            .min()
+            .unwrap_or(0);
+        let marker_column = line
+            .find('_')
+            .map(|index| line[..index].chars().count().saturating_sub(gutter))
+            .unwrap_or(0);
+        Rect::new(
+            ((30usize.saturating_sub(emblem().width()) / 2) + marker_column) as u16,
+            2,
+            2,
+            1,
+        )
+    }
+
     #[test]
     fn lines_for_basic_preserves_canonical_art() {
         let lines = emblem().lines_for(ColorSupport::Basic, &Marker::default());
@@ -24,7 +47,7 @@ mod tests {
                 .iter()
                 .map(|span| span.content.as_ref())
                 .collect::<String>();
-            assert_eq!(actual.trim_end(), expected.trim_end());
+            assert_eq!(actual.trim(), expected.trim());
         }
     }
 
@@ -52,7 +75,7 @@ mod tests {
                 .iter()
                 .map(|span| span.content.as_ref())
                 .collect::<String>();
-            assert_eq!(actual.trim_end(), expected.trim_end());
+            assert_eq!(actual.trim(), expected.trim());
         }
     }
 
@@ -74,8 +97,8 @@ mod tests {
             .collect::<String>();
 
         assert_eq!(
-            default_text.trim_end(),
-            ephact::PROJECT_EMBLEM.lines().nth(2).unwrap().trim_end()
+            default_text.trim(),
+            ephact::PROJECT_EMBLEM.lines().nth(2).unwrap().trim()
         );
         assert!(custom_text.contains("🚀"));
     }
@@ -115,7 +138,7 @@ mod tests {
                 ));
             })
             .expect("render image marker");
-        let marker_area = Rect::new(16, 2, 2, 1);
+        let marker_area = marker_area();
         let cell = &terminal.backend().buffer()[(marker_area.x, marker_area.y)];
 
         assert_ne!(cell, &ratatui::buffer::Cell::EMPTY);
@@ -149,7 +172,7 @@ mod tests {
                 ));
             })
             .expect("render gif marker");
-        let marker_area = Rect::new(16, 2, 2, 1);
+        let marker_area = marker_area();
         let cell = &terminal.backend().buffer()[(marker_area.x, marker_area.y)];
 
         assert_ne!(cell, &ratatui::buffer::Cell::EMPTY);

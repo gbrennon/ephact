@@ -4,7 +4,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::Frame;
 
 use super::{
-    components::{ConfigurationAction, RunConfigurationValues, SplashQuotes},
+    components::{ConfigurationAction, RunConfigurationValues},
     screen_manager::{ScreenManager, TuiScreen},
     screens::{HomeScreen, SettingsAction},
 };
@@ -15,6 +15,7 @@ use crate::{
         },
         ports::outbound::SettingsStorePort,
     },
+    components::SplashQuotes,
     domain::Settings,
     infrastructure::HostSshForwardingSettingsPort,
 };

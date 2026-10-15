@@ -17,9 +17,10 @@ mod tests {
     use ephact::{
         application::dtos::responses::{RunSummaryResponse, WorkflowListItemResponse},
         presentation::{
+            components::SplashQuotes,
             handlers::{ListActionsHandler, ListWorkflowsHandler},
             tui::{
-                components::{ColorSupport, Renderable, ScreenFrame, SplashQuotes},
+                components::{ColorSupport, Renderable, ScreenFrame},
                 screen_manager::TuiScreen,
                 screens::{HomeScreen, ListActionsScreen, ListWorkflowsScreen, SplashScreen},
                 theme::Theme,
@@ -244,6 +245,7 @@ mod tests {
                     ephact::PROJECT_EMBLEM,
                     ColorSupport::Basic,
                     SplashQuotes::select(0),
+                    "press any key to continue",
                 );
             }));
 
@@ -260,6 +262,7 @@ mod tests {
                 ephact::PROJECT_EMBLEM,
                 ColorSupport::TrueColor,
                 SplashQuotes::select(0),
+                "press any key to continue",
             );
         });
 
