@@ -101,7 +101,11 @@ commit_and_push() {
     printf 'CHANGELOG.md produced no changes\n'
     return 0
   fi
-  git commit --message 'chore(release): update changelog'
+  if ! git -c user.name='ephact changelog bot' \
+    -c user.email='ephact-changelog@users.noreply.codeberg.org' \
+    commit --message 'chore(release): update changelog'; then
+    return 1
+  fi
   if git push origin "HEAD:$TARGET_BRANCH"; then
     printf 'Updated changelog on %s\n' "$TARGET_BRANCH"
     return 0

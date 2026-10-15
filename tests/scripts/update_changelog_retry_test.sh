@@ -22,6 +22,8 @@ git -C "$source_repo" add CHANGELOG.md cliff.toml
 git -C "$source_repo" commit --quiet --message 'chore(test): initialize changelog fixture'
 git -C "$source_repo" remote add origin "$origin"
 git -C "$source_repo" push --quiet origin main
+git -C "$source_repo" config --unset user.name
+git -C "$source_repo" config --unset user.email
 
 cat > "$bin_dir/git-cliff" <<'EOF'
 #!/usr/bin/env bash
