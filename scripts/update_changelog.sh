@@ -8,6 +8,7 @@ readonly CONFIG_FILE="${CLIFF_CONFIG:-cliff.toml}"
 readonly TARGET_BRANCH="${TARGET_BRANCH:-}"
 readonly VERSION="${VERSION:-}"
 readonly MAX_PUSH_ATTEMPTS="${MAX_PUSH_ATTEMPTS:-3}"
+readonly PUSH_RETRY_DELAY_SECONDS="${PUSH_RETRY_DELAY_SECONDS:-5}"
 readonly RELEASE_TAG_WAIT_ATTEMPTS="${RELEASE_TAG_WAIT_ATTEMPTS:-40}"
 readonly RELEASE_TAG_WAIT_SECONDS="${RELEASE_TAG_WAIT_SECONDS:-15}"
 temporary_file=""
@@ -111,7 +112,8 @@ commit_and_push() {
 
 validate_configuration \
   "$TARGET_BRANCH" "$CONFIG_FILE" "$VERSION" "$MAX_PUSH_ATTEMPTS" \
-  "$RELEASE_TAG_WAIT_ATTEMPTS" "$RELEASE_TAG_WAIT_SECONDS"
+  "$PUSH_RETRY_DELAY_SECONDS" "$RELEASE_TAG_WAIT_ATTEMPTS" \
+  "$RELEASE_TAG_WAIT_SECONDS"
 
 for ((attempt = 1; attempt <= MAX_PUSH_ATTEMPTS; attempt++)); do
   printf 'Updating changelog attempt %d/%d\n' "$attempt" "$MAX_PUSH_ATTEMPTS"
@@ -120,6 +122,11 @@ for ((attempt = 1; attempt <= MAX_PUSH_ATTEMPTS; attempt++)); do
   generate_changelog
   if commit_and_push; then
     exit 0
+  fi
+  if (( attempt < MAX_PUSH_ATTEMPTS )); then
+    retry_delay=$((PUSH_RETRY_DELAY_SECONDS * attempt))
+    printf 'Waiting %d seconds before retrying\n' "$retry_delay" >&2
+    sleep "$retry_delay"
   fi
 done
 
