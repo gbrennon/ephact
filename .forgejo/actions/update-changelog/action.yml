@@ -21,3 +21,4 @@ runs:
         VERSION: ${{ inputs.version }}
         TARGET_BRANCH: ${{ inputs.target-branch }}
         PUSH_RETRY_DELAY_SECONDS: ${{ inputs.push-retry-delay-seconds }}
+      run: bash scripts/update_changelog.sh
