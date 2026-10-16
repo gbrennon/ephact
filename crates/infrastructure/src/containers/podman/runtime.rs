@@ -1,4 +1,5 @@
 use futures_util::StreamExt;
+use rustix::process::getuid;
 use tokio::runtime::Runtime;
 
 use super::{
@@ -41,7 +42,7 @@ impl PodmanRuntime {
     pub fn new() -> Result<Self, ContainerError> {
         let runtime = Runtime::new().map_err(|e| ContainerError::Internal(e.to_string()))?;
 
-        let uid = unsafe { libc::getuid() };
+        let uid = getuid().as_raw();
         let rootless_socket = format!("unix:///run/user/{}/podman/podman.sock", uid);
         let root_socket = "unix:///run/podman/podman.sock";
 

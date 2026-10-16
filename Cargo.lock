@@ -569,7 +569,7 @@ dependencies = [
  "ephact-application",
  "ephact-domain",
  "futures-util",
- "libc",
+ "rustix 0.38.44",
  "serde",
  "serde_json",
  "serde_yaml",

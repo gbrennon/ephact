@@ -139,10 +139,14 @@ mod tests {
 
     #[test]
     fn parse_secret_reads_value_from_environment_when_omitted() {
-        unsafe { std::env::set_var("EPHEMERAL_ACT_TEST_SECRET", "from-env") };
-        let (name, value) = RunArgs::parse_secret("EPHEMERAL_ACT_TEST_SECRET").unwrap();
-        assert_eq!(name, "EPHEMERAL_ACT_TEST_SECRET");
-        assert_eq!(value, "from-env");
+        let variable = "CARGO_MANIFEST_DIR";
+        let (name, value) = RunArgs::parse_secret(variable).unwrap();
+
+        assert_eq!(name, variable);
+        assert_eq!(
+            value,
+            std::env::var(variable).expect("Cargo sets the manifest directory")
+        );
     }
 
     #[test]
@@ -208,16 +212,15 @@ mod tests {
 
     #[test]
     fn parse_input_source_reads_env_prefixed_values_from_environment() {
-        unsafe {
-            std::env::set_var("EPHACT_RUN_ARGS_INPUT_SOURCE_TEST", "production");
-        }
-
+        let variable = "CARGO_MANIFEST_DIR";
         let (key, source) =
-            RunArgs::parse_input_source("environment=env:EPHACT_RUN_ARGS_INPUT_SOURCE_TEST")
-                .unwrap();
+            RunArgs::parse_input_source("environment=env:CARGO_MANIFEST_DIR").unwrap();
 
         assert_eq!(key, "environment");
-        assert_eq!(source.resolve().unwrap(), "production");
+        assert_eq!(
+            source.resolve().unwrap(),
+            std::env::var(variable).expect("Cargo sets the manifest directory")
+        );
     }
 
     #[test]

@@ -227,6 +227,3 @@ impl Default for FilesystemWorkflowSource {
         Self::new(&WORKFLOW_DIRECTORIES)
     }
 }
-
-unsafe impl Send for FilesystemWorkflowSource {}
-unsafe impl Sync for FilesystemWorkflowSource {}
