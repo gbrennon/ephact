@@ -42,27 +42,29 @@ mod tests {
 
     #[test]
     fn environment_variable_resolves_to_the_process_value() {
-        unsafe {
-            std::env::set_var("EPHACT_WORKFLOW_INPUT_SOURCE_TEST", "production");
-        }
-        let source = WorkflowInputSourceResponse::environment_variable(
-            "EPHACT_WORKFLOW_INPUT_SOURCE_TEST".to_owned(),
-        );
+        let variable = "CARGO_MANIFEST_DIR";
+        let source = WorkflowInputSourceResponse::environment_variable(variable.to_owned());
 
-        assert_eq!(source.resolve().unwrap(), "production");
+        assert_eq!(
+            source.resolve().unwrap(),
+            std::env::var(variable).expect("Cargo sets the manifest directory")
+        );
     }
 
     #[test]
     fn environment_variable_reports_missing_value() {
-        unsafe {
-            std::env::remove_var("EPHACT_WORKFLOW_INPUT_SOURCE_MISSING_TEST");
-        }
-        let source = WorkflowInputSourceResponse::environment_variable(
-            "EPHACT_WORKFLOW_INPUT_SOURCE_MISSING_TEST".to_owned(),
-        );
+        let variable = missing_environment_variable_name();
+        let source = WorkflowInputSourceResponse::environment_variable(variable.clone());
 
         let error = source.resolve().unwrap_err();
 
-        assert!(error.contains("EPHACT_WORKFLOW_INPUT_SOURCE_MISSING_TEST"));
+        assert!(error.contains(&variable));
+    }
+
+    fn missing_environment_variable_name() -> String {
+        (0..)
+            .map(|index| format!("EPHACT_MISSING_INPUT_SOURCE_{index}"))
+            .find(|name| std::env::var(name).is_err())
+            .expect("a test environment variable name must be available")
     }
 }
