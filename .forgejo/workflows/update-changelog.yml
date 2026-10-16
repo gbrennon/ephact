@@ -1,8 +1,7 @@
 name: Update changelog
 
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches: [main]
 
 concurrency:
@@ -13,9 +12,12 @@ jobs:
   changelog:
     name: Update changelog
     if: >-
-      github.event.pull_request.merged == true &&
-      !startsWith(github.event.pull_request.head.ref, 'release/v')
+      !contains(github.event.head_commit.message, 'chore(release): update changelog') &&
+      !contains(github.event.head_commit.message, 'release/')
     runs-on: codeberg-small
+    env:
+      CHANGELOG_BRANCH: chore/changelog/${{ github.run_id }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
     steps:
       - name: Check out the trusted default branch
         uses: actions/checkout@v6
@@ -23,12 +25,40 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.repository.default_branch }}
 
+      - name: Prepare changelog pull request branch
+        env:
+          CHANGELOG_BRANCH: ${{ env.CHANGELOG_BRANCH }}
+          DEFAULT_BRANCH: ${{ env.DEFAULT_BRANCH }}
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin "$DEFAULT_BRANCH"
+          if git ls-remote --exit-code --heads origin "$CHANGELOG_BRANCH" >/dev/null 2>&1; then
+            git fetch --quiet origin "$CHANGELOG_BRANCH"
+            git switch --quiet --force-create "$CHANGELOG_BRANCH" \
+              "origin/$DEFAULT_BRANCH"
+            git push --quiet --force-with-lease origin \
+              "HEAD:refs/heads/$CHANGELOG_BRANCH"
+          else
+            git switch --quiet --create "$CHANGELOG_BRANCH" "origin/$DEFAULT_BRANCH"
+            git push --quiet origin "HEAD:refs/heads/$CHANGELOG_BRANCH"
+          fi
+
       - name: Install git-cliff
         uses: ./.forgejo/actions/install-git-cliff
 
       - name: Update unreleased changelog
         uses: ./.forgejo/actions/update-changelog
         with:
-          git-user-name: ${{ github.event.pull_request.user.login }}
-          git-user-email: ${{ github.event.pull_request.user.login }}@users.noreply.codeberg.org
-          target-branch: main
+          git-user-name: ${{ github.actor }}
+          git-user-email: ${{ github.actor }}@users.noreply.codeberg.org
+          target-branch: ${{ env.DEFAULT_BRANCH }}
+          base-branch: ${{ env.DEFAULT_BRANCH }}
+          pull-request-branch: ${{ env.CHANGELOG_BRANCH }}
+          create-pull-request: "true"
+          api-url: ${{ github.api_url }}
+          repository: ${{ github.repository }}
+          token: ${{ github.token }}
+          pull-request-title: "chore(release): update changelog"
+          pull-request-body: >-
+            Automated changelog update for commit
+            ${{ github.sha }}.

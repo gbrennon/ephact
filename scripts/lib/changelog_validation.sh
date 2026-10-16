@@ -33,6 +33,27 @@ validate_configuration() {
   fi
 }
 
+validate_pull_request_configuration() {
+  local create_pull_request="$1"
+  local base_branch="$2"
+  local pull_request_branch="$3"
+  local api_url="$4"
+  local repository="$5"
+  local token="$6"
+
+  [[ "$create_pull_request" == true ]] || return 0
+  [[ "$base_branch" =~ ^[A-Za-z0-9._/-]+$ ]] || \
+    fail 'BASE_BRANCH is invalid'
+  [[ "$pull_request_branch" =~ ^[A-Za-z0-9._/-]+$ ]] || \
+    fail 'PULL_REQUEST_BRANCH is invalid'
+  [[ -n "$api_url" ]] || fail 'FORGEJO_API_URL is required'
+  [[ "$repository" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || \
+    fail 'FORGEJO_REPOSITORY is invalid'
+  [[ -n "$token" ]] || fail 'FORGEJO_TOKEN is required'
+  command -v curl >/dev/null 2>&1 || fail 'curl is not installed'
+  command -v jq >/dev/null 2>&1 || fail 'jq is not installed'
+}
+
 validate_generated_changelog() {
   local generated_file="$1"
   local version="$2"
