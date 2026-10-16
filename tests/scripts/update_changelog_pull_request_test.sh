@@ -79,6 +79,11 @@ while (($# > 0)); do
   shift
 done
 if [[ "$method" == "GET" ]]; then
+  if [[ "${PR_LIST_UNAVAILABLE:-false}" == true ]]; then
+    printf '%s\n' '{"message":"pull request list unavailable"}' > "$output"
+    printf '%s' '403'
+    exit 0
+  fi
   if [[ "${EXISTING_PULL_REQUEST:-false}" == true ]]; then
     existing_payload='[{"head":{"ref":"chore/update-changelog-test",'
     existing_payload+=' "repo":{"full_name":"gbrennon/__ep"}}}]'
@@ -87,6 +92,11 @@ if [[ "$method" == "GET" ]]; then
     printf '%s\n' '[]' > "$output"
   fi
   printf '%s' '200'
+  exit 0
+fi
+if [[ "${EXISTING_PULL_REQUEST:-false}" == true ]]; then
+  printf '%s\n' '{"message":"pull request already exists"}' > "$output"
+  printf '%s' '409'
   exit 0
 fi
 if [[ -f "$TEST_ROOT/post-count" ]]; then
@@ -104,6 +114,7 @@ chmod +x "$bin_dir/curl"
 (
   cd "$source_repo"
   PATH="$bin_dir:$PATH" \
+    PR_LIST_UNAVAILABLE=true \
     HOME="$test_root" \
     TEST_ROOT="$test_root" \
     TARGET_BRANCH=main \

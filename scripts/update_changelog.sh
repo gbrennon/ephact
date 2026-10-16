@@ -134,35 +134,11 @@ commit_and_push() {
 
 create_pull_request() {
   local api_url="${FORGEJO_API_URL%/}"
-  local list_response_file
-  local create_response_file
-  local list_status
+  local response_file
   local create_status
   local payload
 
-  list_response_file="$(mktemp)"
-  create_response_file="$(mktemp)"
-  list_status="$(curl --silent --show-error --get \
-    --url "$api_url/repos/$FORGEJO_REPOSITORY/pulls" \
-    --header "Authorization: token $FORGEJO_TOKEN" \
-    --data-urlencode 'state=open' \
-    --data-urlencode "base=$BASE_BRANCH" \
-    --output "$list_response_file" \
-    --write-out '%{http_code}')"
-  if [[ "$list_status" != 2?? ]]; then
-    cat "$list_response_file" >&2
-    rm -f -- "$list_response_file" "$create_response_file"
-    return 1
-  fi
-  if jq -e \
-    --arg branch "$PULL_REQUEST_BRANCH" \
-    --arg repository "$FORGEJO_REPOSITORY" \
-    'any(.[]; .head.ref == $branch and .head.repo.full_name == $repository)' \
-    "$list_response_file" >/dev/null; then
-    printf 'Changelog pull request already exists for %s\n' "$PULL_REQUEST_BRANCH"
-    rm -f -- "$list_response_file" "$create_response_file"
-    return 0
-  fi
+  response_file="$(mktemp)"
   payload="$(jq -n \
     --arg title "$PULL_REQUEST_TITLE" \
     --arg head "$PULL_REQUEST_BRANCH" \
@@ -174,16 +150,23 @@ create_pull_request() {
     --url "$api_url/repos/$FORGEJO_REPOSITORY/pulls" \
     --header "Authorization: token $FORGEJO_TOKEN" \
     --header 'Content-Type: application/json' \
-    --output "$create_response_file" \
+    --output "$response_file" \
     --write-out '%{http_code}' \
     --data "$payload")"
-  if [[ "$create_status" != 2?? ]]; then
-    cat "$create_response_file" >&2
-    rm -f -- "$list_response_file" "$create_response_file"
-    return 1
+  if [[ "$create_status" == 2?? ]]; then
+    printf 'Created changelog pull request for %s\n' "$PULL_REQUEST_BRANCH"
+    rm -f -- "$response_file"
+    return 0
   fi
-  printf 'Created changelog pull request for %s\n' "$PULL_REQUEST_BRANCH"
-  rm -f -- "$list_response_file" "$create_response_file"
+  if [[ "$create_status" == 409 ]] && \
+    jq -e '.message == "pull request already exists"' "$response_file" >/dev/null; then
+    printf 'Changelog pull request already exists for %s\n' "$PULL_REQUEST_BRANCH"
+    rm -f -- "$response_file"
+    return 0
+  fi
+  cat "$response_file" >&2
+  rm -f -- "$response_file"
+  return 1
 }
 
 validate_configuration \
