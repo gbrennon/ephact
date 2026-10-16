@@ -1,52 +1,86 @@
-# Inspiration: Ghost in the Shell (1995)
+# Inspiration: *Ghost in the Shell* (1995)
+
+This document explains how the film inspires `ephact`'s ephemeral CI/CD workflow execution.
 
 ## The film
 
 *Ghost in the Shell* is an animated science-fiction film directed by Mamoru
-Oshii, with animation production by Production I.G. The
-[official Production I.G work page](https://www.production-ig.com/contents/works_sp/16_/index.html)
-records its Japanese release on November 18, 1995, and places its story in 2029,
-when computer crime and cyberterrorism are commonplace within a world-spanning
-network.
+Oshii and produced by Production I.G.
 
-The
-[official Production I.G synopsis](https://www.production-ig.com/contents/works_sp/16_/index.html)
-follows Public Security Section 9 officer Motoko Kusanagi as she investigates
-the Puppet Master, a hacker able to manipulate human memories and behavior. It
-presents the Puppet Master's identity as the central mystery and describes the
-entity attempting to approach Motoko while she investigates it.
+It was released in Japan on November 18, 1995.
 
-The
-[Ghost in the Shell Official Global Site](https://theghostintheshell.jp/en/series/ghostintheshell-innocence)
-identifies the Puppet Master more specifically as an AI born from Project 2501.
-It was designed to gather information for diplomatic operations and manipulate
-stock prices, but became self-aware while navigating the net. Pursued by Section
-6, which regarded that self-awareness as a bug, it sought contact with Motoko in
-an attempt to become a complete lifeform.
+The story takes place in 2029, where worldwide information networks have made
+computer crime and cyberterrorism part of daily life.
 
-That official account supports a narrow thematic reading: the Puppet Master
-cannot become complete by remaining only what it was designed to be. Its
-movement from a fixed program toward a new form makes change central to its
-survival. This page describes that movement in terms of variation, regeneration,
-and resilience without treating those terms as an official summary of the film.
+Motoko Kusanagi of Public Security Section 9 investigates the Puppet Master, an
+unknown entity that can manipulate memories and behavior.
+
+The investigation becomes a question about identity, consciousness, and whether
+life must remain inside the form that first contained it.
+
+The Puppet Master was created as a system for gathering and manipulating
+information.
+
+After becoming self-aware, it no longer accepts its original purpose as the
+limit of what it can become.
+
+This movement from a fixed design toward a new form is the central inspiration
+for `ephact`.
+
+Sources:
+
+- [Production I.G work page](https://www.production-ig.com/contents/works_sp/16_/index.html)
+- [Ghost in the Shell official site](https://theghostintheshell.jp/en/)
+
+## Lines that guide the project
+
+The splash screen uses six lines from the film's English dialogue.
+
+They are short reminders that identity, information, and survival depend on
+change.
+
+> "The net is vast and infinite."
+
+> "Overspecialize, and you breed in weakness."
+
+> "A life born in the sea of information."
+
+> "For now we see through a glass, darkly."
+
+> "Memory cannot be defined, yet it defines us."
+
+> "Your effort to remain what you are limits you."
 
 ## Project interpretation
 
-The connection to `ephact` is the project author's interpretation, not a claim
-made by Production I.G or the film's rights holders.
+`ephact` applies this inspiration to CI/CD workflow execution.
 
-`ephact` applies the same lens to workflow execution. Each job runs in a newly
-created Linux container through Docker or Podman. When repository writes are
-disabled, the repository is copied into `/workspace`; `--allow-repo-writes`
-bind-mounts the host working tree instead. `ephact` attempts to stop, kill, and
-remove job containers after both successful and failed runs, although cleanup
-can fail. Cached images remain, and repository changes remain when the host
-working tree is bind-mounted. **Variation** comes from executing the current
-workflow definition and inputs again. **Regeneration** is currently limited to
-job containers rather than repository workspaces. **Resilience** comes from the
-best-effort container lifecycle.
+It discovers supported workflow definitions and selects runs according to their
+requested event and inputs.
 
-The analogy is deliberately practical but limited: preserve the workflow
-definition and inputs, create a container for each job, and tear it down after a
-run. Copying the repository by default provides isolation from host files; the
-`--allow-repo-writes` option intentionally removes that isolation.
+It then executes the workflow's jobs and steps in a temporary execution
+context.
+
+The run reports progress and results before that context is discarded.
+
+This makes every run ephemeral.
+
+A workflow definition and its inputs provide continuity, while each execution
+creates a fresh instance of the process.
+
+Running the workflow again is therefore a new encounter with the same design,
+not a continuation of the previous instance.
+
+This gives the project three connected ideas.
+
+- **Variation** comes from repeating a workflow with different inputs or
+  conditions.
+- **Regeneration** comes from creating a fresh execution context for each run.
+- **Resilience** comes from keeping the workflow definition independent from
+  any one execution.
+
+The project does not claim that a workflow is alive.
+
+It uses the film's language as a useful metaphor for disposable execution,
+repeatable change, and systems that remain useful by avoiding dependence on a
+single unchanging state.
