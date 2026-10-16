@@ -6,6 +6,9 @@ source scripts/lib/changelog_validation.sh
 readonly CHANGELOG_FILE="${CHANGELOG_FILE:-CHANGELOG.md}"
 readonly CONFIG_FILE="${CLIFF_CONFIG:-cliff.toml}"
 readonly TARGET_BRANCH="${TARGET_BRANCH:-}"
+readonly BASE_BRANCH="${BASE_BRANCH:-$TARGET_BRANCH}"
+readonly PULL_REQUEST_BRANCH="${PULL_REQUEST_BRANCH:-}"
+readonly CREATE_PULL_REQUEST="${CREATE_PULL_REQUEST:-false}"
 readonly VERSION="${VERSION:-}"
 readonly MAX_PUSH_ATTEMPTS="${MAX_PUSH_ATTEMPTS:-3}"
 readonly PUSH_RETRY_DELAY_SECONDS="${PUSH_RETRY_DELAY_SECONDS:-5}"
@@ -93,6 +96,10 @@ generate_changelog() {
 }
 
 commit_and_push() {
+  local push_ref="$TARGET_BRANCH"
+  if [[ "$CREATE_PULL_REQUEST" == true ]]; then
+    push_ref="refs/for/$BASE_BRANCH/$PULL_REQUEST_BRANCH"
+  fi
   if [[ -f "$CHANGELOG_FILE" ]] && cmp --silent "$temporary_file" "$CHANGELOG_FILE"; then
     printf 'CHANGELOG.md is already current\n'
     return 0
@@ -108,8 +115,8 @@ commit_and_push() {
     commit --message 'chore(release): update changelog'; then
     return 1
   fi
-  if git push origin "HEAD:$TARGET_BRANCH"; then
-    printf 'Updated changelog on %s\n' "$TARGET_BRANCH"
+  if git push origin "HEAD:$push_ref"; then
+    printf 'Updated changelog on %s\n' "$push_ref"
     return 0
   fi
   printf 'Target branch advanced while pushing; retrying\n' >&2

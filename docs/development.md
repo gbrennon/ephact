@@ -184,35 +184,54 @@ The Validate, Test, and Lint jobs share the
 Workflow linting is available locally through `just lint-workflows` and runs in
 CI as the **Workflow lint** job.
 
-### Repository Secrets
+## Changelog Release Flow
+
+Merging a pull request into `main` triggers
+`.forgejo/workflows/update-changelog.yml`. The workflow:
+
+1. Checks that the pull request was merged.
+2. Ignores `chore/changelog/` and `release/v` branches to prevent recursion.
+3. Checks out the updated default branch with `CODEBERG_TOKEN`.
+4. Generates the unreleased changelog with `git-cliff`.
+5. Pushes an AGit `refs/for/main/...` reference so Forgejo creates a changelog
+   pull request instead of pushing directly to protected `main`.
+
+Versioned releases use `prepare-release.yml` instead. That workflow passes a
+release version and target release branch to the same action, which updates the
+versioned changelog directly on the release branch.
+
+## Repository Secrets
 
 Configure the following secrets in Codeberg repository settings under
 **Settings > Actions > Secrets**:
 
 | Secret | Purpose | Source / Value |
 | ------ | ------- | -------------- |
-| `CARGO_REGISTRY_TOKEN` | Crates.io production publishing | crates.io API token |
+| `CARGO_REGISTRY_TOKEN` | Crates.io production publishing | Crates.io API token |
 | `GH_RELEASE_TOKEN` | GitHub mirror release publishing | GitHub personal access token |
+| `CODEBERG_TOKEN` | Changelog pull-request creation | Codeberg PAT for a write-enabled bot |
 
-#### Built-in Tokens
+### Built-in Tokens
 
 `FORGEJO_TOKEN` is automatically created and injected by Forgejo Actions for each
-workflow run. Never add `FORGEJO_TOKEN` to repository secrets; use the built-in
-`forgejo.token` context instead.
+workflow run. Do not add `FORGEJO_TOKEN` to repository secrets; use the built-in
+`forgejo.token` context when a workflow needs the default token.
 
-#### Forgejo Workflow Capabilities
+The changelog workflow uses `CODEBERG_TOKEN` instead because its AGit push must
+create a pull request through Forgejo's `proc-receive` endpoint. The token must
+belong to an account with **Write** access to this repository.
+
+### Forgejo Workflow Capabilities
 
 GitHub-style `permissions:` declarations are unsupported by Forgejo Actions and
-must not be placed in repository workflows. The automatic Forgejo token has write
-access to the repository that owns the workflow, so the changelog commit and push,
-release-tag push, and Codeberg release API call use the existing built-in token
-instead of a `permissions` block or a new repository secret.
-
-Capabilities beyond the automatic token require a Forgejo **Authorized
+must not be placed in repository workflows. Capabilities beyond the built-in
+token require a dedicated repository secret or a Forgejo **Authorized
 Integration** configured in the Forgejo user settings. See the official
 [Authorized Integrations](https://forgejo.org/docs/latest/user/api/authorized-integrations/)
-documentation. The integration must be narrowly restricted to the source
-repository, workflow file, reference, and event. The workflow then enables OIDC,
-requests a JWT for the generated audience, and sends that JWT as a Bearer token.
-The generated audience is an identifier, not a secret; grant integration
-capabilities only for the resources required.
+documentation.
+
+The integration must be narrowly restricted to the source repository, workflow
+file, reference, and event. The workflow then enables OIDC, requests a JWT for
+the generated audience, and sends that JWT as a Bearer token. The generated
+audience is an identifier, not a secret; grant integration capabilities only
+for the resources required.

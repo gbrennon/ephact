@@ -8,6 +8,18 @@ inputs:
   target-branch:
     description: Branch to which the updated changelog commit is pushed
     required: true
+  base-branch:
+    description: Base branch for the changelog pull request
+    required: false
+    default: ""
+  pull-request-branch:
+    description: Topic used for the changelog pull request
+    required: false
+    default: ""
+  create-pull-request:
+    description: Whether to create a pull request instead of pushing the target branch
+    required: false
+    default: "false"
   push-retry-delay-seconds:
     description: Initial delay between changelog push retries
     required: false
@@ -26,6 +38,9 @@ runs:
       env:
         VERSION: ${{ inputs.version }}
         TARGET_BRANCH: ${{ inputs.target-branch }}
+        BASE_BRANCH: ${{ inputs.base-branch }}
+        PULL_REQUEST_BRANCH: ${{ inputs.pull-request-branch }}
+        CREATE_PULL_REQUEST: ${{ inputs.create-pull-request }}
         PUSH_RETRY_DELAY_SECONDS: ${{ inputs.push-retry-delay-seconds }}
         GIT_USER_NAME: ${{ inputs.git-user-name }}
         GIT_USER_EMAIL: ${{ inputs.git-user-email }}
