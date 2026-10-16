@@ -1,10 +1,11 @@
 use std::{
     fs::File,
-    io::{BufRead, BufReader, Write},
-    mem::ManuallyDrop,
-    os::unix::io::FromRawFd,
+    io::{self, BufRead, BufReader, Write},
+    os::{fd::AsFd, unix::io::OwnedFd},
     thread::JoinHandle,
 };
+
+use rustix::{io::dup, pipe::pipe, stdio::dup2_stderr};
 
 const SUPPRESSED_LINE_PREFIXES: [&str; 2] = [
     "Error: crun: executable file `bash` not found",
@@ -15,49 +16,55 @@ const SUPPRESSED_LINE_PREFIXES: [&str; 2] = [
 /// dropped before reaching the terminal.
 pub struct StderrFilter {
     filter_thread: Option<JoinHandle<()>>,
-    restored_fd: libc::c_int,
+    restored_fd: Option<OwnedFd>,
 }
 
 impl StderrFilter {
     /// Installs a pipe in front of the process stderr and spawns the draining
     /// thread. Falls back to no filtering when stderr is not duplicable.
     pub fn install() -> Self {
-        let restored_fd = unsafe { libc::dup(libc::STDERR_FILENO) };
-        if restored_fd < 0 {
-            return Self {
-                filter_thread: None,
-                restored_fd: -1,
-            };
+        let stderr = io::stderr();
+        let restored_fd = match dup(stderr.as_fd()) {
+            Ok(fd) => fd,
+            Err(_) => return Self::disabled(),
+        };
+        let (read_end, write_end) = match pipe() {
+            Ok(fds) => fds,
+            Err(_) => return Self::disabled(),
+        };
+        let thread_stderr = match dup(&restored_fd) {
+            Ok(fd) => fd,
+            Err(_) => return Self::disabled(),
+        };
+        if dup2_stderr(&write_end).is_err() {
+            return Self::disabled();
         }
-
-        let mut fds: [libc::c_int; 2] = [0; 2];
-        if unsafe { libc::pipe(fds.as_mut_ptr()) } != 0 {
-            return Self {
-                filter_thread: None,
-                restored_fd,
-            };
-        }
-
-        let filter_thread = Some(spawn_filter_thread(fds[0], restored_fd));
-        unsafe { libc::dup2(fds[1], libc::STDERR_FILENO) };
-        unsafe { libc::close(fds[1]) };
+        let filter_thread = Some(spawn_filter_thread(read_end, thread_stderr));
+        drop(write_end);
 
         Self {
             filter_thread,
-            restored_fd,
+            restored_fd: Some(restored_fd),
         }
     }
 
     /// Restores the original stderr and waits for the draining thread.
     pub fn restore(mut self) {
-        if self.restored_fd >= 0 {
-            unsafe { libc::dup2(self.restored_fd, libc::STDERR_FILENO) };
-            unsafe { libc::close(self.restored_fd) };
+        if let Some(restored_fd) = self.restored_fd.as_ref() {
+            let _ = dup2_stderr(restored_fd);
         }
         if let Some(handle) = self.filter_thread.take() {
             let _ = handle.join();
         }
     }
+
+    fn disabled() -> Self {
+        Self {
+            filter_thread: None,
+            restored_fd: None,
+        }
+    }
+
     fn line_should_be_suppressed(line: &str) -> bool {
         SUPPRESSED_LINE_PREFIXES
             .iter()
@@ -65,15 +72,15 @@ impl StderrFilter {
     }
 }
 
-fn spawn_filter_thread(read_end: libc::c_int, real_stderr: libc::c_int) -> JoinHandle<()> {
+fn spawn_filter_thread(read_end: OwnedFd, real_stderr: OwnedFd) -> JoinHandle<()> {
     std::thread::spawn(move || {
-        let reader = BufReader::new(unsafe { File::from_raw_fd(read_end) });
-        let mut real = ManuallyDrop::new(unsafe { File::from_raw_fd(real_stderr) });
+        let reader = BufReader::new(File::from(read_end));
+        let mut real = File::from(real_stderr);
         for line in reader.lines().map_while(Result::ok) {
             if StderrFilter::line_should_be_suppressed(&line) {
                 continue;
             }
-            let _ = writeln!(&*real, "{line}");
+            let _ = writeln!(real, "{line}");
             let _ = real.flush();
         }
     })
@@ -109,21 +116,17 @@ mod tests {
     }
 
     #[test]
-    fn filter_thread_never_closes_the_real_stderr_descriptor() {
-        let mut pipe_fds: [libc::c_int; 2] = [0; 2];
-        assert_eq!(unsafe { libc::pipe(pipe_fds.as_mut_ptr()) }, 0);
-        let real_stderr = unsafe { libc::dup(libc::STDERR_FILENO) };
-        assert!(real_stderr >= 0);
+    fn filter_thread_does_not_close_the_original_stderr_descriptor() {
+        let stderr = io::stderr();
+        let original_stderr = dup(stderr.as_fd()).expect("stderr must be duplicable");
+        let thread_stderr = dup(&original_stderr).expect("stderr must be duplicable");
+        let (read_end, write_end) = pipe().expect("pipe must be creatable");
 
-        let handle = spawn_filter_thread(pipe_fds[0], real_stderr);
-        unsafe { libc::close(pipe_fds[1]) };
+        let handle = spawn_filter_thread(read_end, thread_stderr);
+        drop(write_end);
         handle.join().expect("filter thread must not panic");
 
-        assert!(
-            unsafe { libc::fcntl(real_stderr, libc::F_GETFD) } != -1,
-            "the real stderr descriptor must remain open after the thread exits"
-        );
-        unsafe { libc::close(real_stderr) };
+        assert!(dup(&original_stderr).is_ok());
     }
 
     #[test]
