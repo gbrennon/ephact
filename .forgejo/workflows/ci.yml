@@ -77,7 +77,11 @@ jobs:
     runs-on: codeberg-tiny
     if: >-
       github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+      (
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !startsWith(github.head_ref, 'chore/changelog/') &&
+      !contains(github.event.pull_request.head.label, '/chore/changelog/')
+      )
     steps:
       - uses: actions/checkout@v6
       - uses: ./.forgejo/actions/install-dependencies
