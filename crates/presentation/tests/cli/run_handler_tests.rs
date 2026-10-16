@@ -297,9 +297,8 @@ mod tests {
 
     #[tokio::test]
     async fn interactive_environment_input_is_resolved_and_forwarded() {
-        unsafe {
-            std::env::set_var("EPHACT_INTERACTIVE_INPUT_TEST", "production");
-        }
+        let variable = "CARGO_MANIFEST_DIR";
+        let input = format!("environment=env:{variable}\n");
         let args = parse_run_test_args(&["--interactive"]);
         let run_port = RecordingRunWorkflowPort::new();
         let all_run_port = UnusedRunAllWorkflowsPort;
@@ -308,11 +307,7 @@ mod tests {
             Some("ci.yml".into()),
             vec!["pull_request".into()],
         )]);
-        let terminal = ScriptedTerminal::new(vec![
-            "1\n",
-            "environment=env:EPHACT_INTERACTIVE_INPUT_TEST\n",
-            "\n",
-        ]);
+        let terminal = ScriptedTerminal::new(vec!["1\n", input.as_str(), "\n"]);
 
         RunHandler::handle_with_output(args, &run_port, &all_run_port, &list_port, &terminal)
             .await
@@ -320,14 +315,16 @@ mod tests {
 
         let requests = run_port.requests();
         assert_eq!(requests[0].inputs()[0].0.as_str(), "environment");
-        assert_eq!(requests[0].inputs()[0].1.as_str(), "production");
+        assert_eq!(
+            requests[0].inputs()[0].1.as_str(),
+            std::env::var(variable).expect("Cargo sets the manifest directory")
+        );
     }
 
     #[tokio::test]
     async fn interactive_missing_environment_input_fails_clearly() {
-        unsafe {
-            std::env::remove_var("EPHACT_INTERACTIVE_INPUT_MISSING_TEST");
-        }
+        let variable = missing_environment_variable_name();
+        let input = format!("environment=env:{variable}\n");
         let args = parse_run_test_args(&["--interactive"]);
         let run_port = RecordingRunWorkflowPort::new();
         let all_run_port = UnusedRunAllWorkflowsPort;
@@ -336,22 +333,22 @@ mod tests {
             Some("ci.yml".into()),
             vec!["pull_request".into()],
         )]);
-        let terminal = ScriptedTerminal::new(vec![
-            "1\n",
-            "environment=env:EPHACT_INTERACTIVE_INPUT_MISSING_TEST\n",
-        ]);
+        let terminal = ScriptedTerminal::new(vec!["1\n", input.as_str()]);
 
         let error =
             RunHandler::handle_with_output(args, &run_port, &all_run_port, &list_port, &terminal)
                 .await
                 .unwrap_err();
 
-        assert!(
-            error
-                .to_string()
-                .contains("EPHACT_INTERACTIVE_INPUT_MISSING_TEST")
-        );
+        assert!(error.to_string().contains(&variable));
         assert!(run_port.requests().is_empty());
+    }
+
+    fn missing_environment_variable_name() -> String {
+        (0..)
+            .map(|index| format!("EPHACT_MISSING_INTERACTIVE_INPUT_{index}"))
+            .find(|name| std::env::var(name).is_err())
+            .expect("a test environment variable name must be available")
     }
 
     #[tokio::test]
