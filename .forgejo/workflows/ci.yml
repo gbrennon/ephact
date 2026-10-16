@@ -77,15 +77,17 @@ jobs:
     runs-on: codeberg-tiny
     if: >-
       github.event_name != 'pull_request' ||
-      (
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      !startsWith(github.head_ref, 'chore/changelog/') &&
-      !contains(github.event.pull_request.head.label, '/chore/changelog/')
-      )
+      github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: actions/checkout@v6
       - uses: ./.forgejo/actions/install-dependencies
       - name: Verify GitHub release token
+        if: >-
+          github.event_name != 'pull_request' ||
+          (
+          !startsWith(github.head_ref, 'chore/changelog/') &&
+          !contains(github.event.pull_request.head.label, '/chore/changelog/')
+          )
         uses: ./.forgejo/actions/verify-token
         with:
           token: ${{ secrets.GH_RELEASE_TOKEN }}
@@ -93,6 +95,12 @@ jobs:
           validate-url: https://api.github.com/user
           auth-scheme: bearer
       - name: Verify crates.io production token
+        if: >-
+          github.event_name != 'pull_request' ||
+          (
+          !startsWith(github.head_ref, 'chore/changelog/') &&
+          !contains(github.event.pull_request.head.label, '/chore/changelog/')
+          )
         uses: ./.forgejo/actions/verify-token
         with:
           token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
@@ -100,9 +108,23 @@ jobs:
           validate-url: https://crates.io/api/v1/me
           auth-scheme: bearer
       - name: Verify Codeberg token
+        if: >-
+          github.event_name != 'pull_request' ||
+          (
+          !startsWith(github.head_ref, 'chore/changelog/') &&
+          !contains(github.event.pull_request.head.label, '/chore/changelog/')
+          )
         uses: ./.forgejo/actions/verify-token
         with:
           token: ${{ github.token }}
           secret-name: FORGEJO_TOKEN
           validate-url: ${{ github.api_url }}/repos/${{ github.repository }}
           auth-scheme: token
+      - name: Skip protected secret verification for generated changelog PR
+        if: >-
+          github.event_name == 'pull_request' &&
+          (
+          startsWith(github.head_ref, 'chore/changelog/') ||
+          contains(github.event.pull_request.head.label, '/chore/changelog/')
+          )
+        run: printf '%s\n' 'Protected secret verification skipped for generated changelog PR.'
