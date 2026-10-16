@@ -63,17 +63,17 @@ mod tests {
 
     #[test]
     fn collect_inputs_resolves_environment_values() {
-        let variable = "EPHACT_INPUT_COLLECTOR_TEST";
-        unsafe { std::env::set_var(variable, "production") };
-        let terminal =
-            ScriptedTerminal::new(&["environment=env:EPHACT_INPUT_COLLECTOR_TEST", ""], true);
+        let variable = "CARGO_MANIFEST_DIR";
+        let terminal = ScriptedTerminal::new(&["environment=env:CARGO_MANIFEST_DIR", ""], true);
 
         let config = InputCollector::new(&terminal)
             .collect_inputs(WorkflowRunConfig::new())
             .expect("environment input should be collected");
 
-        unsafe { std::env::remove_var(variable) };
-        assert_eq!(config.inputs()[0].value(), "production");
+        assert_eq!(
+            config.inputs()[0].value(),
+            std::env::var(variable).expect("Cargo sets the manifest directory")
+        );
     }
 
     #[test]
