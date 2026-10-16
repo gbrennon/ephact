@@ -51,100 +51,27 @@ if [[ "${1:-}" == "cliff" ]]; then
   shift
   exec git-cliff "$@"
 fi
+if [[ "${1:-}" == "push" ]]; then
+  for argument in "$@"; do
+    if [[ "$argument" == HEAD:refs/for/* ]]; then
+      printf '%s\n' "$argument" > "$TEST_ROOT/agit-push"
+    fi
+  done
+fi
 exec /usr/bin/git "$@"
 EOF
 chmod +x "$bin_dir/git"
 
-cat > "$bin_dir/curl" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-method=GET
-output=""
-data=""
-while (($# > 0)); do
-  case "$1" in
-    --request)
-      shift
-      method="$1"
-      ;;
-    --output)
-      shift
-      output="$1"
-      ;;
-    --data)
-      shift
-      data="$1"
-      ;;
-  esac
-  shift
-done
-if [[ "$method" == "GET" ]]; then
-  if [[ "${PR_LIST_UNAVAILABLE:-false}" == true ]]; then
-    printf '%s\n' '{"message":"pull request list unavailable"}' > "$output"
-    printf '%s' '403'
-    exit 0
-  fi
-  if [[ "${EXISTING_PULL_REQUEST:-false}" == true ]]; then
-    existing_payload='[{"head":{"ref":"chore/update-changelog-test",'
-    existing_payload+=' "repo":{"full_name":"gbrennon/__ep"}}}]'
-    printf '%s\n' "$existing_payload" > "$output"
-  else
-    printf '%s\n' '[]' > "$output"
-  fi
-  printf '%s' '200'
-  exit 0
-fi
-if [[ "${EXISTING_PULL_REQUEST:-false}" == true ]]; then
-  printf '%s\n' '{"message":"pull request already exists"}' > "$output"
-  printf '%s' '409'
-  exit 0
-fi
-if [[ -f "$TEST_ROOT/post-count" ]]; then
-  count="$(cat "$TEST_ROOT/post-count")"
-else
-  count=0
-fi
-printf '%s\n' "$((count + 1))" > "$TEST_ROOT/post-count"
-printf '%s\n' "$data" > "$TEST_ROOT/pull-request.json"
-printf '%s\n' '{"number":1}' > "$output"
-printf '%s' '201'
-EOF
-chmod +x "$bin_dir/curl"
-
-(
-  cd "$source_repo"
-  PATH="$bin_dir:$PATH" \
-    PR_LIST_UNAVAILABLE=true \
-    HOME="$test_root" \
-    TEST_ROOT="$test_root" \
-    TARGET_BRANCH=main \
-    PULL_REQUEST_BRANCH="$target_branch" \
-    BASE_BRANCH=main \
-    CREATE_PULL_REQUEST=true \
-    FORGEJO_API_URL=https://forgejo.invalid/api/v1 \
-    FORGEJO_REPOSITORY=gbrennon/__ep \
-    FORGEJO_TOKEN=test-token \
-    CLIFF_CONFIG=cliff.toml \
-    GIT_USER_NAME='pull-request-author' \
-    GIT_USER_EMAIL='pull-request-author@users.noreply.codeberg.org' \
-    MAX_PUSH_ATTEMPTS=1 \
-    RELEASE_TAG_WAIT_ATTEMPTS=1 \
-    bash "$repo_root/scripts/update_changelog.sh"
-)
 
 (
   cd "$source_repo"
   PATH="$bin_dir:$PATH" \
     HOME="$test_root" \
     TEST_ROOT="$test_root" \
-    EXISTING_PULL_REQUEST=true \
     TARGET_BRANCH=main \
     PULL_REQUEST_BRANCH="$target_branch" \
     BASE_BRANCH=main \
     CREATE_PULL_REQUEST=true \
-    FORGEJO_API_URL=https://forgejo.invalid/api/v1 \
-    FORGEJO_REPOSITORY=gbrennon/__ep \
-    FORGEJO_TOKEN=test-token \
     CLIFF_CONFIG=cliff.toml \
     GIT_USER_NAME='pull-request-author' \
     GIT_USER_EMAIL='pull-request-author@users.noreply.codeberg.org' \
@@ -154,10 +81,6 @@ chmod +x "$bin_dir/curl"
 )
 
 test "$(git -C "$origin" rev-parse main)" = "$initial_main"
-test "$(git -C "$origin" rev-parse "$target_branch")" != "$initial_main"
-test -f "$test_root/pull-request.json"
-test "$(jq -r '.base' "$test_root/pull-request.json")" = main
-test "$(jq -r '.head' "$test_root/pull-request.json")" = "$target_branch"
-test "$(jq -r '.title' "$test_root/pull-request.json")" = 'chore(release): update changelog'
-test "$(cat "$test_root/post-count")" = 1
+test "$(cat "$test_root/agit-push")" = "HEAD:refs/for/main/$target_branch"
+git -C "$origin" show-ref --verify --quiet "refs/for/main/$target_branch"
 printf '%s\n' 'changelog pull request flow passed'

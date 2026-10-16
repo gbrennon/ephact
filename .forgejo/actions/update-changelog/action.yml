@@ -20,26 +20,6 @@ inputs:
     description: Whether to create a pull request instead of pushing the target branch
     required: false
     default: "false"
-  api-url:
-    description: Forgejo API base URL used to create the pull request
-    required: false
-    default: ""
-  repository:
-    description: Forgejo repository in owner/repository format
-    required: false
-    default: ""
-  token:
-    description: Built-in Forgejo token used to create the pull request
-    required: false
-    default: ""
-  pull-request-title:
-    description: Title for the generated changelog pull request
-    required: false
-    default: "chore(release): update changelog"
-  pull-request-body:
-    description: Body for the generated changelog pull request
-    required: false
-    default: "Automated changelog update"
   push-retry-delay-seconds:
     description: Initial delay between changelog push retries
     required: false
@@ -61,11 +41,6 @@ runs:
         BASE_BRANCH: ${{ inputs.base-branch }}
         PULL_REQUEST_BRANCH: ${{ inputs.pull-request-branch }}
         CREATE_PULL_REQUEST: ${{ inputs.create-pull-request }}
-        FORGEJO_API_URL: ${{ inputs.api-url }}
-        FORGEJO_REPOSITORY: ${{ inputs.repository }}
-        FORGEJO_TOKEN: ${{ inputs.token }}
-        PULL_REQUEST_TITLE: ${{ inputs.pull-request-title }}
-        PULL_REQUEST_BODY: ${{ inputs.pull-request-body }}
         PUSH_RETRY_DELAY_SECONDS: ${{ inputs.push-retry-delay-seconds }}
         GIT_USER_NAME: ${{ inputs.git-user-name }}
         GIT_USER_EMAIL: ${{ inputs.git-user-email }}

@@ -9,11 +9,6 @@ readonly TARGET_BRANCH="${TARGET_BRANCH:-}"
 readonly PULL_REQUEST_BRANCH="${PULL_REQUEST_BRANCH:-}"
 readonly BASE_BRANCH="${BASE_BRANCH:-$TARGET_BRANCH}"
 readonly CREATE_PULL_REQUEST="${CREATE_PULL_REQUEST:-false}"
-readonly FORGEJO_API_URL="${FORGEJO_API_URL:-}"
-readonly FORGEJO_REPOSITORY="${FORGEJO_REPOSITORY:-}"
-readonly FORGEJO_TOKEN="${FORGEJO_TOKEN:-}"
-readonly PULL_REQUEST_TITLE="${PULL_REQUEST_TITLE:-chore(release): update changelog}"
-readonly PULL_REQUEST_BODY="${PULL_REQUEST_BODY:-Automated changelog update}"
 readonly VERSION="${VERSION:-}"
 readonly MAX_PUSH_ATTEMPTS="${MAX_PUSH_ATTEMPTS:-3}"
 readonly PUSH_RETRY_DELAY_SECONDS="${PUSH_RETRY_DELAY_SECONDS:-5}"
@@ -100,9 +95,11 @@ generate_changelog() {
   validate_generated_changelog "$temporary_file" "$VERSION"
 }
 commit_and_push() {
-  local push_branch="$TARGET_BRANCH"
-  if [[ -n "$PULL_REQUEST_BRANCH" ]]; then
-    push_branch="$PULL_REQUEST_BRANCH"
+  local push_ref="$TARGET_BRANCH"
+  if [[ "$CREATE_PULL_REQUEST" == true ]]; then
+    push_ref="refs/for/$BASE_BRANCH/$PULL_REQUEST_BRANCH"
+  elif [[ -n "$PULL_REQUEST_BRANCH" ]]; then
+    push_ref="$PULL_REQUEST_BRANCH"
   fi
   if [[ -f "$CHANGELOG_FILE" ]] && cmp --silent "$temporary_file" "$CHANGELOG_FILE"; then
     printf 'CHANGELOG.md is already current\n'
@@ -119,53 +116,16 @@ commit_and_push() {
     commit --message 'chore(release): update changelog'; then
     return 1
   fi
-  if [[ -n "$PULL_REQUEST_BRANCH" ]]; then
-    if git push --force-with-lease origin "HEAD:$push_branch"; then
-      printf 'Updated changelog on %s\n' "$push_branch"
+  if [[ "$CREATE_PULL_REQUEST" == true ]]; then
+    if git push origin "HEAD:$push_ref"; then
+      printf 'Created changelog pull request for %s\n' "$PULL_REQUEST_BRANCH"
       return 0
     fi
-  elif git push origin "HEAD:$push_branch"; then
-    printf 'Updated changelog on %s\n' "$push_branch"
+  elif git push origin "HEAD:$push_ref"; then
+    printf 'Updated changelog on %s\n' "$push_ref"
     return 0
   fi
   printf 'Target branch advanced while pushing; retrying\n' >&2
-  return 1
-}
-
-create_pull_request() {
-  local api_url="${FORGEJO_API_URL%/}"
-  local response_file
-  local create_status
-  local payload
-
-  response_file="$(mktemp)"
-  payload="$(jq -n \
-    --arg title "$PULL_REQUEST_TITLE" \
-    --arg head "$PULL_REQUEST_BRANCH" \
-    --arg base "$BASE_BRANCH" \
-    --arg body "$PULL_REQUEST_BODY" \
-    '{title: $title, head: $head, base: $base, body: $body}')"
-  create_status="$(curl --silent --show-error \
-    --request POST \
-    --url "$api_url/repos/$FORGEJO_REPOSITORY/pulls" \
-    --header "Authorization: token $FORGEJO_TOKEN" \
-    --header 'Content-Type: application/json' \
-    --output "$response_file" \
-    --write-out '%{http_code}' \
-    --data "$payload")"
-  if [[ "$create_status" == 2?? ]]; then
-    printf 'Created changelog pull request for %s\n' "$PULL_REQUEST_BRANCH"
-    rm -f -- "$response_file"
-    return 0
-  fi
-  if [[ "$create_status" == 409 ]] && \
-    jq -e '.message == "pull request already exists"' "$response_file" >/dev/null; then
-    printf 'Changelog pull request already exists for %s\n' "$PULL_REQUEST_BRANCH"
-    rm -f -- "$response_file"
-    return 0
-  fi
-  cat "$response_file" >&2
-  rm -f -- "$response_file"
   return 1
 }
 
@@ -173,9 +133,6 @@ validate_configuration \
   "$TARGET_BRANCH" "$CONFIG_FILE" "$VERSION" "$MAX_PUSH_ATTEMPTS" \
   "$PUSH_RETRY_DELAY_SECONDS" "$RELEASE_TAG_WAIT_ATTEMPTS" \
   "$RELEASE_TAG_WAIT_SECONDS"
-validate_pull_request_configuration \
-  "$CREATE_PULL_REQUEST" "$BASE_BRANCH" "$PULL_REQUEST_BRANCH" \
-  "$FORGEJO_API_URL" "$FORGEJO_REPOSITORY" "$FORGEJO_TOKEN"
 
 for ((attempt = 1; attempt <= MAX_PUSH_ATTEMPTS; attempt++)); do
   printf 'Updating changelog attempt %d/%d\n' "$attempt" "$MAX_PUSH_ATTEMPTS"
@@ -183,10 +140,6 @@ for ((attempt = 1; attempt <= MAX_PUSH_ATTEMPTS; attempt++)); do
   wait_for_release_tag
   generate_changelog
   if commit_and_push; then
-    if [[ "$CREATE_PULL_REQUEST" == true ]] && \
-      ! git diff --quiet "origin/$BASE_BRANCH...HEAD"; then
-      create_pull_request
-    fi
     exit 0
   fi
   if (( attempt < MAX_PUSH_ATTEMPTS )); then
