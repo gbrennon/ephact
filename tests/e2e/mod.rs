@@ -4,6 +4,7 @@ pub mod common;
 mod scenarios;
 mod support;
 
+mod cli_binary_tests;
 mod cli_commands_tests;
 mod continue_on_error_pipeline_tests;
 mod delivery_pipeline_tests;
