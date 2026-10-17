@@ -98,6 +98,11 @@
 - **ci**: Route changelog updates through pull requests
 - **ci**: Skip secrets check for changelog PRs
 - **ci**: Report skipped secret checks
+- **ci**: Classify changelog push failures
+- **ci**: Guard changelog workflow labels
+- **ci**: Cover changelog guard edge cases
+- **ci**: Bound changelog workflow runtime
+- **ci**: Allow changelog workflow more time
 
 ### Refactor
 
