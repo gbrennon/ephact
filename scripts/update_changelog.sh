@@ -9,6 +9,9 @@ readonly TARGET_BRANCH="${TARGET_BRANCH:-}"
 readonly BASE_BRANCH="${BASE_BRANCH:-$TARGET_BRANCH}"
 readonly PULL_REQUEST_BRANCH="${PULL_REQUEST_BRANCH:-}"
 readonly CREATE_PULL_REQUEST="${CREATE_PULL_REQUEST:-false}"
+readonly FORGEJO_API_URL="${FORGEJO_API_URL:-}"
+readonly FORGEJO_REPOSITORY="${FORGEJO_REPOSITORY:-}"
+readonly FORGEJO_TOKEN="${FORGEJO_TOKEN:-}"
 readonly VERSION="${VERSION:-}"
 readonly MAX_PUSH_ATTEMPTS="${MAX_PUSH_ATTEMPTS:-3}"
 readonly PUSH_RETRY_DELAY_SECONDS="${PUSH_RETRY_DELAY_SECONDS:-5}"
@@ -25,6 +28,12 @@ synchronize_target_branch() {
   git fetch --quiet origin \
     "$TARGET_BRANCH:refs/remotes/origin/$TARGET_BRANCH"
   git reset --hard --quiet "origin/$TARGET_BRANCH"
+}
+synchronize_pull_request_branch() {
+  [[ "$CREATE_PULL_REQUEST" == true ]] || return 0
+  git fetch --quiet origin \
+    "+$PULL_REQUEST_BRANCH:refs/remotes/origin/$PULL_REQUEST_BRANCH" \
+    2>/dev/null || true
 }
 
 find_pending_release_tag() {
@@ -124,7 +133,19 @@ prepare_changelog_commit() {
 push_changelog() {
   local push_ref="$1"
   local push_output
-  if push_output="$(git push origin "HEAD:$push_ref" 2>&1)"; then
+  local expected_revision
+  local -a push_command
+  push_command=(git push origin "HEAD:$push_ref")
+  if [[ "$CREATE_PULL_REQUEST" == true ]] && \
+    git show-ref --verify --quiet "refs/remotes/origin/$PULL_REQUEST_BRANCH"; then
+    expected_revision="$(git rev-parse "refs/remotes/origin/$PULL_REQUEST_BRANCH")"
+    push_command=(
+      git push
+      "--force-with-lease=refs/heads/$PULL_REQUEST_BRANCH:$expected_revision"
+      origin "HEAD:$push_ref"
+    )
+  fi
+  if push_output="$("${push_command[@]}" 2>&1)"; then
     printf '%s\n' "$push_output"
     printf 'Updated changelog on %s\n' "$push_ref"
     return 0
@@ -137,12 +158,96 @@ push_changelog() {
   printf 'Changelog push failed without a retryable branch race\n' >&2
   return 2
 }
+validate_pull_request_configuration() {
+  [[ "$CREATE_PULL_REQUEST" == true ]] || return 0
+  [[ -n "$BASE_BRANCH" ]] || fail 'BASE_BRANCH is required for pull request mode'
+  [[ "$BASE_BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]] || \
+    fail 'BASE_BRANCH is invalid for pull request mode'
+  [[ -n "$PULL_REQUEST_BRANCH" ]] || \
+    fail 'PULL_REQUEST_BRANCH is required for pull request mode'
+  [[ "$PULL_REQUEST_BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]] || \
+    fail 'PULL_REQUEST_BRANCH is invalid for pull request mode'
+  [[ "$PULL_REQUEST_BRANCH" != refs/* ]] || \
+    fail 'PULL_REQUEST_BRANCH must be a branch name'
+  [[ -n "$FORGEJO_API_URL" ]] || \
+    fail 'FORGEJO_API_URL is required for pull request mode'
+  [[ -n "$FORGEJO_REPOSITORY" ]] || \
+    fail 'FORGEJO_REPOSITORY is required for pull request mode'
+  [[ -n "$FORGEJO_TOKEN" ]] || \
+    fail 'FORGEJO_TOKEN is required for pull request mode'
+  command -v curl >/dev/null 2>&1 || fail 'curl is required for pull request mode'
+  command -v jq >/dev/null 2>&1 || fail 'jq is required for pull request mode'
+}
+
+create_pull_request() {
+  local payload
+  local response_file
+  local http_status
+  local existing_url
+  response_file="$(mktemp)"
+  if ! http_status="$(
+    curl --silent --show-error \
+      --request GET \
+      --url "${FORGEJO_API_URL}/repos/${FORGEJO_REPOSITORY}/pulls?state=open&limit=50" \
+      --header "Authorization: token ${FORGEJO_TOKEN}" \
+      --output "$response_file" \
+      --write-out '%{http_code}'
+  )"; then
+    cat "$response_file" >&2
+    rm -f -- "$response_file"
+    fail 'Could not list changelog pull requests'
+  fi
+  if (( http_status < 200 || http_status >= 300 )); then
+    printf 'Pull request list API returned HTTP status: %s\n' "$http_status" >&2
+    cat "$response_file" >&2
+    rm -f -- "$response_file"
+    fail 'Could not list changelog pull requests'
+  fi
+  existing_url="$(jq -r \
+    --arg head "$PULL_REQUEST_BRANCH" \
+    --arg base "$BASE_BRANCH" \
+    '[.[] | select(.head.ref == $head and .base.ref == $base)] |
+      first | .html_url // empty' "$response_file")"
+  if [[ -n "$existing_url" ]]; then
+    printf 'Changelog pull request already exists: %s\n' "$existing_url"
+    rm -f -- "$response_file"
+    return 0
+  fi
+  payload="$(jq -n \
+    --arg title 'chore(release): update changelog' \
+    --arg head "$PULL_REQUEST_BRANCH" \
+    --arg base "$BASE_BRANCH" \
+    --arg body "Automated changelog update for $TARGET_BRANCH." \
+    '{title: $title, head: $head, base: $base, body: $body}')"
+  if ! http_status="$(
+    curl --silent --show-error \
+      --request POST \
+      --url "${FORGEJO_API_URL}/repos/${FORGEJO_REPOSITORY}/pulls" \
+      --header "Authorization: token ${FORGEJO_TOKEN}" \
+      --header 'Content-Type: application/json' \
+      --output "$response_file" \
+      --write-out '%{http_code}' \
+      --data "$payload"
+  )"; then
+    cat "$response_file" >&2
+    rm -f -- "$response_file"
+    fail 'Could not create changelog pull request'
+  fi
+  if (( http_status < 200 || http_status >= 300 )); then
+    printf 'Pull request API returned HTTP status: %s\n' "$http_status" >&2
+    cat "$response_file" >&2
+    rm -f -- "$response_file"
+    fail 'Could not create changelog pull request'
+  fi
+  cat "$response_file"
+  rm -f -- "$response_file"
+}
 
 commit_and_push() {
   local push_ref="$TARGET_BRANCH"
   local preparation_status
   if [[ "$CREATE_PULL_REQUEST" == true ]]; then
-    push_ref="refs/for/$BASE_BRANCH/$PULL_REQUEST_BRANCH"
+    push_ref="$PULL_REQUEST_BRANCH"
   fi
   if prepare_changelog_commit; then
     preparation_status=0
@@ -150,11 +255,18 @@ commit_and_push() {
     preparation_status=$?
   fi
   case "$preparation_status" in
-    0) push_changelog "$push_ref" ;;
+    0)
+      push_changelog "$push_ref" || return $?
+      if [[ "$CREATE_PULL_REQUEST" == true ]]; then
+        create_pull_request
+      fi
+      ;;
     3) return 0 ;;
     *) return 1 ;;
   esac
 }
+
+validate_pull_request_configuration
 
 validate_configuration \
   "$TARGET_BRANCH" "$CONFIG_FILE" "$VERSION" "$MAX_PUSH_ATTEMPTS" \
@@ -164,6 +276,7 @@ validate_configuration \
 for ((attempt = 1; attempt <= MAX_PUSH_ATTEMPTS; attempt++)); do
   printf 'Updating changelog attempt %d/%d\n' "$attempt" "$MAX_PUSH_ATTEMPTS"
   synchronize_target_branch
+  synchronize_pull_request_branch
   wait_for_release_tag
   generate_changelog
   if commit_and_push; then

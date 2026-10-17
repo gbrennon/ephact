@@ -189,12 +189,13 @@ CI as the **Workflow lint** job.
 Merging a pull request into `main` triggers
 `.forgejo/workflows/update-changelog.yml`. The workflow:
 
-1. Checks that the pull request was merged.
+1. Checks that the pull request was merged into `main`.
 2. Ignores `chore/changelog/` and `release/v` branches to prevent recursion.
-3. Checks out the updated default branch with `CODEBERG_TOKEN`.
+3. Checks out the updated default branch with the built-in Forgejo token.
 4. Generates the unreleased changelog with `git-cliff`.
-5. Pushes an AGit `refs/for/main/...` reference so Forgejo creates a changelog
-   pull request instead of pushing directly to protected `main`.
+5. Updates the stable `chore/changelog/main` branch with the generated commit.
+6. Creates or reuses a pull request from that branch into protected `main`
+   through the Forgejo API.
 
 Versioned releases use `prepare-release.yml` instead. That workflow passes a
 release version and target release branch to the same action, which updates the
@@ -209,17 +210,16 @@ Configure the following secrets in Codeberg repository settings under
 | ------ | ------- | -------------- |
 | `CARGO_REGISTRY_TOKEN` | Crates.io production publishing | Crates.io API token |
 | `GH_RELEASE_TOKEN` | GitHub mirror release publishing | GitHub personal access token |
-| `CODEBERG_TOKEN` | Changelog pull-request creation | Codeberg PAT for a write-enabled bot |
 
 ### Built-in Tokens
 
 `FORGEJO_TOKEN` is automatically created and injected by Forgejo Actions for each
 workflow run. Do not add `FORGEJO_TOKEN` to repository secrets; use the built-in
-`forgejo.token` context when a workflow needs the default token.
+`${{ github.token }}` context when a workflow needs the default token.
 
-The changelog workflow uses `CODEBERG_TOKEN` instead because its AGit push must
-create a pull request through Forgejo's `proc-receive` endpoint. The token must
-belong to an account with **Write** access to this repository.
+The changelog workflow passes the built-in token to both checkout and the
+Forgejo pull-request API call. Versioned release updates continue to push
+directly to their release branch.
 
 ### Forgejo Workflow Capabilities
 
