@@ -69,6 +69,7 @@ fi
 count=$((count + 1))
 printf '%s\n' "$count" > "$count_file"
 if (( count < 3 )); then
+  printf '%s\n' 'remote: error: non-fast-forward branch race' >&2
   exit 1
 fi
 EOF

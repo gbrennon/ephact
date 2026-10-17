@@ -95,32 +95,65 @@ generate_changelog() {
   validate_generated_changelog "$temporary_file" "$VERSION"
 }
 
-commit_and_push() {
-  local push_ref="$TARGET_BRANCH"
-  if [[ "$CREATE_PULL_REQUEST" == true ]]; then
-    push_ref="refs/for/$BASE_BRANCH/$PULL_REQUEST_BRANCH"
-  fi
+is_retryable_push_failure() {
+  case "$1" in
+    *non-fast-forward*|*fetch\ first*|*stale\ info*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+prepare_changelog_commit() {
   if [[ -f "$CHANGELOG_FILE" ]] && cmp --silent "$temporary_file" "$CHANGELOG_FILE"; then
     printf 'CHANGELOG.md is already current\n'
-    return 0
+    return 3
   fi
   cp -- "$temporary_file" "$CHANGELOG_FILE"
   git add -- "$CHANGELOG_FILE"
   if git diff --cached --quiet -- "$CHANGELOG_FILE"; then
     printf 'CHANGELOG.md produced no changes\n'
-    return 0
+    return 3
   fi
   if ! git -c user.name="$GIT_USER_NAME" \
     -c user.email="$GIT_USER_EMAIL" \
     commit --message 'chore(release): update changelog'; then
     return 1
   fi
-  if git push origin "HEAD:$push_ref"; then
+  return 0
+}
+
+push_changelog() {
+  local push_ref="$1"
+  local push_output
+  if push_output="$(git push origin "HEAD:$push_ref" 2>&1)"; then
+    printf '%s\n' "$push_output"
     printf 'Updated changelog on %s\n' "$push_ref"
     return 0
   fi
-  printf 'Target branch advanced while pushing; retrying\n' >&2
-  return 1
+  printf '%s\n' "$push_output" >&2
+  if is_retryable_push_failure "$push_output"; then
+    printf 'Target branch advanced while pushing; retrying\n' >&2
+    return 1
+  fi
+  printf 'Changelog push failed without a retryable branch race\n' >&2
+  return 2
+}
+
+commit_and_push() {
+  local push_ref="$TARGET_BRANCH"
+  local preparation_status
+  if [[ "$CREATE_PULL_REQUEST" == true ]]; then
+    push_ref="refs/for/$BASE_BRANCH/$PULL_REQUEST_BRANCH"
+  fi
+  if prepare_changelog_commit; then
+    preparation_status=0
+  else
+    preparation_status=$?
+  fi
+  case "$preparation_status" in
+    0) push_changelog "$push_ref" ;;
+    3) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 validate_configuration \
@@ -135,6 +168,11 @@ for ((attempt = 1; attempt <= MAX_PUSH_ATTEMPTS; attempt++)); do
   generate_changelog
   if commit_and_push; then
     exit 0
+  else
+    push_status=$?
+  fi
+  if (( push_status == 2 )); then
+    fail 'Changelog push failed without a retryable branch race'
   fi
   if (( attempt < MAX_PUSH_ATTEMPTS )); then
     retry_delay=$((PUSH_RETRY_DELAY_SECONDS * attempt))
