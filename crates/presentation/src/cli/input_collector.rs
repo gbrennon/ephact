@@ -1,4 +1,4 @@
-use super::{input_declaration_context::InputDeclarationContext, run_args::RunArgs};
+use super::{input_declaration_context::InputDeclarationContext, input_parser::InputParser};
 use crate::{
     components::terminal::Terminal,
     domain::value_objects::{WorkflowInput, WorkflowRunConfig},
@@ -80,7 +80,7 @@ impl<'a> InputCollector<'a> {
         if trimmed.is_empty() {
             return Ok(None);
         }
-        let (key, source) = RunArgs::parse_input_source(trimmed)?;
+        let (key, source) = InputParser::parse_input_source(trimmed)?;
         let value = source.resolve()?;
         Ok(Some(WorkflowInput::new(key, value)))
     }
@@ -202,7 +202,7 @@ impl<'a> InputCollector<'a> {
     ) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
         if !value.is_empty() {
             let (_, source) =
-                RunArgs::parse_input_source(&format!("{}={value}", declaration.name()))?;
+                InputParser::parse_input_source(&format!("{}={value}", declaration.name()))?;
             config = config.add_input(WorkflowInput::new(
                 declaration.name().to_owned(),
                 source.resolve()?,
