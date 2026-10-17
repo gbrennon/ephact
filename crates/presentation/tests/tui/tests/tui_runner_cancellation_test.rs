@@ -2,7 +2,7 @@
 mod tests {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-    use super::super::{FailureLogScenario, RunTask};
+    use super::super::{FailureLogScenario, RunTask, TuiLoopState};
     use crate::application::dtos::responses::RunSummaryResponse;
 
     #[tokio::test]
@@ -15,21 +15,21 @@ mod tests {
         let handle = tokio::spawn(async {
             std::future::pending::<Result<RunSummaryResponse, String>>().await
         });
-        let mut run_task = Some(RunTask {
+        let run_task = RunTask {
             handle,
             run_id: run_id.to_string(),
-        });
-        let mut cancelled = false;
+        };
+        let mut state = TuiLoopState::Running { task: run_task };
 
         scenario
             .runner
-            .process_cancel_request(&mut scenario.app, &mut run_task, &mut cancelled);
+            .process_cancel_request(&mut scenario.app, &mut state);
 
         assert!(scenario.handler.path_store().take(run_id).is_none());
         tokio::task::yield_now().await;
         scenario
             .runner
-            .process_finished_run(&mut scenario.app, &mut run_task, &mut cancelled)
+            .process_finished_run(&mut scenario.app, &mut state)
             .await
             .expect("cancelled run should be discarded");
         scenario.cleanup();

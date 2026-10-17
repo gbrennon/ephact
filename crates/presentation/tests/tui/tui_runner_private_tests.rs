@@ -13,7 +13,7 @@ mod tests {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ratatui::{Terminal, backend::TestBackend};
 
-    use super::super::{RunTask, TuiApp, TuiRunner};
+    use super::super::{RunTask, TuiApp, TuiLoopState, TuiRunner};
     use crate::{
         application::{
             dtos::{
@@ -145,5 +145,12 @@ mod tests {
             .iter()
             .map(|cell| cell.symbol().to_string())
             .collect()
+    }
+
+    #[test]
+    fn loop_state_starts_idle() {
+        let state = TuiLoopState::new();
+
+        assert!(matches!(state, TuiLoopState::Idle));
     }
 }

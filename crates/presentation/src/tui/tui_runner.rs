@@ -32,19 +32,16 @@ struct RunTask {
     run_id: String,
 }
 
-struct TuiLoopState {
-    run_task: Option<RunTask>,
-    cancelled: bool,
-    input_configuration_pending: bool,
+enum TuiLoopState {
+    Idle,
+    InputConfigurationPending,
+    Running { task: RunTask },
+    Cancelling { task: RunTask },
 }
 
 impl TuiLoopState {
     fn new() -> Self {
-        Self {
-            run_task: None,
-            cancelled: false,
-            input_configuration_pending: false,
-        }
+        Self::Idle
     }
 }
 
@@ -205,19 +202,10 @@ impl TuiRunner {
     ) -> Result<(), Box<dyn std::error::Error>> {
         self.process_progress(app);
         Self::render_and_handle_input(terminal, app)?;
-        self.process_cancel_request(app, &mut state.run_task, &mut state.cancelled);
-        self.process_finished_run(app, &mut state.run_task, &mut state.cancelled)
-            .await?;
-        self.process_run_request(
-            app,
-            &mut state.run_task,
-            &mut state.input_configuration_pending,
-        )?;
-        self.process_configured_run_request(
-            app,
-            &mut state.run_task,
-            &mut state.input_configuration_pending,
-        )?;
+        self.process_cancel_request(app, state);
+        self.process_finished_run(app, state).await?;
+        self.process_run_request(app, state)?;
+        self.process_configured_run_request(app, state)?;
         Ok(())
     }
 
@@ -229,19 +217,22 @@ impl TuiRunner {
             app.record_progress(line);
         }
     }
-    fn process_cancel_request(
-        &self,
-        app: &mut TuiApp,
-        run_task: &mut Option<RunTask>,
-        cancelled: &mut bool,
-    ) {
+
+    fn process_cancel_request(&self, app: &mut TuiApp, state: &mut TuiLoopState) {
         if !app.take_cancel_request() {
             return;
         }
-        *cancelled = true;
-        if let Some(task) = run_task.as_ref() {
-            task.handle.abort();
-            self.take_failure_log_path(&task.run_id);
+        let previous_state = std::mem::replace(state, TuiLoopState::Idle);
+        match previous_state {
+            TuiLoopState::Running { task } => {
+                task.handle.abort();
+                self.take_failure_log_path(&task.run_id);
+                *state = TuiLoopState::Cancelling { task };
+            }
+            TuiLoopState::Cancelling { task } => {
+                *state = TuiLoopState::Cancelling { task };
+            }
+            TuiLoopState::Idle | TuiLoopState::InputConfigurationPending => {}
         }
         app.record_run_outcome(Self::cancelled_summary());
     }
@@ -249,29 +240,35 @@ impl TuiRunner {
     async fn process_finished_run(
         &self,
         app: &mut TuiApp,
-        run_task: &mut Option<RunTask>,
-        cancelled: &mut bool,
+        state: &mut TuiLoopState,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let Some(task) = run_task.as_ref() else {
-            return Ok(());
+        let is_finished = match state {
+            TuiLoopState::Running { task } | TuiLoopState::Cancelling { task } => {
+                task.handle.is_finished()
+            }
+            TuiLoopState::Idle | TuiLoopState::InputConfigurationPending => return Ok(()),
         };
-        if !task.handle.is_finished() {
+        if !is_finished {
             return Ok(());
         }
-        let task = run_task.take().expect("finished run task");
-        if *cancelled {
-            self.take_failure_log_path(&task.run_id);
-            *cancelled = false;
-            return Ok(());
-        }
-        let result = task.handle.await.map_err(|error| error.to_string())?;
-        match result {
-            Ok(summary) => {
-                let failure_log_path = self.take_failure_log_path(&task.run_id);
-                app.record_run_outcome_with_failure_log_path(summary, failure_log_path);
+        let previous_state = std::mem::replace(state, TuiLoopState::Idle);
+        match previous_state {
+            TuiLoopState::Cancelling { task } => {
+                self.take_failure_log_path(&task.run_id);
                 Ok(())
             }
-            Err(error) => self.record_failed_run(app, &task.run_id, error),
+            TuiLoopState::Running { task } => {
+                let result = task.handle.await.map_err(|error| error.to_string())?;
+                match result {
+                    Ok(summary) => {
+                        let failure_log_path = self.take_failure_log_path(&task.run_id);
+                        app.record_run_outcome_with_failure_log_path(summary, failure_log_path);
+                        Ok(())
+                    }
+                    Err(error) => self.record_failed_run(app, &task.run_id, error),
+                }
+            }
+            TuiLoopState::Idle | TuiLoopState::InputConfigurationPending => Ok(()),
         }
     }
 
@@ -306,16 +303,15 @@ impl TuiRunner {
             Duration::ZERO,
         )
     }
+
     fn process_run_request(
         &self,
         app: &mut TuiApp,
-        run_task: &mut Option<RunTask>,
-        input_configuration_pending: &mut bool,
+        state: &mut TuiLoopState,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        if run_task.is_some() || !app.take_run_request() {
+        if !matches!(state, TuiLoopState::Idle) || !app.take_run_request() {
             return Ok(());
         }
-        *input_configuration_pending = false;
         let events = app.selected_workflow_events();
         app.begin_run_configuration(events.clone(), Vec::new());
         if events.is_empty() {
@@ -329,32 +325,33 @@ impl TuiRunner {
     fn process_configured_run_request(
         &self,
         app: &mut TuiApp,
-        run_task: &mut Option<RunTask>,
-        input_configuration_pending: &mut bool,
+        state: &mut TuiLoopState,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        if matches!(
+            state,
+            TuiLoopState::Running { .. } | TuiLoopState::Cancelling { .. }
+        ) {
+            return Ok(());
+        }
         let Some(configuration) = app.take_configured_run_request() else {
             return Ok(());
         };
         let workflow = app.selected_workflow_name().map(ToString::to_string);
-        if self.prepare_input_configuration(
-            app,
-            &workflow,
-            configuration.event(),
-            input_configuration_pending,
-        )? {
+        if self.prepare_input_configuration(app, &workflow, configuration.event(), state)? {
             return Ok(());
         }
-        *input_configuration_pending = false;
         let port = self.run_workflow_port.clone();
         let repository_path = std::env::current_dir()?;
         app.start_run();
-        *run_task = Some(Self::spawn_workflow_task(
-            port,
-            repository_path,
-            workflow,
-            configuration.event().to_string(),
-            configuration.inputs().to_vec(),
-        ));
+        *state = TuiLoopState::Running {
+            task: Self::spawn_workflow_task(
+                port,
+                repository_path,
+                workflow,
+                configuration.event().to_string(),
+                configuration.inputs().to_vec(),
+            ),
+        };
         Ok(())
     }
 
@@ -363,9 +360,9 @@ impl TuiRunner {
         app: &mut TuiApp,
         workflow: &Option<String>,
         event: &str,
-        input_configuration_pending: &mut bool,
+        state: &mut TuiLoopState,
     ) -> Result<bool, Box<dyn std::error::Error>> {
-        if *input_configuration_pending {
+        if matches!(state, TuiLoopState::InputConfigurationPending) {
             return Ok(false);
         }
         let Some(discover_port) = self.discover_run_inputs_port.as_ref() else {
@@ -380,15 +377,16 @@ impl TuiRunner {
         match declarations {
             Ok(declarations) if !declarations.is_empty() => {
                 app.begin_run_configuration(vec![event.to_string()], declarations);
-                *input_configuration_pending = true;
+                *state = TuiLoopState::InputConfigurationPending;
+                Ok(true)
             }
             Err(error) => {
                 app.begin_run_configuration(vec![event.to_string()], Vec::new());
                 app.report_configuration_error(error.to_string());
+                Ok(true)
             }
-            Ok(_) => return Ok(false),
+            Ok(_) => Ok(false),
         }
-        Ok(true)
     }
 
     fn spawn_workflow_task(

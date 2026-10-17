@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use super::super::{FailureLogScenario, RunTask};
+    use super::super::{FailureLogScenario, RunTask, TuiLoopState};
     use crate::application::dtos::responses::RunSummaryResponse;
 
     #[tokio::test]
@@ -11,16 +11,16 @@ mod tests {
         let handle = tokio::spawn(async {
             Err::<RunSummaryResponse, String>("workflow could not be read".to_string())
         });
-        let mut run_task = Some(RunTask {
+        let run_task = RunTask {
             handle,
             run_id: active_run_id.to_string(),
-        });
-        let mut cancelled = false;
+        };
+        let mut state = TuiLoopState::Running { task: run_task };
         tokio::task::yield_now().await;
 
         let result = scenario
             .runner
-            .process_finished_run(&mut scenario.app, &mut run_task, &mut cancelled)
+            .process_finished_run(&mut scenario.app, &mut state)
             .await;
 
         assert!(result.is_ok());
