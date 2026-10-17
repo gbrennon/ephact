@@ -18,6 +18,7 @@ jobs:
       !contains(github.event.pull_request.head.label, 'chore/changelog/') &&
       !contains(github.event.pull_request.head.label, 'release/v')
     runs-on: codeberg-small
+    timeout-minutes: 15
     steps:
       - name: Check out the trusted default branch
         uses: actions/checkout@v6
