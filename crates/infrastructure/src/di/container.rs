@@ -16,7 +16,10 @@ use crate::{
             show_project_branding_info_service::ShowProjectBrandingInfoService,
         },
     },
-    containers::{ContainerCleanupHandler, ContainerRuntimeAdapter, HostSshForwardingConfig},
+    containers::{
+        ContainerCleanupHandler, ContainerRuntimeAdapter, HostSshForwardingConfig,
+        UnavailableContainerRuntime,
+    },
     di::{
         app_container::{AppContainer, AppContainerParts},
         command_bus_wiring::CommandBusWiring,
@@ -57,6 +60,29 @@ impl Container {
             ContainerRuntimeAdapter::detect()
                 .expect("no container runtime available (Docker or Podman required)"),
         );
+        Self::build_with_runtime(runtime, progress_reporter, branding_store, ssh_forwarding)
+    }
+
+    /// Builds a container for workflow and action discovery without probing a
+    /// host container runtime.
+    pub fn build_for_discovery(
+        progress_reporter: Option<Box<dyn DomainEventHandlerPort>>,
+        branding_store: Box<dyn ProjectBrandingStorePort>,
+    ) -> AppContainer {
+        Self::build_with_runtime(
+            Arc::new(UnavailableContainerRuntime),
+            progress_reporter,
+            branding_store,
+            HostSshForwardingConfig::disabled(),
+        )
+    }
+
+    fn build_with_runtime(
+        runtime: Arc<dyn ContainerRuntimePort>,
+        progress_reporter: Option<Box<dyn DomainEventHandlerPort>>,
+        branding_store: Box<dyn ProjectBrandingStorePort>,
+        ssh_forwarding: HostSshForwardingConfig,
+    ) -> AppContainer {
         Self::with_collaborators_and_branding_and_ssh_forwarding(
             ContainerCollaborators::new(
                 runtime,

@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use std::ffi::{OsStr, OsString};
+    use std::ffi::OsString;
 
-    use ephact::presentation::cli::{RunArgs, parse_run_test_args};
+    use ephact::presentation::cli::{CliParser, parse_run_test_args};
 
     #[test]
     fn forward_ssh_requires_network_access() {
@@ -27,42 +27,36 @@ mod tests {
     }
 
     #[test]
-    fn forward_ssh_predicate_matches_only_the_exact_flag() {
-        assert!(RunArgs::is_forward_ssh_flag(OsStr::new("--forward-ssh")));
-        assert!(!RunArgs::is_forward_ssh_flag(OsStr::new(
-            "--forward-ssh=true"
-        )));
-        assert!(!RunArgs::is_forward_ssh_flag(OsStr::new("--allow-network")));
+    fn forward_ssh_is_detected_from_parsed_run_arguments() {
+        let arguments = vec![
+            OsString::from("ephact"),
+            OsString::from("run"),
+            OsString::from("--forward-ssh"),
+        ];
+        let parser = CliParser::try_parse_invocation_from(&arguments).unwrap();
+
+        assert!(parser.is_ssh_forwarding_requested());
     }
 
     #[test]
-    fn forward_ssh_command_is_limited_to_run_options() {
-        let run_args = vec![
-            OsString::from("ephact"),
-            OsString::from("run"),
-            OsString::from("--forward-ssh"),
-        ];
-        let cli_run_args = vec![
-            OsString::from("ephact"),
-            OsString::from("cli"),
-            OsString::from("run"),
-            OsString::from("--forward-ssh"),
-        ];
-        let tui_args = vec![
-            OsString::from("ephact"),
-            OsString::from("tui"),
-            OsString::from("--forward-ssh"),
-        ];
-        let escaped_args = vec![
+    fn forward_ssh_is_rejected_outside_run_arguments() {
+        let arguments = vec![OsString::from("ephact"), OsString::from("tui")];
+        let parser = CliParser::try_parse_invocation_from(&arguments).unwrap();
+
+        assert!(!parser.is_ssh_forwarding_requested());
+    }
+
+    #[test]
+    fn forward_ssh_after_argument_terminator_is_not_parsed_as_a_flag() {
+        let arguments = vec![
             OsString::from("ephact"),
             OsString::from("run"),
             OsString::from("--"),
             OsString::from("--forward-ssh"),
         ];
 
-        assert!(RunArgs::is_forward_ssh_command(&run_args));
-        assert!(RunArgs::is_forward_ssh_command(&cli_run_args));
-        assert!(!RunArgs::is_forward_ssh_command(&tui_args));
-        assert!(!RunArgs::is_forward_ssh_command(&escaped_args));
+        let parser = CliParser::try_parse_invocation_from(&arguments).unwrap();
+
+        assert!(!parser.is_ssh_forwarding_requested());
     }
 }
