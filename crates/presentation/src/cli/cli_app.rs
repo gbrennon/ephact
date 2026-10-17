@@ -179,15 +179,13 @@ impl Cli {
         T: Into<OsString> + Clone,
     {
         let args: Vec<OsString> = args.into_iter().map(Into::into).collect();
-        if Self::is_tui_command(&args) {
+        let is_tui_command =
+            CliParser::try_parse_invocation_from(&args).is_ok_and(|parser| parser.is_tui_command());
+        if is_tui_command {
             self.run_tui().await?;
             return Ok(String::new());
         }
         self.execute_cli(args, terminal).await
-    }
-
-    fn is_tui_command(args: &[OsString]) -> bool {
-        args.get(1).is_some_and(|arg| arg == "tui")
     }
 
     async fn run_tui(&self) -> Result<(), Box<dyn std::error::Error>> {
