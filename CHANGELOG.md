@@ -1,3 +1,455 @@
+## [Unreleased]
+
+### Features
+
+- **workflows**: Support woodpecker discovery
+- **cli**: Describe woodpecker support
+- **workflows**: Add shared source name resolution
+- **workflows**: Use source filename as fallback name
+- **actions**: Use definition filename as fallback name
+- **domain**: Add ActionExecutionContext value object
+- **presentation**: Show failure diagnostics path in TUI
+- **settings**: Add validated failure-log retention
+- **settings**: Persist failure-log retention
+- **logging**: Configure failure-log retention
+- **actions**: Support node24 action runtime
+- **workflows**: Add selected job request state
+- **workflows**: Propagate selected workflow job
+- **workflows**: Filter execution by selected job
+- **runners**: Add hosted runner baseline
+- **containers**: Add host agent configuration
+- **di**: Wire host agent forwarding
+- **cli**: Add SSH forwarding option
+- **settings**: Define SSH forwarding port
+- **infrastructure**: Add SSH settings capability module
+- **settings**: Persist SSH forwarding preference
+- **tui**: Edit persisted settings
+- **tui**: Wire SSH settings capability
+- **tui**: Pass SSH settings capability
+- **tui**: Propagate SSH settings capability
+- **cli**: Expose forward SSH setting
+- **cli**: Apply persisted settings to runs
+- **composition**: Wire SSH settings capability
+- **runtime**: Load settings before containers
+- **cli**: Expose execution command helpers
+- **presentation**: Add shared emblem layout
+- **presentation**: Add display alignment helper
+- **presentation**: Add shared branding content
+- **presentation**: Share splash quote catalog
+
+### Bug Fixes
+
+- **workflows**: Resolve blank names from source files
+- **testing**: Remove stale domain test target
+- **workflows**: Execute woodpecker pipelines from cli
+- **actions**: Preserve failed output
+- **test**: Simplify composite outcome type
+- **application**: Satisfy strict clippy checks
+- **application**: Preserve builtin function dispatch
+- **application**: Update JSON evaluator test
+- **actions**: Clarify mounted checkout result
+- **application**: Stop job steps after failure
+- **infrastructure**: Skip jobs after workflow failure
+- **presentation**: Show failed workflow steps accurately
+- **actions**: Accept scalar metadata values
+- **workflows**: Parse Woodpecker pipeline metadata
+- **presentation**: Shut down CLI runtime cleanly
+- **runner**: Expose GitHub output file
+- **actions**: Honor composite step conditions
+- **actions**: Run composite actions in containers
+- **logging**: Prune expired failure diagnostics
+- **logging**: Ignore missing expired logs
+- **logging**: Rename retention update operation
+- **logging**: Restrict pruning to owned failure logs
+- **ci**: Bootstrap the pinned Rust toolchain
+- **woodpecker**: Collapse $$ escapes in step commands
+- **tui**: Show failure log path for execution errors
+- **tui**: Correlate failure logs with runs
+- **ci**: Harden changelog update workflow
+- **ci**: Coordinate changelog with releases
+- **ci**: Extend release tag wait window
+- **ci**: Preserve configured commit identity
+- **ci**: Normalize changelog release spacing
+- **cli**: Scope SSH forwarding to run command
+- **cli**: Preserve SSH forwarding through cli wrapper
+- **settings**: Preserve SSH preference on writes
+- **runtime**: Gate SSH forwarding by execution policy
+- **tui**: Clear settings errors on cancel
+- **tui**: Preserve canonical emblem spacing
+- **tui**: Fit emblem in narrow terminals
+- **tui**: Repair nested test module paths
+- **test**: Preserve fixtures and isolate TUI paths
+- **test**: Normalize nested test wrappers
+- **tui**: Align emblem markers with shared layout
+- **presentation**: Support titled Unicode frames
+- **presentation**: Render shared banner branding
+- **cli**: Use shared splash variation
+- **tui**: Pass splash hint variation
+- **tui**: Parameterize splash hint
+- **branding**: Update project emblem asset
+- **test**: Use reverse iterator efficiently
+- **test**: Use direct line containment
+- **ci**: Back off changelog push retries
+- **ci**: Validate changelog retry delay
+- **ci**: Back off changelog push retries
+- **ci**: Restore changelog action command
+- **ci**: Fail when changelog commit fails
+- **ci**: Preserve pull request changelog author
+- **ci**: Route changelog updates through pull requests
+- **ci**: Skip secrets check for changelog PRs
+- **ci**: Report skipped secret checks
+
+### Refactor
+
+- **workflows**: Simplify directory detection
+- **workflows**: Preserve source filenames
+- Wire network classifier across layers
+- **workflows**: Add workflow document boundary
+- **workflows**: Add execution test module
+- **actions**: Isolate composite output
+- **domain**: Register ActionExecutionContext in value_objects mod
+- **application**: Use domain ActionExecutionContext in ExecuteActionService
+- **application**: Move evaluation out of domain
+- **infrastructure**: Relocate workflow adapters
+- **presentation**: Align CLI workflow commands
+- **domain**: Name dependency map type
+- **architecture**: Move outbound ports to application
+- **application**: Add semantic command and event publisher/handler ports
+- **infrastructure**: Route events and commands through publisher adapters
+- **application**: Consolidate command ports
+- **messaging**: Replace generic command ports
+- **application**: Propagate neutral step outputs
+- **infrastructure**: Isolate runner export adapters
+- **actions**: Encapsulate composite step state
+- **application**: Move step interpolation to infrastructure
+- **domain**: Simplify event payload imports
+- **domain**: Add Message trait and aggregate message enums
+- Model commands as pure payloads and thread container explicitly
+- **quality**: Resolve lizard violations
+- **presentation**: Extract input collection
+- **presentation**: Add input declaration context
+- **presentation**: Wire input collector module
+- **presentation**: Extract diagnostic stores
+- **presentation**: Extract preflight ports
+- **presentation**: Extract single workflow run
+- **presentation**: Simplify run handler
+- **presentation**: Separate TUI rendering capabilities
+- **containers**: Isolate generic container preparation
+- **application**: Alias job dependency parts
+- **woodpecker**: Parse when conditions from yaml values
+- **woodpecker**: Parse steps without a custom visitor
+- **woodpecker**: Add step parse helper and drop must_use
+- **woodpecker**: Make submodules private behind re-exports
+- **dtos**: Remove obsolete workflow builder export
+- **dtos**: Simplify workflow request construction
+- **dtos**: Remove external action response tests
+- **dtos**: Remove orphan workflow request tests
+- **workflows**: Simplify loader port inputs
+- **settings**: Model failure log retention as a value object
+- **actions**: Expose composite execution types
+- **workflows**: Bind YAML helpers to owners
+- **workflows**: Extract job execution input
+- **workflows**: Wire job execution input module
+- **ci**: Modularize changelog validation
+- **containers**: Name host agent mount values
+- **cli**: Add owner-bound settings merge
+- **cli**: Keep settings match exhaustive
+- **composition**: Add host settings entry point
+- **cli**: Remove legacy settings helper
+- **composition**: Align settings entry point
+- **runtime**: Use canonical settings entry point
+- **composition**: Remove legacy settings alias
+- **ssh**: Simplify socket validation
+- **cli**: Simplify settings persistence
+- **tui**: Simplify settings footer
+- **runtime**: Simplify SSH forwarding resolution
+- **logging**: Bind retention duration to store
+- **cli**: Bind retention parser to run args
+- **tui**: Bind list offset to details view
+- **tui**: Bind progress normalization to screen
+- **logging**: Bind suppression to stderr filter
+- **tui**: Move emblem ownership to rendering
+- **tui**: Keep emblem in components
+- **presentation**: Export shared branding components
+- **tui**: Export canonical project emblem
+- **presentation**: Re-export project emblem
+- **tui**: Use shared splash quotes
+- **tui**: Load shared project emblem
+- **cli**: Re-export presentation emblem
+- **tui**: Remove private splash quote module
+- **podman**: Use safe uid lookup
+- **logging**: Use owned stderr descriptors
+- **workflows**: Remove redundant unsafe traits
+
+### Documentation
+
+- **readme**: Align runtime description
+- **contributing**: Document Linux runtime
+- **development**: Document Linux runtime
+- **inspiration**: Clarify Linux runtime
+- **usage**: Document Linux runtime
+- **workflows**: Define filename name fallback
+- **workflows**: Plan filename name fallback
+- **domain**: Document service responsibilities
+- Rm unused outdated md file
+- **actions**: Record runner export contract
+- **retention**: Define configurable failure-log retention
+- **retention**: Clarify runtime override wiring
+- **retention**: Plan configurable failure-log retention
+- **settings**: Document failure-log retention
+- Remove unused docs
+- **contributing**: Document local architecture validation
+- Clarify behavior contracts and remove research artifact
+- **dtos**: Document workflow loading requests
+- **dtos**: Document environment and container requests
+- **dtos**: Document execution requests
+- **dtos**: Document action request API
+- **dtos**: Document composite action request API
+- **dtos**: Document composite step request API
+- **dtos**: Document node action request API
+- **dtos**: Document shell step request API
+- **dtos**: Document action request input
+- **dtos**: Document container config response
+- **dtos**: Document runner context paths
+- **dtos**: Document branding response
+- **dtos**: Document workflow execution response
+- **dtos**: Document workflow input sources
+- **dtos**: Document workflow source response
+- **runners**: Document hosted runner baseline
+- **infrastructure**: Document SSH forwarding configuration
+- **forgejo**: Document workflow capabilities
+- **usage**: Describe SSH forwarding
+- **usage**: Document persisted settings
+- **domain**: Document step entity
+- **domain**: Document domain errors
+- **domain**: Document command messages
+- **domain**: Document action payload
+- **domain**: Document action definitions
+- **domain**: Document action contexts
+- **domain**: Document action inputs
+- **domain**: Document action references
+- **domain**: Document job entity
+- **domain**: Document job runs
+- **domain**: Document entity modules
+- **domain**: Document repository entity
+- **domain**: Document aggregate modules
+- **domain**: Document settings aggregate
+- **domain**: Document workflow aggregate
+- **domain**: Document file entry
+- **inspiration**: Clarify workflow execution metaphor
+- **development**: Explain changelog release flow
+
+### Testing
+
+- **workflows**: Cover woodpecker discovery
+- **woodpecker**: Cover pipeline parser
+- **cli**: Cover woodpecker help
+- **e2e**: Cover platform detection
+- **application**: Configure classifier dependency
+- **domain**: Cover settings aggregate
+- **domain**: Cover workflow aggregate
+- **domain**: Cover job entity
+- **domain**: Cover core_error errors
+- **domain**: Cover step_error errors
+- **domain**: Cover execute_action_command command
+- **domain**: Cover execute_job_command command
+- **domain**: Cover execute_step_command command
+- **domain**: Cover execute_workflow_command command
+- **domain**: Cover evaluation_context_mapper service
+- **domain**: Cover execution_planner service
+- **domain**: Cover access behavior
+- **domain**: Cover expression_functions service
+- **domain**: Cover join behavior
+- **domain**: Cover expression_parser service
+- **domain**: Cover expression_resolver service
+- **domain**: Cover workflow_run_config_factory service
+- **domain**: Cover workflow_run_config_input service
+- **domain**: Cover action_reference value object
+- **domain**: Cover context_value value object
+- **domain**: Cover evaluation_context value object
+- **domain**: Cover expression_cursor value object
+- **domain**: Cover job_strategy value object
+- **domain**: Cover json_text_reader value object
+- **domain**: Cover marker value object
+- **domain**: Cover operation_mode value object
+- **domain**: Cover operator_token value object
+- **domain**: Cover output_preferences value object
+- **domain**: Cover permissions value object
+- **domain**: Cover repo_path value object
+- **domain**: Cover trigger_filter value object
+- **domain**: Cover workflow_run_config value object
+- **domain**: Cover workflow_trigger value object
+- **domain**: Update workflow command parts assertion
+- **workflows**: Cover document format dispatch
+- **e2e**: Cover forgejo actions workflow
+- **e2e**: Cover github actions workflow
+- **e2e**: Cover woodpecker workflow
+- **e2e**: Cover supported workflow formats
+- **e2e**: Isolate GitHub workflow fake
+- **e2e**: Isolate Forgejo workflow fake
+- **e2e**: Use production adapters for Woodpecker
+- **e2e**: Add production adapter composition
+- **e2e**: Isolate Woodpecker workflow fake
+- **e2e**: Isolate pipeline scenario fakes
+- **e2e**: Isolate pipeline action fetchers
+- **e2e**: Isolate failing pipeline fakes
+- **actions**: Cover accumulated failure output
+- **domain**: Inline ExecutionPlanner unit tests
+- **domain**: Inline ExpressionLexer unit tests
+- **domain**: Inline ExpressionFunctions unit tests
+- **domain**: Inline ExpressionParser unit tests
+- **domain**: Inline ExpressionEvaluator unit tests
+- Update service and workflow coverage
+- Update fakes and messaging tests for publisher/handler ports
+- **infrastructure**: Align integration tests with implementations
+- **application**: Account for composite action staging
+- **actions**: Cover composite step outputs
+- **actions**: Cover runner export contracts
+- **cli**: Cover persisted retention setting
+- **presentation**: Cover input collection
+- **presentation**: Update run handler tests
+- **woodpecker**: Cover $$ escape collapse in step commands
+- **woodpecker**: Mirror pipeline tests to one file per type
+- **woodpecker**: Mirror step tests to one file per type
+- **woodpecker**: Mirror when tests to one file per type
+- **dtos**: Inline action response tests
+- **woodpecker**: Cover miru typos workflow execution
+- **workflows**: Cover selected job execution
+- **workflows**: Wire selected job tests
+- **messaging**: Verify selected job propagation
+- **workflows**: Organize execution service tests
+- **runners**: Cover hosted runner baseline
+- **containers**: Cover host agent forwarding
+- **cli**: Validate SSH forwarding option
+- **e2e**: Register SSH forwarding tests
+- **e2e**: Register SSH forwarding scenario
+- **e2e**: Add SSH forwarding scenario
+- **e2e**: Assert SSH forwarding container setup
+- **e2e**: Support SSH forwarding composition
+- **settings**: Cover SSH preference persistence
+- **infrastructure**: Register SSH settings tests
+- **cli**: Cover settings names
+- **cli**: Cover persisted run settings
+- **cli**: Cover settings persistence
+- **composition**: Cover SSH settings wiring
+- **tui**: Cover settings editing
+- **tui**: Register settings retry coverage
+- **tui**: Cover settings save retry
+- **tui**: Use canonical emblem in renderer tests
+- **tui**: Use canonical emblem in splash tests
+- **cli**: Cover invalid retention hours
+- **presentation**: Register component tests
+- **presentation**: Cover titled box frames
+- **presentation**: Cover text alignment
+- **presentation**: Cover shared banner layout
+- **presentation**: Register component suite
+- **tui**: Update emblem layout coverage
+- **tui**: Use shared splash quotes
+- **tui**: Cover configurable splash hints
+- **ci**: Cover changelog retry backoff
+- **application**: Avoid unsafe environment mutation
+- **cli**: Avoid unsafe input environment mutation
+- **cli**: Avoid unsafe secret environment mutation
+- **cli**: Avoid unsafe interactive environment mutation
+
+### Continuous Integration
+
+- Rerun pull request checks
+- **release**: Automate merged changelog updates
+- **prepare-release**: Remove unsupported permissions
+- **release**: Remove unsupported permissions
+- **changelog**: Remove unsupported permissions
+
+### Miscellaneous Tasks
+
+- **metadata**: Update crate description
+- **domain**: Remove integration test setting
+- **e2e**: Remove unused scenario fake
+- **infrastructure**: Organize action modules
+- **actions**: Preserve module import paths
+- **architecture**: Update layer enforcement
+- **ci**: Retrigger pull request checks
+- **workflows**: Defer helper module deletions
+- **infrastructure**: Expose settings persistence
+- **infrastructure**: Export settings capability
+- **webhooks**: Remove orphaned branch_ref
+- **webhooks**: Remove orphaned comment_info
+- **webhooks**: Remove orphaned commit_info
+- **webhooks**: Remove orphaned create_payload
+- **webhooks**: Remove orphaned delete_payload
+- **webhooks**: Remove orphaned fork_payload
+- **webhooks**: Remove orphaned issue_comment_payload
+- **webhooks**: Remove orphaned issue_info
+- **webhooks**: Remove orphaned issues_payload
+- **webhooks**: Remove orphaned label_info
+- **webhooks**: Remove orphaned mod
+- **webhooks**: Remove orphaned pull_request_info
+- **webhooks**: Remove orphaned pull_request_payload
+- **webhooks**: Remove orphaned push_payload
+- **webhooks**: Remove orphaned release_info
+- **webhooks**: Remove orphaned release_payload
+- **webhooks**: Remove orphaned repository_dispatch_payload
+- **webhooks**: Remove orphaned repository_info
+- **webhooks**: Remove orphaned user_info
+- **webhooks**: Remove orphaned webhook_event
+- **webhooks**: Remove orphaned webhook_event_payload
+- **webhooks**: Remove orphaned workflow_call_payload
+- **webhooks**: Remove orphaned workflow_dispatch_payload
+- **tui**: Remove empty rendering module
+- **tui**: Bind screen frame rendering to trait
+- **test**: Normalize rust test modules
+- **test**: Move source tests under test directories
+- **architecture**: Remove crate-private helpers
+- **application**: Remove unnecessary generics
+- **test**: Format normalized tui fixtures
+- **test**: Format normalized test modules
+- **test**: Update implementation/test pairs 1
+- **test**: Update implementation/test pairs 2
+- **test**: Update implementation/test pairs 3
+- **test**: Update implementation/test pairs 4
+- **test**: Update implementation/test pairs 5
+- **architecture**: Update implementation files 1
+- **architecture**: Update implementation files 2
+- **architecture**: Update implementation files 3
+- **architecture**: Update implementation files 4
+- **architecture**: Update implementation files 5
+- **architecture**: Update implementation files 6
+- **architecture**: Update implementation files 7
+- **architecture**: Update implementation files 8
+- **architecture**: Update implementation files 9
+- **test**: Update test files 1
+- **test**: Update test files 2
+- **test**: Update test files 3
+- **test**: Update test files 4
+- **test**: Update test files 5
+- **test**: Update test files 6
+- **test**: Update test files 7
+- **test**: Update test files 8
+- **test**: Update test files 9
+- **test**: Update test files 10
+- **test**: Update test files 11
+- **test**: Update test files 12
+- **test**: Update test files 13
+- **test**: Update test files 14
+- **test**: Update test files 15
+- **test**: Update test files 16
+- **test**: Update test files 17
+- **test**: Update test files 18
+- **test**: Update test files 19
+- **test**: Update test files 20
+- **test**: Update test files 21
+- **test**: Update test files 22
+- **test**: Update test files 23
+- **test**: Update test files 24
+- **test**: Update test files 25
+- **test**: Update test files 26
+- **test**: Update test files 27
+- **test**: Update test files 28
+- **test**: Update test files 29
+- **test**: Add relocated persistence and TUI tests
+- **presentation**: Remove unused figlet dependency
+- **deps**: Remove unused figlet packages
+
 ## [0.4.0] - 2026-09-29
 
 ### Features
@@ -155,6 +607,7 @@
 - **domain**: Add remote reference defaults
 - **domain**: Export remote reference defaults
 - Align local ci lint recipe
+
 ## [0.3.1] - 2026-09-25
 
 ### Breaking Changes
