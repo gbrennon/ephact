@@ -4,3 +4,5 @@ pub use failure_log_handler::{
     FailureLogStores,
 };
 pub mod stderr_filter;
+pub mod stderr_filter_config;
+pub use stderr_filter_config::StderrFilterConfig;
