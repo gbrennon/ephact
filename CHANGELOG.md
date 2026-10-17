@@ -104,6 +104,7 @@
 - **ci**: Cover changelog guard edge cases
 - **ci**: Bound changelog workflow runtime
 - **ci**: Allow changelog workflow more time
+- **cli**: Avoid runtime detection for discovery
 
 ### Refactor
 
@@ -186,6 +187,10 @@
 - **podman**: Use safe uid lookup
 - **logging**: Use owned stderr descriptors
 - **workflows**: Remove redundant unsafe traits
+- **tui**: Model runner loop state
+- **cli**: Add typed invocation flags
+- **cli**: Export typed invocation flags
+- **cli**: Parse invocation flags with clap
 
 ### Documentation
 
@@ -359,6 +364,11 @@
 - **cli**: Avoid unsafe secret environment mutation
 - **cli**: Avoid unsafe interactive environment mutation
 - **changelog**: Cover idempotent pull requests
+- **cli**: Cover parsed SSH forwarding flags
+- **cli**: Cover parsed verbose flag
+- **e2e**: Parse SSH forwarding flags
+- **cli**: Cover binary workflow commands
+- **cli**: Isolate repository fixture
 
 ### Continuous Integration
 
@@ -460,6 +470,7 @@
 - **test**: Add relocated persistence and TUI tests
 - **presentation**: Remove unused figlet dependency
 - **deps**: Remove unused figlet packages
+- Update issue 322 branch base
 
 ## [0.4.0] - 2026-09-29
 
