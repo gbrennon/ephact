@@ -36,6 +36,7 @@
 - **presentation**: Add display alignment helper
 - **presentation**: Add shared branding content
 - **presentation**: Share splash quote catalog
+- **logging**: Configure stderr filter prefixes
 
 ### Bug Fixes
 
