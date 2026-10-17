@@ -18,12 +18,8 @@ mod tests {
                 "name: Build\non:\n  pull_request:\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n",
             )
             .expect("workflow fixture should be written");
-            let git_status = Command::new("git")
-                .args(["init", "--quiet"])
-                .current_dir(repository.path())
-                .status()
-                .expect("git should initialize the fixture repository");
-            assert!(git_status.success(), "git init failed: {git_status}");
+            std::fs::create_dir(repository.path().join(".git"))
+                .expect("fixture repository metadata should be created");
             Self { repository }
         }
 
