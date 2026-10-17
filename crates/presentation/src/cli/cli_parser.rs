@@ -48,6 +48,15 @@ impl CliParser {
         matches!(self.command.as_ref(), Some(super::command::Command::Run(_)))
     }
 
+    /// Reports whether the parsed invocation selects a workflow or action listing.
+    pub fn is_discovery_command(&self) -> bool {
+        matches!(
+            self.command.as_ref(),
+            Some(super::command::Command::ListWorkflows(_))
+                | Some(super::command::Command::ListActions(_))
+        )
+    }
+
     /// Reports whether the parsed invocation explicitly selects the `tui` command.
     pub fn is_tui_command(&self) -> bool {
         matches!(self.command.as_ref(), Some(super::command::Command::Tui))

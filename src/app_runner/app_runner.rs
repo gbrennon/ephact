@@ -54,11 +54,21 @@ impl AppRunner {
             env!("CARGO_PKG_VERSION"),
             ephact::PROJECT_EMBLEM,
         );
-        let container = Container::build_with_branding_and_ssh_forwarding(
-            Some(Box::new(progress_reporter)),
-            Box::new(branding_store),
-            ssh_forwarding,
-        );
+        let container = if invocation
+            .as_ref()
+            .is_some_and(CliParser::is_discovery_command)
+        {
+            Container::build_for_discovery(
+                Some(Box::new(progress_reporter)),
+                Box::new(branding_store),
+            )
+        } else {
+            Container::build_with_branding_and_ssh_forwarding(
+                Some(Box::new(progress_reporter)),
+                Box::new(branding_store),
+                ssh_forwarding,
+            )
+        };
         let app = CompositionRoot::compose_with_tui_progress_and_settings(
             container,
             progress_stream,
