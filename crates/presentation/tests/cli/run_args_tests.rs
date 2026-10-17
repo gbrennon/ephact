@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use std::ffi::OsStr;
+    use std::ffi::OsString;
 
-    use ephact::presentation::cli::{RunArgs, parse_run_test_args};
+    use ephact::presentation::cli::{CliParser, RunArgs, parse_run_test_args};
 
     #[test]
     fn parse_key_value_with_equals() {
@@ -224,9 +224,14 @@ mod tests {
     }
 
     #[test]
-    fn verbose_flag_recognizes_only_the_exact_flag() {
-        assert!(RunArgs::is_verbose_flag(OsStr::new("--verbose")));
-        assert!(!RunArgs::is_verbose_flag(OsStr::new("--verbose=1")));
-        assert!(!RunArgs::is_verbose_flag(OsStr::new("--workflows")));
+    fn verbose_flag_is_detected_by_clap() {
+        let arguments = vec![
+            OsString::from("ephact"),
+            OsString::from("run"),
+            OsString::from("--verbose"),
+        ];
+        let parser = CliParser::try_parse_invocation_from(&arguments).unwrap();
+
+        assert!(parser.is_verbose_requested());
     }
 }

@@ -15,4 +15,4 @@ pub use job_preparation::{
     RepositoryContainerCopyAdapter,
 };
 pub use podman::PodmanRuntime;
-pub use runtime::ContainerRuntimeAdapter;
+pub use runtime::{ContainerRuntimeAdapter, UnavailableContainerRuntime};

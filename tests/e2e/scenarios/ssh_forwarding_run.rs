@@ -18,7 +18,7 @@ use ephact::{
     },
     domain::{entities::FileEntry, errors::ContainerError, messages::events::OutputStream},
     infrastructure::{actions::GitActionFetcher, containers::HostSshForwardingConfig},
-    presentation::cli::RunArgs,
+    presentation::cli::CliParser,
 };
 
 use crate::{
@@ -63,7 +63,8 @@ impl SshForwardingRun {
             OsString::from("--allow-network"),
             OsString::from("--forward-ssh"),
         ];
-        let ssh_forwarding = if RunArgs::is_forward_ssh_command(&arguments) {
+        let invocation = CliParser::try_parse_invocation_from(&arguments).unwrap();
+        let ssh_forwarding = if invocation.is_ssh_forwarding_requested() {
             HostSshForwardingConfig::enabled_with_socket(socket_path.clone()).unwrap()
         } else {
             HostSshForwardingConfig::disabled()
