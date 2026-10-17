@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use clap::Args;
 
+use super::input_parser::InputParser;
 use crate::{
-    application::dtos::responses::WorkflowInputSourceResponse,
     cli::run_invocation_flags::RunInvocationFlags,
     domain::{
         Repository, WorkflowRunConfig,
@@ -150,7 +150,7 @@ impl RunArgs {
         mut config: WorkflowRunConfig,
     ) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
         for input_str in &self.inputs {
-            let (k, v) = Self::parse_key_value(input_str)?;
+            let (k, v) = InputParser::parse_key_value(input_str)?;
             config = config.add_input(WorkflowInput::new(k, v));
         }
         Ok(config)
@@ -161,7 +161,7 @@ impl RunArgs {
         mut config: WorkflowRunConfig,
     ) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
         for secret_str in &self.secrets {
-            let (name, value) = Self::parse_secret(secret_str)?;
+            let (name, value) = InputParser::parse_secret(secret_str)?;
             config = config.add_secret(Secret::new(name, value));
         }
         Ok(config)
@@ -196,35 +196,5 @@ impl RunArgs {
         self.allow_network |= settings.allow_network();
         self.verbose |= settings.verbose();
         self
-    }
-
-    pub fn parse_key_value(s: &str) -> Result<(String, String), String> {
-        s.split_once('=')
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .ok_or_else(|| format!("expected KEY=VALUE, got '{}'", s))
-    }
-
-    pub fn parse_input_source(s: &str) -> Result<(String, WorkflowInputSourceResponse), String> {
-        let (key, value) = Self::parse_key_value(s)?;
-        let source = value
-            .strip_prefix("env:")
-            .map(|name| WorkflowInputSourceResponse::environment_variable(name.to_owned()))
-            .unwrap_or_else(|| WorkflowInputSourceResponse::literal(value.to_owned()));
-        Ok((key, source))
-    }
-
-    /// Splits a secret argument into its name and value.
-    ///
-    /// `KEY=VALUE` supplies the value inline; a bare `KEY` reads it from the
-    /// environment variable of the same name.
-    pub fn parse_secret(s: &str) -> Result<(String, String), String> {
-        match s.split_once('=') {
-            Some((name, value)) => Ok((name.to_string(), value.to_string())),
-            None => std::env::var(s)
-                .map(|value| (s.to_string(), value))
-                .map_err(|_| {
-                    format!("secret '{s}' has no value and no environment variable is set")
-                }),
-        }
     }
 }

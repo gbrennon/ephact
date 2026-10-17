@@ -2,18 +2,18 @@
 mod tests {
     use std::ffi::OsString;
 
-    use ephact::presentation::cli::{CliParser, RunArgs, parse_run_test_args};
+    use ephact::presentation::cli::{CliParser, InputParser, parse_run_test_args};
 
     #[test]
     fn parse_key_value_with_equals() {
-        let (k, v) = RunArgs::parse_key_value("KEY=value").unwrap();
-        assert_eq!(k, "KEY");
-        assert_eq!(v, "value");
+        let parsed = InputParser::parse_key_value("KEY=value").unwrap();
+        assert_eq!(parsed.0, "KEY");
+        assert_eq!(parsed.1, "value");
     }
 
     #[test]
     fn parse_key_value_missing_equals() {
-        let err = RunArgs::parse_key_value("no_equals").unwrap_err();
+        let err = InputParser::parse_key_value("no_equals").unwrap_err();
         assert!(err.contains("KEY=VALUE"));
     }
 
@@ -140,7 +140,7 @@ mod tests {
     #[test]
     fn parse_secret_reads_value_from_environment_when_omitted() {
         let variable = "CARGO_MANIFEST_DIR";
-        let (name, value) = RunArgs::parse_secret(variable).unwrap();
+        let (name, value) = InputParser::parse_secret(variable).unwrap();
 
         assert_eq!(name, variable);
         assert_eq!(
@@ -151,7 +151,7 @@ mod tests {
 
     #[test]
     fn parse_secret_errors_when_no_value_is_available() {
-        let err = RunArgs::parse_secret("EPHEMERAL_ACT_ABSENT_SECRET").unwrap_err();
+        let err = InputParser::parse_secret("EPHEMERAL_ACT_ABSENT_SECRET").unwrap_err();
         assert!(err.contains("no value"), "{err}");
     }
 
@@ -204,7 +204,7 @@ mod tests {
 
     #[test]
     fn parse_input_source_keeps_literal_values() {
-        let (key, source) = RunArgs::parse_input_source("environment=staging").unwrap();
+        let (key, source) = InputParser::parse_input_source("environment=staging").unwrap();
 
         assert_eq!(key, "environment");
         assert_eq!(source.resolve().unwrap(), "staging");
@@ -214,7 +214,7 @@ mod tests {
     fn parse_input_source_reads_env_prefixed_values_from_environment() {
         let variable = "CARGO_MANIFEST_DIR";
         let (key, source) =
-            RunArgs::parse_input_source("environment=env:CARGO_MANIFEST_DIR").unwrap();
+            InputParser::parse_input_source("environment=env:CARGO_MANIFEST_DIR").unwrap();
 
         assert_eq!(key, "environment");
         assert_eq!(
