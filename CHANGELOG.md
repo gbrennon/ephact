@@ -243,6 +243,7 @@
 - **domain**: Document file entry
 - **inspiration**: Clarify workflow execution metaphor
 - **development**: Explain changelog release flow
+- **development**: Document changelog pull requests
 
 ### Testing
 
@@ -356,6 +357,7 @@
 - **cli**: Avoid unsafe input environment mutation
 - **cli**: Avoid unsafe secret environment mutation
 - **cli**: Avoid unsafe interactive environment mutation
+- **changelog**: Cover idempotent pull requests
 
 ### Continuous Integration
 
@@ -364,6 +366,9 @@
 - **prepare-release**: Remove unsupported permissions
 - **release**: Remove unsupported permissions
 - **changelog**: Remove unsupported permissions
+- **changelog**: Pass Forgejo API inputs
+- **changelog**: Use protected branch pull requests
+- **changelog**: Publish protected updates through pull requests
 
 ### Miscellaneous Tasks
 
