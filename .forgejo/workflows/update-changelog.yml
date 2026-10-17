@@ -14,8 +14,9 @@ jobs:
     name: Update changelog
     if: >-
       github.event.pull_request.merged == true &&
-      !contains(github.event.pull_request.head.label, '/chore/changelog/') &&
-      !contains(github.event.pull_request.head.label, '/release/v')
+      github.event.pull_request.base.ref == 'main' &&
+      !contains(github.event.pull_request.head.label, 'chore/changelog/') &&
+      !contains(github.event.pull_request.head.label, 'release/v')
     runs-on: codeberg-small
     steps:
       - name: Check out the trusted default branch
