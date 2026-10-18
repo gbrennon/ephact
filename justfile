@@ -77,6 +77,9 @@ semgrep:
 	EIO_BACKEND=posix semgrep scan --config .semgrep --error . && scripts/check_response_dto_conventions.sh
 
 
+
+rust-conventions:
+	scripts/check_changed_rust_conventions.sh
 lizard:
 	lizard -C 5 -L 50 -a 5 -i 0 .
 # Install lefthook pre-commit hooks

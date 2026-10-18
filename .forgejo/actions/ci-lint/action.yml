@@ -12,3 +12,7 @@ runs:
     - name: Response DTO conventions
       shell: bash
       run: scripts/check_response_dto_conventions.sh
+
+    - name: Rust file conventions
+      shell: bash
+      run: scripts/check_changed_rust_conventions.sh
