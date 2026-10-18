@@ -508,6 +508,13 @@
 - **deps**: Remove unused figlet packages
 - Update issue 322 branch base
 - **lefthook**: Add pre-push hook to enforce conventions
+- **domain**: Remove mutable settings builders
+- **domain**: Remove mutable workflow builders
+- **domain**: Remove mutable job builders
+- **domain**: Remove mutable step builders
+- **domain**: Remove mutable container builder
+- **domain**: Extract classifier test support
+- **domain**: Isolate step test classifier
 
 ## [0.4.0] - 2026-09-29
 
