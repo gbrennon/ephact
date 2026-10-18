@@ -1,6 +1,6 @@
 use crate::{
     traits::Validatable,
-    value_objects::{JobName, Secret, WorkflowEvent, WorkflowInput, WorkflowPath},
+    value_objects::{EventPath, JobName, Secret, WorkflowEvent, WorkflowInput, WorkflowPath},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -8,6 +8,7 @@ pub struct WorkflowRunConfig {
     workflow: Option<WorkflowPath>,
     job: Option<JobName>,
     event: Option<WorkflowEvent>,
+    event_path: Option<EventPath>,
     inputs: Vec<WorkflowInput>,
     secrets: Vec<Secret>,
     all_workflows: bool,
@@ -25,6 +26,7 @@ impl WorkflowRunConfig {
             workflow: None,
             job: None,
             event: None,
+            event_path: None,
             inputs: Vec::new(),
             secrets: Vec::new(),
             all_workflows: false,
@@ -64,6 +66,11 @@ impl WorkflowRunConfig {
     /// Sets the event to simulate.
     pub fn with_event(mut self, event: WorkflowEvent) -> Self {
         self.event = Some(event);
+        self
+    }
+    /// Sets the path to the event payload to load.
+    pub fn with_event_path(mut self, event_path: EventPath) -> Self {
+        self.event_path = Some(event_path);
         self
     }
 
@@ -124,6 +131,10 @@ impl WorkflowRunConfig {
     /// Returns the event, if set.
     pub fn event(&self) -> Option<&WorkflowEvent> {
         self.event.as_ref()
+    }
+    /// Returns the event payload path, if set.
+    pub fn event_path(&self) -> Option<&EventPath> {
+        self.event_path.as_ref()
     }
 
     /// Returns all input variables.
@@ -276,5 +287,18 @@ mod tests {
                 .with_all_workflows(true)
                 .all_workflows()
         );
+    }
+    #[test]
+    fn builder_stores_event_path() {
+        let path = std::path::PathBuf::from("fixtures/pull_request.json");
+        let event_path = crate::value_objects::EventPath::new(path.clone()).unwrap();
+        let config = WorkflowRunConfig::new().with_event_path(event_path);
+
+        assert_eq!(config.event_path().unwrap().as_path(), path);
+    }
+
+    #[test]
+    fn new_config_has_no_event_path() {
+        assert!(WorkflowRunConfig::new().event_path().is_none());
     }
 }

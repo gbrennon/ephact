@@ -52,6 +52,16 @@ mod tests {
         let (config, _repo) = args.to_domain().unwrap();
         assert_eq!(config.event().unwrap().as_str(), "push");
     }
+    #[test]
+    fn to_domain_with_event_path() {
+        let args = parse_run_test_args(&["--event-path", "fixtures/pull_request.json"]);
+        let (config, _repo) = args.to_domain().unwrap();
+
+        assert_eq!(
+            config.event_path().unwrap().as_path().to_str().unwrap(),
+            "fixtures/pull_request.json"
+        );
+    }
 
     #[test]
     fn to_domain_with_inputs() {

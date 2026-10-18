@@ -157,6 +157,9 @@ impl FilesystemWorkflowSource {
 }
 
 impl WorkflowSourcePort for FilesystemWorkflowSource {
+    fn read_file(&self, path: &std::path::Path) -> Result<String, WorkflowSourceError> {
+        Self::read_file_content(path)
+    }
     fn read_workflow(
         &self,
         repository: &Repository,

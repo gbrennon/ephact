@@ -10,6 +10,7 @@ pub struct RunWorkflowRequest {
     workflow: Option<String>,
     job: Option<String>,
     event: Option<String>,
+    event_path: Option<PathBuf>,
     inputs: Vec<(String, String)>,
     secrets: Vec<(String, String)>,
     all_workflows: bool,
@@ -33,6 +34,9 @@ impl RunWorkflowRequest {
             workflow: config.workflow().map(|value| value.as_str().to_string()),
             job: config.job().map(|value| value.as_str().to_string()),
             event: config.event().map(|value| value.as_str().to_string()),
+            event_path: config
+                .event_path()
+                .map(|value| value.as_path().to_path_buf()),
             inputs: config
                 .inputs()
                 .iter()
@@ -75,6 +79,11 @@ impl RunWorkflowRequest {
     /// Returns the selected event.
     pub fn event(&self) -> Option<&str> {
         self.event.as_deref()
+    }
+
+    /// Returns the event payload path.
+    pub fn event_path(&self) -> Option<&Path> {
+        self.event_path.as_deref()
     }
 
     /// Returns configured input pairs.
@@ -126,7 +135,7 @@ mod tests {
         domain::{
             entities::Repository,
             value_objects::{
-                JobName, RepoPath, RepositoryName, Secret, WorkflowEvent, WorkflowInput,
+                EventPath, JobName, RepoPath, RepositoryName, Secret, WorkflowEvent, WorkflowInput,
                 WorkflowPath, WorkflowRunConfig,
             },
         },
@@ -143,6 +152,7 @@ mod tests {
             .with_workflow(WorkflowPath::new(".ci/workflows/ci.yml".to_owned()))
             .with_job(JobName::new("build".to_owned()))
             .with_event(WorkflowEvent::new("push".to_owned()))
+            .with_event_path(EventPath::new("fixtures/event.json").unwrap())
             .add_input(WorkflowInput::new(
                 "environment".to_owned(),
                 "staging".to_owned(),
@@ -161,6 +171,7 @@ mod tests {
         assert_eq!(request.workflow(), Some(".ci/workflows/ci.yml"));
         assert_eq!(request.job(), Some("build"));
         assert_eq!(request.event(), Some("push"));
+        assert_eq!(request.event_path(), Some(Path::new("fixtures/event.json")));
         assert_eq!(
             request.inputs(),
             &[("environment".to_owned(), "staging".to_owned())]

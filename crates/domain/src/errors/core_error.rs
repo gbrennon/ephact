@@ -6,6 +6,8 @@ pub enum CoreError {
     /// The provided repository path value is empty.
     InvalidRepositoryPath(String),
 
+    /// The provided event payload path is empty.
+    InvalidEventPath(String),
     /// A repository name was required but an empty string was provided.
     EmptyRepositoryName,
 
@@ -16,7 +18,9 @@ pub enum CoreError {
 impl fmt::Display for CoreError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidRepositoryPath(message) => formatter.write_str(message),
+            Self::InvalidRepositoryPath(message) | Self::InvalidEventPath(message) => {
+                formatter.write_str(message)
+            }
             Self::EmptyRepositoryName => formatter.write_str("repository name cannot be empty"),
             Self::UnknownContainerEngine(engine) => {
                 write!(formatter, "unsupported container engine '{engine}'")

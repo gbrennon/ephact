@@ -7,7 +7,7 @@ use crate::{
     cli::run_invocation_flags::RunInvocationFlags,
     domain::{
         Repository, WorkflowRunConfig,
-        value_objects::{JobName, Secret, WorkflowEvent, WorkflowInput, WorkflowPath},
+        value_objects::{EventPath, JobName, Secret, WorkflowEvent, WorkflowInput, WorkflowPath},
     },
     infrastructure::RepositoryResolver,
 };
@@ -33,6 +33,9 @@ pub struct RunArgs {
     /// Event name that triggers the workflow (e.g. `push`, `pull_request`).
     #[arg(long)]
     event: Option<String>,
+    /// Path to a JSON event payload used to populate the github context.
+    #[arg(long = "event-path", value_name = "FILE")]
+    event_path: Option<PathBuf>,
 
     /// Workflow inputs in `KEY=VALUE` format (repeatable).
     #[arg(long = "input", value_name = "KEY=VALUE")]
@@ -116,19 +119,28 @@ impl RunArgs {
     }
 
     fn build_config(&self) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
+        self.validate_flags()?;
+        let config = self.apply_targets(WorkflowRunConfig::new());
+        let config = self.apply_event_path(config)?;
+        let config = self.apply_flags(config);
+        let config = self.apply_inputs(config)?;
+        self.apply_secrets(config)
+    }
+
+    fn validate_flags(&self) -> Result<(), Box<dyn std::error::Error>> {
         if self.forward_ssh && !self.allow_network {
             return Err("--forward-ssh requires --allow-network".into());
         }
-        let config = WorkflowRunConfig::new();
-        let config = self.apply_targets(config);
-        let config = config
+        Ok(())
+    }
+
+    fn apply_flags(&self, config: WorkflowRunConfig) -> WorkflowRunConfig {
+        config
             .with_all_workflows(self.all_workflows || self.workflow.is_none())
             .with_allow_repo_writes(self.allow_repo_writes)
             .with_allow_real_container(self.allow_real_container)
             .with_allow_real_fetcher(self.allow_real_fetcher)
-            .with_allow_network(self.allow_network);
-        let config = self.apply_inputs(config)?;
-        self.apply_secrets(config)
+            .with_allow_network(self.allow_network)
     }
 
     fn apply_targets(&self, mut config: WorkflowRunConfig) -> WorkflowRunConfig {
@@ -142,6 +154,15 @@ impl RunArgs {
             config.with_event(WorkflowEvent::new(event))
         } else {
             config
+        }
+    }
+    fn apply_event_path(
+        &self,
+        config: WorkflowRunConfig,
+    ) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
+        match &self.event_path {
+            Some(path) => Ok(config.with_event_path(EventPath::new(path.clone())?)),
+            None => Ok(config),
         }
     }
 
