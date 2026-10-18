@@ -37,6 +37,22 @@
 - **presentation**: Add shared branding content
 - **presentation**: Share splash quote catalog
 - **logging**: Configure stderr filter prefixes
+- **domain**: Validate event payload paths
+- **domain**: Add event payload path value
+- **domain**: Export event path value
+- **domain**: Expose event path value
+- **domain**: Store event payload paths
+- **workflows**: Carry event paths in run requests
+- **workflows**: Carry event paths in all-run requests
+- **workflows**: Add outbound event file reads
+- **workflows**: Propagate event paths through runs
+- **workflows**: Read event files from filesystem
+- **workflows**: Forward event file reads
+- **workflows**: Build GitHub context from events
+- **workflows**: Inject event payload source
+- **cli**: Add event payload path flag
+- **workflows**: Add typed unknown job error
+- **workflows**: Filter execution by selected job
 
 ### Bug Fixes
 
@@ -108,6 +124,9 @@
 - **ci**: Harden Rust convention checks
 - **ci**: Resolve base revision without origin tracking ref
 - **ci**: Resolve changed-file base without network access
+- **expression**: Align evaluator and job conditions
+- **ci**: Accept multi-line use blocks in mod.rs convention check
+- **ci**: Provision nightly coverage toolchain noninteractively
 
 ### Refactor
 
@@ -195,6 +214,8 @@
 - **cli**: Export typed invocation flags
 - **cli**: Parse invocation flags with clap
 - **cli**: Extract input parsing helpers
+- **steps**: Extract StepInterpolator from mod.rs into its own file
+- **workflows**: Encapsulate execution context fields
 
 ### Documentation
 
@@ -373,6 +394,11 @@
 - **e2e**: Parse SSH forwarding flags
 - **cli**: Cover binary workflow commands
 - **cli**: Isolate repository fixture
+- **workflows**: Cover event GitHub context
+- **workflows**: Cover event conditions end to end
+- **workflows**: Cover event conditions end to end
+- **workflows**: Cover event conditions end to end
+- **workflows**: Cover selected job filtering
 
 ### Continuous Integration
 
