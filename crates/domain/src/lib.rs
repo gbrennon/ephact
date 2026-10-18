@@ -11,7 +11,7 @@ pub use self::{
     errors::{core_error::CoreError, project_branding_error::ProjectBrandingError},
     traits::Validatable,
     value_objects::{
-        ActionReference, CleanupPolicy, ContainerEngine, InterfaceMode, JobName, Marker,
+        ActionReference, CleanupPolicy, ContainerEngine, EventPath, InterfaceMode, JobName, Marker,
         MarkerKind, MarkerPreset, OperationMode, OutputPreferences, Permissions,
         ProjectDescription, ProjectEmblem, ProjectName, ProjectVersion, RemoteActionReference,
         RemoteReferenceDefaults, RepoPath, RepositoryName, Secret, WorkflowEvent, WorkflowInput,
