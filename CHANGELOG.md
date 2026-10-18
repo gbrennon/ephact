@@ -54,6 +54,7 @@
 - **workflows**: Add typed unknown job error
 - **workflows**: Filter execution by selected job
 - Expose event context in job environments
+- **workflows**: Support custom workflow directories
 
 ### Bug Fixes
 
@@ -128,6 +129,7 @@
 - **expression**: Align evaluator and job conditions
 - **ci**: Accept multi-line use blocks in mod.rs convention check
 - **ci**: Provision nightly coverage toolchain noninteractively
+- **ci**: Split workflow source test state
 
 ### Refactor
 
