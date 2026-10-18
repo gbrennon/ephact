@@ -26,6 +26,10 @@ pub struct RunArgs {
     /// Top-level `name` of the workflow to execute (e.g. CI).
     #[arg(long)]
     workflow: Option<String>,
+
+    /// Additional repository-relative directory to scan for workflows.
+    #[arg(long = "workflow-dir", value_name = "DIR")]
+    workflow_dir: Option<PathBuf>,
     /// Specific job name to run from the workflow.
     #[arg(long)]
     job: Option<String>,
@@ -146,6 +150,9 @@ impl RunArgs {
     fn apply_targets(&self, mut config: WorkflowRunConfig) -> WorkflowRunConfig {
         if let Some(wf) = &self.workflow {
             config = config.with_workflow(WorkflowPath::new(wf.clone()));
+        }
+        if let Some(directory) = &self.workflow_dir {
+            config = config.with_workflow_directory(directory.clone());
         }
         if let Some(job) = &self.job {
             config = config.with_job(JobName::new(job.clone()));

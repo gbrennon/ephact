@@ -55,14 +55,30 @@ impl FilesystemWorkflowSource {
         &self,
         repo: &Repository,
     ) -> Result<Vec<std::path::PathBuf>, WorkflowSourceError> {
+        self.find_workflow_files_in_directory(repo, None)
+    }
+
+    fn find_workflow_files_in_directory(
+        &self,
+        repo: &Repository,
+        custom_directory: Option<&std::path::Path>,
+    ) -> Result<Vec<std::path::PathBuf>, WorkflowSourceError> {
         let repo_path = repo.path().as_path();
         let mut workflows = Vec::new();
 
+        if let Some(directory) = custom_directory {
+            let path = if directory.is_absolute() {
+                directory.to_path_buf()
+            } else {
+                repo_path.join(directory)
+            };
+            Self::collect_dir_workflows(&path, &mut workflows)?;
+        }
         for dir in &self.workflow_dirs {
             Self::collect_dir_workflows(&repo_path.join(dir), &mut workflows)?;
         }
-
         workflows.sort();
+        workflows.dedup();
         Ok(workflows)
     }
 
@@ -172,6 +188,19 @@ impl WorkflowSourcePort for FilesystemWorkflowSource {
         }
     }
 
+    fn read_workflow_in_directory(
+        &self,
+        repository: &Repository,
+        workflow_name: Option<&str>,
+        workflow_directory: Option<&std::path::Path>,
+    ) -> Result<WorkflowSourceFileResponse, WorkflowSourceError> {
+        let files = self.find_workflow_files_in_directory(repository, workflow_directory)?;
+        match workflow_name {
+            Some(name) => Self::read_named_workflow(&files, name),
+            None => Self::read_first_workflow(&files),
+        }
+    }
+
     fn read_all_workflows(
         &self,
         repository: &Repository,
@@ -183,6 +212,19 @@ impl WorkflowSourcePort for FilesystemWorkflowSource {
             contents.push(Self::workflow_response(&file)?);
         }
 
+        Ok(contents)
+    }
+
+    fn read_all_workflows_in_directory(
+        &self,
+        repository: &Repository,
+        workflow_directory: Option<&std::path::Path>,
+    ) -> Result<Vec<WorkflowSourceFileResponse>, WorkflowSourceError> {
+        let files = self.find_workflow_files_in_directory(repository, workflow_directory)?;
+        let mut contents = Vec::new();
+        for file in files {
+            contents.push(Self::workflow_response(&file)?);
+        }
         Ok(contents)
     }
 

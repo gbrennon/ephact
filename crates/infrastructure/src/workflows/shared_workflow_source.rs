@@ -32,11 +32,30 @@ impl WorkflowSourcePort for SharedWorkflowSource {
         self.inner.read_workflow(repository, workflow_name)
     }
 
+    fn read_workflow_in_directory(
+        &self,
+        repository: &Repository,
+        workflow_name: Option<&str>,
+        workflow_directory: Option<&std::path::Path>,
+    ) -> Result<WorkflowSourceFileResponse, WorkflowSourceError> {
+        self.inner
+            .read_workflow_in_directory(repository, workflow_name, workflow_directory)
+    }
+
     fn read_all_workflows(
         &self,
         repository: &Repository,
     ) -> Result<Vec<WorkflowSourceFileResponse>, WorkflowSourceError> {
         self.inner.read_all_workflows(repository)
+    }
+
+    fn read_all_workflows_in_directory(
+        &self,
+        repository: &Repository,
+        workflow_directory: Option<&std::path::Path>,
+    ) -> Result<Vec<WorkflowSourceFileResponse>, WorkflowSourceError> {
+        self.inner
+            .read_all_workflows_in_directory(repository, workflow_directory)
     }
 
     fn list_actions(&self, repository: &Repository) -> Result<Vec<String>, WorkflowSourceError> {

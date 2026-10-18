@@ -89,12 +89,13 @@ impl RunWorkflowService {
         context: &RunExecutionContext,
     ) -> Result<crate::application::dtos::responses::WorkflowSourceFileResponse, Box<dyn Error>>
     {
-        match self.workflow_source.read_workflow(
+        match self.workflow_source.read_workflow_in_directory(
             context.repository(),
             context
                 .config()
                 .workflow()
                 .map(|workflow| workflow.as_str()),
+            context.config().workflow_directory(),
         ) {
             Ok(workflow) => Ok(workflow),
             Err(error) => {

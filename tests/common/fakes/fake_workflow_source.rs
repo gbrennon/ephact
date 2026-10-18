@@ -117,6 +117,15 @@ impl WorkflowSourcePort for FakeWorkflowSource {
         ))
     }
 
+    fn read_workflow_in_directory(
+        &self,
+        repository: &Repository,
+        workflow_name: Option<&str>,
+        _workflow_directory: Option<&std::path::Path>,
+    ) -> Result<WorkflowSourceFileResponse, WorkflowSourceError> {
+        self.read_workflow(repository, workflow_name)
+    }
+
     fn read_all_workflows(
         &self,
         repository: &Repository,
@@ -136,6 +145,14 @@ impl WorkflowSourcePort for FakeWorkflowSource {
                 WorkflowSourceFileResponse::new(content.clone(), format!("workflow-{index}.yml"))
             })
             .collect())
+    }
+
+    fn read_all_workflows_in_directory(
+        &self,
+        repository: &Repository,
+        _workflow_directory: Option<&std::path::Path>,
+    ) -> Result<Vec<WorkflowSourceFileResponse>, WorkflowSourceError> {
+        self.read_all_workflows(repository)
     }
 
     fn list_actions(&self, repository: &Repository) -> Result<Vec<String>, WorkflowSourceError> {
