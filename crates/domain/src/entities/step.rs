@@ -269,12 +269,40 @@ impl Step {
 }
 
 #[cfg(test)]
-#[path = "stub_classifier.rs"]
-mod stub_classifier;
-
-#[cfg(test)]
 mod tests {
-    use super::{stub_classifier::StubClassifier, *};
+    use super::*;
+
+    fn classifier(
+        package_registry: bool,
+        http_request: bool,
+        network_command: bool,
+        remote_mutation: bool,
+    ) -> (bool, bool, bool, bool) {
+        (
+            package_registry,
+            http_request,
+            network_command,
+            remote_mutation,
+        )
+    }
+
+    impl NetworkCommandClassifier for (bool, bool, bool, bool) {
+        fn accesses_package_registry(&self, _script: &str) -> bool {
+            self.0
+        }
+
+        fn issues_http_request(&self, _script: &str) -> bool {
+            self.1
+        }
+
+        fn uses_network_command(&self, _script: &str) -> bool {
+            self.2
+        }
+
+        fn mutates_remote_environment(&self, _script: &str) -> bool {
+            self.3
+        }
+    }
 
     impl Step {
         fn for_test(run: Option<&str>, shell: Option<&str>, uses: Option<&str>) -> Self {
@@ -404,7 +432,7 @@ mod tests {
     #[test]
     fn network_access_reason_returns_none_for_package_registry_access() {
         let step = Step::for_test(Some("echo hi"), None, None);
-        let classifier = StubClassifier::package_registry_http_request_network_command();
+        let classifier = classifier(true, true, true, false);
 
         assert_eq!(step.network_access_reason(&classifier), None);
     }
@@ -412,7 +440,7 @@ mod tests {
     #[test]
     fn network_access_reason_reports_http_requests() {
         let step = Step::for_test(Some("echo hi"), None, None);
-        let classifier = StubClassifier::http_request_and_network_command();
+        let classifier = classifier(false, true, true, false);
 
         assert_eq!(
             step.network_access_reason(&classifier),
@@ -423,7 +451,7 @@ mod tests {
     #[test]
     fn network_access_reason_reports_network_commands() {
         let step = Step::for_test(Some("echo hi"), None, None);
-        let classifier = StubClassifier::network_command();
+        let classifier = classifier(false, false, true, false);
 
         assert_eq!(
             step.network_access_reason(&classifier),
@@ -434,7 +462,7 @@ mod tests {
     #[test]
     fn network_access_reason_returns_none_without_network_signal() {
         let step = Step::for_test(Some("echo hi"), None, None);
-        let classifier = StubClassifier::default();
+        let classifier = classifier(false, false, false, false);
 
         assert_eq!(step.network_access_reason(&classifier), None);
     }
@@ -442,7 +470,7 @@ mod tests {
     #[test]
     fn network_access_reason_returns_none_without_script() {
         let step = Step::for_test(None, None, Some("actions/checkout@v4"));
-        let classifier = StubClassifier::http_request();
+        let classifier = classifier(false, true, false, false);
 
         assert_eq!(step.network_access_reason(&classifier), None);
     }
@@ -450,7 +478,7 @@ mod tests {
     #[test]
     fn network_policy_violation_reports_remote_mutation() {
         let step = Step::for_test(Some("echo hi"), None, None);
-        let classifier = StubClassifier::remote_mutation();
+        let classifier = classifier(false, false, false, true);
 
         assert_eq!(
             step.network_policy_violation(&classifier),
@@ -461,7 +489,7 @@ mod tests {
     #[test]
     fn network_policy_violation_returns_none_without_remote_mutation() {
         let step = Step::for_test(Some("echo hi"), None, None);
-        let classifier = StubClassifier::default();
+        let classifier = classifier(false, false, false, false);
 
         assert_eq!(step.network_policy_violation(&classifier), None);
     }
@@ -469,7 +497,7 @@ mod tests {
     #[test]
     fn network_policy_violation_returns_none_without_script() {
         let step = Step::for_test(None, None, Some("actions/checkout@v4"));
-        let classifier = StubClassifier::remote_mutation();
+        let classifier = classifier(false, false, false, true);
 
         assert_eq!(step.network_policy_violation(&classifier), None);
     }
