@@ -15,7 +15,10 @@ use crate::{
             JobContainerPreparerPort, PullJobImagePort,
         },
     },
-    containers::workspace::{RUNNER_ENV_FILE, RUNNER_OUTPUT_FILE, RUNNER_PATH_FILE},
+    containers::workspace::{
+        CONTAINER_WORKSPACE, RUNNER_ENV_FILE, RUNNER_OUTPUT_FILE, RUNNER_PATH_FILE,
+    },
+    domain::entities::FileEntry,
 };
 
 const DEFAULT_CONTAINER_IMAGE: &str = "ubuntu:24.04";
@@ -79,7 +82,19 @@ impl PrepareJobContainerService {
             result.stderr()
         )))
     }
-
+    fn copy_event_payload(
+        &self,
+        request: &PrepareJobContainerRequest,
+        container: &dyn ContainerPort,
+    ) -> Result<(), PrepareJobContainerError> {
+        let Some(payload) = request.event_payload() else {
+            return Ok(());
+        };
+        let event_file = FileEntry::new(".github/event.json", payload.as_bytes().to_vec(), 0o644);
+        container
+            .copy_to(CONTAINER_WORKSPACE, &[event_file])
+            .map_err(|error| PrepareJobContainerError::Container(format!("{error:?}")))
+    }
     fn copy_repository_if_needed(
         &self,
         request: &PrepareJobContainerRequest,
@@ -98,21 +113,24 @@ impl PrepareJobContainerService {
             )
             .map_err(|error| PrepareJobContainerError::Repository(error.to_string()))
     }
-}
-
-impl JobContainerPreparerPort for PrepareJobContainerService {
-    fn prepare(
+    fn pull_image(
         &self,
-        request: PrepareJobContainerRequest,
-    ) -> Result<PreparedJobContainerResponse, PrepareJobContainerError> {
+        request: &PrepareJobContainerRequest,
+    ) -> Result<String, PrepareJobContainerError> {
         let image = request
             .container_image()
             .unwrap_or(&self.default_image)
             .to_string();
-        let image = self
-            .image_puller
+        self.image_puller
             .pull(PullJobImageRequest::new(image))
-            .map_err(|error| PrepareJobContainerError::Image(error.to_string()))?;
+            .map_err(|error| PrepareJobContainerError::Image(error.to_string()))
+    }
+
+    fn create_container(
+        &self,
+        request: &PrepareJobContainerRequest,
+        image: String,
+    ) -> Result<(Box<dyn ContainerPort>, String), PrepareJobContainerError> {
         let timestamp = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .map(|duration| duration.as_millis())
@@ -127,17 +145,34 @@ impl JobContainerPreparerPort for PrepareJobContainerService {
         let container = self
             .container_creator
             .create(CreateJobContainerRequest::new(
-                image.clone(),
+                image,
                 container_name.clone(),
                 legacy_container_name,
                 request.repo_path().to_path_buf(),
                 request.allow_repo_writes(),
             ))
             .map_err(|error| PrepareJobContainerError::Container(error.to_string()))?;
-        self.initialize_runner_command_files(container.as_ref())?;
+        Ok((container, container_name))
+    }
+    fn finalize_container(
+        &self,
+        request: &PrepareJobContainerRequest,
+        container: &dyn ContainerPort,
+    ) -> Result<(), PrepareJobContainerError> {
+        self.initialize_runner_command_files(container)?;
+        self.copy_repository_if_needed(request, container)?;
+        self.copy_event_payload(request, container)
+    }
+}
 
-        self.copy_repository_if_needed(&request, container.as_ref())?;
-
+impl JobContainerPreparerPort for PrepareJobContainerService {
+    fn prepare(
+        &self,
+        request: PrepareJobContainerRequest,
+    ) -> Result<PreparedJobContainerResponse, PrepareJobContainerError> {
+        let image = self.pull_image(&request)?;
+        let (container, container_name) = self.create_container(&request, image)?;
+        self.finalize_container(&request, container.as_ref())?;
         Ok(PreparedJobContainerResponse::new(container, container_name))
     }
 }

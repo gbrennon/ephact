@@ -16,6 +16,7 @@ pub struct JobExecutionInput<'a> {
     context: &'a EvaluationContext,
     run_id: &'a str,
     allow_repo_writes: bool,
+    event_payload: Option<String>,
     allow_network: bool,
 }
 
@@ -34,6 +35,7 @@ impl<'a> JobExecutionInput<'a> {
             context,
             run_id: request.run_id(),
             allow_repo_writes: request.allow_repo_writes(),
+            event_payload: request.event_payload().map(str::to_owned),
             allow_network: request.allow_network(),
         }
     }
@@ -62,6 +64,7 @@ impl<'a> JobExecutionInput<'a> {
             self.repo_path.to_path_buf(),
             self.context.clone(),
         )
+        .with_event_payload_opt(self.event_payload.as_deref())
         .with_run_id(self.run_id.to_string())
         .with_allow_repo_writes(self.allow_repo_writes)
         .with_allow_network(self.allow_network)

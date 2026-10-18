@@ -16,6 +16,8 @@ mod tests {
         fake_pull_job_image_port::FakePullJobImagePort,
     };
 
+    const EVENT_PAYLOAD: &str = r#"{"action":"opened","ref":"refs/heads/main"}"#;
+
     fn request(repo_path: &Path) -> PrepareJobContainerRequest {
         PrepareJobContainerRequest::new(
             "build".to_string(),
@@ -194,5 +196,26 @@ mod tests {
         if let Err(e) = result {
             assert_eq!(e.to_string(), "copy failed");
         }
+    }
+    #[test]
+    fn execute_copies_configured_event_payload_into_the_workspace() {
+        let creator = FakeCreateJobContainerPort::new();
+        let container = creator.container();
+        let service = PrepareJobContainerService::new(
+            Box::new(FakePullJobImagePort::returning("ubuntu:latest")),
+            Box::new(creator),
+            Box::new(FakeCopyRepositoryToContainerPort::new()),
+        );
+
+        service
+            .prepare(request(Path::new("/repo")).with_event_payload(EVENT_PAYLOAD))
+            .unwrap();
+
+        assert_eq!(container.copied_paths(), ["/workspace"]);
+        let copied_files = container.copied_files();
+        assert_eq!(copied_files.len(), 1);
+        assert_eq!(copied_files[0].len(), 1);
+        assert_eq!(copied_files[0][0].path(), ".github/event.json");
+        assert_eq!(copied_files[0][0].content(), EVENT_PAYLOAD.as_bytes());
     }
 }

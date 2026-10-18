@@ -82,19 +82,25 @@ impl<'a> JobExecution<'a> {
         let (job_environment_builder, container_preparer, _, _, _, _, _, _, _) =
             self.dependencies.as_parts();
         let step_env = job_environment_builder
-            .build(BuildJobEnvironmentRequest::new(
-                workflow.clone(),
-                run.job().env().clone(),
-            ))
+            .build(
+                BuildJobEnvironmentRequest::new(workflow.clone(), run.job().env().clone())
+                    .with_context(request.context().clone())
+                    .with_event_payload_opt(request.event_payload()),
+            )
             .into_env();
-        let prepared = container_preparer.prepare(PrepareJobContainerRequest::new(
+        let prepare_request = PrepareJobContainerRequest::new(
             run.job_id().to_string(),
             run.job()
                 .container()
                 .map(|container| container.image().to_string()),
             request.repo_path().to_path_buf(),
             request.allow_repo_writes(),
-        ))?;
+        );
+        let prepare_request = match request.event_payload() {
+            Some(payload) => prepare_request.with_event_payload(payload),
+            None => prepare_request,
+        };
+        let prepared = container_preparer.prepare(prepare_request)?;
         self.state = Some(JobExecutionState::new(step_env));
         self.prepared = Some(prepared);
         Ok(())

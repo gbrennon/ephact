@@ -11,6 +11,7 @@ pub struct ExecuteWorkflowRequest {
     allow_repo_writes: bool,
     allow_network: bool,
     file_name: Option<String>,
+    event_payload: Option<String>,
     selected_job: Option<String>,
 }
 
@@ -31,6 +32,7 @@ impl ExecuteWorkflowRequest {
             allow_repo_writes,
             allow_network: false,
             file_name: None,
+            event_payload: None,
             selected_job: None,
         }
     }
@@ -82,6 +84,16 @@ impl ExecuteWorkflowRequest {
     /// Returns the workflow evaluation context.
     pub fn context(&self) -> &EvaluationContext {
         &self.context
+    }
+    /// Sets or clears the raw event payload carried into the job container.
+    pub fn with_event_payload_opt(mut self, event_payload: Option<&str>) -> Self {
+        self.event_payload = event_payload.map(str::to_owned);
+        self
+    }
+
+    /// Returns the raw event payload carried into the job container.
+    pub fn event_payload(&self) -> Option<&str> {
+        self.event_payload.as_deref()
     }
 
     /// Returns the run identity.

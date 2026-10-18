@@ -2,6 +2,7 @@
 pub const CONTAINER_WORKSPACE: &str = "/workspace";
 
 pub const RUNNER_ENV_FILE: &str = "/tmp/.ephact_env";
+pub const RUNNER_EVENT_FILE: &str = "/workspace/.github/event.json";
 
 pub const RUNNER_OUTPUT_FILE: &str = "/tmp/.ephact_output";
 pub const RUNNER_PATH_FILE: &str = "/tmp/.ephact_path";

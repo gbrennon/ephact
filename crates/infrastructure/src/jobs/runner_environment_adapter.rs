@@ -4,8 +4,10 @@ use crate::{
         ports::outbound::job_environment_builder_port::JobEnvironmentBuilderPort,
     },
     containers::workspace::{
-        CONTAINER_WORKSPACE, RUNNER_ENV_FILE, RUNNER_OUTPUT_FILE, RUNNER_PATH_FILE,
+        CONTAINER_WORKSPACE, RUNNER_ENV_FILE, RUNNER_EVENT_FILE, RUNNER_OUTPUT_FILE,
+        RUNNER_PATH_FILE,
     },
+    domain::value_objects::EvaluationContext,
 };
 
 /// `PATH` a job runs with when neither the workflow nor the job declares one.
@@ -26,6 +28,45 @@ impl RunnerEnvironmentAdapter {
     pub fn new() -> Self {
         Self
     }
+    fn insert_event_environment(
+        env: &mut std::collections::HashMap<String, String>,
+        context: &EvaluationContext,
+    ) {
+        let values = [
+            ("EVENT_NAME", "event_name"),
+            ("REF", "ref"),
+            ("REF_NAME", "ref_name"),
+            ("HEAD_REF", "head_ref"),
+            ("BASE_REF", "base_ref"),
+            ("SHA", "sha"),
+            ("ACTOR", "actor"),
+            ("REPOSITORY", "repository"),
+            ("REPOSITORY_OWNER", "repository_owner"),
+            ("WORKFLOW", "workflow"),
+            ("JOB", "job"),
+            ("RUN_ID", "run_id"),
+        ];
+        for (suffix, key) in values {
+            let value = context
+                .get("github")
+                .and_then(|github| github.property(key))
+                .and_then(|value| value.as_text())
+                .unwrap_or_default()
+                .to_owned();
+            env.insert(format!("GITHUB_{suffix}"), value.clone());
+            env.insert(format!("FORGEJO_{suffix}"), value);
+        }
+        env.insert("GITHUB_EVENT_PATH".into(), RUNNER_EVENT_FILE.into());
+        env.insert("FORGEJO_EVENT_PATH".into(), RUNNER_EVENT_FILE.into());
+    }
+    fn add_event_environment(
+        env: &mut std::collections::HashMap<String, String>,
+        request: &BuildJobEnvironmentRequest,
+    ) {
+        if request.event_payload().is_some() {
+            Self::insert_event_environment(env, request.context());
+        }
+    }
 }
 
 impl Default for RunnerEnvironmentAdapter {
@@ -40,7 +81,7 @@ impl JobEnvironmentBuilderPort for RunnerEnvironmentAdapter {
         for (key, value) in request.job_env() {
             env.insert(key.clone(), value.clone());
         }
-
+        Self::add_event_environment(&mut env, &request);
         env.insert("GITHUB_PATH".into(), RUNNER_PATH_FILE.into());
         env.insert("GITHUB_ENV".into(), RUNNER_ENV_FILE.into());
         env.insert("GITHUB_OUTPUT".into(), RUNNER_OUTPUT_FILE.into());

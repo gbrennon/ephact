@@ -6,6 +6,7 @@ pub struct PrepareJobContainerRequest {
     container_image: Option<String>,
     repo_path: PathBuf,
     allow_repo_writes: bool,
+    event_payload: Option<String>,
 }
 
 impl PrepareJobContainerRequest {
@@ -21,6 +22,7 @@ impl PrepareJobContainerRequest {
             container_image,
             repo_path,
             allow_repo_writes,
+            event_payload: None,
         }
     }
 
@@ -42,5 +44,15 @@ impl PrepareJobContainerRequest {
     /// Returns whether the container can write directly to the host repository.
     pub fn allow_repo_writes(&self) -> bool {
         self.allow_repo_writes
+    }
+    /// Sets the raw event payload copied into the job workspace.
+    pub fn with_event_payload(mut self, event_payload: &str) -> Self {
+        self.event_payload = Some(event_payload.to_owned());
+        self
+    }
+
+    /// Returns the raw event payload copied into the job workspace.
+    pub fn event_payload(&self) -> Option<&str> {
+        self.event_payload.as_deref()
     }
 }

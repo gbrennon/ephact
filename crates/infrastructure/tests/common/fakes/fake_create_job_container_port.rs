@@ -6,7 +6,7 @@ use ephact::application::{
 };
 use parking_lot::Mutex;
 
-use super::stub_container::StubContainer;
+use super::stub_recording_container::StubRecordingContainer;
 
 /// Records the creation requests it receives and hands back a stub container.
 ///
@@ -17,11 +17,21 @@ pub struct FakeCreateJobContainerPort {
     images: Arc<Mutex<Vec<String>>>,
     container_names: Arc<Mutex<Vec<String>>>,
     legacy_container_names: Arc<Mutex<Vec<String>>>,
+    container: StubRecordingContainer,
 }
 
 impl FakeCreateJobContainerPort {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            images: Arc::new(Mutex::new(Vec::new())),
+            container_names: Arc::new(Mutex::new(Vec::new())),
+            legacy_container_names: Arc::new(Mutex::new(Vec::new())),
+            container: StubRecordingContainer::new(),
+        }
+    }
+
+    pub fn container(&self) -> StubRecordingContainer {
+        self.container.clone()
     }
 
     pub fn images(&self) -> Vec<String> {
@@ -49,6 +59,6 @@ impl CreateJobContainerPort for FakeCreateJobContainerPort {
         self.legacy_container_names
             .lock()
             .push(request.legacy_container_name().to_string());
-        Ok(Box::new(StubContainer))
+        Ok(Box::new(self.container.clone()))
     }
 }

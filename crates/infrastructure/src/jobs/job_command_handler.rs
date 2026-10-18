@@ -18,11 +18,12 @@ impl JobCommandHandler {
 
     pub fn handle(&self, cmd: ExecuteJobPayload) -> Result<JobExecutionResponse, ExecuteJobError> {
         let allow_network = cmd.allow_network();
-        let (job, job_id, workflow, repo_path, context, run_id, allow_repo_writes) =
+        let (job, job_id, workflow, repo_path, context, run_id, event_payload, allow_repo_writes) =
             cmd.into_parts();
         let run = JobRun::new(workflow.name().map(str::to_string), job_id, job, None);
 
         let req = ExecuteJobRequest::new(repo_path, context, run_id, allow_repo_writes)
+            .with_event_payload_opt(event_payload.as_deref())
             .with_allow_network(allow_network);
         self.executor.execute(req, &run, &workflow)
     }
