@@ -20,9 +20,10 @@ for file in "$@"; do
     if [[ "$filename" == mod.rs ]]; then
         invalid_line="$(
             awk '
+                in_use { if ($0 ~ /;/) { in_use = 0 } next }
                 /^[[:space:]]*$/ || /^[[:space:]]*#/ || /^[[:space:]]*\/\// { next }
                 /^[[:space:]]*(pub([[:space:]]*\([^)]*\))?[[:space:]]+)?mod[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*;/ { next }
-                /^[[:space:]]*pub([[:space:]]*\([^)]*\))?[[:space:]]+use[[:space:]]+/ { next }
+                /^[[:space:]]*pub([[:space:]]*\([^)]*\))?[[:space:]]+use[[:space:]]+/ { if ($0 !~ /;/) { in_use = 1 } next }
                 { print NR ":" $0; exit }
             ' "$file"
         )"
