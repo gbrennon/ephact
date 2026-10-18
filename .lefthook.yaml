@@ -18,6 +18,8 @@ pre-commit:
 pre-push:
   parallel: false
   jobs:
+    - name: Check Rust file conventions
+      run: scripts/check_changed_rust_conventions.sh
     - name: Run quality checks
       run: |
         set -u
