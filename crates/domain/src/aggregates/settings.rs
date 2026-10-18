@@ -93,33 +93,43 @@ impl Settings {
     }
 
     /// Sets the default interface mode.
-    pub fn with_default_interface(mut self, value: InterfaceMode) -> Self {
-        self.default_interface = value;
-        self
+    pub fn with_default_interface(self, value: InterfaceMode) -> Self {
+        Self {
+            default_interface: value,
+            ..self
+        }
     }
 
     /// Sets the permission settings.
-    pub fn with_permissions(mut self, value: Permissions) -> Self {
-        self.permissions = value;
-        self
+    pub fn with_permissions(self, value: Permissions) -> Self {
+        Self {
+            permissions: value,
+            ..self
+        }
     }
 
     /// Sets the operation mode.
-    pub fn with_operation_mode(mut self, value: OperationMode) -> Self {
-        self.operation_mode = value;
-        self
+    pub fn with_operation_mode(self, value: OperationMode) -> Self {
+        Self {
+            operation_mode: value,
+            ..self
+        }
     }
 
     /// Sets the output preferences.
-    pub fn with_output_preferences(mut self, value: OutputPreferences) -> Self {
-        self.output_preferences = value;
-        self
+    pub fn with_output_preferences(self, value: OutputPreferences) -> Self {
+        Self {
+            output_preferences: value,
+            ..self
+        }
     }
 
     /// Sets the marker.
-    pub fn with_marker(mut self, value: Marker) -> Self {
-        self.marker = value;
-        self
+    pub fn with_marker(self, value: Marker) -> Self {
+        Self {
+            marker: value,
+            ..self
+        }
     }
 
     /// Sets the failure-log retention period.
