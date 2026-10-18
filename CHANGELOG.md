@@ -53,6 +53,7 @@
 - **cli**: Add event payload path flag
 - **workflows**: Add typed unknown job error
 - **workflows**: Filter execution by selected job
+- Expose event context in job environments
 
 ### Bug Fixes
 
@@ -504,6 +505,7 @@
 - **presentation**: Remove unused figlet dependency
 - **deps**: Remove unused figlet packages
 - Update issue 322 branch base
+- **lefthook**: Add pre-push hook to enforce conventions
 
 ## [0.4.0] - 2026-09-29
 
