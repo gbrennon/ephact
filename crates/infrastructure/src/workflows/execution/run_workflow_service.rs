@@ -57,6 +57,7 @@ impl RunExecutionContext {
             .with_workflow(request.workflow().map(str::to_string))
             .with_job(request.job().map(str::to_string))
             .with_event(request.event().map(str::to_string))
+            .with_event_path(request.event_path().map(ToOwned::to_owned))
             .with_inputs(request.inputs().to_vec())
             .with_secrets(request.secrets().to_vec())
             .with_all_workflows(request.all_workflows())
@@ -64,7 +65,7 @@ impl RunExecutionContext {
             .with_allow_real_container(request.allow_real_container())
             .with_allow_real_fetcher(request.allow_real_fetcher())
             .with_allow_network(request.allow_network())
-            .into_config();
+            .into_config()?;
         let run_id = request.run_id().to_string();
         let workflow_name = config
             .workflow()

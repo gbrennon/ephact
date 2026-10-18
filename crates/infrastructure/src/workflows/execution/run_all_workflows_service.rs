@@ -65,7 +65,7 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
             request.repository_name().to_owned(),
         )
         .map_err(|error| ApplicationError::Workflow(error.to_string()))?;
-        let config = Self::create_config(&request);
+        let config = Self::create_config(&request)?;
         let event = Self::required_event(&config)?;
         let repository_path = repository.path().as_path().display().to_string();
         let run_id = request.run_id().to_string();
@@ -97,11 +97,12 @@ impl RunAllWorkflowsPort for RunAllWorkflowsService {
 impl RunAllWorkflowsService {
     fn create_config(
         request: &RunAllWorkflowsRequest,
-    ) -> crate::domain::value_objects::WorkflowRunConfig {
+    ) -> Result<crate::domain::value_objects::WorkflowRunConfig, ApplicationError> {
         WorkflowRunConfigMapper::default()
             .with_workflow(request.workflow().map(str::to_string))
             .with_job(request.job().map(str::to_string))
             .with_event(request.event().map(str::to_string))
+            .with_event_path(request.event_path().map(ToOwned::to_owned))
             .with_inputs(request.inputs().to_vec())
             .with_secrets(request.secrets().to_vec())
             .with_all_workflows(request.all_workflows())
@@ -110,6 +111,7 @@ impl RunAllWorkflowsService {
             .with_allow_real_fetcher(request.allow_real_fetcher())
             .with_allow_network(request.allow_network())
             .into_config()
+            .map_err(|error| ApplicationError::Workflow(error.to_string()))
     }
 
     fn required_event(

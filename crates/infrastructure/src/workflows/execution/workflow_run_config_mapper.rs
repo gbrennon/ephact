@@ -1,5 +1,10 @@
-use crate::domain::value_objects::{
-    JobName, Secret, WorkflowEvent, WorkflowInput, WorkflowPath, WorkflowRunConfig,
+use std::path::PathBuf;
+
+use crate::domain::{
+    errors::CoreError,
+    value_objects::{
+        EventPath, JobName, Secret, WorkflowEvent, WorkflowInput, WorkflowPath, WorkflowRunConfig,
+    },
 };
 
 #[derive(Default)]
@@ -7,6 +12,7 @@ pub struct WorkflowRunConfigMapper {
     workflow: Option<String>,
     job: Option<String>,
     event: Option<String>,
+    event_path: Option<PathBuf>,
     inputs: Vec<(String, String)>,
     secrets: Vec<(String, String)>,
     all_workflows: bool,
@@ -29,6 +35,10 @@ impl WorkflowRunConfigMapper {
 
     pub fn with_event(mut self, event: Option<String>) -> Self {
         self.event = event;
+        self
+    }
+    pub fn with_event_path(mut self, event_path: Option<PathBuf>) -> Self {
+        self.event_path = event_path;
         self
     }
 
@@ -68,14 +78,17 @@ impl WorkflowRunConfigMapper {
     }
 
     /// Consumes the mapper and builds the domain workflow configuration.
-    pub fn into_config(self) -> WorkflowRunConfig {
+    pub fn into_config(self) -> Result<WorkflowRunConfig, CoreError> {
         let mut mapper = self;
-        let config = mapper.apply_named_values(WorkflowRunConfig::new());
+        let config = mapper.apply_named_values(WorkflowRunConfig::new())?;
         let config = mapper.apply_collection_values(config);
-        mapper.apply_flags(config)
+        Ok(mapper.apply_flags(config))
     }
 
-    fn apply_named_values(&mut self, mut config: WorkflowRunConfig) -> WorkflowRunConfig {
+    fn apply_named_values(
+        &mut self,
+        mut config: WorkflowRunConfig,
+    ) -> Result<WorkflowRunConfig, CoreError> {
         if let Some(workflow) = self.workflow.take() {
             config = config.with_workflow(WorkflowPath::new(workflow));
         }
@@ -85,7 +98,16 @@ impl WorkflowRunConfigMapper {
         if let Some(event) = self.event.take() {
             config = config.with_event(WorkflowEvent::new(event));
         }
-        config
+        self.apply_event_path(config)
+    }
+    fn apply_event_path(
+        &mut self,
+        mut config: WorkflowRunConfig,
+    ) -> Result<WorkflowRunConfig, CoreError> {
+        if let Some(event_path) = self.event_path.take() {
+            config = config.with_event_path(EventPath::new(event_path)?);
+        }
+        Ok(config)
     }
 
     fn apply_collection_values(&mut self, mut config: WorkflowRunConfig) -> WorkflowRunConfig {
@@ -114,7 +136,7 @@ mod tests {
 
     #[test]
     fn into_config_builds_default_config() {
-        let config = WorkflowRunConfigMapper::default().into_config();
+        let config = WorkflowRunConfigMapper::default().into_config().unwrap();
 
         assert!(config.workflow().is_none());
         assert!(config.job().is_none());
@@ -141,7 +163,8 @@ mod tests {
             .with_allow_real_container(true)
             .with_allow_real_fetcher(true)
             .with_allow_network(true)
-            .into_config();
+            .into_config()
+            .unwrap();
 
         assert_eq!(config.workflow().unwrap().as_str(), ".ci/workflows/ci.yml");
         assert_eq!(config.job().unwrap().as_str(), "test");
