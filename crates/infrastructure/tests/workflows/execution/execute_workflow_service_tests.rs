@@ -7,7 +7,10 @@ mod tests {
             dtos::{requests::ExecuteWorkflowRequest, responses::WorkflowExecutionResponse},
             ports::inbound::execute_workflow_port::ExecuteWorkflowPort,
         },
-        domain::{messages::events::Event, value_objects::EvaluationContext},
+        domain::{
+            messages::events::Event,
+            value_objects::{ContextValue, EvaluationContext},
+        },
         infrastructure::workflows::execution::execute_workflow_service::ExecuteWorkflowService,
     };
 
@@ -25,6 +28,25 @@ mod tests {
         command_bus: FakeCommandBus,
     ) -> Result<WorkflowExecutionResponse, ephact::application::errors::ExecuteWorkflowError> {
         execute_with_file_name(loader, command_bus, None)
+    }
+
+    fn execute_with_context(
+        loader: FakeWorkflowLoaderPort,
+        command_bus: FakeCommandBus,
+        context: EvaluationContext,
+    ) -> Result<WorkflowExecutionResponse, ephact::application::errors::ExecuteWorkflowError> {
+        ExecuteWorkflowService::new(
+            Box::new(loader),
+            Box::new(command_bus),
+            Box::new(FakeEventBus::new()),
+        )
+        .execute(ExecuteWorkflowRequest::new(
+            REQUESTED_CONTENT.to_string(),
+            Path::new("/repo").to_path_buf(),
+            context,
+            "test-run".to_string(),
+            false,
+        ))
     }
 
     fn execute_with_file_name(
@@ -47,6 +69,43 @@ mod tests {
             )
             .with_file_name_opt(file_name),
         )
+    }
+
+    #[test]
+    fn execute_skips_false_job_condition_and_runs_true_job_condition() {
+        let workflow = "name: Ci\non: push\njobs:\n  skipped:\n    if: '${{ github.event.pull_request.merged }}'\n    runs-on: ubuntu-latest\n    steps:\n      - run: skipped\n  run:\n    if: \"${{ github.event_name == 'push' }}\"\n    runs-on: ubuntu-latest\n    steps:\n      - run: run\n";
+        let command_bus = FakeCommandBus::new();
+        let event = ContextValue::mapping([("action".to_owned(), ContextValue::text("opened"))]);
+        let github = ContextValue::mapping([
+            ("event".to_owned(), event),
+            ("event_name".to_owned(), ContextValue::text("push")),
+        ]);
+        let context = EvaluationContext::new().with_root("github", github);
+
+        let execution = execute_with_context(
+            FakeWorkflowLoaderPort::holding(workflow),
+            command_bus.clone(),
+            context,
+        )
+        .unwrap();
+
+        assert_eq!(command_bus.dispatched_job_ids(), vec!["run".to_owned()]);
+        let skipped = execution
+            .job_summaries()
+            .iter()
+            .find(|job| job.job_id() == "skipped")
+            .expect("skipped summary");
+        assert!(skipped.is_skipped());
+        assert_eq!(
+            skipped.skip_reason(),
+            Some("job condition evaluated to false")
+        );
+        let run = execution
+            .job_summaries()
+            .iter()
+            .find(|job| job.job_id() == "run")
+            .expect("run summary");
+        assert!(!run.is_skipped());
     }
 
     #[test]

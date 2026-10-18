@@ -70,6 +70,17 @@ impl StepInterpolator {
             ExpressionResolver::evaluate_condition(condition, context)
         })
     }
+    /// Evaluates a job or step condition against the supplied context.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EvalError`] when the condition cannot be parsed or evaluated.
+    pub fn evaluate_condition(
+        condition: &str,
+        context: &EvaluationContext,
+    ) -> Result<bool, EvalError> {
+        ExpressionResolver::evaluate_condition(condition, context)
+    }
 
     fn interpolate_core_fields(
         step: &Step,

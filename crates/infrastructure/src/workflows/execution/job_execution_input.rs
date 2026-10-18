@@ -48,6 +48,11 @@ impl<'a> JobExecutionInput<'a> {
         self.run
     }
 
+    /// Returns the evaluation context for the planned job run.
+    pub fn context(&self) -> &EvaluationContext {
+        self.context
+    }
+
     /// Builds the command payload for the planned job run.
     pub fn execute_job_payload(&self) -> ExecuteJobPayload {
         ExecuteJobPayload::new(
