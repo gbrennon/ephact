@@ -84,21 +84,24 @@ impl Workflow {
     }
 
     /// Sets the workflow's default job settings.
-    pub fn with_defaults(mut self, defaults: Option<ExecutionDefaults>) -> Self {
-        self.defaults = defaults;
-        self
+    pub fn with_defaults(self, defaults: Option<ExecutionDefaults>) -> Self {
+        Self { defaults, ..self }
     }
 
     /// Sets the workflow's token permissions.
-    pub fn with_permissions(mut self, permissions: Option<TokenPermissions>) -> Self {
-        self.permissions = permissions;
-        self
+    pub fn with_permissions(self, permissions: Option<TokenPermissions>) -> Self {
+        Self {
+            permissions,
+            ..self
+        }
     }
 
     /// Sets the workflow's concurrency settings.
-    pub fn with_concurrency(mut self, concurrency: Option<ConcurrencyGroup>) -> Self {
-        self.concurrency = concurrency;
-        self
+    pub fn with_concurrency(self, concurrency: Option<ConcurrencyGroup>) -> Self {
+        Self {
+            concurrency,
+            ..self
+        }
     }
 
     /// Returns the workflow's display name.
@@ -112,9 +115,11 @@ impl Workflow {
     }
 
     /// Sets the workflow file name.
-    pub fn with_file(mut self, file: impl Into<String>) -> Self {
-        self.file = Some(file.into());
-        self
+    pub fn with_file(self, file: impl Into<String>) -> Self {
+        Self {
+            file: Some(file.into()),
+            ..self
+        }
     }
 
     /// Returns the triggers declared by the workflow.

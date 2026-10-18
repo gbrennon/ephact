@@ -88,45 +88,53 @@ impl Step {
     }
 
     /// Sets the condition that controls whether this step runs.
-    pub fn with_if_condition(mut self, condition: Option<String>) -> Self {
-        self.r#if = condition;
-        self
+    pub fn with_if_condition(self, condition: Option<String>) -> Self {
+        Self {
+            r#if: condition,
+            ..self
+        }
     }
 
     /// Sets the shell used to execute this step's `run` command.
-    pub fn with_shell(mut self, shell: Option<String>) -> Self {
-        self.shell = shell;
-        self
+    pub fn with_shell(self, shell: Option<String>) -> Self {
+        Self { shell, ..self }
     }
 
     /// Sets the working directory for this step's `run` command.
-    pub fn with_working_directory(mut self, working_directory: Option<String>) -> Self {
-        self.working_directory = working_directory;
-        self
+    pub fn with_working_directory(self, working_directory: Option<String>) -> Self {
+        Self {
+            working_directory,
+            ..self
+        }
     }
 
     /// Sets the input parameters for this step's `uses` action.
-    pub fn with_inputs(mut self, inputs: HashMap<String, String>) -> Self {
-        self.with = inputs;
-        self
+    pub fn with_inputs(self, inputs: HashMap<String, String>) -> Self {
+        Self {
+            with: inputs,
+            ..self
+        }
     }
 
     /// Sets the environment variables scoped to this step.
-    pub fn with_env(mut self, env: HashMap<String, String>) -> Self {
-        self.env = env;
-        self
+    pub fn with_env(self, env: HashMap<String, String>) -> Self {
+        Self { env, ..self }
     }
 
     /// Sets whether the job continues when this step fails.
-    pub fn with_continue_on_error(mut self, value: Option<String>) -> Self {
-        self.continue_on_error = value;
-        self
+    pub fn with_continue_on_error(self, value: Option<String>) -> Self {
+        Self {
+            continue_on_error: value,
+            ..self
+        }
     }
 
     /// Sets the maximum number of minutes this step may run.
-    pub fn with_timeout_minutes(mut self, timeout_minutes: Option<f64>) -> Self {
-        self.timeout_minutes = timeout_minutes;
-        self
+    pub fn with_timeout_minutes(self, timeout_minutes: Option<f64>) -> Self {
+        Self {
+            timeout_minutes,
+            ..self
+        }
     }
 
     /// Returns the step identifier, if one is set.
@@ -261,8 +269,12 @@ impl Step {
 }
 
 #[cfg(test)]
+#[path = "stub_classifier.rs"]
+mod stub_classifier;
+
+#[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{stub_classifier::StubClassifier, *};
 
     impl Step {
         fn for_test(run: Option<&str>, shell: Option<&str>, uses: Option<&str>) -> Self {
@@ -389,41 +401,10 @@ mod tests {
         assert_eq!(step.display_name(), "unnamed step");
     }
 
-    #[derive(Default)]
-    struct StubClassifier {
-        package_registry: bool,
-        http_request: bool,
-        network_command: bool,
-        remote_mutation: bool,
-    }
-
-    impl crate::traits::NetworkCommandClassifier for StubClassifier {
-        fn accesses_package_registry(&self, _script: &str) -> bool {
-            self.package_registry
-        }
-
-        fn issues_http_request(&self, _script: &str) -> bool {
-            self.http_request
-        }
-
-        fn uses_network_command(&self, _script: &str) -> bool {
-            self.network_command
-        }
-
-        fn mutates_remote_environment(&self, _script: &str) -> bool {
-            self.remote_mutation
-        }
-    }
-
     #[test]
     fn network_access_reason_returns_none_for_package_registry_access() {
         let step = Step::for_test(Some("echo hi"), None, None);
-        let classifier = StubClassifier {
-            package_registry: true,
-            http_request: true,
-            network_command: true,
-            ..StubClassifier::default()
-        };
+        let classifier = StubClassifier::package_registry_http_request_network_command();
 
         assert_eq!(step.network_access_reason(&classifier), None);
     }
@@ -431,11 +412,7 @@ mod tests {
     #[test]
     fn network_access_reason_reports_http_requests() {
         let step = Step::for_test(Some("echo hi"), None, None);
-        let classifier = StubClassifier {
-            http_request: true,
-            network_command: true,
-            ..StubClassifier::default()
-        };
+        let classifier = StubClassifier::http_request_and_network_command();
 
         assert_eq!(
             step.network_access_reason(&classifier),
@@ -446,10 +423,7 @@ mod tests {
     #[test]
     fn network_access_reason_reports_network_commands() {
         let step = Step::for_test(Some("echo hi"), None, None);
-        let classifier = StubClassifier {
-            network_command: true,
-            ..StubClassifier::default()
-        };
+        let classifier = StubClassifier::network_command();
 
         assert_eq!(
             step.network_access_reason(&classifier),
@@ -468,10 +442,7 @@ mod tests {
     #[test]
     fn network_access_reason_returns_none_without_script() {
         let step = Step::for_test(None, None, Some("actions/checkout@v4"));
-        let classifier = StubClassifier {
-            http_request: true,
-            ..StubClassifier::default()
-        };
+        let classifier = StubClassifier::http_request();
 
         assert_eq!(step.network_access_reason(&classifier), None);
     }
@@ -479,10 +450,7 @@ mod tests {
     #[test]
     fn network_policy_violation_reports_remote_mutation() {
         let step = Step::for_test(Some("echo hi"), None, None);
-        let classifier = StubClassifier {
-            remote_mutation: true,
-            ..StubClassifier::default()
-        };
+        let classifier = StubClassifier::remote_mutation();
 
         assert_eq!(
             step.network_policy_violation(&classifier),
@@ -501,10 +469,7 @@ mod tests {
     #[test]
     fn network_policy_violation_returns_none_without_script() {
         let step = Step::for_test(None, None, Some("actions/checkout@v4"));
-        let classifier = StubClassifier {
-            remote_mutation: true,
-            ..StubClassifier::default()
-        };
+        let classifier = StubClassifier::remote_mutation();
 
         assert_eq!(step.network_policy_violation(&classifier), None);
     }
