@@ -8,6 +8,7 @@ pub struct RunAllWorkflowsRequest {
     workflow: Option<String>,
     job: Option<String>,
     event: Option<String>,
+    event_path: Option<PathBuf>,
     inputs: Vec<(String, String)>,
     secrets: Vec<(String, String)>,
     all_workflows: bool,
@@ -31,6 +32,9 @@ impl RunAllWorkflowsRequest {
             workflow: config.workflow().map(|value| value.as_str().to_string()),
             job: config.job().map(|value| value.as_str().to_string()),
             event: config.event().map(|value| value.as_str().to_string()),
+            event_path: config
+                .event_path()
+                .map(|value| value.as_path().to_path_buf()),
             inputs: config
                 .inputs()
                 .iter()
@@ -73,6 +77,11 @@ impl RunAllWorkflowsRequest {
     /// Returns the selected event.
     pub fn event(&self) -> Option<&str> {
         self.event.as_deref()
+    }
+
+    /// Returns the event payload path.
+    pub fn event_path(&self) -> Option<&Path> {
+        self.event_path.as_deref()
     }
 
     /// Returns configured input pairs.
