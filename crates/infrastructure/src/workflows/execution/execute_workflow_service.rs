@@ -62,10 +62,10 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
             )
             .map_err(|error| ExecuteWorkflowError::Workflow(error.to_string()))?;
         let workflow_name = workflow.name().or(workflow.file()).unwrap_or("unnamed");
+        let selected_jobs = Self::selected_job_ids(&workflow, request.selected_job())?;
         let plan = workflow
             .plan()
             .map_err(|error| ExecuteWorkflowError::Workflow(format!("{error:?}")))?;
-        let selected_jobs = Self::selected_job_ids(&workflow, request.selected_job())?;
 
         self.announce_workflow_started(workflow_name);
 
@@ -106,9 +106,9 @@ impl ExecuteWorkflowService {
         selected_job: &str,
     ) -> Result<(), ExecuteWorkflowError> {
         if workflow.job_named(selected_job).is_none() {
-            return Err(ExecuteWorkflowError::Workflow(format!(
-                "selected job '{selected_job}' was not found"
-            )));
+            return Err(ExecuteWorkflowError::UnknownJob {
+                job: selected_job.to_owned(),
+            });
         }
         Ok(())
     }
@@ -145,13 +145,12 @@ impl ExecuteWorkflowService {
     ) -> Result<Vec<JobExecutionResponse>, Box<dyn Error>> {
         let mut blocked_jobs = HashSet::new();
         let mut executions = Vec::new();
-        for run in plan
-            .stages()
-            .iter()
-            .flat_map(|stage| stage.runs())
-            .filter(|run| Self::run_is_selected(run, selected_jobs))
-        {
+        for run in plan.stages().iter().flat_map(|stage| stage.runs()) {
             let input = JobExecutionInput::new(workflow, run, &request, request.context());
+            if !Self::run_is_selected(run, selected_jobs) {
+                executions.push(Self::skipped_run_with_reason(run, "job not selected"));
+                continue;
+            }
             executions.push(self.execute_planned_run(run, input, &mut blocked_jobs)?);
         }
         Ok(executions)
