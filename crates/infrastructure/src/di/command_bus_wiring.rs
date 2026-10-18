@@ -6,7 +6,7 @@ use crate::{
         ports::outbound::{
             ActionCommandPublisherPort, ActionFetcherPort, ContainerRuntimePort,
             DomainEventPublisherPort, JobCommandPublisherPort, StepCommandPublisherPort,
-            StepInterpolatorPort, StepTextCodecPort,
+            StepInterpolatorPort, StepTextCodecPort, WorkflowSourcePort,
         },
         services::{
             ExecuteJobDependencies, ExecuteJobService, execute_step_service::ExecuteStepService,
@@ -28,7 +28,8 @@ use crate::{
         run_shell_step_service::RunShellStepService, summarize_step_service::SummarizeStepService,
     },
     workflows::{
-        ExecuteWorkflowService, WorkflowCommandHandler, load_workflow_service::LoadWorkflowService,
+        ExecuteWorkflowService, FilesystemWorkflowSource, WorkflowCommandHandler,
+        load_workflow_service::LoadWorkflowService,
     },
 };
 
@@ -57,6 +58,23 @@ impl CommandBusWiring {
         event_bus: crate::messaging::DomainEventPublisherAdapter,
         ssh_forwarding: HostSshForwardingConfig,
     ) -> CommandPublisherAdapter {
+        Self::build_with_ssh_forwarding_and_workflow_source(
+            runtime,
+            action_fetcher,
+            event_bus,
+            ssh_forwarding,
+            Arc::new(FilesystemWorkflowSource::default()),
+        )
+    }
+
+    /// Builds the command bus with an injected workflow source for event payloads.
+    pub fn build_with_ssh_forwarding_and_workflow_source(
+        runtime: Arc<dyn ContainerRuntimePort>,
+        action_fetcher: Box<dyn ActionFetcherPort>,
+        event_bus: crate::messaging::DomainEventPublisherAdapter,
+        ssh_forwarding: HostSshForwardingConfig,
+        workflow_source: Arc<dyn WorkflowSourcePort>,
+    ) -> CommandPublisherAdapter {
         let deferred = Arc::new(DeferredCommandBus::new());
         let publisher = CommandPublisherAdapter::new(deferred.clone());
 
@@ -64,7 +82,8 @@ impl CommandBusWiring {
             Box::new(LoadWorkflowService::new()),
             Box::new(publisher.clone()) as Box<dyn JobCommandPublisherPort>,
             Box::new(event_bus.clone()),
-        )));
+        )))
+        .with_workflow_source(workflow_source);
 
         let job_handler = JobCommandHandler::new(Box::new(Self::build_job_executor(
             runtime.clone(),

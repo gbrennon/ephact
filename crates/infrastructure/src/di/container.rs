@@ -6,7 +6,7 @@ use crate::{
     application::{
         ports::outbound::{
             ActionCommandPublisherPort, ActionFetcherPort, ContainerRuntimePort,
-            ProjectBrandingStorePort, WorkflowCommandPublisherPort,
+            ProjectBrandingStorePort, WorkflowCommandPublisherPort, WorkflowSourcePort,
             domain_event_handler_port::DomainEventHandlerPort,
             domain_event_publisher_port::DomainEventPublisherPort,
         },
@@ -118,13 +118,14 @@ impl Container {
         let (runtime, action_fetcher, workflow_source) = collaborators.into_parts();
         let (event_publisher, failure_log_stores) =
             Self::build_event_bus(runtime.clone(), progress_reporter);
-        let shared_workflow_source = SharedWorkflowSource::new(workflow_source);
         let command_publisher = Self::build_command_bus(
             runtime,
             action_fetcher,
             event_publisher.clone(),
             ssh_forwarding,
+            workflow_source.clone(),
         );
+        let shared_workflow_source = SharedWorkflowSource::new(workflow_source);
         let parts = Self::build_app_parts(
             shared_workflow_source,
             command_publisher,
@@ -213,12 +214,14 @@ impl Container {
         action_fetcher: Box<dyn ActionFetcherPort>,
         event_bus: DomainEventPublisherAdapter,
         ssh_forwarding: HostSshForwardingConfig,
+        workflow_source: Arc<dyn WorkflowSourcePort>,
     ) -> CommandPublisherAdapter {
-        CommandBusWiring::build_with_ssh_forwarding(
+        CommandBusWiring::build_with_ssh_forwarding_and_workflow_source(
             runtime,
             action_fetcher,
             event_bus,
             ssh_forwarding,
+            workflow_source,
         )
     }
 }
