@@ -64,7 +64,7 @@ impl RunWorkflowPort for RunWorkflowService {
                 .read_workflow(&context)
                 .map_err(|error| ApplicationError::Workflow(error.to_string()))?;
             context
-                .workflow_name
+                .workflow_name_mut()
                 .get_or_insert(workflow_source.file_name().to_owned());
             self.ensure_requested_trigger(&context, workflow_source.content())
                 .map_err(|error| ApplicationError::Workflow(error.to_string()))?;
@@ -79,8 +79,8 @@ impl RunWorkflowService {
     fn announce_run_started(&self, context: &RunExecutionContext) {
         self.event_publisher
             .publish(Event::RunStarted(RunStartedPayload::new(
-                context.run_id.clone(),
-                context.repository_path.clone(),
+                context.run_id().to_owned(),
+                context.repository_path().to_owned(),
             )));
     }
 
@@ -90,8 +90,11 @@ impl RunWorkflowService {
     ) -> Result<crate::application::dtos::responses::WorkflowSourceFileResponse, Box<dyn Error>>
     {
         match self.workflow_source.read_workflow(
-            &context.repository,
-            context.config.workflow().map(|workflow| workflow.as_str()),
+            context.repository(),
+            context
+                .config()
+                .workflow()
+                .map(|workflow| workflow.as_str()),
         ) {
             Ok(workflow) => Ok(workflow),
             Err(error) => {
@@ -107,13 +110,13 @@ impl RunWorkflowService {
         context: &RunExecutionContext,
         workflow_content: &str,
     ) -> Result<(), Box<dyn Error>> {
-        if !context.config.is_valid() {
+        if !context.config().is_valid() {
             let error: Box<dyn Error> = "workflow event must be specified".into();
             self.announce_run_failed(context, &*error);
             return Err(error);
         }
         let event = context
-            .config
+            .config()
             .event()
             .expect("valid workflow run configuration has an event");
         if self
@@ -135,10 +138,10 @@ impl RunWorkflowService {
     ) -> Result<WorkflowExecutionResponse, Box<dyn Error>> {
         let command = ExecuteWorkflowPayload::new(
             workflow_source.content().to_owned(),
-            context.config.clone(),
-            context.repository.clone(),
-            context.run_id.clone(),
-            context.config.allow_repo_writes(),
+            context.config().clone(),
+            context.repository().clone(),
+            context.run_id().to_owned(),
+            context.config().allow_repo_writes(),
         )
         .with_workflow_file_name(workflow_source.file_name());
         match self.command_publisher.publish(command) {
@@ -159,8 +162,8 @@ impl RunWorkflowService {
         let (workflow_name, job_summaries, container_names, success) = execution.into_parts();
         self.event_publisher.publish(Event::WorkflowRunCompleted(
             WorkflowRunCompletedPayload::new(
-                context.run_id.clone(),
-                context.repository_path.clone(),
+                context.run_id().to_owned(),
+                context.repository_path().to_owned(),
                 container_names,
                 success,
             ),
@@ -169,7 +172,7 @@ impl RunWorkflowService {
             workflow_name,
             job_summaries,
             success,
-            context.started_at.elapsed(),
+            context.started_at().elapsed(),
         )
     }
 }
@@ -178,9 +181,9 @@ impl RunWorkflowService {
     fn announce_run_failed(&self, context: &RunExecutionContext, error: &dyn Error) {
         self.event_publisher
             .publish(Event::RunFailed(RunFailedPayload::new(
-                context.run_id.clone(),
-                context.repository_path.clone(),
-                context.workflow_name.clone(),
+                context.run_id().to_owned(),
+                context.repository_path().to_owned(),
+                context.workflow_name().cloned(),
                 error.to_string(),
             )));
     }

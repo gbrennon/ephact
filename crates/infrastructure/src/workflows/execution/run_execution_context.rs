@@ -8,12 +8,12 @@ use crate::{
 };
 
 pub(crate) struct RunExecutionContext {
-    pub(crate) repository: Repository,
-    pub(crate) repository_path: String,
-    pub(crate) config: WorkflowRunConfig,
-    pub(crate) run_id: String,
-    pub(crate) workflow_name: Option<String>,
-    pub(crate) started_at: Instant,
+    repository: Repository,
+    repository_path: String,
+    config: WorkflowRunConfig,
+    run_id: String,
+    workflow_name: Option<String>,
+    started_at: Instant,
 }
 
 impl RunExecutionContext {
@@ -49,5 +49,34 @@ impl RunExecutionContext {
             workflow_name,
             started_at: Instant::now(),
         })
+    }
+}
+impl RunExecutionContext {
+    pub(crate) fn repository(&self) -> &Repository {
+        &self.repository
+    }
+
+    pub(crate) fn repository_path(&self) -> &str {
+        &self.repository_path
+    }
+
+    pub(crate) fn config(&self) -> &WorkflowRunConfig {
+        &self.config
+    }
+
+    pub(crate) fn run_id(&self) -> &str {
+        &self.run_id
+    }
+
+    pub(crate) fn workflow_name(&self) -> Option<&String> {
+        self.workflow_name.as_ref()
+    }
+
+    pub(crate) fn workflow_name_mut(&mut self) -> &mut Option<String> {
+        &mut self.workflow_name
+    }
+
+    pub(crate) fn started_at(&self) -> Instant {
+        self.started_at
     }
 }
