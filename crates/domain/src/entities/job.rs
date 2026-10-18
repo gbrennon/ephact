@@ -108,75 +108,81 @@ impl Job {
     }
 
     /// Sets the condition that controls whether this job runs.
-    pub fn with_if_condition(mut self, condition: Option<String>) -> Self {
-        self.r#if = condition;
-        self
+    pub fn with_if_condition(self, condition: Option<String>) -> Self {
+        Self {
+            r#if: condition,
+            ..self
+        }
     }
 
     /// Sets the matrix strategy for this job.
-    pub fn with_strategy(mut self, strategy: Option<JobStrategy>) -> Self {
-        self.strategy = strategy;
-        self
+    pub fn with_strategy(self, strategy: Option<JobStrategy>) -> Self {
+        Self { strategy, ..self }
     }
 
     /// Sets the environment variables scoped to this job.
-    pub fn with_env(mut self, env: HashMap<String, String>) -> Self {
-        self.env = env;
-        self
+    pub fn with_env(self, env: HashMap<String, String>) -> Self {
+        Self { env, ..self }
     }
 
     /// Sets the container in which this job runs.
-    pub fn with_container(mut self, container: Option<ContainerSpecification>) -> Self {
-        self.container = container;
-        self
+    pub fn with_container(self, container: Option<ContainerSpecification>) -> Self {
+        Self { container, ..self }
     }
 
     /// Sets the service containers available to this job.
-    pub fn with_services(mut self, services: HashMap<String, ContainerSpecification>) -> Self {
-        self.services = services;
-        self
+    pub fn with_services(self, services: HashMap<String, ContainerSpecification>) -> Self {
+        Self { services, ..self }
     }
 
     /// Sets the outputs produced for dependent jobs.
-    pub fn with_outputs(mut self, outputs: HashMap<String, String>) -> Self {
-        self.outputs = outputs;
-        self
+    pub fn with_outputs(self, outputs: HashMap<String, String>) -> Self {
+        Self { outputs, ..self }
     }
 
     /// Sets the input parameters passed to this job.
-    pub fn with_inputs(mut self, inputs: Option<ContextValue>) -> Self {
-        self.with = inputs;
-        self
+    pub fn with_inputs(self, inputs: Option<ContextValue>) -> Self {
+        Self {
+            with: inputs,
+            ..self
+        }
     }
 
     /// Sets the secrets available to this job.
-    pub fn with_secrets(mut self, secrets: Option<ContextValue>) -> Self {
-        self.secrets = secrets;
-        self
+    pub fn with_secrets(self, secrets: Option<ContextValue>) -> Self {
+        Self { secrets, ..self }
     }
 
     /// Sets the maximum runtime for this job in minutes.
-    pub fn with_timeout_minutes(mut self, timeout_minutes: Option<f64>) -> Self {
-        self.timeout_minutes = timeout_minutes;
-        self
+    pub fn with_timeout_minutes(self, timeout_minutes: Option<f64>) -> Self {
+        Self {
+            timeout_minutes,
+            ..self
+        }
     }
 
     /// Sets whether this job may fail without stopping the workflow.
-    pub fn with_continue_on_error(mut self, value: Option<String>) -> Self {
-        self.continue_on_error = value;
-        self
+    pub fn with_continue_on_error(self, value: Option<String>) -> Self {
+        Self {
+            continue_on_error: value,
+            ..self
+        }
     }
 
     /// Sets the token permissions for this job.
-    pub fn with_permissions(mut self, permissions: Option<TokenPermissions>) -> Self {
-        self.permissions = permissions;
-        self
+    pub fn with_permissions(self, permissions: Option<TokenPermissions>) -> Self {
+        Self {
+            permissions,
+            ..self
+        }
     }
 
     /// Sets the concurrency settings for this job.
-    pub fn with_concurrency(mut self, concurrency: Option<ConcurrencyGroup>) -> Self {
-        self.concurrency = concurrency;
-        self
+    pub fn with_concurrency(self, concurrency: Option<ConcurrencyGroup>) -> Self {
+        Self {
+            concurrency,
+            ..self
+        }
     }
 
     /// Returns the job's display name.
