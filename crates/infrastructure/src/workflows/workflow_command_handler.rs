@@ -36,10 +36,11 @@ impl WorkflowCommandHandler {
         &self,
         cmd: ExecuteWorkflowPayload,
     ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
-        let context = self
+        let github_context = self
             .context_builder
-            .build(&cmd)
+            .build_with_payload(&cmd)
             .map_err(ExecuteWorkflowError::Workflow)?;
+        let (context, event_payload) = github_context.into_parts();
         let req = ExecuteWorkflowRequest::new(
             cmd.workflow_content().to_string(),
             cmd.repository().path().as_path().to_path_buf(),
@@ -47,6 +48,7 @@ impl WorkflowCommandHandler {
             cmd.run_id().to_string(),
             cmd.allow_repo_writes(),
         )
+        .with_event_payload_opt(event_payload.as_deref())
         .with_allow_network(cmd.config().allow_network())
         .with_selected_job_opt(cmd.config().job().map(|job| job.as_str()));
         let req = match cmd.workflow_file_name() {

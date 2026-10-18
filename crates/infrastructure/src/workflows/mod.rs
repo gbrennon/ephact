@@ -4,6 +4,7 @@ pub mod detect_workflow_trigger_service;
 pub mod discover_run_inputs_service;
 pub mod execution;
 pub mod filesystem_workflow_source;
+pub mod github_context;
 pub mod github_context_builder;
 pub mod list_all_workflow_files_service;
 pub mod list_workflow_directory_service;
@@ -24,6 +25,7 @@ pub use execution::{
     ExecuteWorkflowService, RunAllWorkflowsService, RunWorkflowService, WorkflowExecutionAggregator,
 };
 pub use filesystem_workflow_source::FilesystemWorkflowSource;
+pub use github_context::GithubContext;
 pub use github_context_builder::GithubContextBuilder;
 pub use list_all_workflow_files_service::ListAllWorkflowFilesService;
 pub use list_workflow_directory_service::ListWorkflowDirectoryService;

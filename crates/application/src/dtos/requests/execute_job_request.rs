@@ -9,6 +9,7 @@ pub struct ExecuteJobRequest {
     run_id: String,
     allow_repo_writes: bool,
     allow_network: bool,
+    event_payload: Option<String>,
 }
 
 impl ExecuteJobRequest {
@@ -25,6 +26,7 @@ impl ExecuteJobRequest {
             run_id,
             allow_repo_writes,
             allow_network: false,
+            event_payload: None,
         }
     }
 
@@ -36,6 +38,17 @@ impl ExecuteJobRequest {
     /// Returns the evaluation context.
     pub fn context(&self) -> &EvaluationContext {
         &self.context
+    }
+
+    /// Sets or clears the raw event payload carried into the job container.
+    pub fn with_event_payload_opt(mut self, event_payload: Option<&str>) -> Self {
+        self.event_payload = event_payload.map(str::to_owned);
+        self
+    }
+
+    /// Returns the raw event payload carried into the job container.
+    pub fn event_payload(&self) -> Option<&str> {
+        self.event_payload.as_deref()
     }
 
     /// Returns the run identifier.

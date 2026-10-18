@@ -7,7 +7,7 @@ use crate::{
         messages::commands::ExecuteWorkflowPayload,
         value_objects::{ContextValue, EvaluationContext},
     },
-    workflows::FilesystemWorkflowSource,
+    workflows::{FilesystemWorkflowSource, GithubContext},
 };
 
 /// Builds the GitHub-compatible expression context for one workflow run.
@@ -21,72 +21,89 @@ impl GithubContextBuilder {
         Self { workflow_source }
     }
 
-    /// Builds a run context, loading the configured event payload when present.
+    /// Builds an evaluation context, loading the configured event payload when present.
     pub fn build(&self, command: &ExecuteWorkflowPayload) -> Result<EvaluationContext, String> {
+        self.build_with_payload(command)
+            .map(|context| context.into_parts().0)
+    }
+
+    /// Builds an evaluation context and preserves its original event payload.
+    pub fn build_with_payload(
+        &self,
+        command: &ExecuteWorkflowPayload,
+    ) -> Result<GithubContext, String> {
         let inputs = Self::inputs(command);
-        let event = self.event(command, &inputs)?;
-        let github = ContextValue::mapping([
-            ("event_name".to_owned(), Self::event_name(command, &event)),
-            ("action".to_owned(), Self::property(&event, &["action"])),
-            ("ref".to_owned(), Self::property(&event, &["ref"])),
+        let (event, event_payload) = self.event(command, &inputs)?;
+        let github = Self::github(command, &event);
+
+        Ok(GithubContext::new(
+            EvaluationContext::new()
+                .with_root("secrets", Self::secrets(command))
+                .with_root("inputs", ContextValue::Mapping(inputs.clone()))
+                .with_root("github", github)
+                .with_root("runner", Self::runner_context()),
+            event_payload,
+        ))
+    }
+
+    fn github(command: &ExecuteWorkflowPayload, event: &ContextValue) -> ContextValue {
+        ContextValue::mapping([
+            ("event_name".to_owned(), Self::event_name(command, event)),
+            ("action".to_owned(), Self::property(event, &["action"])),
+            ("ref".to_owned(), Self::property(event, &["ref"])),
             (
                 "ref_name".to_owned(),
-                Self::ref_name(&Self::property(&event, &["ref"])),
+                Self::ref_name(&Self::property(event, &["ref"])),
             ),
             (
                 "ref_type".to_owned(),
-                Self::ref_type(&Self::property(&event, &["ref"])),
+                Self::ref_type(&Self::property(event, &["ref"])),
             ),
             (
                 "head_ref".to_owned(),
-                Self::property(&event, &["pull_request", "head", "ref"]),
+                Self::property(event, &["pull_request", "head", "ref"]),
             ),
             (
                 "base_ref".to_owned(),
-                Self::property(&event, &["pull_request", "base", "ref"]),
+                Self::property(event, &["pull_request", "base", "ref"]),
             ),
-            ("sha".to_owned(), Self::sha(&event)),
-            ("actor".to_owned(), Self::actor(&event)),
-            ("repository".to_owned(), Self::repository(command, &event)),
-            (
-                "repository_owner".to_owned(),
-                Self::repository_owner(&event),
-            ),
-            ("workflow".to_owned(), Self::workflow(command, &event)),
-            ("job".to_owned(), Self::job(command, &event)),
+            ("sha".to_owned(), Self::sha(event)),
+            ("actor".to_owned(), Self::actor(event)),
+            ("repository".to_owned(), Self::repository(command, event)),
+            ("repository_owner".to_owned(), Self::repository_owner(event)),
+            ("workflow".to_owned(), Self::workflow(command, event)),
+            ("job".to_owned(), Self::job(command, event)),
             ("run_id".to_owned(), ContextValue::text(command.run_id())),
             (
                 "workspace".to_owned(),
                 ContextValue::text(CONTAINER_WORKSPACE),
             ),
-            ("event".to_owned(), event),
-        ]);
-
-        Ok(EvaluationContext::new()
-            .with_root("secrets", Self::secrets(command))
-            .with_root("inputs", ContextValue::Mapping(inputs.clone()))
-            .with_root("github", github)
-            .with_root("runner", Self::runner_context()))
+            ("event".to_owned(), event.clone()),
+        ])
     }
 
     fn event(
         &self,
         command: &ExecuteWorkflowPayload,
         inputs: &BTreeMap<String, ContextValue>,
-    ) -> Result<ContextValue, String> {
+    ) -> Result<(ContextValue, Option<String>), String> {
         match command.config().event_path() {
             Some(path) => {
                 let text = self
                     .workflow_source
                     .read_file(path.as_path())
                     .map_err(|error| format!("failed to read event payload: {error}"))?;
-                ContextValue::from_json_text(&text)
-                    .map_err(|error| format!("failed to parse event payload: {error}"))
+                let event = ContextValue::from_json_text(&text)
+                    .map_err(|error| format!("failed to parse event payload: {error}"))?;
+                Ok((event, Some(text)))
             }
-            None => Ok(ContextValue::mapping([(
-                "inputs".to_owned(),
-                ContextValue::Mapping(inputs.clone()),
-            )])),
+            None => Ok((
+                ContextValue::mapping([(
+                    "inputs".to_owned(),
+                    ContextValue::Mapping(inputs.clone()),
+                )]),
+                None,
+            )),
         }
     }
 

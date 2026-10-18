@@ -14,6 +14,7 @@ pub struct ExecuteJobPayload {
     context: EvaluationContext,
     run_id: String,
     allow_repo_writes: bool,
+    event_payload: Option<String>,
     allow_network: bool,
 }
 
@@ -33,6 +34,7 @@ impl ExecuteJobPayload {
             context,
             run_id: String::new(),
             allow_repo_writes: false,
+            event_payload: None,
             allow_network: false,
         }
     }
@@ -75,6 +77,15 @@ impl ExecuteJobPayload {
         &self.context
     }
 
+    pub fn with_event_payload_opt(mut self, event_payload: Option<&str>) -> Self {
+        self.event_payload = event_payload.map(str::to_owned);
+        self
+    }
+
+    pub fn event_payload(&self) -> Option<&str> {
+        self.event_payload.as_deref()
+    }
+
     pub fn run_id(&self) -> &str {
         &self.run_id
     }
@@ -96,6 +107,7 @@ impl ExecuteJobPayload {
         PathBuf,
         EvaluationContext,
         String,
+        Option<String>,
         bool,
     ) {
         (
@@ -105,6 +117,7 @@ impl ExecuteJobPayload {
             self.repo_path,
             self.context,
             self.run_id,
+            self.event_payload,
             self.allow_repo_writes,
         )
     }
@@ -162,12 +175,13 @@ mod tests {
 
     #[test]
     fn into_parts_returns_owned_fields() {
-        let (_job, job_id, workflow, repo_path, context, run_id, allow_repo_writes) =
+        let (_job, job_id, workflow, repo_path, context, run_id, event_payload, allow_repo_writes) =
             payload_for_test().into_parts();
 
         assert_eq!(job_id, "build");
         assert_eq!(workflow, workflow_for_test());
         assert_eq!(repo_path, PathBuf::from("/repo"));
+        assert!(event_payload.is_none());
         assert!(context.get("source").is_none());
         assert_eq!(run_id, "run-1");
         assert!(allow_repo_writes);

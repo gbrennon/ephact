@@ -219,4 +219,28 @@ mod tests {
             Some(&ContextValue::text("/tmp"))
         );
     }
+    #[test]
+    fn execute_preserves_the_raw_event_payload_for_container_setup() {
+        let temp = tempfile::tempdir().unwrap();
+        fs::create_dir_all(temp.path().join(".git")).unwrap();
+        let payload = r#"{"z":1,"action":"opened"}"#;
+        let event_path = temp.path().join("event.json");
+        fs::write(&event_path, payload).unwrap();
+        let config = WorkflowRunConfig::new()
+            .with_event(WorkflowEvent::new("pull_request".into()))
+            .with_event_path(EventPath::new(event_path).unwrap());
+        let command = ExecuteWorkflowPayload::new(
+            String::new(),
+            config,
+            repository(temp.path()),
+            "run-1".to_owned(),
+            false,
+        );
+
+        let context = GithubContextBuilder::default()
+            .build_with_payload(&command)
+            .unwrap();
+
+        assert_eq!(context.event_payload(), Some(payload));
+    }
 }
