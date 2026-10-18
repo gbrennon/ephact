@@ -12,3 +12,14 @@ runs:
     - name: Response DTO conventions
       shell: bash
       run: scripts/check_response_dto_conventions.sh
+
+    - name: Rust file conventions
+      shell: bash
+      run: >-
+        scripts/check_changed_rust_conventions.sh
+        "${{ github.event.pull_request.base.sha }}"
+        "${{ github.sha }}"
+
+    - name: Rust convention regression test
+      shell: bash
+      run: tests/scripts/rust_file_struct_names_test.sh

@@ -44,9 +44,8 @@ test-local:
 lint:
 	cargo clippy --all-targets --locked -- -D warnings
 
-# Run the local checks represented by the CI workflow
 ci:
-	just fmt-check && just test && just lint
+	just fmt-check && just test && just lint && just rust-conventions && tests/scripts/rust_file_struct_names_test.sh
 
 # Lint fixes (optionally specify files)
 lint-fix +files='':
@@ -76,6 +75,10 @@ lint-workflows:
 semgrep:
 	EIO_BACKEND=posix semgrep scan --config .semgrep --error . && scripts/check_response_dto_conventions.sh
 
+
+
+rust-conventions:
+	scripts/check_changed_rust_conventions.sh
 
 lizard:
 	lizard -C 5 -L 50 -a 5 -i 0 .

@@ -158,3 +158,9 @@ The lint gate also checks that response DTO files use the `_response.rs`
 suffix and declare a matching public `*Response` type. Run
 `scripts/check_response_dto_conventions.sh` when adding or renaming response
 DTOs.
+
+`just rust-conventions` checks changed Rust files relative to the current
+branch base. In CI, the base revision comes from the pull request or push
+event. Implementation files with one struct must use the struct's snake_case
+name as the filename. `mod.rs` files may only declare modules or re-export
+symbols.
