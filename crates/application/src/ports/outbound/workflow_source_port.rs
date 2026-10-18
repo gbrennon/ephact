@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use crate::{
     domain::entities::repository::Repository,
     dtos::responses::{WorkflowListItemResponse, WorkflowSourceFileResponse},
@@ -29,6 +31,17 @@ pub trait WorkflowSourcePort: Send + Sync {
         &self,
         repository: &Repository,
     ) -> Result<Vec<WorkflowSourceFileResponse>, WorkflowSourceError>;
+    /// Reads arbitrary UTF-8 file content through the filesystem adapter.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`WorkflowSourceError`] when the file cannot be read.
+    fn read_file(&self, path: &Path) -> Result<String, WorkflowSourceError> {
+        Err(WorkflowSourceError::Io(std::io::Error::other(format!(
+            "file reading is not supported for {}",
+            path.display()
+        ))))
+    }
 
     /// Returns the unique action references found in workflow `uses` entries.
     ///
