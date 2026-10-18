@@ -191,6 +191,7 @@
 - **cli**: Add typed invocation flags
 - **cli**: Export typed invocation flags
 - **cli**: Parse invocation flags with clap
+- **cli**: Extract input parsing helpers
 
 ### Documentation
 
@@ -380,6 +381,7 @@
 - **changelog**: Pass Forgejo API inputs
 - **changelog**: Use protected branch pull requests
 - **changelog**: Publish protected updates through pull requests
+- Enforce response DTO conventions
 
 ### Miscellaneous Tasks
 
