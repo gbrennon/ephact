@@ -9,9 +9,20 @@ if [[ -z "$base_revision" && -n "${GITHUB_EVENT_PATH:-}" && -f "$GITHUB_EVENT_PA
         | head -n 1 | cut -d '"' -f 4)"
 fi
 
+if [[ "$base_revision" =~ ^0+$ ]]; then
+    base_revision=""
+fi
+
 if [[ -z "$base_revision" ]]; then
-    git fetch --no-tags origin main
-    base_revision="$(git merge-base "$head_revision" origin/main)"
+    if ! git fetch --no-tags --quiet origin main; then
+        printf 'failed to fetch origin main while resolving the base revision\n' >&2
+        exit 1
+    fi
+    if ! base_revision="$(git merge-base "$head_revision" FETCH_HEAD)"; then
+        printf 'failed to compute the merge-base of %s and origin/main\n' \
+            "$head_revision" >&2
+        exit 1
+    fi
 fi
 
 for revision in "$base_revision" "$head_revision"; do
