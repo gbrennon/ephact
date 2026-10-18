@@ -34,11 +34,30 @@ impl WorkflowSourcePort for EventWorkflowSource {
         self.source.read_workflow(repository, workflow_name)
     }
 
+    fn read_workflow_in_directory(
+        &self,
+        repository: &Repository,
+        workflow_name: Option<&str>,
+        workflow_directory: Option<&Path>,
+    ) -> Result<WorkflowSourceFileResponse, WorkflowSourceError> {
+        self.source
+            .read_workflow_in_directory(repository, workflow_name, workflow_directory)
+    }
+
     fn read_all_workflows(
         &self,
         repository: &Repository,
     ) -> Result<Vec<WorkflowSourceFileResponse>, WorkflowSourceError> {
         self.source.read_all_workflows(repository)
+    }
+
+    fn read_all_workflows_in_directory(
+        &self,
+        repository: &Repository,
+        workflow_directory: Option<&Path>,
+    ) -> Result<Vec<WorkflowSourceFileResponse>, WorkflowSourceError> {
+        self.source
+            .read_all_workflows_in_directory(repository, workflow_directory)
     }
 
     fn read_file(&self, _path: &Path) -> Result<String, WorkflowSourceError> {

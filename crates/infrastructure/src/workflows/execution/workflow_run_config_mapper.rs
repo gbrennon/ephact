@@ -13,6 +13,7 @@ pub struct WorkflowRunConfigMapper {
     job: Option<String>,
     event: Option<String>,
     event_path: Option<PathBuf>,
+    workflow_directory: Option<PathBuf>,
     inputs: Vec<(String, String)>,
     secrets: Vec<(String, String)>,
     all_workflows: bool,
@@ -39,6 +40,11 @@ impl WorkflowRunConfigMapper {
     }
     pub fn with_event_path(mut self, event_path: Option<PathBuf>) -> Self {
         self.event_path = event_path;
+        self
+    }
+
+    pub fn with_workflow_directory(mut self, workflow_directory: Option<PathBuf>) -> Self {
+        self.workflow_directory = workflow_directory;
         self
     }
 
@@ -97,6 +103,9 @@ impl WorkflowRunConfigMapper {
         }
         if let Some(event) = self.event.take() {
             config = config.with_event(WorkflowEvent::new(event));
+        }
+        if let Some(workflow_directory) = self.workflow_directory.take() {
+            config = config.with_workflow_directory(workflow_directory);
         }
         self.apply_event_path(config)
     }

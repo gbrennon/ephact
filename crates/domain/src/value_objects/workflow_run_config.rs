@@ -1,3 +1,5 @@
+use std::path::{Path, PathBuf};
+
 use crate::{
     traits::Validatable,
     value_objects::{EventPath, JobName, Secret, WorkflowEvent, WorkflowInput, WorkflowPath},
@@ -9,6 +11,7 @@ pub struct WorkflowRunConfig {
     job: Option<JobName>,
     event: Option<WorkflowEvent>,
     event_path: Option<EventPath>,
+    workflow_directory: Option<PathBuf>,
     inputs: Vec<WorkflowInput>,
     secrets: Vec<Secret>,
     all_workflows: bool,
@@ -27,6 +30,7 @@ impl WorkflowRunConfig {
             job: None,
             event: None,
             event_path: None,
+            workflow_directory: None,
             inputs: Vec::new(),
             secrets: Vec::new(),
             all_workflows: false,
@@ -71,6 +75,12 @@ impl WorkflowRunConfig {
     /// Sets the path to the event payload to load.
     pub fn with_event_path(mut self, event_path: EventPath) -> Self {
         self.event_path = Some(event_path);
+        self
+    }
+
+    /// Sets the optional custom workflow directory.
+    pub fn with_workflow_directory(mut self, workflow_directory: PathBuf) -> Self {
+        self.workflow_directory = Some(workflow_directory);
         self
     }
 
@@ -135,6 +145,11 @@ impl WorkflowRunConfig {
     /// Returns the event payload path, if set.
     pub fn event_path(&self) -> Option<&EventPath> {
         self.event_path.as_ref()
+    }
+
+    /// Returns the optional custom workflow directory.
+    pub fn workflow_directory(&self) -> Option<&Path> {
+        self.workflow_directory.as_deref()
     }
 
     /// Returns all input variables.
@@ -213,6 +228,17 @@ mod tests {
         assert_eq!(config.workflow().unwrap().as_str(), ".ci/workflows/ci.yml");
         assert_eq!(config.job().unwrap().as_str(), "test");
         assert_eq!(config.event().unwrap().as_str(), "push");
+    }
+
+    #[test]
+    fn builder_stores_workflow_directory() {
+        let config =
+            WorkflowRunConfig::new().with_workflow_directory(PathBuf::from(".gitlab/workflows"));
+
+        assert_eq!(
+            config.workflow_directory(),
+            Some(Path::new(".gitlab/workflows"))
+        );
     }
 
     #[test]

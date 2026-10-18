@@ -21,6 +21,19 @@ pub trait WorkflowSourcePort: Send + Sync {
         workflow_name: Option<&str>,
     ) -> Result<WorkflowSourceFileResponse, WorkflowSourceError>;
 
+    /// Reads a workflow using an optional repository-relative custom directory.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`WorkflowSourceError`] when files cannot be read, no workflow
+    /// exists, or the named workflow is not found.
+    fn read_workflow_in_directory(
+        &self,
+        repository: &Repository,
+        workflow_name: Option<&str>,
+        workflow_directory: Option<&Path>,
+    ) -> Result<WorkflowSourceFileResponse, WorkflowSourceError>;
+
     /// Reads every workflow source file in the repository's supported workflow
     /// directories.
     ///
@@ -30,6 +43,17 @@ pub trait WorkflowSourcePort: Send + Sync {
     fn read_all_workflows(
         &self,
         repository: &Repository,
+    ) -> Result<Vec<WorkflowSourceFileResponse>, WorkflowSourceError>;
+
+    /// Reads every workflow file using an optional repository-relative custom directory.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`WorkflowSourceError`] when a workflow file cannot be read.
+    fn read_all_workflows_in_directory(
+        &self,
+        repository: &Repository,
+        workflow_directory: Option<&Path>,
     ) -> Result<Vec<WorkflowSourceFileResponse>, WorkflowSourceError>;
     /// Reads arbitrary UTF-8 file content through the filesystem adapter.
     ///

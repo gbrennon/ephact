@@ -1,8 +1,8 @@
 pub mod actions;
 pub mod detect_workflow_file_service;
 pub mod detect_workflow_trigger_service;
-pub mod discover_run_inputs_service;
 pub mod execution;
+pub mod filesystem_run_input_discovery_service;
 pub mod filesystem_workflow_source;
 pub mod github_context;
 pub mod github_context_builder;
@@ -20,10 +20,10 @@ pub mod workflow_document;
 
 pub use detect_workflow_file_service::DetectWorkflowFileService;
 pub use detect_workflow_trigger_service::DetectWorkflowTriggerService;
-pub use discover_run_inputs_service::FilesystemRunInputDiscoveryService;
 pub use execution::{
     ExecuteWorkflowService, RunAllWorkflowsService, RunWorkflowService, WorkflowExecutionAggregator,
 };
+pub use filesystem_run_input_discovery_service::FilesystemRunInputDiscoveryService;
 pub use filesystem_workflow_source::FilesystemWorkflowSource;
 pub use github_context::GithubContext;
 pub use github_context_builder::GithubContextBuilder;

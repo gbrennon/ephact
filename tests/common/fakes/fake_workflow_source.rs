@@ -10,21 +10,11 @@ use ephact::{
 };
 use parking_lot::Mutex;
 
-#[derive(Default)]
-struct FakeWorkflowSourceState {
-    workflows: Vec<WorkflowListItemResponse>,
-    actions: Vec<String>,
-    workflow_content: String,
-    all_workflow_contents: Vec<String>,
-    read_workflow_error: Option<String>,
-    read_all_workflows_error: Option<String>,
-    list_actions_error: Option<String>,
-    list_workflows_error: Option<String>,
-    read_workflow_calls: Vec<(Repository, Option<String>)>,
-    read_all_workflows_calls: Vec<Repository>,
-    list_actions_calls: Vec<Repository>,
-    list_workflows_calls: Vec<Repository>,
-}
+use super::fake_workflow_source_state::{
+    FakeWorkflowSourceState, FakeWorkflowSourceStateOperation, FakeWorkflowSourceStateResult,
+};
+
+type RecordedWorkflowCall = (Repository, Option<String>);
 
 /// Canned [`WorkflowSourcePort`] keeping its state behind `Arc<Mutex<_>>` so the
 /// port stays `Send + Sync`, and so a clone held by the test can still observe
@@ -32,6 +22,10 @@ struct FakeWorkflowSourceState {
 #[derive(Clone, Default)]
 pub struct FakeWorkflowSource {
     state: Arc<Mutex<FakeWorkflowSourceState>>,
+    read_workflow_calls: Arc<Mutex<Vec<RecordedWorkflowCall>>>,
+    read_all_workflows_calls: Arc<Mutex<Vec<Repository>>>,
+    list_actions_calls: Arc<Mutex<Vec<Repository>>>,
+    list_workflows_calls: Arc<Mutex<Vec<Repository>>>,
 }
 
 impl FakeWorkflowSource {
@@ -40,59 +34,78 @@ impl FakeWorkflowSource {
     }
 
     pub fn with_workflows(self, workflows: Vec<WorkflowListItemResponse>) -> Self {
-        self.state.lock().workflows = workflows;
+        self.state.lock().configure_workflows(workflows);
         self
     }
 
     pub fn with_actions(self, actions: Vec<String>) -> Self {
-        self.state.lock().actions = actions;
+        self.state.lock().configure_actions(actions);
         self
     }
 
     pub fn with_workflow_content(self, content: &str) -> Self {
-        self.state.lock().workflow_content = content.to_string();
+        self.state
+            .lock()
+            .configure_content(Some(content), None, None);
+        self
+    }
+
+    pub fn with_workflow_file_name(self, file_name: &str) -> Self {
+        self.state
+            .lock()
+            .configure_content(None, Some(file_name), None);
         self
     }
 
     pub fn with_all_workflow_contents(self, contents: Vec<String>) -> Self {
-        self.state.lock().all_workflow_contents = contents;
+        self.state
+            .lock()
+            .configure_content(None, None, Some(contents));
         self
     }
 
     pub fn failing_read_workflow(self, message: &str) -> Self {
-        self.state.lock().read_workflow_error = Some(message.to_string());
+        self.state
+            .lock()
+            .configure_failures(Some(message), None, None, None);
         self
     }
 
     pub fn failing_read_all_workflows(self, message: &str) -> Self {
-        self.state.lock().read_all_workflows_error = Some(message.to_string());
+        self.state
+            .lock()
+            .configure_failures(None, Some(message), None, None);
         self
     }
 
     pub fn failing_list_actions(self, message: &str) -> Self {
-        self.state.lock().list_actions_error = Some(message.to_string());
+        self.state
+            .lock()
+            .configure_failures(None, None, Some(message), None);
         self
     }
 
     pub fn failing_list_workflows(self, message: &str) -> Self {
-        self.state.lock().list_workflows_error = Some(message.to_string());
+        self.state
+            .lock()
+            .configure_failures(None, None, None, Some(message));
         self
     }
 
     pub fn read_workflow_calls(&self) -> Vec<(Repository, Option<String>)> {
-        self.state.lock().read_workflow_calls.clone()
+        self.read_workflow_calls.lock().clone()
     }
 
     pub fn read_all_workflows_calls(&self) -> Vec<Repository> {
-        self.state.lock().read_all_workflows_calls.clone()
+        self.read_all_workflows_calls.lock().clone()
     }
 
     pub fn list_actions_calls(&self) -> Vec<Repository> {
-        self.state.lock().list_actions_calls.clone()
+        self.list_actions_calls.lock().clone()
     }
 
     pub fn list_workflows_calls(&self) -> Vec<Repository> {
-        self.state.lock().list_workflows_calls.clone()
+        self.list_workflows_calls.lock().clone()
     }
 }
 
@@ -102,64 +115,82 @@ impl WorkflowSourcePort for FakeWorkflowSource {
         repository: &Repository,
         workflow_name: Option<&str>,
     ) -> Result<WorkflowSourceFileResponse, WorkflowSourceError> {
-        let mut state = self.state.lock();
-        state
-            .read_workflow_calls
+        self.read_workflow_calls
+            .lock()
             .push((repository.clone(), workflow_name.map(str::to_string)));
 
-        if let Some(message) = state.read_workflow_error.clone() {
-            return Err(WorkflowSourceError::NotFound(message));
-        }
+        let operation = FakeWorkflowSourceStateOperation::ReadWorkflow {
+            repository: repository.clone(),
+            workflow_name: workflow_name.map(str::to_string),
+        };
+        let result = self.state.lock().execute(operation);
+        let FakeWorkflowSourceStateResult::Workflow(result) = result else {
+            unreachable!();
+        };
+        result
+    }
 
-        Ok(WorkflowSourceFileResponse::new(
-            state.workflow_content.clone(),
-            "workflow.yml".to_string(),
-        ))
+    fn read_workflow_in_directory(
+        &self,
+        repository: &Repository,
+        workflow_name: Option<&str>,
+        _workflow_directory: Option<&std::path::Path>,
+    ) -> Result<WorkflowSourceFileResponse, WorkflowSourceError> {
+        self.read_workflow(repository, workflow_name)
     }
 
     fn read_all_workflows(
         &self,
         repository: &Repository,
     ) -> Result<Vec<WorkflowSourceFileResponse>, WorkflowSourceError> {
-        let mut state = self.state.lock();
-        state.read_all_workflows_calls.push(repository.clone());
+        self.read_all_workflows_calls
+            .lock()
+            .push(repository.clone());
 
-        if let Some(message) = state.read_all_workflows_error.clone() {
-            return Err(WorkflowSourceError::NotFound(message));
-        }
+        let operation = FakeWorkflowSourceStateOperation::ReadAllWorkflows {
+            repository: repository.clone(),
+        };
+        let result = self.state.lock().execute(operation);
+        let FakeWorkflowSourceStateResult::AllWorkflows(result) = result else {
+            unreachable!();
+        };
+        result
+    }
 
-        Ok(state
-            .all_workflow_contents
-            .iter()
-            .enumerate()
-            .map(|(index, content)| {
-                WorkflowSourceFileResponse::new(content.clone(), format!("workflow-{index}.yml"))
-            })
-            .collect())
+    fn read_all_workflows_in_directory(
+        &self,
+        repository: &Repository,
+        _workflow_directory: Option<&std::path::Path>,
+    ) -> Result<Vec<WorkflowSourceFileResponse>, WorkflowSourceError> {
+        self.read_all_workflows(repository)
     }
 
     fn list_actions(&self, repository: &Repository) -> Result<Vec<String>, WorkflowSourceError> {
-        let mut state = self.state.lock();
-        state.list_actions_calls.push(repository.clone());
+        self.list_actions_calls.lock().push(repository.clone());
 
-        if let Some(message) = state.list_actions_error.clone() {
-            return Err(WorkflowSourceError::NotFound(message));
-        }
-
-        Ok(state.actions.clone())
+        let operation = FakeWorkflowSourceStateOperation::ListActions {
+            repository: repository.clone(),
+        };
+        let result = self.state.lock().execute(operation);
+        let FakeWorkflowSourceStateResult::Actions(result) = result else {
+            unreachable!();
+        };
+        result
     }
 
     fn list_workflows(
         &self,
         repository: &Repository,
     ) -> Result<Vec<WorkflowListItemResponse>, WorkflowSourceError> {
-        let mut state = self.state.lock();
-        state.list_workflows_calls.push(repository.clone());
+        self.list_workflows_calls.lock().push(repository.clone());
 
-        if let Some(message) = state.list_workflows_error.clone() {
-            return Err(WorkflowSourceError::NotFound(message));
-        }
-
-        Ok(state.workflows.clone())
+        let operation = FakeWorkflowSourceStateOperation::ListWorkflows {
+            repository: repository.clone(),
+        };
+        let result = self.state.lock().execute(operation);
+        let FakeWorkflowSourceStateResult::Workflows(result) = result else {
+            unreachable!();
+        };
+        result
     }
 }

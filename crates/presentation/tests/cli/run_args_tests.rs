@@ -40,6 +40,16 @@ mod tests {
     }
 
     #[test]
+    fn to_domain_with_workflow_directory() {
+        let args = parse_run_test_args(&["--workflow-dir", ".gitlab/workflows"]);
+        let (config, _repo) = args.to_domain().unwrap();
+        assert_eq!(
+            config.workflow_directory().unwrap(),
+            std::path::Path::new(".gitlab/workflows")
+        );
+    }
+
+    #[test]
     fn to_domain_with_job() {
         let args = parse_run_test_args(&["--job", "test"]);
         let (config, _repo) = args.to_domain().unwrap();

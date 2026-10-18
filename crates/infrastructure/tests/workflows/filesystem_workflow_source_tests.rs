@@ -93,6 +93,64 @@ mod tests {
             "expected the full workflow path, got {file:?}"
         );
     }
+    #[test]
+    fn read_workflow_finds_named_workflow_in_custom_directory() {
+        let tmp = git_repository_dir();
+        write_workflow_in(
+            tmp.path(),
+            ".gitlab/workflows",
+            "qa.yml",
+            "name: Platform QA\non: [push]\n",
+        );
+
+        let workflow = source()
+            .read_workflow_in_directory(
+                &repository(tmp.path()),
+                Some("Platform QA"),
+                Some(Path::new(".gitlab/workflows")),
+            )
+            .unwrap();
+
+        assert_eq!(workflow.file_name(), "qa.yml");
+    }
+
+    #[test]
+    fn read_workflow_finds_named_workflow_in_bitbucket_directory() {
+        let tmp = git_repository_dir();
+        write_workflow_in(
+            tmp.path(),
+            ".bitbucket/pipelines",
+            "qa.yml",
+            "name: Platform QA\non: [push]\n",
+        );
+
+        let workflow = source()
+            .read_workflow_in_directory(
+                &repository(tmp.path()),
+                Some("Platform QA"),
+                Some(Path::new(".bitbucket/pipelines")),
+            )
+            .unwrap();
+
+        assert_eq!(workflow.file_name(), "qa.yml");
+    }
+
+    #[test]
+    fn read_workflow_ignores_custom_directory_without_an_explicit_path() {
+        let tmp = git_repository_dir();
+        write_workflow_in(
+            tmp.path(),
+            ".bitbucket/pipelines",
+            "qa.yml",
+            "name: Platform QA\non: [push]\n",
+        );
+
+        let error = source()
+            .read_workflow(&repository(tmp.path()), Some("Platform QA"))
+            .unwrap_err();
+
+        assert!(error.to_string().contains("not found"));
+    }
 
     #[test]
     fn list_workflows_accepts_the_yaml_extension() {

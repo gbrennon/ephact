@@ -11,6 +11,7 @@ pub struct RunWorkflowRequest {
     job: Option<String>,
     event: Option<String>,
     event_path: Option<PathBuf>,
+    workflow_directory: Option<PathBuf>,
     inputs: Vec<(String, String)>,
     secrets: Vec<(String, String)>,
     all_workflows: bool,
@@ -37,6 +38,7 @@ impl RunWorkflowRequest {
             event_path: config
                 .event_path()
                 .map(|value| value.as_path().to_path_buf()),
+            workflow_directory: config.workflow_directory().map(Path::to_path_buf),
             inputs: config
                 .inputs()
                 .iter()
@@ -84,6 +86,11 @@ impl RunWorkflowRequest {
     /// Returns the event payload path.
     pub fn event_path(&self) -> Option<&Path> {
         self.event_path.as_deref()
+    }
+
+    /// Returns the optional custom workflow directory.
+    pub fn workflow_directory(&self) -> Option<&Path> {
+        self.workflow_directory.as_deref()
     }
 
     /// Returns configured input pairs.
