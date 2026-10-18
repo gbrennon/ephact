@@ -18,20 +18,35 @@ for file in "$@"; do
     filename="$(basename "$file")"
 
     if [[ "$filename" == mod.rs ]]; then
-        if awk '
-            /^[[:space:]]*$/ || /^[[:space:]]*#/ || /^[[:space:]]*\/\// { next }
-            /^[[:space:]]*(pub([[:space:]]*\([^)]*\))?[[:space:]]+)?mod[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*;/ { next }
-            /^[[:space:]]*pub([[:space:]]*\([^)]*\))?[[:space:]]+use[[:space:]]+/ { next }
-            { invalid = 1 }
-            END { exit invalid }
-        ' "$file"; then
-            :
-        else
-            printf '%s: mod.rs may only declare modules and re-export symbols\n' "$file" >&2
+        invalid_line="$(
+            awk '
+                /^[[:space:]]*$/ || /^[[:space:]]*#/ || /^[[:space:]]*\/\// { next }
+                /^[[:space:]]*(pub([[:space:]]*\([^)]*\))?[[:space:]]+)?mod[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*;/ { next }
+                /^[[:space:]]*pub([[:space:]]*\([^)]*\))?[[:space:]]+use[[:space:]]+/ { next }
+                { print NR ":" $0; exit }
+            ' "$file"
+        )"
+        if [[ -n "$invalid_line" ]]; then
+            printf '%s: %s: mod.rs may only declare modules or re-export symbols\n' \
+                "$file" "$invalid_line" >&2
             status=1
         fi
         continue
     fi
+
+    unbound_function="$(
+        grep -nE '^(pub([[:space:]]*\([^)]*\))?[[:space:]]+)?(unsafe[[:space:]]+)?(async[[:space:]]+)?fn[[:space:]]+[A-Za-z_][A-Za-z0-9_]*' "$file" \
+            | awk 'NR == 1 { print; exit }' || true
+    )"
+    if [[ "$filename" != main.rs && "$file" != */tests/* \
+        && -n "$unbound_function" ]]; then
+        function_name="$(printf '%s\n' "$unbound_function" \
+            | sed -E 's/^[0-9]+:.*fn[[:space:]]+([A-Za-z_][A-Za-z0-9_]*).*/\1/')"
+        printf '%s: %s: function %s is not inside an impl block; production functions must be bound to an implementation type\n' \
+            "$file" "$unbound_function" "$function_name" >&2
+        status=1
+    fi
+
 
     mapfile -t declarations < <(
         grep -E '^[[:space:]]*(pub([[:space:]]*\([^)]*\))?[[:space:]]+)?struct[[:space:]]+[A-Za-z_][A-Za-z0-9_]*' "$file" \

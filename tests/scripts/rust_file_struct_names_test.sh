@@ -28,6 +28,35 @@ if "$checker" "$fixture_directory/src/wrong_name.rs"; then
     exit 1
 fi
 
+printf 'pub fn helper() {}\n' > "$fixture_directory/src/helper.rs"
+
+if "$checker" "$fixture_directory/src/helper.rs"; then
+    printf 'checker accepted an unbound production function\n' >&2
+    exit 1
+fi
+
+cat > "$fixture_directory/src/example_record.rs" <<'EOF'
+pub struct ExampleRecord {
+    value: String,
+}
+
+impl ExampleRecord {
+    pub fn value(&self) -> &str {
+        &self.value
+    }
+}
+EOF
+"$checker" "$fixture_directory/src/example_record.rs"
+mkdir -p "$fixture_directory/tests"
+printf '#[test]\nfn test_helper() {}\n' > "$fixture_directory/tests/example_tests.rs"
+"$checker" "$fixture_directory/tests/example_tests.rs"
+
+
+
+printf 'pub fn main() {}\n' > "$fixture_directory/src/main.rs"
+"$checker" "$fixture_directory/src/main.rs"
+
+
 printf 'pub struct ModuleExport;\n' > "$fixture_directory/src/mod.rs"
 
 if "$checker" "$fixture_directory/src/mod.rs"; then
