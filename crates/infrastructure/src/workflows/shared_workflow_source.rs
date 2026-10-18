@@ -21,6 +21,9 @@ impl SharedWorkflowSource {
 }
 
 impl WorkflowSourcePort for SharedWorkflowSource {
+    fn read_file(&self, path: &std::path::Path) -> Result<String, WorkflowSourceError> {
+        self.inner.read_file(path)
+    }
     fn read_workflow(
         &self,
         repository: &Repository,
