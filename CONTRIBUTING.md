@@ -153,3 +153,8 @@ just semgrep
 repository's configured layer-boundary, nesting, and code-quality rules.
 Together they catch structural and architectural drift locally, before the
 same failures reach CI.
+
+The lint gate also checks that response DTO files use the `_response.rs`
+suffix and declare a matching public `*Response` type. Run
+`scripts/check_response_dto_conventions.sh` when adding or renaming response
+DTOs.

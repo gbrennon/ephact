@@ -74,7 +74,7 @@ lint-workflows:
 	actionlint -config-file .actionlint.yaml .forgejo/workflows/*.yml
 
 semgrep:
-	EIO_BACKEND=posix semgrep scan --config .semgrep --error .
+	EIO_BACKEND=posix semgrep scan --config .semgrep --error . && scripts/check_response_dto_conventions.sh
 
 
 lizard:
