@@ -5,6 +5,9 @@ runs:
   using: composite
 
   steps:
+    - name: Install nightly coverage toolchain
+      shell: bash
+      run: scripts/install_coverage_toolchain.sh
     - name: Install cargo-llvm-cov
       shell: bash
       run: |

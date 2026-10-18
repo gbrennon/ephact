@@ -78,6 +78,14 @@ runs:
         fi
         echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
         rustup set profile minimal
+        if ! rustup toolchain install nightly --profile minimal --no-self-update; then
+          echo "ERROR: failed to install nightly Rust toolchain noninteractively." >&2
+          exit 1
+        fi
+        if ! rustup component add --toolchain nightly rustfmt clippy; then
+          echo "ERROR: failed to install nightly rustfmt and clippy components noninteractively." >&2
+          exit 1
+        fi
         rustup show
         rustfmt --version
         cargo clippy --version
