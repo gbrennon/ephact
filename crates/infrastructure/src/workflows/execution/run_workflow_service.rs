@@ -1,5 +1,6 @@
-use std::{error::Error, future::Future, pin::Pin, time::Instant};
+use std::{error::Error, future::Future, pin::Pin};
 
+use super::run_execution_context::RunExecutionContext;
 use crate::{
     application::{
         dtos::{
@@ -16,15 +17,12 @@ use crate::{
         },
     },
     domain::{
-        Repository, Validatable,
+        Validatable,
         messages::{
             commands::ExecuteWorkflowPayload,
             events::{Event, RunFailedPayload, RunStartedPayload, WorkflowRunCompletedPayload},
         },
-        value_objects::workflow_run_config::WorkflowRunConfig,
     },
-    repositories::RepositoryResolver,
-    workflows::execution::workflow_run_config_mapper::WorkflowRunConfigMapper,
 };
 /// Coordinates one workflow run: resolves the repository workflow, verifies
 /// that the requested event is declared, dispatches execution, publishes
@@ -34,51 +32,6 @@ pub struct RunWorkflowService {
     command_publisher: Box<dyn WorkflowCommandPublisherPort>,
     event_publisher: Box<dyn DomainEventPublisherPort>,
     trigger_detector: Box<dyn DetectWorkflowTriggerPort>,
-}
-
-struct RunExecutionContext {
-    repository: Repository,
-    repository_path: String,
-    config: WorkflowRunConfig,
-    run_id: String,
-    workflow_name: Option<String>,
-    started_at: Instant,
-}
-
-impl RunExecutionContext {
-    fn new(request: RunWorkflowRequest) -> Result<Self, Box<dyn Error>> {
-        let repository_path = request.repository_path().to_path_buf();
-        let repository = RepositoryResolver::resolve(
-            repository_path.clone(),
-            request.repository_name().to_owned(),
-        )
-        .map_err(|error| format!("{error}"))?;
-        let config = WorkflowRunConfigMapper::default()
-            .with_workflow(request.workflow().map(str::to_string))
-            .with_job(request.job().map(str::to_string))
-            .with_event(request.event().map(str::to_string))
-            .with_event_path(request.event_path().map(ToOwned::to_owned))
-            .with_inputs(request.inputs().to_vec())
-            .with_secrets(request.secrets().to_vec())
-            .with_all_workflows(request.all_workflows())
-            .with_allow_repo_writes(request.allow_repo_writes())
-            .with_allow_real_container(request.allow_real_container())
-            .with_allow_real_fetcher(request.allow_real_fetcher())
-            .with_allow_network(request.allow_network())
-            .into_config()?;
-        let run_id = request.run_id().to_string();
-        let workflow_name = config
-            .workflow()
-            .map(|workflow| workflow.as_str().to_string());
-        Ok(Self {
-            repository,
-            repository_path: repository_path.display().to_string(),
-            config,
-            run_id,
-            workflow_name,
-            started_at: Instant::now(),
-        })
-    }
 }
 
 impl RunWorkflowService {

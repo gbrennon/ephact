@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
+    use std::{path::Path, sync::Arc};
 
     use ephact::{
         application::{
@@ -8,15 +8,22 @@ mod tests {
             ports::inbound::execute_workflow_port::ExecuteWorkflowPort,
         },
         domain::{
-            messages::events::Event,
-            value_objects::{ContextValue, EvaluationContext},
+            Repository,
+            messages::{commands::ExecuteWorkflowPayload, events::Event},
+            value_objects::{
+                ContextValue, EvaluationContext, EventPath, RepoPath, RepositoryName,
+                WorkflowRunConfig,
+            },
         },
-        infrastructure::workflows::execution::execute_workflow_service::ExecuteWorkflowService,
+        infrastructure::workflows::{
+            WorkflowCommandHandler, execution::execute_workflow_service::ExecuteWorkflowService,
+        },
     };
 
     use crate::common::fakes::{
         fake_command_bus::FakeCommandBus, fake_event_bus::FakeEventBus,
         fake_workflow_loader_port::FakeWorkflowLoaderPort,
+        fake_workflow_source::FakeWorkflowSource,
     };
 
     const TWO_JOBS: &str = "name: Ci\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: build\n  publish:\n    needs: build\n    runs-on: ubuntu-latest\n    steps:\n      - run: publish\n";
@@ -106,6 +113,73 @@ mod tests {
             .find(|job| job.job_id() == "run")
             .expect("run summary");
         assert!(!run.is_skipped());
+    }
+
+    const EVENT_CONDITION_WORKFLOW: &str = "name: Ci\non: pull_request\njobs:\n  conditional:\n    if: '${{ github.event.pull_request.merged }}'\n    runs-on: ubuntu-latest\n    steps:\n      - run: conditional\n  always:\n    runs-on: ubuntu-latest\n    steps:\n      - run: always\n";
+
+    fn execute_with_event_payload(
+        event_payload: &str,
+    ) -> (WorkflowExecutionResponse, FakeCommandBus) {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let event_path = temp_dir.path().join("event.json");
+        let source = FakeWorkflowSource::new().with_file_content(event_payload);
+        let command_bus = FakeCommandBus::new();
+        let executor = ExecuteWorkflowService::new(
+            Box::new(FakeWorkflowLoaderPort::holding(EVENT_CONDITION_WORKFLOW)),
+            Box::new(command_bus.clone()),
+            Box::new(FakeEventBus::new()),
+        );
+        let handler =
+            WorkflowCommandHandler::new(Box::new(executor)).with_workflow_source(Arc::new(source));
+        let config = WorkflowRunConfig::new().with_event_path(EventPath::new(event_path).unwrap());
+        let repository = Repository::new(
+            RepoPath::new(temp_dir.path().to_path_buf()).unwrap(),
+            RepositoryName::new("test-repo".to_owned()).unwrap(),
+        );
+        let payload = ExecuteWorkflowPayload::new(
+            EVENT_CONDITION_WORKFLOW.to_owned(),
+            config,
+            repository,
+            "run-1".to_owned(),
+            false,
+        );
+
+        (handler.handle(payload).unwrap(), command_bus)
+    }
+
+    #[test]
+    fn handler_dispatches_event_gated_job_for_merged_pull_request() {
+        let (execution, command_bus) =
+            execute_with_event_payload(r#"{"pull_request":{"merged":true}}"#);
+
+        assert_eq!(
+            command_bus.dispatched_job_ids(),
+            vec!["conditional".to_owned(), "always".to_owned()]
+        );
+        assert!(
+            !execution
+                .job_summaries()
+                .iter()
+                .find(|job| job.job_id() == "conditional")
+                .unwrap()
+                .is_skipped()
+        );
+    }
+
+    #[test]
+    fn handler_skips_event_gated_job_for_unmerged_pull_request() {
+        let (execution, command_bus) =
+            execute_with_event_payload(r#"{"pull_request":{"merged":false}}"#);
+
+        assert_eq!(command_bus.dispatched_job_ids(), vec!["always".to_owned()]);
+        assert!(
+            execution
+                .job_summaries()
+                .iter()
+                .find(|job| job.job_id() == "conditional")
+                .unwrap()
+                .is_skipped()
+        );
     }
 
     #[test]

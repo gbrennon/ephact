@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use ephact::{
     application::{
@@ -20,6 +20,7 @@ struct FakeWorkflowSourceState {
     read_all_workflows_error: Option<String>,
     list_actions_error: Option<String>,
     list_workflows_error: Option<String>,
+    event_payload: Option<String>,
     read_workflow_calls: Vec<(Repository, Option<String>)>,
     read_all_workflows_calls: Vec<Repository>,
     list_actions_calls: Vec<Repository>,
@@ -38,6 +39,7 @@ impl Default for FakeWorkflowSourceState {
             read_all_workflows_error: None,
             list_actions_error: None,
             list_workflows_error: None,
+            event_payload: None,
             read_workflow_calls: Vec::default(),
             read_all_workflows_calls: Vec::default(),
             list_actions_calls: Vec::default(),
@@ -76,6 +78,10 @@ impl FakeWorkflowSource {
 
     pub fn with_workflow_file_name(self, name: &str) -> Self {
         self.state.lock().workflow_file_name = name.to_string();
+        self
+    }
+    pub fn with_file_content(self, content: &str) -> Self {
+        self.state.lock().event_payload = Some(content.to_owned());
         self
     }
 
@@ -161,6 +167,14 @@ impl WorkflowSourcePort for FakeWorkflowSource {
                 WorkflowSourceFileResponse::new(content.clone(), format!("workflow-{index}.yml"))
             })
             .collect())
+    }
+
+    fn read_file(&self, _path: &Path) -> Result<String, WorkflowSourceError> {
+        self.state
+            .lock()
+            .event_payload
+            .clone()
+            .ok_or_else(|| WorkflowSourceError::NotFound("event payload not configured".to_owned()))
     }
 
     fn list_actions(&self, repository: &Repository) -> Result<Vec<String>, WorkflowSourceError> {
