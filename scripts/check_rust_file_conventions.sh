@@ -18,7 +18,15 @@ for file in "$@"; do
     filename="$(basename "$file")"
 
     if [[ "$filename" == mod.rs ]]; then
-        if grep -Eq '^[[:space:]]*(pub([[:space:]]*\([^)]*\))?[[:space:]]+)?(struct|enum|trait|fn|impl|const|static|type)[[:space:]]' "$file"; then
+        if awk '
+            /^[[:space:]]*$/ || /^[[:space:]]*#/ || /^[[:space:]]*\/\// { next }
+            /^[[:space:]]*(pub([[:space:]]*\([^)]*\))?[[:space:]]+)?mod[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*;/ { next }
+            /^[[:space:]]*pub([[:space:]]*\([^)]*\))?[[:space:]]+use[[:space:]]+/ { next }
+            { invalid = 1 }
+            END { exit invalid }
+        ' "$file"; then
+            :
+        else
             printf '%s: mod.rs may only declare modules and re-export symbols\n' "$file" >&2
             status=1
         fi
@@ -37,8 +45,9 @@ for file in "$@"; do
         continue
     fi
 
-    struct_name="$(printf '%s\n' "${declarations[0]}" | awk '{for (i = 1; i <= NF; i++) if ($i == "struct") { print $(i + 1); exit }}')"
-    expected_filename="$(printf '%s\n' "${struct_name}" | snake_case).rs"
+    struct_name="$(printf '%s\n' "${declarations[0]}" \
+        | sed -E 's/.*[[:space:]]struct[[:space:]]+([A-Za-z_][A-Za-z0-9_]*).*/\1/')"
+    expected_filename="$(printf '%s\n' "$struct_name" | snake_case).rs"
 
     if [[ "$filename" != "$expected_filename" ]]; then
         printf '%s: expected filename %s for struct %s\n' \

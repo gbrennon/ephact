@@ -16,6 +16,10 @@ printf 'pub struct ExampleRecord { value: String }\n' \
     > "$fixture_directory/src/example_record.rs"
 "$checker" "$fixture_directory/src/example_record.rs"
 
+printf 'pub struct GenericRecord<T> { value: T }\n' \
+    > "$fixture_directory/src/generic_record.rs"
+"$checker" "$fixture_directory/src/generic_record.rs"
+
 printf 'pub struct ExampleRecord { value: String }\n' \
     > "$fixture_directory/src/wrong_name.rs"
 
@@ -30,6 +34,9 @@ if "$checker" "$fixture_directory/src/mod.rs"; then
     printf 'checker accepted implementation in mod.rs\n' >&2
     exit 1
 fi
+
+printf 'pub mod child;\npub use child::Child;\n' > "$fixture_directory/src/mod.rs"
+"$checker" "$fixture_directory/src/mod.rs"
 
 printf 'pub use crate::ExampleRecord;\n' > "$fixture_directory/src/mod.rs"
 "$checker" "$fixture_directory/src/mod.rs"

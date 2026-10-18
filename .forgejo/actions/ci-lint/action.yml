@@ -16,3 +16,7 @@ runs:
     - name: Rust file conventions
       shell: bash
       run: scripts/check_changed_rust_conventions.sh
+
+    - name: Rust convention regression test
+      shell: bash
+      run: tests/scripts/rust_file_struct_names_test.sh
