@@ -55,10 +55,11 @@ impl<'a> ExpressionEvaluator<'a> {
     }
 
     fn eval_variable(&self, name: &str) -> Result<ContextValue, EvalError> {
-        if let Some(val) = self.context.get(name) {
-            return Ok(val.clone());
-        }
-        Ok(ContextValue::text(format!("${{{{ {name} }}}}")))
+        Ok(self
+            .context
+            .get(name)
+            .cloned()
+            .unwrap_or(ContextValue::Null))
     }
 
     fn eval_property_access(
@@ -67,14 +68,7 @@ impl<'a> ExpressionEvaluator<'a> {
         prop: &str,
     ) -> Result<ContextValue, EvalError> {
         let val = self.evaluate(obj)?;
-        match val.is_mapping() {
-            true => val.property(prop).cloned().ok_or_else(|| {
-                EvalError::TypeError(format!("property '{prop}' not found on object"))
-            }),
-            false => Err(EvalError::TypeError(format!(
-                "cannot access property '{prop}' on non-object value"
-            ))),
-        }
+        Ok(val.property(prop).cloned().unwrap_or(ContextValue::Null))
     }
 
     fn eval_index_access(
@@ -85,6 +79,7 @@ impl<'a> ExpressionEvaluator<'a> {
         let obj_val = self.evaluate(obj)?;
         let idx_val = self.evaluate(idx)?;
         match (&obj_val, &idx_val) {
+            (ContextValue::Null, _) => Ok(ContextValue::Null),
             (ContextValue::List(items), index) if index.as_number().is_some() => {
                 self.eval_array_index(items, index)
             }
@@ -193,12 +188,7 @@ impl<'a> ExpressionEvaluator<'a> {
         index: &ContextValue,
     ) -> Result<ContextValue, EvalError> {
         let position = self.array_position(index)?;
-        items.get(position).cloned().ok_or_else(|| {
-            EvalError::TypeError(format!(
-                "index {position} out of bounds for array of length {}",
-                items.len()
-            ))
-        })
+        Ok(items.get(position).cloned().unwrap_or(ContextValue::Null))
     }
 
     fn array_position(&self, index: &ContextValue) -> Result<usize, EvalError> {
@@ -214,10 +204,7 @@ impl<'a> ExpressionEvaluator<'a> {
         mapping: &ContextValue,
         key: &str,
     ) -> Result<ContextValue, EvalError> {
-        mapping
-            .property(key)
-            .cloned()
-            .ok_or_else(|| EvalError::TypeError(format!("key '{key}' not found on object")))
+        Ok(mapping.property(key).cloned().unwrap_or(ContextValue::Null))
     }
 }
 
@@ -234,20 +221,27 @@ mod tests {
     }
 
     fn eval(expr: &Expression) -> Result<ContextValue, EvalError> {
-        let context = ctx();
-        ExpressionEvaluator::new(&context).evaluate(expr)
+        eval_in_context(expr, &ctx())
+    }
+
+    fn eval_in_context(
+        expr: &Expression,
+        context: &EvaluationContext,
+    ) -> Result<ContextValue, EvalError> {
+        ExpressionEvaluator::new(context).evaluate(expr)
     }
 
     #[test]
-    fn eval_property_access_on_non_object() {
+    fn eval_property_access_on_non_object_is_null() {
         let result = eval(&Expression::PropertyAccess(
             Box::new(Expression::Literal(ExpressionLiteral::String(
                 "hello".into(),
             ))),
             "length".into(),
-        ));
-        assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), EvalError::TypeError(_)));
+        ))
+        .unwrap();
+
+        assert_eq!(result, ContextValue::Null);
     }
 
     #[test]
@@ -305,13 +299,12 @@ mod tests {
     }
 
     #[test]
-    fn eval_property_access_missing_key_errors() {
+    fn eval_property_access_missing_key_is_null() {
         let json_str = Expression::Literal(ExpressionLiteral::String(r#"{"x": 10}"#.into()));
         let from_json = Expression::FunctionCall("fromJson".into(), vec![json_str]);
         let prop_access = Expression::PropertyAccess(Box::new(from_json), "missing".into());
-        let result = eval(&prop_access);
-        assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), EvalError::TypeError(_)));
+
+        assert_eq!(eval(&prop_access).unwrap(), ContextValue::Null);
     }
 
     #[test]
@@ -330,7 +323,7 @@ mod tests {
     }
 
     #[test]
-    fn eval_index_access_out_of_bounds_errors() {
+    fn eval_index_access_out_of_bounds_is_null() {
         let arr = Expression::FunctionCall(
             "fromJson".into(),
             vec![Expression::Literal(ExpressionLiteral::String(
@@ -339,9 +332,17 @@ mod tests {
         );
         let idx = Expression::Literal(ExpressionLiteral::Integer(10));
         let expr = Expression::IndexAccess(Box::new(arr), Box::new(idx));
-        let result = eval(&expr);
-        assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), EvalError::TypeError(_)));
+
+        assert_eq!(eval(&expr).unwrap(), ContextValue::Null);
+    }
+    #[test]
+    fn eval_index_access_null_object_is_null() {
+        let expr = Expression::IndexAccess(
+            Box::new(Expression::Literal(ExpressionLiteral::Null)),
+            Box::new(Expression::Literal(ExpressionLiteral::Integer(0))),
+        );
+
+        assert_eq!(eval(&expr).unwrap(), ContextValue::Null);
     }
 
     #[test]
@@ -360,7 +361,7 @@ mod tests {
     }
 
     #[test]
-    fn eval_index_access_object_missing_key_errors() {
+    fn eval_index_access_object_missing_key_is_null() {
         let json_str = Expression::Literal(ExpressionLiteral::String(r#"{"key": "val"}"#.into()));
         let from_json = Expression::FunctionCall("fromJson".into(), vec![json_str]);
         let idx = Expression::IndexAccess(
@@ -369,9 +370,8 @@ mod tests {
                 "missing".into(),
             ))),
         );
-        let result = eval(&idx);
-        assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), EvalError::TypeError(_)));
+
+        assert_eq!(eval(&idx).unwrap(), ContextValue::Null);
     }
 
     #[test]
@@ -622,23 +622,42 @@ mod tests {
     }
 
     #[test]
-    fn eval_variable_stub() {
+    fn eval_unknown_variable_is_null() {
         let result = eval(&Expression::Variable("foo".into())).unwrap();
-        assert_eq!(result, ContextValue::text("${{ foo }}"));
+        assert_eq!(result, ContextValue::Null);
     }
 
     #[test]
-    fn eval_variable_stub_env() {
+    fn eval_unknown_variable_is_falsy() {
         let result = eval(&Expression::Variable("bar".into())).unwrap();
-        assert_eq!(result, ContextValue::text("${{ bar }}"));
+        assert!(!result.is_truthy());
     }
-
     #[test]
     fn eval_variable_from_context() {
         let expr = Expression::Variable("source".into());
         let c = EvaluationContext::new().with_root("source", ContextValue::empty_mapping());
         let result = ExpressionEvaluator::new(&c).evaluate(&expr).unwrap();
         assert!(result.is_mapping());
+    }
+    #[test]
+    fn eval_missing_intermediate_property_is_null_and_falsy() {
+        let event = ContextValue::mapping([("action".to_owned(), ContextValue::text("opened"))]);
+        let github = ContextValue::mapping([("event".to_owned(), event)]);
+        let context = EvaluationContext::new().with_root("github", github);
+        let expr = Expression::PropertyAccess(
+            Box::new(Expression::PropertyAccess(
+                Box::new(Expression::PropertyAccess(
+                    Box::new(Expression::Variable("github".into())),
+                    "event".into(),
+                )),
+                "pull_request".into(),
+            )),
+            "merged".into(),
+        );
+
+        let result = eval_in_context(&expr, &context).unwrap();
+        assert_eq!(result, ContextValue::Null);
+        assert!(!result.is_truthy());
     }
 
     #[test]

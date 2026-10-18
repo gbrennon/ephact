@@ -69,4 +69,16 @@ printf 'pub mod child;\npub use child::Child;\n' > "$fixture_directory/src/mod.r
 
 printf 'pub use crate::ExampleRecord;\n' > "$fixture_directory/src/mod.rs"
 "$checker" "$fixture_directory/src/mod.rs"
+
+cat > "$fixture_directory/src/mod.rs" <<'EOF'
+mod alpha;
+mod beta;
+
+pub(super) use self::{
+    alpha::Alpha,
+    beta::Beta,
+};
+pub use self::alpha::Alpha;
+EOF
+"$checker" "$fixture_directory/src/mod.rs"
 printf 'Rust convention checker rejected invalid fixtures\n'

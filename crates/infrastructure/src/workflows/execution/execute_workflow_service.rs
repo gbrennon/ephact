@@ -24,6 +24,7 @@ use crate::{
         entities::JobRun,
         messages::events::{Event, JobFinishedPayload, JobStartedPayload, WorkflowStartedPayload},
     },
+    steps::step_interpolator::StepInterpolator,
 };
 
 /// Loads and plans one workflow, executes its planned job runs, publishes
@@ -166,11 +167,53 @@ impl ExecuteWorkflowService {
             blocked_jobs.insert(run.job_id().to_string());
             return Ok(Self::skipped_run(run));
         }
+        self.execute_unblocked_run(run, input, blocked_jobs)
+    }
+
+    fn execute_unblocked_run(
+        &self,
+        run: &JobRun,
+        input: JobExecutionInput<'_>,
+        blocked_jobs: &mut HashSet<String>,
+    ) -> Result<JobExecutionResponse, Box<dyn Error>> {
+        if let Some(skipped) = Self::skip_for_false_condition(run, &input, blocked_jobs)? {
+            return Ok(skipped);
+        }
         let execution = self.execute_run(input)?;
+        Self::block_failed_job(run, &execution, blocked_jobs);
+        Ok(execution)
+    }
+
+    fn block_failed_job(
+        run: &JobRun,
+        execution: &JobExecutionResponse,
+        blocked_jobs: &mut HashSet<String>,
+    ) {
         if !execution.job_summary().success() && !run.job().continues_after_failure() {
             blocked_jobs.insert(run.job_id().to_string());
         }
-        Ok(execution)
+    }
+
+    fn skip_for_false_condition(
+        run: &JobRun,
+        input: &JobExecutionInput<'_>,
+        blocked_jobs: &mut HashSet<String>,
+    ) -> Result<Option<JobExecutionResponse>, Box<dyn Error>> {
+        let Some(condition) = run.job().if_condition() else {
+            return Ok(None);
+        };
+        let should_run =
+            StepInterpolator::evaluate_condition(condition, input.context()).map_err(|error| {
+                std::io::Error::other(format!("failed to evaluate job condition: {error:?}"))
+            })?;
+        if should_run {
+            return Ok(None);
+        }
+        blocked_jobs.insert(run.job_id().to_string());
+        Ok(Some(Self::skipped_run_with_reason(
+            run,
+            "job condition evaluated to false",
+        )))
     }
 
     fn run_is_blocked(run: &JobRun, blocked_jobs: &HashSet<String>) -> bool {
@@ -181,6 +224,10 @@ impl ExecuteWorkflowService {
     }
 
     fn skipped_run(run: &JobRun) -> JobExecutionResponse {
+        Self::skipped_run_with_reason(run, "dependency failed")
+    }
+
+    fn skipped_run_with_reason(run: &JobRun, reason: &str) -> JobExecutionResponse {
         let steps = run
             .job()
             .steps()
@@ -197,7 +244,7 @@ impl ExecuteWorkflowService {
                         String::new(),
                     ),
                 ))
-                .with_skip_reason("dependency failed".to_owned())
+                .with_skip_reason(reason.to_owned())
             })
             .collect();
         JobExecutionResponse::new(
@@ -207,7 +254,7 @@ impl ExecuteWorkflowService {
                 steps,
                 false,
             )
-            .with_skip_reason("dependency failed".to_owned()),
+            .with_skip_reason(reason.to_owned()),
             String::new(),
         )
     }
