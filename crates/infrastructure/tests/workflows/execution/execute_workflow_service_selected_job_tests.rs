@@ -5,6 +5,7 @@ mod tests {
     use ephact::{
         application::{
             dtos::{requests::ExecuteWorkflowRequest, responses::WorkflowExecutionResponse},
+            errors::ExecuteWorkflowError,
             ports::inbound::execute_workflow_port::ExecuteWorkflowPort,
         },
         domain::value_objects::EvaluationContext,
@@ -20,7 +21,7 @@ mod tests {
     const TWO_JOBS: &str = "name: Ci\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: build\n  publish:\n    needs: build\n    runs-on: ubuntu-latest\n    steps:\n      - run: publish\n";
 
     #[test]
-    fn execute_selected_job_includes_only_its_dependency_closure() {
+    fn execute_selected_job_skips_unrelated_jobs() {
         let workflow = "name: Ci\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: build\n  test:\n    needs: build\n    runs-on: ubuntu-latest\n    steps:\n      - run: test\n  publish:\n    needs: test\n    runs-on: ubuntu-latest\n    steps:\n      - run: publish\n  lint:\n    runs-on: ubuntu-latest\n    steps:\n      - run: lint\n";
         let command_bus = FakeCommandBus::new();
 
@@ -28,9 +29,9 @@ mod tests {
             FakeWorkflowLoaderPort::holding(workflow),
             command_bus.clone(),
             "publish",
-        );
+        )
+        .unwrap();
 
-        let execution = execution.unwrap();
         assert_eq!(
             command_bus.dispatched_job_ids(),
             vec![
@@ -39,11 +40,35 @@ mod tests {
                 "publish".to_string()
             ]
         );
-        assert_eq!(execution.job_summaries().len(), 3);
+        assert_eq!(execution.job_summaries().len(), 4);
+        let lint = execution
+            .job_summaries()
+            .iter()
+            .find(|job| job.job_id() == "lint")
+            .expect("unrelated job summary");
+        assert!(lint.is_skipped());
+        assert_eq!(lint.skip_reason(), Some("job not selected"));
     }
 
     #[test]
-    fn execute_rejects_an_unknown_selected_job() {
+    fn execute_without_selected_job_runs_all_jobs() {
+        let command_bus = FakeCommandBus::new();
+
+        let execution = execute_without_selected_job(
+            FakeWorkflowLoaderPort::holding(TWO_JOBS),
+            command_bus.clone(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            command_bus.dispatched_job_ids(),
+            vec!["build".to_string(), "publish".to_string()]
+        );
+        assert_eq!(execution.job_summaries().len(), 2);
+    }
+
+    #[test]
+    fn execute_rejects_an_unknown_selected_job_with_a_typed_error() {
         let command_bus = FakeCommandBus::new();
 
         let result = execute_with_selected_job(
@@ -53,8 +78,30 @@ mod tests {
         );
 
         let error = result.expect_err("unknown selected job should fail");
-        assert!(error.to_string().contains("missing"));
+        assert_eq!(error.to_string(), "selected job 'missing' was not found");
+        assert!(matches!(
+            error,
+            ExecuteWorkflowError::UnknownJob { ref job } if job == "missing"
+        ));
         assert!(command_bus.dispatched_job_ids().is_empty());
+    }
+
+    fn execute_without_selected_job(
+        loader: FakeWorkflowLoaderPort,
+        command_bus: FakeCommandBus,
+    ) -> Result<WorkflowExecutionResponse, ephact::application::errors::ExecuteWorkflowError> {
+        ExecuteWorkflowService::new(
+            Box::new(loader),
+            Box::new(command_bus),
+            Box::new(FakeEventBus::new()),
+        )
+        .execute(ExecuteWorkflowRequest::new(
+            REQUESTED_CONTENT.to_string(),
+            Path::new("/repo").to_path_buf(),
+            EvaluationContext::new(),
+            "test-run".to_string(),
+            false,
+        ))
     }
 
     fn execute_with_selected_job(
