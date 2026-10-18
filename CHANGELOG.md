@@ -105,6 +105,9 @@
 - **ci**: Bound changelog workflow runtime
 - **ci**: Allow changelog workflow more time
 - **cli**: Avoid runtime detection for discovery
+- **ci**: Harden Rust convention checks
+- **ci**: Resolve base revision without origin tracking ref
+- **ci**: Resolve changed-file base without network access
 
 ### Refactor
 
@@ -382,6 +385,8 @@
 - **changelog**: Use protected branch pull requests
 - **changelog**: Publish protected updates through pull requests
 - Enforce response DTO conventions
+- Enforce Rust file conventions
+- Explain Rust convention violations
 
 ### Miscellaneous Tasks
 
