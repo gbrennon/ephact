@@ -15,7 +15,10 @@ runs:
 
     - name: Rust file conventions
       shell: bash
-      run: scripts/check_changed_rust_conventions.sh
+      run: >-
+        scripts/check_changed_rust_conventions.sh
+        "${{ github.event.pull_request.base.sha }}"
+        "${{ github.sha }}"
 
     - name: Rust convention regression test
       shell: bash

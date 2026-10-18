@@ -13,21 +13,21 @@ if [[ "$base_revision" =~ ^0+$ ]]; then
     base_revision=""
 fi
 
+if [[ -z "$base_revision" ]] \
+    && git rev-parse --verify --quiet "origin/main^{commit}" >/dev/null; then
+    base_revision="$(git merge-base "$head_revision" origin/main)"
+fi
+
 if [[ -z "$base_revision" ]]; then
-    if ! git fetch --no-tags --quiet origin main; then
-        printf 'failed to fetch origin main while resolving the base revision\n' >&2
-        exit 1
-    fi
-    if ! base_revision="$(git merge-base "$head_revision" FETCH_HEAD)"; then
-        printf 'failed to compute the merge-base of %s and origin/main\n' \
-            "$head_revision" >&2
-        exit 1
-    fi
+    printf 'unable to determine the base revision for the changed-file check\n' >&2
+    printf 'pass it explicitly: %s <base-revision> <head-revision>\n' "$0" >&2
+    exit 1
 fi
 
 for revision in "$base_revision" "$head_revision"; do
     if ! git rev-parse --verify "$revision^{commit}" >/dev/null 2>&1; then
-        printf 'revision is unavailable: %s\n' "$revision" >&2
+        printf 'base or head revision is not present in the checkout: %s\n' "$revision" >&2
+        printf 'check out full history (fetch-depth: 0) so the base commit is available\n' >&2
         exit 1
     fi
 done
