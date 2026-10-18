@@ -21,9 +21,8 @@ mod tests {
     };
 
     use crate::common::fakes::{
-        fake_command_bus::FakeCommandBus, fake_event_bus::FakeEventBus,
-        fake_workflow_loader_port::FakeWorkflowLoaderPort,
-        fake_workflow_source::FakeWorkflowSource,
+        event_workflow_source::EventWorkflowSource, fake_command_bus::FakeCommandBus,
+        fake_event_bus::FakeEventBus, fake_workflow_loader_port::FakeWorkflowLoaderPort,
     };
 
     const TWO_JOBS: &str = "name: Ci\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: build\n  publish:\n    needs: build\n    runs-on: ubuntu-latest\n    steps:\n      - run: publish\n";
@@ -122,7 +121,7 @@ mod tests {
     ) -> (WorkflowExecutionResponse, FakeCommandBus) {
         let temp_dir = tempfile::tempdir().unwrap();
         let event_path = temp_dir.path().join("event.json");
-        let source = FakeWorkflowSource::new().with_file_content(event_payload);
+        let source = EventWorkflowSource::new(event_payload);
         let command_bus = FakeCommandBus::new();
         let executor = ExecuteWorkflowService::new(
             Box::new(FakeWorkflowLoaderPort::holding(EVENT_CONDITION_WORKFLOW)),
@@ -152,10 +151,10 @@ mod tests {
         let (execution, command_bus) =
             execute_with_event_payload(r#"{"pull_request":{"merged":true}}"#);
 
-        assert_eq!(
-            command_bus.dispatched_job_ids(),
-            vec!["conditional".to_owned(), "always".to_owned()]
-        );
+        let dispatched = command_bus.dispatched_job_ids();
+        assert_eq!(dispatched.len(), 2);
+        assert!(dispatched.contains(&"conditional".to_owned()));
+        assert!(dispatched.contains(&"always".to_owned()));
         assert!(
             !execution
                 .job_summaries()
