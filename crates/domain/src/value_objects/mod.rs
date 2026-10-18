@@ -9,6 +9,7 @@ pub mod container_engine;
 pub mod container_specification;
 pub mod context_value;
 pub mod evaluation_context;
+pub mod event_path;
 pub mod execution_defaults;
 pub mod execution_plan;
 pub mod execution_stage;
@@ -57,6 +58,7 @@ pub use self::{
     container_specification::ContainerSpecification,
     context_value::ContextValue,
     evaluation_context::EvaluationContext,
+    event_path::EventPath,
     execution_defaults::ExecutionDefaults,
     execution_plan::ExecutionPlan,
     execution_stage::ExecutionStage,
