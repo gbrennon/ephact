@@ -31,9 +31,8 @@ impl BuildJobEnvironmentRequest {
         &self.job_env
     }
     /// Adds the evaluated run context used by runner-specific adapters.
-    pub fn with_context(mut self, context: EvaluationContext) -> Self {
-        self.context = context;
-        self
+    pub fn with_context(self, context: EvaluationContext) -> Self {
+        Self { context, ..self }
     }
 
     /// Returns the evaluated run context.
@@ -41,9 +40,11 @@ impl BuildJobEnvironmentRequest {
         &self.context
     }
     /// Carries the raw event payload to runner-specific adapters.
-    pub fn with_event_payload_opt(mut self, event_payload: Option<&str>) -> Self {
-        self.event_payload = event_payload.map(str::to_owned);
-        self
+    pub fn with_event_payload_opt(self, event_payload: Option<&str>) -> Self {
+        Self {
+            event_payload: event_payload.map(str::to_owned),
+            ..self
+        }
     }
 
     /// Returns the raw event payload carried to runner-specific adapters.
