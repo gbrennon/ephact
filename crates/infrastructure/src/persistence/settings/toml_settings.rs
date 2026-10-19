@@ -32,25 +32,20 @@ pub(super) struct TomlSettings {
     interactive: bool,
     #[serde(skip_serializing_if = "Self::is_default_bool")]
     all_workflows: bool,
-    #[serde(default = "default_failure_log_retention_hours")]
+    #[serde(default = "TomlSettings::default_failure_log_retention_hours")]
     #[serde(skip_serializing_if = "Self::is_default_failure_log_retention_hours")]
     failure_log_retention_hours: u64,
-    #[serde(default = "default_forward_ssh")]
     #[serde(skip_serializing_if = "Self::is_default_bool")]
     forward_ssh: bool,
     #[serde(default = "marker_serializer::default_marker")]
     marker: String,
 }
 
-fn default_forward_ssh() -> bool {
-    false
-}
-
-fn default_failure_log_retention_hours() -> u64 {
-    Settings::DEFAULT_FAILURE_LOG_RETENTION_HOURS
-}
-
 impl TomlSettings {
+    fn default_failure_log_retention_hours() -> u64 {
+        Settings::DEFAULT_FAILURE_LOG_RETENTION_HOURS
+    }
+
     fn is_default_interface(value: &TomlInterfaceMode) -> bool {
         matches!(value, TomlInterfaceMode::Tui)
     }
@@ -67,9 +62,11 @@ impl TomlSettings {
         self.forward_ssh
     }
 
-    pub(super) fn with_forward_ssh(mut self, enabled: bool) -> Self {
-        self.forward_ssh = enabled;
-        self
+    pub(super) fn with_forward_ssh(self, enabled: bool) -> Self {
+        Self {
+            forward_ssh: enabled,
+            ..self
+        }
     }
 }
 
