@@ -64,18 +64,44 @@ impl SettingsScreen {
     }
 
     pub fn with_host_ssh_settings(
-        mut self,
+        self,
         host_ssh_settings: Arc<dyn HostSshForwardingSettingsPort>,
     ) -> Self {
-        match host_ssh_settings.read_forward_ssh() {
-            Ok(value) => {
-                self.forward_ssh = value;
-                self.edit_backup_forward_ssh = value;
-            }
-            Err(error) => self.error = Some(error.to_string()),
+        let Self {
+            settings,
+            edit_backup,
+            store,
+            host_ssh_settings: _,
+            forward_ssh,
+            edit_backup_forward_ssh,
+            retention_input,
+            selected_index,
+            editing,
+            error: previous_error,
+            marker_custom_editing,
+        } = self;
+        let (forward_ssh, edit_backup_forward_ssh, error) =
+            match host_ssh_settings.read_forward_ssh() {
+                Ok(value) => (value, value, previous_error),
+                Err(error) => {
+                    let error = error.to_string();
+                    drop(previous_error);
+                    (forward_ssh, edit_backup_forward_ssh, Some(error))
+                }
+            };
+        Self {
+            settings,
+            edit_backup,
+            store,
+            host_ssh_settings: Some(host_ssh_settings),
+            forward_ssh,
+            edit_backup_forward_ssh,
+            retention_input,
+            selected_index,
+            editing,
+            error,
+            marker_custom_editing,
         }
-        self.host_ssh_settings = Some(host_ssh_settings);
-        self
     }
 
     pub fn settings(&self) -> &Settings {
@@ -415,7 +441,7 @@ impl SettingsScreen {
         self.option_line(
             Self::FORWARD_SSH_INDEX,
             "forward-ssh",
-            bool_name(self.forward_ssh),
+            Self::bool_name(self.forward_ssh),
             &["false", "true"],
         )
     }
@@ -482,25 +508,25 @@ impl SettingsScreen {
             self.option_line(
                 0,
                 "default-interface",
-                interface_name(self.settings.default_interface()),
+                Self::interface_name(self.settings.default_interface()),
                 &["tui", "cli"],
             ),
             self.option_line(
                 1,
                 "allow-repo-writes",
-                bool_name(self.settings.allow_repo_writes()),
+                Self::bool_name(self.settings.allow_repo_writes()),
                 &["false", "true"],
             ),
             self.option_line(
                 2,
                 "allow-real-container",
-                bool_name(self.settings.allow_real_container()),
+                Self::bool_name(self.settings.allow_real_container()),
                 &["false", "true"],
             ),
             self.option_line(
                 3,
                 "allow-real-fetcher",
-                bool_name(self.settings.allow_real_fetcher()),
+                Self::bool_name(self.settings.allow_real_fetcher()),
                 &["false", "true"],
             ),
         ]
@@ -511,31 +537,31 @@ impl SettingsScreen {
             self.option_line(
                 4,
                 "allow-network",
-                bool_name(self.settings.allow_network()),
+                Self::bool_name(self.settings.allow_network()),
                 &["false", "true"],
             ),
             self.option_line(
                 5,
                 "preserve",
-                bool_name(self.settings.preserve()),
+                Self::bool_name(self.settings.preserve()),
                 &["false", "true"],
             ),
             self.option_line(
                 6,
                 "verbose",
-                bool_name(self.settings.verbose()),
+                Self::bool_name(self.settings.verbose()),
                 &["false", "true"],
             ),
             self.option_line(
                 7,
                 "interactive",
-                bool_name(self.settings.interactive()),
+                Self::bool_name(self.settings.interactive()),
                 &["false", "true"],
             ),
             self.option_line(
                 8,
                 "all-workflows",
-                bool_name(self.settings.all_workflows()),
+                Self::bool_name(self.settings.all_workflows()),
                 &["false", "true"],
             ),
         ]
@@ -574,14 +600,14 @@ impl SettingsScreen {
                 .collect::<Vec<_>>(),
         )
     }
-}
+    fn bool_name(value: bool) -> &'static str {
+        if value { "true" } else { "false" }
+    }
 
-fn bool_name(value: bool) -> &'static str {
-    if value { "true" } else { "false" }
-}
-fn interface_name(mode: InterfaceMode) -> &'static str {
-    match mode {
-        InterfaceMode::Tui => "tui",
-        InterfaceMode::Cli => "cli",
+    fn interface_name(mode: InterfaceMode) -> &'static str {
+        match mode {
+            InterfaceMode::Tui => "tui",
+            InterfaceMode::Cli => "cli",
+        }
     }
 }
