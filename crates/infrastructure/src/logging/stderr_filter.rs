@@ -42,7 +42,7 @@ impl StderrFilter {
         if dup2_stderr(&write_end).is_err() {
             return Self::disabled();
         }
-        let filter_thread = Some(spawn_filter_thread(read_end, thread_stderr, config));
+        let filter_thread = Some(Self::spawn_filter_thread(read_end, thread_stderr, config));
         drop(write_end);
 
         Self {
@@ -52,11 +52,15 @@ impl StderrFilter {
     }
 
     /// Restores the original stderr and waits for the draining thread.
-    pub fn restore(mut self) {
-        if let Some(restored_fd) = self.restored_fd.as_ref() {
+    pub fn restore(self) {
+        let Self {
+            filter_thread,
+            restored_fd,
+        } = self;
+        if let Some(restored_fd) = restored_fd.as_ref() {
             let _ = dup2_stderr(restored_fd);
         }
-        if let Some(handle) = self.filter_thread.take() {
+        if let Some(handle) = filter_thread {
             let _ = handle.join();
         }
     }
@@ -74,24 +78,23 @@ impl StderrFilter {
             .iter()
             .any(|prefix| line.starts_with(prefix))
     }
-}
-
-fn spawn_filter_thread(
-    read_end: OwnedFd,
-    real_stderr: OwnedFd,
-    config: StderrFilterConfig,
-) -> JoinHandle<()> {
-    std::thread::spawn(move || {
-        let reader = BufReader::new(File::from(read_end));
-        let mut real = File::from(real_stderr);
-        for line in reader.lines().map_while(Result::ok) {
-            if StderrFilter::line_should_be_suppressed(&line, &config) {
-                continue;
+    fn spawn_filter_thread(
+        read_end: OwnedFd,
+        real_stderr: OwnedFd,
+        config: StderrFilterConfig,
+    ) -> JoinHandle<()> {
+        std::thread::spawn(move || {
+            let reader = BufReader::new(File::from(read_end));
+            let mut real = File::from(real_stderr);
+            for line in reader.lines().map_while(Result::ok) {
+                if StderrFilter::line_should_be_suppressed(&line, &config) {
+                    continue;
+                }
+                let _ = writeln!(real, "{line}");
+                let _ = real.flush();
             }
-            let _ = writeln!(real, "{line}");
-            let _ = real.flush();
-        }
-    })
+        })
+    }
 }
 
 #[cfg(test)]
@@ -165,7 +168,7 @@ mod tests {
         let (read_end, write_end) = pipe().expect("pipe must be creatable");
         let config = StderrFilterConfig::default();
 
-        let handle = spawn_filter_thread(read_end, thread_stderr, config);
+        let handle = StderrFilter::spawn_filter_thread(read_end, thread_stderr, config);
         drop(write_end);
         handle.join().expect("filter thread must not panic");
 

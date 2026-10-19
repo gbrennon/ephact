@@ -81,11 +81,9 @@ rust-conventions:
 	scripts/check_changed_rust_conventions.sh
 
 
-immutable-domain-receivers source='crates/domain/src':
-	if grep -RInE --include='*.rs' '(^|[[:space:](])mut self([,)]|$$)' '{{source}}'; then \
-		printf 'mutable consuming receivers remain in domain production code\n' >&2; \
-		exit 1; \
-	fi
+immutable-domain-receivers source='crates/*/src':
+	semgrep --lang rust --quiet --error --pattern 'fn $METHOD(mut self, ...) { ... }' {{source}} && \
+	semgrep --lang rust --quiet --error --pattern 'fn $METHOD(mut self, ...) -> $RETURN { ... }' {{source}}
 
 lizard:
 	lizard -C 5 -L 50 -a 5 -i 0 .

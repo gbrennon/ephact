@@ -46,9 +46,11 @@ impl PrepareJobContainerRequest {
         self.allow_repo_writes
     }
     /// Sets the raw event payload copied into the job workspace.
-    pub fn with_event_payload(mut self, event_payload: &str) -> Self {
-        self.event_payload = Some(event_payload.to_owned());
-        self
+    pub fn with_event_payload(self, event_payload: &str) -> Self {
+        Self {
+            event_payload: Some(event_payload.to_owned()),
+            ..self
+        }
     }
 
     /// Returns the raw event payload copied into the job workspace.

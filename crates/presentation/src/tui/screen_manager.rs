@@ -81,26 +81,46 @@ impl ScreenManager {
         next
     }
 
-    pub fn with_actions(mut self, actions: Vec<String>) -> Self {
-        self.list_actions = ListActionsScreen::new(actions);
-        self
+    pub fn with_actions(self, actions: Vec<String>) -> Self {
+        Self {
+            list_actions: ListActionsScreen::new(actions),
+            ..self
+        }
     }
 
     pub fn with_settings(
-        mut self,
+        self,
         settings: Settings,
         store: Option<Arc<dyn SettingsStorePort>>,
     ) -> Self {
-        self.settings = SettingsScreen::new(settings, store);
-        self
+        Self {
+            settings: SettingsScreen::new(settings, store),
+            ..self
+        }
     }
 
-    pub fn with_host_ssh_settings(
-        mut self,
-        settings: Arc<dyn HostSshForwardingSettingsPort>,
-    ) -> Self {
-        self.settings = self.settings.with_host_ssh_settings(settings);
-        self
+    pub fn with_host_ssh_settings(self, settings: Arc<dyn HostSshForwardingSettingsPort>) -> Self {
+        let Self {
+            current_screen,
+            previous_screen,
+            home_selection,
+            list_workflows,
+            list_actions,
+            run_workflow,
+            settings: current_settings,
+            emblem,
+        } = self;
+        let settings = current_settings.with_host_ssh_settings(settings);
+        Self {
+            current_screen,
+            previous_screen,
+            home_selection,
+            list_workflows,
+            list_actions,
+            run_workflow,
+            settings,
+            emblem,
+        }
     }
     pub fn home_selection(&self) -> usize {
         self.home_selection

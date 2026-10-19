@@ -41,9 +41,11 @@ impl ExecuteJobRequest {
     }
 
     /// Sets or clears the raw event payload carried into the job container.
-    pub fn with_event_payload_opt(mut self, event_payload: Option<&str>) -> Self {
-        self.event_payload = event_payload.map(str::to_owned);
-        self
+    pub fn with_event_payload_opt(self, event_payload: Option<&str>) -> Self {
+        Self {
+            event_payload: event_payload.map(str::to_owned),
+            ..self
+        }
     }
 
     /// Returns the raw event payload carried into the job container.
@@ -62,9 +64,11 @@ impl ExecuteJobRequest {
     }
 
     /// Sets whether network access is allowed.
-    pub fn with_allow_network(mut self, allow_network: bool) -> Self {
-        self.allow_network = allow_network;
-        self
+    pub fn with_allow_network(self, allow_network: bool) -> Self {
+        Self {
+            allow_network,
+            ..self
+        }
     }
 
     /// Returns whether network access is allowed.

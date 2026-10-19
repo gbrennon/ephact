@@ -32,9 +32,11 @@ impl<'a> RunCompositeStepRequest<'a> {
     }
 
     /// Sets an environment override.
-    pub fn with_environment(mut self, environment: &'a HashMap<String, String>) -> Self {
-        self.environment = Some(environment);
-        self
+    pub fn with_environment(self, environment: &'a HashMap<String, String>) -> Self {
+        Self {
+            environment: Some(environment),
+            ..self
+        }
     }
 
     /// Returns the configured environment or the action request environment.

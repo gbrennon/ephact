@@ -1,4 +1,5 @@
-pub mod cli_app;
+#[path = "cli.rs"]
+mod cli_app;
 pub mod cli_dependencies;
 pub mod cli_parser;
 pub mod command;
