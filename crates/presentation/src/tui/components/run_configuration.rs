@@ -18,21 +18,10 @@ use crate::{
     },
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RunConfigurationValues {
-    event: String,
-    inputs: Vec<(String, String)>,
-}
+#[path = "run_configuration_values.rs"]
+mod run_configuration_values;
 
-impl RunConfigurationValues {
-    pub fn event(&self) -> &str {
-        &self.event
-    }
-
-    pub fn inputs(&self) -> &[(String, String)] {
-        &self.inputs
-    }
-}
+pub use run_configuration_values::RunConfigurationValues;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConfigurationAction {
@@ -85,9 +74,11 @@ impl RunConfiguration {
         }
     }
 
-    pub fn with_marker(mut self, marker: &Marker) -> Self {
-        self.marker = marker.clone();
-        self
+    pub fn with_marker(self, marker: &Marker) -> Self {
+        Self {
+            marker: marker.clone(),
+            ..self
+        }
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) -> ConfigurationAction {
@@ -117,14 +108,12 @@ impl RunConfiguration {
 
     pub fn values(&self) -> Option<RunConfigurationValues> {
         let event = self.events.get(self.selected_event)?.clone();
-        Some(RunConfigurationValues {
-            event,
-            inputs: self
-                .inputs
-                .iter()
-                .map(|input| (input.name().to_string(), input.value().to_string()))
-                .collect(),
-        })
+        let inputs = self
+            .inputs
+            .iter()
+            .map(|input| (input.name().to_string(), input.value().to_string()))
+            .collect();
+        Some(RunConfigurationValues::new(event, inputs))
     }
 
     pub fn render(&self, frame: &mut Frame<'_>, area: Rect) {
