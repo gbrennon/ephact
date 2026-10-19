@@ -44,26 +44,59 @@ impl TuiApp {
         }
     }
 
-    pub fn with_actions(mut self, actions: Vec<String>) -> Self {
-        self.screens = self.screens.with_actions(actions);
-        self
+    pub fn with_actions(self, actions: Vec<String>) -> Self {
+        let Self {
+            screens,
+            run_requested,
+            cancel_requested,
+            configuration_requested,
+            splash_quote,
+        } = self;
+        Self {
+            screens: screens.with_actions(actions),
+            run_requested,
+            cancel_requested,
+            configuration_requested,
+            splash_quote,
+        }
     }
 
     pub fn with_settings(
-        mut self,
+        self,
         settings: Settings,
         store: Option<Arc<dyn SettingsStorePort>>,
     ) -> Self {
-        self.screens = self.screens.with_settings(settings, store);
-        self
+        let Self {
+            screens,
+            run_requested,
+            cancel_requested,
+            configuration_requested,
+            splash_quote,
+        } = self;
+        Self {
+            screens: screens.with_settings(settings, store),
+            run_requested,
+            cancel_requested,
+            configuration_requested,
+            splash_quote,
+        }
     }
 
-    pub fn with_host_ssh_settings(
-        mut self,
-        settings: Arc<dyn HostSshForwardingSettingsPort>,
-    ) -> Self {
-        self.screens = self.screens.with_host_ssh_settings(settings);
-        self
+    pub fn with_host_ssh_settings(self, settings: Arc<dyn HostSshForwardingSettingsPort>) -> Self {
+        let Self {
+            screens,
+            run_requested,
+            cancel_requested,
+            configuration_requested,
+            splash_quote,
+        } = self;
+        Self {
+            screens: screens.with_host_ssh_settings(settings),
+            run_requested,
+            cancel_requested,
+            configuration_requested,
+            splash_quote,
+        }
     }
     pub fn with_optional_host_ssh_settings(
         self,
