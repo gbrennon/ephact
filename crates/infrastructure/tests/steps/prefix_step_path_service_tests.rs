@@ -11,9 +11,7 @@ mod tests {
     };
 
     fn env_with_path(path: &str) -> HashMap<String, String> {
-        let mut env = HashMap::new();
-        env.insert("PATH".to_string(), path.to_string());
-        env
+        HashMap::from([("PATH".to_string(), path.to_string())])
     }
 
     #[test]
@@ -53,9 +51,10 @@ mod tests {
 
     #[test]
     fn prefix_preserves_the_other_environment_entries() {
-        let mut env = env_with_path("/usr/bin");
-        env.insert("MODE".to_string(), "staging".to_string());
-
+        let env = HashMap::from([
+            ("PATH".to_string(), "/usr/bin".to_string()),
+            ("MODE".to_string(), "staging".to_string()),
+        ]);
         let result = PrefixStepPathService::new().prefix(PrefixStepPathRequest::new(
             env.clone(),
             vec!["/opt/bin".to_string()],

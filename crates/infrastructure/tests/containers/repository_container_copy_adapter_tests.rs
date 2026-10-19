@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use std::fs::{create_dir_all, write};
+    use std::{
+        collections::BTreeSet,
+        fs::{create_dir_all, write},
+    };
 
     use ephact::{
         application::{
@@ -30,18 +33,17 @@ mod tests {
             .copy(request, &container)
             .expect("repository copy");
 
-        let mut copied_paths = container
+        let copied_paths = container
             .copied_files()
             .first()
             .expect("copied file entries")
             .iter()
             .map(|file| file.path().to_string())
-            .collect::<Vec<_>>();
-        copied_paths.sort();
+            .collect::<BTreeSet<_>>();
 
         assert_eq!(
             copied_paths,
-            vec![".git/config".to_string(), "workflow.yml".to_string()]
+            BTreeSet::from([".git/config".to_string(), "workflow.yml".to_string()])
         );
     }
 

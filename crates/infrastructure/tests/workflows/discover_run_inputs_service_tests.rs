@@ -44,13 +44,16 @@ mod tests {
                 repository,
             ))
             .unwrap();
-        let mut names = declarations
+        let names = declarations
             .iter()
             .map(RunInputDeclarationResponse::name)
-            .collect::<Vec<_>>();
-        names.sort_unstable();
+            .collect::<std::collections::BTreeSet<_>>();
 
-        assert_eq!(names, vec!["action_name", "optional", "workflow_name"]);
+        assert_eq!(
+            names,
+            std::collections::BTreeSet::from(["action_name", "optional", "workflow_name"])
+        );
+
         let optional = declarations
             .iter()
             .find(|declaration| declaration.name() == "optional")
