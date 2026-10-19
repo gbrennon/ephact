@@ -220,6 +220,7 @@
 - **cli**: Extract input parsing helpers
 - **steps**: Extract StepInterpolator from mod.rs into its own file
 - **workflows**: Encapsulate execution context fields
+- **infrastructure**: Remove mut from first batch
 
 ### Documentation
 
