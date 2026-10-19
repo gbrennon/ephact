@@ -15,10 +15,11 @@ impl<'a> JsonTextReader<'a> {
         Self { text, position: 0 }
     }
 
-    pub fn read_document(mut self) -> Result<ContextValue, JsonTextError> {
-        let value = self.read_value()?;
-        self.skip_whitespace();
-        match self.peek() {
+    pub fn read_document(self) -> Result<ContextValue, JsonTextError> {
+        let mut reader = self;
+        let value = reader.read_value()?;
+        reader.skip_whitespace();
+        match reader.peek() {
             None => Ok(value),
             Some(character) => Err(JsonTextError::new(format!(
                 "unexpected trailing character '{character}'"

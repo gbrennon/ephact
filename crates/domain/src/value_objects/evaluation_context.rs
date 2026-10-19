@@ -28,9 +28,10 @@ impl EvaluationContext {
     }
 
     /// Adds or replaces a context root.
-    pub fn with_root(mut self, name: impl Into<String>, value: ContextValue) -> Self {
-        self.roots.insert(name.into(), value);
-        self
+    pub fn with_root(self, name: impl Into<String>, value: ContextValue) -> Self {
+        let mut roots = self.roots;
+        roots.insert(name.into(), value);
+        Self { roots }
     }
 }
 

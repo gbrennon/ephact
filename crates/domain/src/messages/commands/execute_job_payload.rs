@@ -77,9 +77,11 @@ impl ExecuteJobPayload {
         &self.context
     }
 
-    pub fn with_event_payload_opt(mut self, event_payload: Option<&str>) -> Self {
-        self.event_payload = event_payload.map(str::to_owned);
-        self
+    pub fn with_event_payload_opt(self, event_payload: Option<&str>) -> Self {
+        Self {
+            event_payload: event_payload.map(str::to_owned),
+            ..self
+        }
     }
 
     pub fn event_payload(&self) -> Option<&str> {
