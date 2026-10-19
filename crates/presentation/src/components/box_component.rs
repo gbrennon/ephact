@@ -28,9 +28,11 @@ where
         }
     }
 
-    pub fn with_title(mut self, title: &str) -> Self {
-        self.title = Some(title.to_owned());
-        self
+    pub fn with_title(self, title: &str) -> Self {
+        Self {
+            title: Some(title.to_owned()),
+            ..self
+        }
     }
 
     pub fn render(&self) -> String {
