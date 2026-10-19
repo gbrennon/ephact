@@ -11,13 +11,17 @@ impl OutputPreferences {
     pub fn verbose(&self) -> bool {
         self.verbose
     }
-    pub fn with_preserve(mut self, value: bool) -> Self {
-        self.preserve = value;
-        self
+    pub fn with_preserve(self, value: bool) -> Self {
+        Self {
+            preserve: value,
+            ..self
+        }
     }
-    pub fn with_verbose(mut self, value: bool) -> Self {
-        self.verbose = value;
-        self
+    pub fn with_verbose(self, value: bool) -> Self {
+        Self {
+            verbose: value,
+            ..self
+        }
     }
 }
 

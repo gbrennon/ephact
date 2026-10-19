@@ -27,9 +27,8 @@ impl RemoteActionReference {
         }
     }
 
-    pub fn with_directory(mut self, directory: Option<String>) -> Self {
-        self.directory = directory;
-        self
+    pub fn with_directory(self, directory: Option<String>) -> Self {
+        Self { directory, ..self }
     }
 
     pub fn scheme(&self) -> &str {

@@ -130,6 +130,7 @@
 - **ci**: Accept multi-line use blocks in mod.rs convention check
 - **ci**: Provision nightly coverage toolchain noninteractively
 - **ci**: Split workflow source test state
+- **domain**: Keep classifier fake in unit tests
 
 ### Refactor
 
@@ -508,6 +509,15 @@
 - **deps**: Remove unused figlet packages
 - Update issue 322 branch base
 - **lefthook**: Add pre-push hook to enforce conventions
+- **domain**: Remove mutable settings builders
+- **domain**: Remove mutable workflow builders
+- **domain**: Remove mutable job builders
+- **domain**: Remove mutable step builders
+- **domain**: Remove mutable container builder
+- **domain**: Extract classifier test support
+- **domain**: Isolate step test classifier
+- **domain**: Remove mutable value object builders
+- **domain**: Remove mutable workflow builders
 
 ## [0.4.0] - 2026-09-29
 

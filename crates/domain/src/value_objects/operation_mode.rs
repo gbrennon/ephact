@@ -11,13 +11,17 @@ impl OperationMode {
     pub fn all_workflows(&self) -> bool {
         self.all_workflows
     }
-    pub fn with_interactive(mut self, value: bool) -> Self {
-        self.interactive = value;
-        self
+    pub fn with_interactive(self, value: bool) -> Self {
+        Self {
+            interactive: value,
+            ..self
+        }
     }
-    pub fn with_all_workflows(mut self, value: bool) -> Self {
-        self.all_workflows = value;
-        self
+    pub fn with_all_workflows(self, value: bool) -> Self {
+        Self {
+            all_workflows: value,
+            ..self
+        }
     }
 }
 

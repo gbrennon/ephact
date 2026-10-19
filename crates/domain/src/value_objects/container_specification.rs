@@ -21,24 +21,20 @@ impl ContainerSpecification {
         }
     }
 
-    pub fn with_env(mut self, env: HashMap<String, String>) -> Self {
-        self.env = env;
-        self
+    pub fn with_env(self, env: HashMap<String, String>) -> Self {
+        Self { env, ..self }
     }
 
-    pub fn with_ports(mut self, ports: Vec<String>) -> Self {
-        self.ports = ports;
-        self
+    pub fn with_ports(self, ports: Vec<String>) -> Self {
+        Self { ports, ..self }
     }
 
-    pub fn with_volumes(mut self, volumes: Vec<String>) -> Self {
-        self.volumes = volumes;
-        self
+    pub fn with_volumes(self, volumes: Vec<String>) -> Self {
+        Self { volumes, ..self }
     }
 
-    pub fn with_options(mut self, options: Option<String>) -> Self {
-        self.options = options;
-        self
+    pub fn with_options(self, options: Option<String>) -> Self {
+        Self { options, ..self }
     }
 
     pub fn image(&self) -> &str {
