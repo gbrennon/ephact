@@ -518,6 +518,16 @@
 - **domain**: Isolate step test classifier
 - **domain**: Remove mutable value object builders
 - **domain**: Remove mutable workflow builders
+- **domain**: Enforce immutable step error receiver
+- **domain**: Enforce immutable job payload receiver
+- **domain**: Enforce immutable step details receiver
+- **domain**: Enforce immutable evaluation context receiver
+- **domain**: Enforce immutable JSON reader receiver
+- **application**: Enforce immutable environment request receiver
+- **application**: Enforce immutable job request receiver
+- **application**: Enforce immutable workflow request receiver
+- **application**: Enforce immutable container request receiver
+- **application**: Enforce immutable composite step receiver
 
 ## [0.4.0] - 2026-09-29
 

@@ -43,15 +43,19 @@ impl ExecuteWorkflowRequest {
     }
 
     /// Sets the source filename used when the workflow has no YAML name.
-    pub fn with_file_name(mut self, file_name: String) -> Self {
-        self.file_name = Some(file_name);
-        self
+    pub fn with_file_name(self, file_name: String) -> Self {
+        Self {
+            file_name: Some(file_name),
+            ..self
+        }
     }
 
     /// Sets or clears the source filename.
-    pub fn with_file_name_opt(mut self, file_name: Option<&str>) -> Self {
-        self.file_name = file_name.map(str::to_owned);
-        self
+    pub fn with_file_name_opt(self, file_name: Option<&str>) -> Self {
+        Self {
+            file_name: file_name.map(str::to_owned),
+            ..self
+        }
     }
 
     /// Returns the optional source filename.
@@ -60,15 +64,19 @@ impl ExecuteWorkflowRequest {
     }
 
     /// Sets the selected job used to limit workflow execution.
-    pub fn with_selected_job(mut self, selected_job: String) -> Self {
-        self.selected_job = Some(selected_job);
-        self
+    pub fn with_selected_job(self, selected_job: String) -> Self {
+        Self {
+            selected_job: Some(selected_job),
+            ..self
+        }
     }
 
     /// Sets or clears the selected job used to limit workflow execution.
-    pub fn with_selected_job_opt(mut self, selected_job: Option<&str>) -> Self {
-        self.selected_job = selected_job.map(str::to_owned);
-        self
+    pub fn with_selected_job_opt(self, selected_job: Option<&str>) -> Self {
+        Self {
+            selected_job: selected_job.map(str::to_owned),
+            ..self
+        }
     }
 
     /// Returns the selected job used to limit workflow execution.
@@ -86,9 +94,11 @@ impl ExecuteWorkflowRequest {
         &self.context
     }
     /// Sets or clears the raw event payload carried into the job container.
-    pub fn with_event_payload_opt(mut self, event_payload: Option<&str>) -> Self {
-        self.event_payload = event_payload.map(str::to_owned);
-        self
+    pub fn with_event_payload_opt(self, event_payload: Option<&str>) -> Self {
+        Self {
+            event_payload: event_payload.map(str::to_owned),
+            ..self
+        }
     }
 
     /// Returns the raw event payload carried into the job container.
@@ -107,9 +117,11 @@ impl ExecuteWorkflowRequest {
     }
 
     /// Sets whether network access is allowed.
-    pub fn with_allow_network(mut self, allow_network: bool) -> Self {
-        self.allow_network = allow_network;
-        self
+    pub fn with_allow_network(self, allow_network: bool) -> Self {
+        Self {
+            allow_network,
+            ..self
+        }
     }
 
     /// Returns whether network access is allowed.
