@@ -49,19 +49,29 @@ impl TriggerFilter {
         Self::default()
     }
 
-    pub fn with_included_ref(mut self, reference: RefPattern) -> Self {
-        self.included_refs.push(reference);
-        self
+    pub fn with_included_ref(self, reference: RefPattern) -> Self {
+        let mut included_refs = self.included_refs;
+        included_refs.push(reference);
+        Self {
+            included_refs,
+            ..self
+        }
     }
 
-    pub fn with_excluded_ref(mut self, reference: RefPattern) -> Self {
-        self.excluded_refs.push(reference);
-        self
+    pub fn with_excluded_ref(self, reference: RefPattern) -> Self {
+        let mut excluded_refs = self.excluded_refs;
+        excluded_refs.push(reference);
+        Self {
+            excluded_refs,
+            ..self
+        }
     }
 
-    pub fn with_event_types(mut self, event_types: Vec<String>) -> Self {
-        self.event_types = event_types;
-        self
+    pub fn with_event_types(self, event_types: Vec<String>) -> Self {
+        Self {
+            event_types,
+            ..self
+        }
     }
 
     pub fn included_refs(&self) -> &[RefPattern] {

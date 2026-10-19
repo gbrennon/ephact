@@ -56,73 +56,95 @@ impl Validatable for WorkflowRunConfig {
 /// Builder API - fluent setters that consume and return `Self`.
 impl WorkflowRunConfig {
     /// Sets the workflow file to run.
-    pub fn with_workflow(mut self, workflow: WorkflowPath) -> Self {
-        self.workflow = Some(workflow);
-        self
+    pub fn with_workflow(self, workflow: WorkflowPath) -> Self {
+        Self {
+            workflow: Some(workflow),
+            ..self
+        }
     }
 
     /// Sets the specific job to run within the workflow.
-    pub fn with_job(mut self, job: JobName) -> Self {
-        self.job = Some(job);
-        self
+    pub fn with_job(self, job: JobName) -> Self {
+        Self {
+            job: Some(job),
+            ..self
+        }
     }
 
     /// Sets the event to simulate.
-    pub fn with_event(mut self, event: WorkflowEvent) -> Self {
-        self.event = Some(event);
-        self
+    pub fn with_event(self, event: WorkflowEvent) -> Self {
+        Self {
+            event: Some(event),
+            ..self
+        }
     }
     /// Sets the path to the event payload to load.
-    pub fn with_event_path(mut self, event_path: EventPath) -> Self {
-        self.event_path = Some(event_path);
-        self
+    pub fn with_event_path(self, event_path: EventPath) -> Self {
+        Self {
+            event_path: Some(event_path),
+            ..self
+        }
     }
 
     /// Sets the optional custom workflow directory.
-    pub fn with_workflow_directory(mut self, workflow_directory: PathBuf) -> Self {
-        self.workflow_directory = Some(workflow_directory);
-        self
+    pub fn with_workflow_directory(self, workflow_directory: PathBuf) -> Self {
+        Self {
+            workflow_directory: Some(workflow_directory),
+            ..self
+        }
     }
 
     /// Adds an input variable.
-    pub fn add_input(mut self, input: WorkflowInput) -> Self {
-        self.inputs.push(input);
-        self
+    pub fn add_input(self, input: WorkflowInput) -> Self {
+        let mut inputs = self.inputs;
+        inputs.push(input);
+        Self { inputs, ..self }
     }
 
     /// Adds a secret available to `${{ secrets.* }}` expressions.
-    pub fn add_secret(mut self, secret: Secret) -> Self {
-        self.secrets.push(secret);
-        self
+    pub fn add_secret(self, secret: Secret) -> Self {
+        let mut secrets = self.secrets;
+        secrets.push(secret);
+        Self { secrets, ..self }
     }
 
     /// Enable running all workflows found in the repository.
-    pub fn with_all_workflows(mut self, all_workflows: bool) -> Self {
-        self.all_workflows = all_workflows;
-        self
+    pub fn with_all_workflows(self, all_workflows: bool) -> Self {
+        Self {
+            all_workflows,
+            ..self
+        }
     }
 
     /// Opt into the real container runtime adapter.
-    pub fn with_allow_real_container(mut self, allow_real_container: bool) -> Self {
-        self.allow_real_container = allow_real_container;
-        self
+    pub fn with_allow_real_container(self, allow_real_container: bool) -> Self {
+        Self {
+            allow_real_container,
+            ..self
+        }
     }
 
     /// Opt into the real action fetcher that contacts the forge.
-    pub fn with_allow_real_fetcher(mut self, allow_real_fetcher: bool) -> Self {
-        self.allow_real_fetcher = allow_real_fetcher;
-        self
+    pub fn with_allow_real_fetcher(self, allow_real_fetcher: bool) -> Self {
+        Self {
+            allow_real_fetcher,
+            ..self
+        }
     }
 
     /// Allow containers to make outbound network requests.
-    pub fn with_allow_network(mut self, allow_network: bool) -> Self {
-        self.allow_network = allow_network;
-        self
+    pub fn with_allow_network(self, allow_network: bool) -> Self {
+        Self {
+            allow_network,
+            ..self
+        }
     }
     /// Opt into workflow writes to the repository mount.
-    pub fn with_allow_repo_writes(mut self, allow_repo_writes: bool) -> Self {
-        self.allow_repo_writes = allow_repo_writes;
-        self
+    pub fn with_allow_repo_writes(self, allow_repo_writes: bool) -> Self {
+        Self {
+            allow_repo_writes,
+            ..self
+        }
     }
 }
 
