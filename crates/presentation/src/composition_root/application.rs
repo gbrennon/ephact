@@ -12,20 +12,22 @@ impl Application {
     }
 
     pub fn with_settings(
-        mut self,
+        self,
         settings: crate::domain::Settings,
         store: std::sync::Arc<dyn crate::application::ports::outbound::SettingsStorePort>,
     ) -> Self {
-        self.cli = self.cli.with_settings(settings, store);
-        self
+        Self {
+            cli: self.cli.with_settings(settings, store),
+        }
     }
 
     pub fn with_host_ssh_settings(
-        mut self,
+        self,
         settings: std::sync::Arc<dyn HostSshForwardingSettingsPort>,
     ) -> Self {
-        self.cli = self.cli.with_host_ssh_settings(settings);
-        self
+        Self {
+            cli: self.cli.with_host_ssh_settings(settings),
+        }
     }
 
     pub fn cli(&self) -> &Cli {
