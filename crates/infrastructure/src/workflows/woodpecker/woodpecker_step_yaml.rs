@@ -36,11 +36,14 @@ impl WoodpeckerStepYaml {
     ///
     /// Woodpecker's mapping form keys each step by name, so the key supplies
     /// the name that the sequence form would carry on the step itself.
-    pub fn with_name_if_absent(mut self, name: String) -> Self {
-        if self.name.is_none() {
-            self.name = Some(name);
+    pub fn with_name_if_absent(self, name: String) -> Self {
+        if self.name.is_some() {
+            return self;
         }
-        self
+        Self {
+            name: Some(name),
+            ..self
+        }
     }
 
     /// Maps this Woodpecker step into a domain [`Job`] with a single run step.
