@@ -1,6 +1,11 @@
 /// Response DTO for the
 /// [`ExecuteActionPort`](crate::ports::inbound::execute_action_port::ExecuteActionPort)
 /// inbound port.
+#[path = "execute_action_response_builder.rs"]
+mod execute_action_response_builder;
+
+pub use execute_action_response_builder::ExecuteActionResponseBuilder;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecuteActionResponse {
     exit_code: i64,
@@ -46,39 +51,6 @@ impl ExecuteActionResponse {
     /// Consumes the response and returns its exit code and output streams.
     pub fn into_parts(self) -> (i64, String, String) {
         (self.exit_code, self.stdout, self.stderr)
-    }
-}
-
-/// Immutable builder for [`ExecuteActionResponse`].
-#[derive(Default)]
-pub struct ExecuteActionResponseBuilder {
-    exit_code: i64,
-    stdout: String,
-    stderr: String,
-}
-
-impl ExecuteActionResponseBuilder {
-    /// Sets the process exit code.
-    pub fn exit_code(mut self, exit_code: i64) -> Self {
-        self.exit_code = exit_code;
-        self
-    }
-
-    /// Sets standard output.
-    pub fn stdout(mut self, stdout: String) -> Self {
-        self.stdout = stdout;
-        self
-    }
-
-    /// Sets standard error.
-    pub fn stderr(mut self, stderr: String) -> Self {
-        self.stderr = stderr;
-        self
-    }
-
-    /// Builds the response from the configured fields.
-    pub fn build(self) -> ExecuteActionResponse {
-        ExecuteActionResponse::new(self.exit_code, self.stdout, self.stderr)
     }
 }
 
