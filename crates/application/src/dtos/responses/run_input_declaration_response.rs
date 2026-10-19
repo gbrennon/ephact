@@ -35,15 +35,13 @@ impl RunInputDeclarationResponse {
     }
 
     /// Returns a response with the declared input type.
-    pub fn with_type(mut self, input_type: Option<String>) -> Self {
-        self.input_type = input_type;
-        self
+    pub fn with_type(self, input_type: Option<String>) -> Self {
+        Self { input_type, ..self }
     }
 
     /// Returns a response with the declared selectable options.
-    pub fn with_options(mut self, options: Vec<String>) -> Self {
-        self.options = options;
-        self
+    pub fn with_options(self, options: Vec<String>) -> Self {
+        Self { options, ..self }
     }
 
     /// Returns the declared input type.
@@ -57,9 +55,8 @@ impl RunInputDeclarationResponse {
     }
 
     /// Returns a response with the resolved flag updated.
-    pub fn with_resolved(mut self, resolved: bool) -> Self {
-        self.resolved = resolved;
-        self
+    pub fn with_resolved(self, resolved: bool) -> Self {
+        Self { resolved, ..self }
     }
 
     /// Returns the input name.
