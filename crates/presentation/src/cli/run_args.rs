@@ -214,15 +214,17 @@ impl RunArgs {
     }
 
     /// Returns these arguments with persisted run defaults applied.
-    pub fn with_settings(mut self, settings: &crate::domain::Settings) -> Self {
-        self.interactive |= settings.interactive();
-        self.all_workflows |= settings.all_workflows();
-        self.preserve |= settings.preserve();
-        self.allow_repo_writes |= settings.allow_repo_writes();
-        self.allow_real_container |= settings.allow_real_container();
-        self.allow_real_fetcher |= settings.allow_real_fetcher();
-        self.allow_network |= settings.allow_network();
-        self.verbose |= settings.verbose();
-        self
+    pub fn with_settings(self, settings: &crate::domain::Settings) -> Self {
+        Self {
+            interactive: self.interactive | settings.interactive(),
+            all_workflows: self.all_workflows | settings.all_workflows(),
+            preserve: self.preserve | settings.preserve(),
+            allow_repo_writes: self.allow_repo_writes | settings.allow_repo_writes(),
+            allow_real_container: self.allow_real_container | settings.allow_real_container(),
+            allow_real_fetcher: self.allow_real_fetcher | settings.allow_real_fetcher(),
+            allow_network: self.allow_network | settings.allow_network(),
+            verbose: self.verbose | settings.verbose(),
+            ..self
+        }
     }
 }
