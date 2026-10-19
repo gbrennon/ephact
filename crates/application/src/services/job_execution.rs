@@ -32,23 +32,25 @@ impl<'a> JobExecution<'a> {
 
     /// Executes all steps in a job and assembles its response.
     pub fn execute(
-        mut self,
+        self,
         request: ExecuteJobRequest,
         run: &JobRun,
         workflow: &Workflow,
     ) -> Result<JobExecutionResponse, ExecuteJobError> {
-        self.prepare_execution(&request, run, workflow)
+        let mut execution = self;
+        execution
+            .prepare_execution(&request, run, workflow)
             .map_err(|error| ExecuteJobError::Preparation(error.to_string()))?;
-        let (_, _, _, _, _, _, _, event_bus, _) = self.dependencies.as_parts();
+        let (_, _, _, _, _, _, _, event_bus, _) = execution.dependencies.as_parts();
         {
-            let prepared = self
+            let prepared = execution
                 .prepared
                 .as_ref()
                 .expect("job execution preparation must create a container");
             JobExecutionEvents::new(event_bus).publish_container_started(&request, prepared);
             let step_execution =
-                JobStepExecution::new(self.dependencies, &request, workflow, run, prepared);
-            let state = self
+                JobStepExecution::new(execution.dependencies, &request, workflow, run, prepared);
+            let state = execution
                 .state
                 .as_mut()
                 .expect("job execution preparation must create state");
@@ -61,12 +63,12 @@ impl<'a> JobExecution<'a> {
                 }
             }
         }
-        let container_name = self
+        let container_name = execution
             .prepared
             .take()
             .expect("job execution preparation must create a container")
             .into_container_name();
-        let state = self
+        let state = execution
             .state
             .take()
             .expect("job execution preparation must create state");
