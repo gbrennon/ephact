@@ -8,6 +8,7 @@ use super::{
         content::ContentComponent,
         terminal::{SystemTerminal, Terminal},
     },
+    cli_dependencies::CliDependencies,
     cli_parser::CliParser,
     command::Command,
     run_progress_handler::TuiProgressStream,
@@ -45,9 +46,6 @@ pub struct Cli {
     settings_store: Option<Arc<dyn SettingsStorePort>>,
     host_ssh_settings: Option<Arc<dyn HostSshForwardingSettingsPort>>,
 }
-pub use super::cli_dependencies::{
-    CliDependencies, CliListDependencies, CliParts, CliRunDependencies,
-};
 
 impl Cli {
     pub fn new(dependencies: CliDependencies) -> Self {
@@ -109,26 +107,78 @@ impl Cli {
     }
 
     pub fn with_settings(
-        mut self,
+        self,
         settings: Settings,
         settings_store: Arc<dyn SettingsStorePort>,
     ) -> Self {
-        self.settings = settings.clone();
-        self.failure_log_retention_store
-            .apply_hours(settings.failure_log_retention_hours());
-        self.settings_store = Some(settings_store.clone());
-        self.tui_runner = self
-            .tui_runner
-            .with_settings(settings, Some(settings_store));
-        self
+        let Self {
+            run_workflow_port,
+            run_all_workflows_port,
+            discover_run_inputs_port,
+            list_workflows_port,
+            list_actions_port,
+            show_project_branding_info_port,
+            failure_log_error_store,
+            failure_log_path_store,
+            failure_log_retention_store,
+            tui_runner,
+            settings: _,
+            settings_store: _,
+            host_ssh_settings,
+        } = self;
+        let settings_for_cli = settings.clone();
+        failure_log_retention_store.apply_hours(settings.failure_log_retention_hours());
+        let settings_store_for_cli = settings_store.clone();
+        let tui_runner = tui_runner.with_settings(settings, Some(settings_store));
+        Self {
+            run_workflow_port,
+            run_all_workflows_port,
+            discover_run_inputs_port,
+            list_workflows_port,
+            list_actions_port,
+            show_project_branding_info_port,
+            failure_log_error_store,
+            failure_log_path_store,
+            failure_log_retention_store,
+            tui_runner,
+            settings: settings_for_cli,
+            settings_store: Some(settings_store_for_cli),
+            host_ssh_settings,
+        }
     }
-    pub fn with_host_ssh_settings(
-        mut self,
-        settings: Arc<dyn HostSshForwardingSettingsPort>,
-    ) -> Self {
-        self.host_ssh_settings = Some(settings.clone());
-        self.tui_runner = self.tui_runner.with_host_ssh_settings(settings);
-        self
+    pub fn with_host_ssh_settings(self, settings: Arc<dyn HostSshForwardingSettingsPort>) -> Self {
+        let Self {
+            run_workflow_port,
+            run_all_workflows_port,
+            discover_run_inputs_port,
+            list_workflows_port,
+            list_actions_port,
+            show_project_branding_info_port,
+            failure_log_error_store,
+            failure_log_path_store,
+            failure_log_retention_store,
+            tui_runner,
+            settings: current_settings,
+            settings_store,
+            host_ssh_settings: _,
+        } = self;
+        let host_ssh_settings_for_cli = settings.clone();
+        let tui_runner = tui_runner.with_host_ssh_settings(settings);
+        Self {
+            run_workflow_port,
+            run_all_workflows_port,
+            discover_run_inputs_port,
+            list_workflows_port,
+            list_actions_port,
+            show_project_branding_info_port,
+            failure_log_error_store,
+            failure_log_path_store,
+            failure_log_retention_store,
+            tui_runner,
+            settings: current_settings,
+            settings_store,
+            host_ssh_settings: Some(host_ssh_settings_for_cli),
+        }
     }
 }
 
