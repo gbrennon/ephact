@@ -517,6 +517,7 @@
 - **domain**: Extract classifier test support
 - **domain**: Isolate step test classifier
 - **domain**: Remove mutable value object builders
+- **domain**: Remove mutable workflow builders
 
 ## [0.4.0] - 2026-09-29
 
