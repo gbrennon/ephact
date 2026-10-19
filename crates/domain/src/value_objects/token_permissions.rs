@@ -19,59 +19,60 @@ impl TokenPermissions {
         Self::default()
     }
 
-    pub fn with_actions(mut self, actions: Option<String>) -> Self {
-        self.actions = actions;
-        self
+    pub fn with_actions(self, actions: Option<String>) -> Self {
+        Self { actions, ..self }
     }
 
-    pub fn with_checks(mut self, checks: Option<String>) -> Self {
-        self.checks = checks;
-        self
+    pub fn with_checks(self, checks: Option<String>) -> Self {
+        Self { checks, ..self }
     }
 
-    pub fn with_contents(mut self, contents: Option<String>) -> Self {
-        self.contents = contents;
-        self
+    pub fn with_contents(self, contents: Option<String>) -> Self {
+        Self { contents, ..self }
     }
 
-    pub fn with_deployments(mut self, deployments: Option<String>) -> Self {
-        self.deployments = deployments;
-        self
+    pub fn with_deployments(self, deployments: Option<String>) -> Self {
+        Self {
+            deployments,
+            ..self
+        }
     }
 
-    pub fn with_issues(mut self, issues: Option<String>) -> Self {
-        self.issues = issues;
-        self
+    pub fn with_issues(self, issues: Option<String>) -> Self {
+        Self { issues, ..self }
     }
 
-    pub fn with_packages(mut self, packages: Option<String>) -> Self {
-        self.packages = packages;
-        self
+    pub fn with_packages(self, packages: Option<String>) -> Self {
+        Self { packages, ..self }
     }
 
-    pub fn with_pages(mut self, pages: Option<String>) -> Self {
-        self.pages = pages;
-        self
+    pub fn with_pages(self, pages: Option<String>) -> Self {
+        Self { pages, ..self }
     }
 
-    pub fn with_pull_requests(mut self, pull_requests: Option<String>) -> Self {
-        self.pull_requests = pull_requests;
-        self
+    pub fn with_pull_requests(self, pull_requests: Option<String>) -> Self {
+        Self {
+            pull_requests,
+            ..self
+        }
     }
 
-    pub fn with_repository_projects(mut self, repository_projects: Option<String>) -> Self {
-        self.repository_projects = repository_projects;
-        self
+    pub fn with_repository_projects(self, repository_projects: Option<String>) -> Self {
+        Self {
+            repository_projects,
+            ..self
+        }
     }
 
-    pub fn with_security_events(mut self, security_events: Option<String>) -> Self {
-        self.security_events = security_events;
-        self
+    pub fn with_security_events(self, security_events: Option<String>) -> Self {
+        Self {
+            security_events,
+            ..self
+        }
     }
 
-    pub fn with_statuses(mut self, statuses: Option<String>) -> Self {
-        self.statuses = statuses;
-        self
+    pub fn with_statuses(self, statuses: Option<String>) -> Self {
+        Self { statuses, ..self }
     }
 
     pub fn actions(&self) -> Option<&str> {

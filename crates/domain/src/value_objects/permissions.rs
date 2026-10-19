@@ -19,21 +19,29 @@ impl Permissions {
     pub fn allow_network(&self) -> bool {
         self.allow_network
     }
-    pub fn with_allow_repo_writes(mut self, value: bool) -> Self {
-        self.allow_repo_writes = value;
-        self
+    pub fn with_allow_repo_writes(self, value: bool) -> Self {
+        Self {
+            allow_repo_writes: value,
+            ..self
+        }
     }
-    pub fn with_allow_real_container(mut self, value: bool) -> Self {
-        self.allow_real_container = value;
-        self
+    pub fn with_allow_real_container(self, value: bool) -> Self {
+        Self {
+            allow_real_container: value,
+            ..self
+        }
     }
-    pub fn with_allow_real_fetcher(mut self, value: bool) -> Self {
-        self.allow_real_fetcher = value;
-        self
+    pub fn with_allow_real_fetcher(self, value: bool) -> Self {
+        Self {
+            allow_real_fetcher: value,
+            ..self
+        }
     }
-    pub fn with_allow_network(mut self, value: bool) -> Self {
-        self.allow_network = value;
-        self
+    pub fn with_allow_network(self, value: bool) -> Self {
+        Self {
+            allow_network: value,
+            ..self
+        }
     }
 }
 
