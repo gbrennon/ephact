@@ -27,10 +27,10 @@ use crate::{
     tui::components::PROJECT_EMBLEM,
 };
 
-struct RunTask {
-    handle: tokio::task::JoinHandle<Result<RunSummaryResponse, String>>,
-    run_id: String,
-}
+#[path = "run_task.rs"]
+mod run_task;
+
+use run_task::RunTask;
 
 enum TuiLoopState {
     Idle,
@@ -77,40 +77,44 @@ impl TuiRunner {
     }
 
     pub fn with_input_discovery(
-        mut self,
+        self,
         discover_run_inputs_port: Arc<dyn RunInputsDiscovererPort>,
     ) -> Self {
-        self.discover_run_inputs_port = Some(discover_run_inputs_port);
-        self
+        Self {
+            discover_run_inputs_port: Some(discover_run_inputs_port),
+            ..self
+        }
     }
 
-    pub fn with_progress_stream(mut self, progress_stream: TuiProgressStream) -> Self {
-        self.progress_stream = Some(progress_stream);
-        self
+    pub fn with_progress_stream(self, progress_stream: TuiProgressStream) -> Self {
+        Self {
+            progress_stream: Some(progress_stream),
+            ..self
+        }
     }
-    pub fn with_failure_log_path_store(
-        mut self,
-        failure_log_path_store: FailureLogPathStore,
-    ) -> Self {
-        self.failure_log_path_store = Some(failure_log_path_store);
-        self
+    pub fn with_failure_log_path_store(self, failure_log_path_store: FailureLogPathStore) -> Self {
+        Self {
+            failure_log_path_store: Some(failure_log_path_store),
+            ..self
+        }
     }
     pub fn with_settings(
-        mut self,
+        self,
         settings: Settings,
         store: Option<Arc<dyn SettingsStorePort>>,
     ) -> Self {
-        self.settings = settings;
-        self.settings_store = store;
-        self
+        Self {
+            settings,
+            settings_store: store,
+            ..self
+        }
     }
 
-    pub fn with_host_ssh_settings(
-        mut self,
-        settings: Arc<dyn HostSshForwardingSettingsPort>,
-    ) -> Self {
-        self.host_ssh_settings = Some(settings);
-        self
+    pub fn with_host_ssh_settings(self, settings: Arc<dyn HostSshForwardingSettingsPort>) -> Self {
+        Self {
+            host_ssh_settings: Some(settings),
+            ..self
+        }
     }
     pub async fn run(&self) -> Result<(), Box<dyn std::error::Error>> {
         let mut app = self.build_app()?;
@@ -225,8 +229,8 @@ impl TuiRunner {
         let previous_state = std::mem::replace(state, TuiLoopState::Idle);
         match previous_state {
             TuiLoopState::Running { task } => {
-                task.handle.abort();
-                self.take_failure_log_path(&task.run_id);
+                task.abort();
+                self.take_failure_log_path(task.run_id());
                 *state = TuiLoopState::Cancelling { task };
             }
             TuiLoopState::Cancelling { task } => {
@@ -244,7 +248,7 @@ impl TuiRunner {
     ) -> Result<(), Box<dyn std::error::Error>> {
         let is_finished = match state {
             TuiLoopState::Running { task } | TuiLoopState::Cancelling { task } => {
-                task.handle.is_finished()
+                task.is_finished()
             }
             TuiLoopState::Idle | TuiLoopState::InputConfigurationPending => return Ok(()),
         };
@@ -254,18 +258,22 @@ impl TuiRunner {
         let previous_state = std::mem::replace(state, TuiLoopState::Idle);
         match previous_state {
             TuiLoopState::Cancelling { task } => {
-                self.take_failure_log_path(&task.run_id);
+                self.take_failure_log_path(task.run_id());
                 Ok(())
             }
             TuiLoopState::Running { task } => {
-                let result = task.handle.await.map_err(|error| error.to_string())?;
+                let run_id = task.run_id().to_owned();
+                let result = task
+                    .await_result()
+                    .await
+                    .map_err(|error| error.to_string())?;
                 match result {
                     Ok(summary) => {
-                        let failure_log_path = self.take_failure_log_path(&task.run_id);
+                        let failure_log_path = self.take_failure_log_path(&run_id);
                         app.record_run_outcome_with_failure_log_path(summary, failure_log_path);
                         Ok(())
                     }
-                    Err(error) => self.record_failed_run(app, &task.run_id, error),
+                    Err(error) => self.record_failed_run(app, &run_id, error),
                 }
             }
             TuiLoopState::Idle | TuiLoopState::InputConfigurationPending => Ok(()),
@@ -404,10 +412,7 @@ impl TuiRunner {
                 .await
                 .map_err(|error| error.to_string())
         });
-        RunTask {
-            handle,
-            run_id: task_run_id,
-        }
+        RunTask::new(handle, task_run_id)
     }
 
     fn cancelled_summary() -> RunSummaryResponse {
