@@ -48,14 +48,15 @@ impl JobSummaryResponse {
         self.skip_reason.as_deref()
     }
 
-    pub fn with_skip_reason(mut self, reason: String) -> Self {
-        self.skip_reason = Some(reason);
-        self
+    pub fn with_skip_reason(self, reason: String) -> Self {
+        Self {
+            skip_reason: Some(reason),
+            ..self
+        }
     }
 
-    pub fn with_name(mut self, name: Option<String>) -> Self {
-        self.name = name;
-        self
+    pub fn with_name(self, name: Option<String>) -> Self {
+        Self { name, ..self }
     }
 
     pub fn into_parts(
