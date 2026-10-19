@@ -43,15 +43,19 @@ impl StepError {
     }
 
     /// Returns this error with its captured standard output replaced by `stdout`.
-    pub fn with_stdout(mut self, stdout: impl Into<String>) -> Self {
-        self.stdout = stdout.into();
-        self
+    pub fn with_stdout(self, stdout: impl Into<String>) -> Self {
+        Self {
+            stdout: stdout.into(),
+            ..self
+        }
     }
 
     /// Returns this error with its captured standard error replaced by `stderr`.
-    pub fn with_stderr(mut self, stderr: impl Into<String>) -> Self {
-        self.stderr = stderr.into();
-        self
+    pub fn with_stderr(self, stderr: impl Into<String>) -> Self {
+        Self {
+            stderr: stderr.into(),
+            ..self
+        }
     }
 }
 

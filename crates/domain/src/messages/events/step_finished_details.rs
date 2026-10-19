@@ -28,14 +28,12 @@ impl StepFinishedDetails {
         }
     }
 
-    pub fn with_stdout(mut self, stdout: String) -> Self {
-        self.stdout = stdout;
-        self
+    pub fn with_stdout(self, stdout: String) -> Self {
+        Self { stdout, ..self }
     }
 
-    pub fn with_stderr(mut self, stderr: String) -> Self {
-        self.stderr = stderr;
-        self
+    pub fn with_stderr(self, stderr: String) -> Self {
+        Self { stderr, ..self }
     }
 
     pub fn workflow_name(&self) -> &str {
