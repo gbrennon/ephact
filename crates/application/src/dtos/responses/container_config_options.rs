@@ -30,57 +30,51 @@ pub type ContainerConfigOptionsParts = (
 
 impl ContainerConfigOptions {
     /// Sets the target platform.
-    pub fn with_platform(mut self, platform: Option<String>) -> Self {
-        self.platform = platform;
-        self
+    pub fn with_platform(self, platform: Option<String>) -> Self {
+        Self { platform, ..self }
     }
 
     /// Sets the environment entries.
-    pub fn with_env(mut self, env: HashMap<String, String>) -> Self {
-        self.env = env;
-        self
+    pub fn with_env(self, env: HashMap<String, String>) -> Self {
+        Self { env, ..self }
     }
 
     /// Sets the bind mount entries.
-    pub fn with_binds(mut self, binds: Vec<String>) -> Self {
-        self.binds = binds;
-        self
+    pub fn with_binds(self, binds: Vec<String>) -> Self {
+        Self { binds, ..self }
     }
 
     /// Sets the working directory.
-    pub fn with_workdir(mut self, workdir: Option<String>) -> Self {
-        self.workdir = workdir;
-        self
+    pub fn with_workdir(self, workdir: Option<String>) -> Self {
+        Self { workdir, ..self }
     }
 
     /// Sets the command arguments.
-    pub fn with_cmd(mut self, cmd: Option<Vec<String>>) -> Self {
-        self.cmd = cmd;
-        self
+    pub fn with_cmd(self, cmd: Option<Vec<String>>) -> Self {
+        Self { cmd, ..self }
     }
 
     /// Sets the entrypoint arguments.
-    pub fn with_entrypoint(mut self, entrypoint: Option<Vec<String>>) -> Self {
-        self.entrypoint = entrypoint;
-        self
+    pub fn with_entrypoint(self, entrypoint: Option<Vec<String>>) -> Self {
+        Self { entrypoint, ..self }
     }
 
     /// Sets the network.
-    pub fn with_network(mut self, network: Option<String>) -> Self {
-        self.network = network;
-        self
+    pub fn with_network(self, network: Option<String>) -> Self {
+        Self { network, ..self }
     }
 
     /// Sets the container name.
-    pub fn with_name(mut self, name: Option<String>) -> Self {
-        self.name = name;
-        self
+    pub fn with_name(self, name: Option<String>) -> Self {
+        Self { name, ..self }
     }
 
     /// Sets the runner context.
-    pub fn with_runner_context(mut self, runner_context: RunnerContextResponse) -> Self {
-        self.runner_context = runner_context;
-        self
+    pub fn with_runner_context(self, runner_context: RunnerContextResponse) -> Self {
+        Self {
+            runner_context,
+            ..self
+        }
     }
 
     /// Consumes the options and returns their owned configuration parts.
