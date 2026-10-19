@@ -45,7 +45,7 @@ lint:
 	cargo clippy --all-targets --locked -- -D warnings
 
 ci:
-	just fmt-check && just test && just lint && just rust-conventions && tests/scripts/rust_file_struct_names_test.sh
+	just fmt-check && just test && just lint && just rust-conventions && just immutable-domain-receivers && tests/scripts/immutable_domain_receivers_test.sh && tests/scripts/rust_file_struct_names_test.sh
 
 # Lint fixes (optionally specify files)
 lint-fix +files='':
@@ -79,6 +79,11 @@ semgrep:
 
 rust-conventions:
 	scripts/check_changed_rust_conventions.sh
+
+
+immutable-domain-receivers source='crates/*/src':
+	semgrep --lang rust --quiet --error --pattern 'fn $METHOD(mut self, ...) { ... }' {{source}} && \
+	semgrep --lang rust --quiet --error --pattern 'fn $METHOD(mut self, ...) -> $RETURN { ... }' {{source}}
 
 lizard:
 	lizard -C 5 -L 50 -a 5 -i 0 .
