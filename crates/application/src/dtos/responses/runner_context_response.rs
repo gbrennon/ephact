@@ -54,12 +54,23 @@ impl RunnerContextResponse {
         &mut self.env
     }
 
-    pub fn with_env_extension(
-        mut self,
-        entries: impl IntoIterator<Item = (String, String)>,
-    ) -> Self {
-        self.env.extend(entries);
-        self
+    pub fn with_env_extension(self, entries: impl IntoIterator<Item = (String, String)>) -> Self {
+        let Self {
+            workspace,
+            home,
+            action_path,
+            temp,
+            tool_cache,
+            env,
+        } = self;
+        Self {
+            workspace,
+            home,
+            action_path,
+            temp,
+            tool_cache,
+            env: env.into_iter().chain(entries).collect(),
+        }
     }
 }
 
