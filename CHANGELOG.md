@@ -130,6 +130,7 @@
 - **ci**: Accept multi-line use blocks in mod.rs convention check
 - **ci**: Provision nightly coverage toolchain noninteractively
 - **ci**: Split workflow source test state
+- **domain**: Keep classifier fake in unit tests
 
 ### Refactor
 
@@ -515,6 +516,7 @@
 - **domain**: Remove mutable container builder
 - **domain**: Extract classifier test support
 - **domain**: Isolate step test classifier
+- **domain**: Remove mutable value object builders
 
 ## [0.4.0] - 2026-09-29
 
