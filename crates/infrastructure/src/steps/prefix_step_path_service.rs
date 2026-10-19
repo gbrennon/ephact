@@ -30,8 +30,11 @@ impl StepPathPrefixerPort for PrefixStepPathService {
             format!("{}:{}", request.path_additions().join(":"), base)
         };
 
-        let mut env = request.env().clone();
-        env.insert("PATH".into(), path);
-        env
+        request
+            .env()
+            .iter()
+            .map(|(key, value)| (key.clone(), value.clone()))
+            .chain(std::iter::once(("PATH".into(), path)))
+            .collect()
     }
 }

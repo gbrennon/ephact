@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     application::{
         dtos::{requests::BuildJobEnvironmentRequest, responses::BuildJobEnvironmentResponse},
@@ -28,10 +30,32 @@ impl RunnerEnvironmentAdapter {
     pub fn new() -> Self {
         Self
     }
+    fn insert_environment(
+        env: HashMap<String, String>,
+        key: impl Into<String>,
+        value: impl Into<String>,
+    ) -> HashMap<String, String> {
+        env.into_iter()
+            .chain(std::iter::once((key.into(), value.into())))
+            .collect()
+    }
+
+    fn insert_default_environment(
+        env: HashMap<String, String>,
+        key: impl Into<String>,
+        value: impl Into<String>,
+    ) -> HashMap<String, String> {
+        let key = key.into();
+        if env.contains_key(&key) {
+            return env;
+        }
+        Self::insert_environment(env, key, value)
+    }
+
     fn insert_event_environment(
-        env: &mut std::collections::HashMap<String, String>,
+        env: HashMap<String, String>,
         context: &EvaluationContext,
-    ) {
+    ) -> HashMap<String, String> {
         let values = [
             ("EVENT_NAME", "event_name"),
             ("REF", "ref"),
@@ -46,26 +70,28 @@ impl RunnerEnvironmentAdapter {
             ("JOB", "job"),
             ("RUN_ID", "run_id"),
         ];
-        for (suffix, key) in values {
+        let env = values.into_iter().fold(env, |env, (suffix, key)| {
             let value = context
                 .get("github")
                 .and_then(|github| github.property(key))
                 .and_then(|value| value.as_text())
                 .unwrap_or_default()
                 .to_owned();
-            env.insert(format!("GITHUB_{suffix}"), value.clone());
-            env.insert(format!("FORGEJO_{suffix}"), value);
-        }
-        env.insert("GITHUB_EVENT_PATH".into(), RUNNER_EVENT_FILE.into());
-        env.insert("FORGEJO_EVENT_PATH".into(), RUNNER_EVENT_FILE.into());
+            let env = Self::insert_environment(env, format!("GITHUB_{suffix}"), value.clone());
+            Self::insert_environment(env, format!("FORGEJO_{suffix}"), value)
+        });
+        let env = Self::insert_environment(env, "GITHUB_EVENT_PATH", RUNNER_EVENT_FILE);
+        Self::insert_environment(env, "FORGEJO_EVENT_PATH", RUNNER_EVENT_FILE)
     }
+
     fn add_event_environment(
-        env: &mut std::collections::HashMap<String, String>,
+        env: HashMap<String, String>,
         request: &BuildJobEnvironmentRequest,
-    ) {
+    ) -> HashMap<String, String> {
         if request.event_payload().is_some() {
-            Self::insert_event_environment(env, request.context());
+            return Self::insert_event_environment(env, request.context());
         }
+        env
     }
 }
 
@@ -77,21 +103,26 @@ impl Default for RunnerEnvironmentAdapter {
 
 impl JobEnvironmentBuilderPort for RunnerEnvironmentAdapter {
     fn build(&self, request: BuildJobEnvironmentRequest) -> BuildJobEnvironmentResponse {
-        let mut env = request.workflow().env().clone();
-        for (key, value) in request.job_env() {
-            env.insert(key.clone(), value.clone());
-        }
-        Self::add_event_environment(&mut env, &request);
-        env.insert("GITHUB_PATH".into(), RUNNER_PATH_FILE.into());
-        env.insert("GITHUB_ENV".into(), RUNNER_ENV_FILE.into());
-        env.insert("GITHUB_OUTPUT".into(), RUNNER_OUTPUT_FILE.into());
-        env.insert("GITHUB_WORKSPACE".into(), CONTAINER_WORKSPACE.into());
-        env.entry("RUNNER_TOOL_CACHE".into())
-            .or_insert_with(|| RUNNER_TOOL_CACHE.to_string());
-        env.entry("RUNNER_TEMP".into())
-            .or_insert_with(|| "/tmp".to_string());
-        env.entry("PATH".to_string())
-            .or_insert_with(|| DEFAULT_PATH.to_string());
+        let env = request
+            .workflow()
+            .env()
+            .clone()
+            .into_iter()
+            .chain(
+                request
+                    .job_env()
+                    .iter()
+                    .map(|(key, value)| (key.clone(), value.clone())),
+            )
+            .collect();
+        let env = Self::add_event_environment(env, &request);
+        let env = Self::insert_environment(env, "GITHUB_PATH", RUNNER_PATH_FILE);
+        let env = Self::insert_environment(env, "GITHUB_ENV", RUNNER_ENV_FILE);
+        let env = Self::insert_environment(env, "GITHUB_OUTPUT", RUNNER_OUTPUT_FILE);
+        let env = Self::insert_environment(env, "GITHUB_WORKSPACE", CONTAINER_WORKSPACE);
+        let env = Self::insert_default_environment(env, "RUNNER_TOOL_CACHE", RUNNER_TOOL_CACHE);
+        let env = Self::insert_default_environment(env, "RUNNER_TEMP", "/tmp");
+        let env = Self::insert_default_environment(env, "PATH", DEFAULT_PATH);
         BuildJobEnvironmentResponse::new(env)
     }
 }

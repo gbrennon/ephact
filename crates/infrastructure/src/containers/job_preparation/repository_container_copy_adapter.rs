@@ -64,30 +64,32 @@ impl RepositoryContainerCopyAdapter {
     fn process_entry(
         root: &Path,
         path: PathBuf,
-        files: &mut Vec<FileEntry>,
-    ) -> Result<(), CopyRepositoryToContainerError> {
+    ) -> Result<Vec<FileEntry>, CopyRepositoryToContainerError> {
         if Self::should_exclude(&path, root) {
-            return Ok(());
+            return Ok(Vec::new());
         }
         if path.is_dir() {
-            return Self::collect_files_into(root, &path, files);
+            return Self::collect_files_into(root, &path);
         }
-        files.push(Self::read_file_entry(root, &path)?);
-        Ok(())
+        Ok(vec![Self::read_file_entry(root, &path)?])
     }
 
     fn collect_files_into(
         root: &Path,
         directory: &Path,
-        files: &mut Vec<FileEntry>,
-    ) -> Result<(), CopyRepositoryToContainerError> {
-        for entry in read_dir(directory).map_err(CopyRepositoryToContainerError::Filesystem)? {
-            let path = entry
-                .map_err(CopyRepositoryToContainerError::Filesystem)?
-                .path();
-            Self::process_entry(root, path, files)?;
-        }
-        Ok(())
+    ) -> Result<Vec<FileEntry>, CopyRepositoryToContainerError> {
+        read_dir(directory)
+            .map_err(CopyRepositoryToContainerError::Filesystem)?
+            .map(|entry| {
+                entry
+                    .map(|entry| entry.path())
+                    .map_err(CopyRepositoryToContainerError::Filesystem)
+            })
+            .try_fold(Vec::new(), |files, path| {
+                let path = path?;
+                Self::process_entry(root, path)
+                    .map(|entries| files.into_iter().chain(entries).collect())
+            })
     }
 }
 
@@ -103,8 +105,7 @@ impl CopyRepositoryToContainerPort for RepositoryContainerCopyAdapter {
         request: CopyRepositoryToContainerRequest,
         container: &dyn ContainerPort,
     ) -> Result<(), CopyRepositoryToContainerError> {
-        let mut files = Vec::new();
-        Self::collect_files_into(request.repo_path(), request.repo_path(), &mut files)?;
+        let files = Self::collect_files_into(request.repo_path(), request.repo_path())?;
         container
             .copy_to(request.container_path(), &files)
             .map_err(|error| CopyRepositoryToContainerError::Container(format!("{error:?}")))

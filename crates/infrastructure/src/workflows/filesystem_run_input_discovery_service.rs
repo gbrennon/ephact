@@ -60,69 +60,76 @@ impl FilesystemRunInputDiscoveryService {
     }
 
     fn add_declaration(
-        declarations: &mut Vec<RunInputDeclarationResponse>,
+        declarations: Vec<RunInputDeclarationResponse>,
         declaration: RunInputDeclarationResponse,
-    ) {
+    ) -> Vec<RunInputDeclarationResponse> {
         if declarations
             .iter()
             .any(|item| item.name() == declaration.name())
         {
-            return;
+            return declarations;
         }
-        declarations.push(declaration);
+        declarations
+            .into_iter()
+            .chain(std::iter::once(declaration))
+            .collect()
     }
 
     fn add_workflow_inputs(
         workflow: &Workflow,
-        declarations: &mut Vec<RunInputDeclarationResponse>,
-    ) -> Result<(), DiscoverRunInputsError> {
-        for trigger in workflow.trigger() {
-            let Some(inputs) = trigger.inputs() else {
-                continue;
-            };
-            for (name, input) in inputs {
-                Self::add_declaration(
-                    declarations,
-                    RunInputDeclarationResponse::new(
-                        name.to_owned(),
-                        RunInputSourceResponse::Workflow,
-                        input.description().map(str::to_owned),
-                        input.required(),
-                        input.default_value().map(str::to_owned),
-                    )
-                    .with_type(input.value_type().map(str::to_owned))
-                    .with_options(input.options().to_vec()),
-                );
-            }
-        }
-        Ok(())
+        declarations: Vec<RunInputDeclarationResponse>,
+    ) -> Result<Vec<RunInputDeclarationResponse>, DiscoverRunInputsError> {
+        workflow
+            .trigger()
+            .iter()
+            .try_fold(declarations, |declarations, trigger| {
+                let Some(inputs) = trigger.inputs() else {
+                    return Ok(declarations);
+                };
+                inputs
+                    .iter()
+                    .try_fold(declarations, |declarations, (name, input)| {
+                        let declaration = RunInputDeclarationResponse::new(
+                            name.to_owned(),
+                            RunInputSourceResponse::Workflow,
+                            input.description().map(str::to_owned),
+                            input.required(),
+                            input.default_value().map(str::to_owned),
+                        )
+                        .with_type(input.value_type().map(str::to_owned))
+                        .with_options(input.options().to_vec());
+                        Ok(Self::add_declaration(declarations, declaration))
+                    })
+            })
     }
 
     fn add_action_inputs(
         repository: &Path,
         action_reference: &str,
-        declarations: &mut Vec<RunInputDeclarationResponse>,
-    ) -> Result<(), DiscoverRunInputsError> {
+        declarations: Vec<RunInputDeclarationResponse>,
+    ) -> Result<Vec<RunInputDeclarationResponse>, DiscoverRunInputsError> {
         let Some(relative_path) = Self::strip_local_prefix(action_reference) else {
-            return Ok(());
+            return Ok(declarations);
         };
         let action_dir = repository.join(relative_path);
         let action_path = Self::find_action_file(&action_dir)?;
         let definition = Self::load_action_definition(&action_path)?;
-        Self::add_input_declarations(definition.inputs(), action_reference, declarations);
-        Self::process_composite_runs(repository, definition.runs(), declarations)?;
-        Ok(())
+        let declarations =
+            Self::add_input_declarations(definition.inputs(), action_reference, declarations);
+        Self::process_composite_runs(repository, definition.runs(), declarations)
     }
 
     fn process_composite_runs(
         repository: &Path,
         runs: &ActionRuntime,
-        declarations: &mut Vec<RunInputDeclarationResponse>,
-    ) -> Result<(), DiscoverRunInputsError> {
-        if let ActionRuntime::Composite { steps } = runs {
-            Self::recurse_composite_steps(repository, steps, declarations)?;
+        declarations: Vec<RunInputDeclarationResponse>,
+    ) -> Result<Vec<RunInputDeclarationResponse>, DiscoverRunInputsError> {
+        match runs {
+            ActionRuntime::Composite { steps } => {
+                Self::recurse_composite_steps(repository, steps, declarations)
+            }
+            _ => Ok(declarations),
         }
-        Ok(())
     }
 
     fn strip_local_prefix(action_reference: &str) -> Option<&str> {
@@ -156,55 +163,67 @@ impl FilesystemRunInputDiscoveryService {
     fn add_input_declarations(
         inputs: &HashMap<String, ActionInput>,
         action_reference: &str,
-        declarations: &mut Vec<RunInputDeclarationResponse>,
-    ) {
-        for (name, input) in inputs {
-            Self::add_declaration(
-                declarations,
-                RunInputDeclarationResponse::new(
-                    name.clone(),
-                    RunInputSourceResponse::Action(action_reference.to_owned()),
-                    input.description().map(str::to_owned),
-                    input.required(),
-                    input.default().map(str::to_owned),
-                ),
-            );
-        }
+        declarations: Vec<RunInputDeclarationResponse>,
+    ) -> Vec<RunInputDeclarationResponse> {
+        inputs
+            .iter()
+            .fold(declarations, |declarations, (name, input)| {
+                Self::add_declaration(
+                    declarations,
+                    RunInputDeclarationResponse::new(
+                        name.clone(),
+                        RunInputSourceResponse::Action(action_reference.to_owned()),
+                        input.description().map(str::to_owned),
+                        input.required(),
+                        input.default().map(str::to_owned),
+                    ),
+                )
+            })
     }
 
     fn recurse_composite_steps(
         repository: &Path,
         steps: &[Step],
-        declarations: &mut Vec<RunInputDeclarationResponse>,
-    ) -> Result<(), DiscoverRunInputsError> {
-        for step in steps {
-            if let Some(reference) = step.uses() {
-                Self::add_action_inputs(repository, reference, declarations)?;
-            }
-        }
-        Ok(())
+        declarations: Vec<RunInputDeclarationResponse>,
+    ) -> Result<Vec<RunInputDeclarationResponse>, DiscoverRunInputsError> {
+        steps.iter().try_fold(declarations, |declarations, step| {
+            let Some(reference) = step.uses() else {
+                return Ok(declarations);
+            };
+            Self::add_action_inputs(repository, reference, declarations)
+        })
     }
 
     fn add_actions(
         workflow: &Workflow,
         repository: &Path,
-        declarations: &mut Vec<RunInputDeclarationResponse>,
-        provided: &mut HashSet<String>,
-    ) -> Result<(), DiscoverRunInputsError> {
-        for job in workflow.jobs().values() {
-            for step in job.steps() {
-                provided.extend(
-                    step.with()
+        declarations: Vec<RunInputDeclarationResponse>,
+        provided: HashSet<String>,
+    ) -> Result<(Vec<RunInputDeclarationResponse>, HashSet<String>), DiscoverRunInputsError> {
+        workflow
+            .jobs()
+            .values()
+            .flat_map(|job| job.steps())
+            .try_fold(
+                (declarations, provided),
+                |(declarations, provided), step| {
+                    let provided = step
+                        .with()
                         .iter()
                         .filter(|(_, value)| Self::is_resolved_step_input(value))
-                        .map(|(name, _)| name.clone()),
-                );
-                if let Some(reference) = step.uses() {
-                    Self::add_action_inputs(repository, reference, declarations)?;
-                }
-            }
-        }
-        Ok(())
+                        .map(|(name, _)| name.clone())
+                        .fold(provided, |provided, name| {
+                            provided.into_iter().chain(std::iter::once(name)).collect()
+                        });
+                    let declarations = match step.uses() {
+                        Some(reference) => {
+                            Self::add_action_inputs(repository, reference, declarations)?
+                        }
+                        None => declarations,
+                    };
+                    Ok((declarations, provided))
+                },
+            )
     }
 
     fn is_resolved_step_input(value: &str) -> bool {
@@ -233,17 +252,17 @@ impl FilesystemRunInputDiscoveryService {
         sources: &[crate::application::dtos::responses::WorkflowSourceFileResponse],
         repository: &Path,
     ) -> Result<(Vec<RunInputDeclarationResponse>, HashSet<String>), DiscoverRunInputsError> {
-        let mut declarations = Vec::new();
-        let mut provided = HashSet::new();
-        for source in sources {
-            let workflow = WorkflowDocument::parse(source.content())
-                .map(WorkflowDocument::into_domain)
-                .map(|workflow| workflow.with_file(source.file_name().to_owned()))
-                .map_err(|error| DiscoverRunInputsError::Discovery(error.to_string()))?;
-            Self::add_workflow_inputs(&workflow, &mut declarations)?;
-            Self::add_actions(&workflow, repository, &mut declarations, &mut provided)?;
-        }
-        Ok((declarations, provided))
+        sources.iter().try_fold(
+            (Vec::new(), HashSet::new()),
+            |(declarations, provided), source| {
+                let workflow = WorkflowDocument::parse(source.content())
+                    .map(WorkflowDocument::into_domain)
+                    .map(|workflow| workflow.with_file(source.file_name().to_owned()))
+                    .map_err(|error| DiscoverRunInputsError::Discovery(error.to_string()))?;
+                let declarations = Self::add_workflow_inputs(&workflow, declarations)?;
+                Self::add_actions(&workflow, repository, declarations, provided)
+            },
+        )
     }
 
     fn resolve_declarations(
