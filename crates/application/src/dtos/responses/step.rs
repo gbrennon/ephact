@@ -21,9 +21,8 @@ impl StepExportsResponse {
         }
     }
 
-    pub fn with_outputs(mut self, outputs: HashMap<String, String>) -> Self {
-        self.outputs = outputs;
-        self
+    pub fn with_outputs(self, outputs: HashMap<String, String>) -> Self {
+        Self { outputs, ..self }
     }
 
     pub fn path_additions(&self) -> &[String] {
@@ -164,9 +163,11 @@ impl StepSummaryResponse {
         self.skip_reason.as_deref()
     }
 
-    pub fn with_skip_reason(mut self, reason: String) -> Self {
-        self.skip_reason = Some(reason);
-        self
+    pub fn with_skip_reason(self, reason: String) -> Self {
+        Self {
+            skip_reason: Some(reason),
+            ..self
+        }
     }
 
     pub fn into_parts(
@@ -210,5 +211,56 @@ impl SummarizedStepResponse {
     }
     pub fn fails_job(&self) -> bool {
         self.fails_job
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn exports_builder_replaces_outputs() {
+        let response = StepExportsResponse::new(
+            vec!["/bin".to_owned()],
+            HashMap::from([("BASE".to_owned(), "value".to_owned())]),
+        )
+        .with_outputs(HashMap::from([("KEY".to_owned(), "first".to_owned())]))
+        .with_outputs(HashMap::from([
+            ("KEY".to_owned(), "second".to_owned()),
+            ("NEW".to_owned(), "value".to_owned()),
+        ]));
+
+        assert_eq!(
+            response.outputs().get("KEY").map(String::as_str),
+            Some("second")
+        );
+        assert_eq!(
+            response.outputs().get("NEW").map(String::as_str),
+            Some("value")
+        );
+        assert_eq!(
+            response.env().get("BASE").map(String::as_str),
+            Some("value")
+        );
+    }
+
+    #[test]
+    fn summary_chaining_replaces_skip_reason() {
+        let response = StepSummaryResponse::new(StepSummaryResponseInput::new(
+            "build".to_owned(),
+            StepType::Run,
+            StepSummaryDetails::new(
+                Some(0),
+                false,
+                std::time::Duration::from_secs(1),
+                "output".to_owned(),
+                String::new(),
+            ),
+        ))
+        .with_skip_reason("first".to_owned())
+        .with_skip_reason("second".to_owned());
+
+        assert_eq!(response.skip_reason(), Some("second"));
+        assert!(response.is_skipped());
     }
 }

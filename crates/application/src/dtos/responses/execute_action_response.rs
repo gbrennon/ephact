@@ -59,21 +59,18 @@ pub struct ExecuteActionResponseBuilder {
 
 impl ExecuteActionResponseBuilder {
     /// Sets the process exit code.
-    pub fn exit_code(mut self, exit_code: i64) -> Self {
-        self.exit_code = exit_code;
-        self
+    pub fn exit_code(self, exit_code: i64) -> Self {
+        Self { exit_code, ..self }
     }
 
     /// Sets standard output.
-    pub fn stdout(mut self, stdout: String) -> Self {
-        self.stdout = stdout;
-        self
+    pub fn stdout(self, stdout: String) -> Self {
+        Self { stdout, ..self }
     }
 
     /// Sets standard error.
-    pub fn stderr(mut self, stderr: String) -> Self {
-        self.stderr = stderr;
-        self
+    pub fn stderr(self, stderr: String) -> Self {
+        Self { stderr, ..self }
     }
 
     /// Builds the response from the configured fields.
@@ -96,10 +93,13 @@ mod tests {
     }
 
     #[test]
-    fn builder_constructs_all_response_fields() {
+    fn builder_chain_replaces_each_response_field() {
         let response = ExecuteActionResponse::builder()
+            .exit_code(1)
             .exit_code(2)
+            .stdout("first".to_owned())
             .stdout("output".to_owned())
+            .stderr("first error".to_owned())
             .stderr("error".to_owned())
             .build();
 

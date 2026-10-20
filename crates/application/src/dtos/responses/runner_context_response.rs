@@ -49,17 +49,11 @@ impl RunnerContextResponse {
     pub fn env(&self) -> &HashMap<String, String> {
         &self.env
     }
-
-    pub fn env_mut(&mut self) -> &mut HashMap<String, String> {
-        &mut self.env
-    }
-
-    pub fn with_env_extension(
-        mut self,
-        entries: impl IntoIterator<Item = (String, String)>,
-    ) -> Self {
-        self.env.extend(entries);
-        self
+    pub fn with_env_extension(self, entries: impl IntoIterator<Item = (String, String)>) -> Self {
+        Self {
+            env: self.env.into_iter().chain(entries).collect(),
+            ..self
+        }
     }
 }
 
@@ -73,5 +67,32 @@ impl Default for RunnerContextResponse {
             tool_cache: "/tool-cache".into(),
             env: HashMap::new(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn environment_extension_overwrites_existing_entries_and_preserves_others() {
+        let context = RunnerContextResponse::default().with_env_extension([
+            ("KEY".to_owned(), "base".to_owned()),
+            ("KEEP".to_owned(), "value".to_owned()),
+        ]);
+        let extended = context.with_env_extension([
+            ("KEY".to_owned(), "override".to_owned()),
+            ("NEW".to_owned(), "new".to_owned()),
+        ]);
+
+        assert_eq!(
+            extended.env().get("KEY").map(String::as_str),
+            Some("override")
+        );
+        assert_eq!(
+            extended.env().get("KEEP").map(String::as_str),
+            Some("value")
+        );
+        assert_eq!(extended.env().get("NEW").map(String::as_str), Some("new"));
     }
 }
