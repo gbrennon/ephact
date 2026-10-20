@@ -25,6 +25,12 @@ assert_update_decision() {
   test "$actual" = "$expected"
 }
 
+assert_changelog_branch_has_ci_trigger() {
+  grep -Fq 'branches: [main, chore/changelog/main]' .forgejo/workflows/ci.yml
+}
+
+assert_changelog_branch_has_ci_trigger
+
 assert_update_decision true true main gbrennon:feature/workflow-fix
 assert_update_decision false true main gbrennon:chore/changelog/123
 assert_update_decision false true main gbrennon/chore/changelog/123
