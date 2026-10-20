@@ -19,61 +19,53 @@ use ephact::{
         },
     },
 };
-use parking_lot::Mutex;
 
 use super::{
     dispatched_action_snapshot::DispatchedActionSnapshot,
-    dispatched_step_snapshot::DispatchedStepSnapshot,
+    dispatched_step_snapshot::DispatchedStepSnapshot, fake_command_bus::FakeCommandBus,
 };
-
-/// Records every published command and answers it with a prepared outcome, so
-/// a coordination service can be tested on what it publishes instead of on
-/// what the next service does. Shares its recordings across clones.
-#[derive(Clone, Default)]
-pub struct FakeCommandBus {
-    pub dispatched_workflows: Arc<Mutex<Vec<ExecuteWorkflowPayload>>>,
-    pub dispatched_jobs: Arc<Mutex<Vec<ExecuteJobPayload>>>,
-    pub dispatched_steps: Arc<Mutex<Vec<DispatchedStepSnapshot>>>,
-    pub dispatched_actions: Arc<Mutex<Vec<DispatchedActionSnapshot>>>,
-    workflow_result: Option<WorkflowExecutionResponse>,
-    action_result: Option<ExecuteActionResponse>,
-    failing_jobs: Vec<String>,
-    step_exit_codes: Arc<Mutex<Vec<i64>>>,
-    step_error: Option<String>,
-    job_error: Option<String>,
-}
 
 impl FakeCommandBus {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn with_workflow_result(mut self, result: WorkflowExecutionResponse) -> Self {
-        self.workflow_result = Some(result);
-        self
+    pub fn with_workflow_result(self, result: WorkflowExecutionResponse) -> Self {
+        Self {
+            workflow_result: Some(result),
+            ..self
+        }
     }
 
-    pub fn with_action_result(mut self, result: ExecuteActionResponse) -> Self {
-        self.action_result = Some(result);
-        self
+    pub fn with_action_result(self, result: ExecuteActionResponse) -> Self {
+        Self {
+            action_result: Some(result),
+            ..self
+        }
     }
 
     /// Answers the named jobs with a failed summary.
-    pub fn failing_jobs(mut self, job_ids: Vec<String>) -> Self {
-        self.failing_jobs = job_ids;
-        self
+    pub fn failing_jobs(self, job_ids: Vec<String>) -> Self {
+        Self {
+            failing_jobs: job_ids,
+            ..self
+        }
     }
 
     /// Answers every job publish with an error.
-    pub fn failing_job_dispatch(mut self, message: &str) -> Self {
-        self.job_error = Some(message.to_string());
-        self
+    pub fn failing_job_dispatch(self, message: &str) -> Self {
+        Self {
+            job_error: Some(message.to_string()),
+            ..self
+        }
     }
 
     /// Answers every step publish with an error.
-    pub fn failing_step_dispatch(mut self, message: &str) -> Self {
-        self.step_error = Some(message.to_string());
-        self
+    pub fn failing_step_dispatch(self, message: &str) -> Self {
+        Self {
+            step_error: Some(message.to_string()),
+            ..self
+        }
     }
 
     /// Answers step publishes with the queued exit codes, in order.
