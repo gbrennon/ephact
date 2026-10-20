@@ -48,14 +48,15 @@ impl JobSummaryResponse {
         self.skip_reason.as_deref()
     }
 
-    pub fn with_skip_reason(mut self, reason: String) -> Self {
-        self.skip_reason = Some(reason);
-        self
+    pub fn with_skip_reason(self, reason: String) -> Self {
+        Self {
+            skip_reason: Some(reason),
+            ..self
+        }
     }
 
-    pub fn with_name(mut self, name: Option<String>) -> Self {
-        self.name = name;
-        self
+    pub fn with_name(self, name: Option<String>) -> Self {
+        Self { name, ..self }
     }
 
     pub fn into_parts(
@@ -74,5 +75,28 @@ impl JobSummaryResponse {
             self.success,
             self.skip_reason,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn chaining_replaces_name_and_skip_reason() {
+        let response = JobSummaryResponse::new(
+            "job".to_owned(),
+            Some("initial".to_owned()),
+            Vec::new(),
+            true,
+        )
+        .with_name(Some("renamed".to_owned()))
+        .with_name(Some("final".to_owned()))
+        .with_skip_reason("first".to_owned())
+        .with_skip_reason("second".to_owned());
+
+        assert_eq!(response.name(), Some("final"));
+        assert!(response.is_skipped());
+        assert_eq!(response.skip_reason(), Some("second"));
     }
 }

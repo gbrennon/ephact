@@ -1,3 +1,4 @@
+pub use super::execute_action_response_builder::ExecuteActionResponseBuilder;
 /// Response DTO for the
 /// [`ExecuteActionPort`](crate::ports::inbound::execute_action_port::ExecuteActionPort)
 /// inbound port.
@@ -49,39 +50,6 @@ impl ExecuteActionResponse {
     }
 }
 
-/// Immutable builder for [`ExecuteActionResponse`].
-#[derive(Default)]
-pub struct ExecuteActionResponseBuilder {
-    exit_code: i64,
-    stdout: String,
-    stderr: String,
-}
-
-impl ExecuteActionResponseBuilder {
-    /// Sets the process exit code.
-    pub fn exit_code(mut self, exit_code: i64) -> Self {
-        self.exit_code = exit_code;
-        self
-    }
-
-    /// Sets standard output.
-    pub fn stdout(mut self, stdout: String) -> Self {
-        self.stdout = stdout;
-        self
-    }
-
-    /// Sets standard error.
-    pub fn stderr(mut self, stderr: String) -> Self {
-        self.stderr = stderr;
-        self
-    }
-
-    /// Builds the response from the configured fields.
-    pub fn build(self) -> ExecuteActionResponse {
-        ExecuteActionResponse::new(self.exit_code, self.stdout, self.stderr)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -96,10 +64,13 @@ mod tests {
     }
 
     #[test]
-    fn builder_constructs_all_response_fields() {
+    fn builder_chain_replaces_each_response_field() {
         let response = ExecuteActionResponse::builder()
+            .exit_code(1)
             .exit_code(2)
+            .stdout("first".to_owned())
             .stdout("output".to_owned())
+            .stderr("first error".to_owned())
             .stderr("error".to_owned())
             .build();
 
