@@ -177,26 +177,53 @@ impl Workflow {
             .collect();
 
         Self::detect_cycles(&dependencies)?;
-        let (mut in_degree, dependents) = Self::build_dependency_maps(&dependencies)?;
-        let mut queue: VecDeque<&str> = in_degree
+        let (in_degree, dependents) = Self::build_dependency_maps(&dependencies)?;
+        let queue: VecDeque<&str> = in_degree
             .iter()
             .filter(|(_, degree)| **degree == 0)
             .map(|(&id, _)| id)
             .collect();
-        let mut stages = Vec::new();
-        let mut processed = 0;
 
-        while let Some(stage_jobs) = Self::take_next_stage(&mut queue) {
-            let runs = self.runs_for_stage(&stage_jobs);
-            stages.push(ExecutionStage::new(runs));
-            processed += stage_jobs.len();
-            Self::release_dependents(&stage_jobs, &dependents, &mut in_degree, &mut queue);
-        }
+        self.plan_stages(
+            dependencies.len(),
+            &dependents,
+            in_degree,
+            queue,
+            Vec::new(),
+            0,
+        )
+    }
 
-        if processed != dependencies.len() {
-            return Err(PlanError::UnresolvedDependencies);
+    fn plan_stages<'a>(
+        &self,
+        dependency_count: usize,
+        dependents: &HashMap<&'a str, Vec<&'a str>>,
+        in_degree: HashMap<&'a str, usize>,
+        queue: VecDeque<&'a str>,
+        stages: Vec<ExecutionStage>,
+        processed: usize,
+    ) -> Result<ExecutionPlan, PlanError> {
+        match Self::take_next_stage(queue) {
+            None if processed == dependency_count => Ok(ExecutionPlan::new(stages)),
+            None => Err(PlanError::UnresolvedDependencies),
+            Some(stage_jobs) => {
+                let runs = self.runs_for_stage(&stage_jobs);
+                let stages = stages
+                    .into_iter()
+                    .chain(std::iter::once(ExecutionStage::new(runs)))
+                    .collect();
+                let (in_degree, queue) =
+                    Self::release_dependents(&stage_jobs, dependents, in_degree, VecDeque::new());
+                self.plan_stages(
+                    dependency_count,
+                    dependents,
+                    in_degree,
+                    queue,
+                    stages,
+                    processed + stage_jobs.len(),
+                )
+            }
         }
-        Ok(ExecutionPlan::new(stages))
     }
 
     fn detect_cycles(dependencies: &HashMap<&str, Vec<&str>>) -> Result<(), PlanError> {
@@ -245,8 +272,9 @@ impl Workflow {
         Ok(())
     }
 
-    fn take_next_stage<'a>(queue: &mut VecDeque<&'a str>) -> Option<Vec<&'a str>> {
-        (!queue.is_empty()).then(|| queue.drain(..).collect())
+    fn take_next_stage<'a>(queue: VecDeque<&'a str>) -> Option<Vec<&'a str>> {
+        let stage_jobs: Vec<_> = queue.into_iter().collect();
+        (!stage_jobs.is_empty()).then_some(stage_jobs)
     }
 
     fn runs_for_stage(&self, stage_jobs: &[&str]) -> Vec<JobRun> {
@@ -266,14 +294,20 @@ impl Workflow {
     fn release_dependents<'a>(
         stage_jobs: &[&'a str],
         dependents: &HashMap<&'a str, Vec<&'a str>>,
-        in_degree: &mut HashMap<&'a str, usize>,
-        queue: &mut VecDeque<&'a str>,
-    ) {
+        in_degree: HashMap<&'a str, usize>,
+        queue: VecDeque<&'a str>,
+    ) -> (HashMap<&'a str, usize>, VecDeque<&'a str>) {
         stage_jobs
             .iter()
             .filter_map(|job_id| dependents.get(job_id))
             .flatten()
-            .for_each(|dependent_id| Self::decrement_dependent(dependent_id, in_degree, queue));
+            .fold(
+                (in_degree, queue),
+                |(mut in_degree, mut queue), dependent_id| {
+                    Self::decrement_dependent(dependent_id, &mut in_degree, &mut queue);
+                    (in_degree, queue)
+                },
+            )
     }
 
     fn decrement_dependent<'a>(
@@ -383,6 +417,94 @@ mod tests {
         assert_eq!(
             workflow.concurrency(),
             Some(&ConcurrencyGroup::new("ci", Some(true)))
+        );
+    }
+    #[test]
+    fn plan_releases_dependencies_into_ordered_stages() {
+        let workflow = Workflow::new(
+            Some("CI".into()),
+            Vec::new(),
+            HashMap::new(),
+            HashMap::from([
+                ("setup".into(), Job::new(None, None, Vec::new(), Vec::new())),
+                (
+                    "lint".into(),
+                    Job::new(None, None, Vec::new(), vec!["setup".into()]),
+                ),
+                (
+                    "test".into(),
+                    Job::new(None, None, Vec::new(), vec!["setup".into()]),
+                ),
+                (
+                    "deploy".into(),
+                    Job::new(None, None, Vec::new(), vec!["lint".into(), "test".into()]),
+                ),
+            ]),
+        );
+
+        let plan = workflow.plan().expect("workflow should have a valid plan");
+        let stage_job_ids = |stage: &ExecutionStage| {
+            stage
+                .runs()
+                .iter()
+                .map(|run| run.job_id().to_owned())
+                .collect::<HashSet<_>>()
+        };
+
+        assert_eq!(plan.stages().len(), 3);
+        assert_eq!(
+            stage_job_ids(&plan.stages()[0]),
+            HashSet::from(["setup".to_owned()])
+        );
+        assert_eq!(
+            stage_job_ids(&plan.stages()[1]),
+            HashSet::from(["lint".to_owned(), "test".to_owned()])
+        );
+        assert_eq!(
+            stage_job_ids(&plan.stages()[2]),
+            HashSet::from(["deploy".to_owned()])
+        );
+    }
+
+    #[test]
+    fn plan_reports_missing_dependencies() {
+        let workflow = Workflow::new(
+            Some("CI".into()),
+            Vec::new(),
+            HashMap::new(),
+            HashMap::from([(
+                "build".into(),
+                Job::new(None, None, Vec::new(), vec!["setup".into()]),
+            )]),
+        );
+
+        assert_eq!(
+            workflow.plan(),
+            Err(PlanError::MissingDependency {
+                job: "build".into(),
+                dependency: "setup".into(),
+            })
+        );
+    }
+
+    #[test]
+    fn plan_reports_cycles() {
+        let workflow = Workflow::new(
+            Some("CI".into()),
+            Vec::new(),
+            HashMap::new(),
+            HashMap::from([(
+                "build".into(),
+                Job::new(None, None, Vec::new(), vec!["build".into()]),
+            )]),
+        );
+
+        assert_eq!(
+            workflow.plan(),
+            Err(PlanError::CycleDetected {
+                job: "build".into(),
+                dependency: "build".into(),
+            })
         );
     }
 }
