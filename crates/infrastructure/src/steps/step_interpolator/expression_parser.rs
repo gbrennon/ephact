@@ -23,187 +23,200 @@ impl ExpressionParser {
     /// # Errors
     ///
     /// Returns [`ParseError`] if the token stream is malformed.
-    pub fn parse(&mut self) -> Result<Expression, ParseError> {
-        let expr = self.parse_expression()?;
-        if self.pos < self.tokens.len() {
-            return Err(self.error("unexpected tokens after expression"));
+    pub fn parse(self) -> Result<Expression, ParseError> {
+        let (parser, expr) = self.parse_expression()?;
+        if parser.pos < parser.tokens.len() {
+            return Err(parser.error("unexpected tokens after expression"));
         }
         Ok(expr)
     }
 
-    fn parse_expression(&mut self) -> Result<Expression, ParseError> {
+    fn parse_expression(self) -> Result<(Self, Expression), ParseError> {
         self.parse_logical()
     }
 
-    fn parse_logical(&mut self) -> Result<Expression, ParseError> {
-        let mut left = self.parse_compare()?;
-        loop {
-            let op = match self.peek() {
-                Some(ExpressionToken::And) => LogicalOperator::And,
-                Some(ExpressionToken::Or) => LogicalOperator::Or,
-                _ => break,
-            };
-            self.advance();
-            let right = self.parse_compare()?;
-            left = Expression::Logical(op, Box::new(left), Box::new(right));
-        }
-        Ok(left)
+    fn parse_logical(self) -> Result<(Self, Expression), ParseError> {
+        let (parser, left) = self.parse_compare()?;
+        parser.parse_logical_tail(left)
     }
 
-    fn parse_compare(&mut self) -> Result<Expression, ParseError> {
-        let left = self.parse_unary()?;
-        let op = match self.peek() {
+    fn parse_logical_tail(self, left: Expression) -> Result<(Self, Expression), ParseError> {
+        let op = match self.peek().cloned() {
+            Some(ExpressionToken::And) => LogicalOperator::And,
+            Some(ExpressionToken::Or) => LogicalOperator::Or,
+            _ => return Ok((self, left)),
+        };
+        let parser = self.advance();
+        let (parser, right) = parser.parse_compare()?;
+        let left = Expression::Logical(op, Box::new(left), Box::new(right));
+        parser.parse_logical_tail(left)
+    }
+
+    fn parse_compare(self) -> Result<(Self, Expression), ParseError> {
+        let (parser, left) = self.parse_unary()?;
+        let op = match parser.peek().cloned() {
             Some(ExpressionToken::Equal) => ComparisonOperator::Equal,
             Some(ExpressionToken::NotEqual) => ComparisonOperator::NotEqual,
             Some(ExpressionToken::LessThan) => ComparisonOperator::LessThan,
             Some(ExpressionToken::LessThanOrEqual) => ComparisonOperator::LessThanOrEqual,
             Some(ExpressionToken::GreaterThan) => ComparisonOperator::GreaterThan,
             Some(ExpressionToken::GreaterThanOrEqual) => ComparisonOperator::GreaterThanOrEqual,
-            _ => return Ok(left),
+            _ => return Ok((parser, left)),
         };
-        self.advance();
-        let right = self.parse_unary()?;
-        Ok(Expression::Comparison(op, Box::new(left), Box::new(right)))
+        let parser = parser.advance();
+        let (parser, right) = parser.parse_unary()?;
+        Ok((
+            parser,
+            Expression::Comparison(op, Box::new(left), Box::new(right)),
+        ))
     }
 
-    fn parse_unary(&mut self) -> Result<Expression, ParseError> {
-        if self.peek() == Some(&ExpressionToken::Not) {
-            self.advance();
-            let inner = self.parse_unary()?;
-            return Ok(Expression::Not(Box::new(inner)));
-        }
-        self.parse_postfix()
-    }
-
-    fn parse_postfix(&mut self) -> Result<Expression, ParseError> {
-        let mut expr = self.parse_primary()?;
-        loop {
-            let before = self.pos;
-            expr = self.parse_next_postfix(expr)?;
-            if self.pos == before {
-                return Ok(expr);
+    fn parse_unary(self) -> Result<(Self, Expression), ParseError> {
+        match self.peek().cloned() {
+            Some(ExpressionToken::Not) => {
+                let parser = self.advance();
+                let (parser, inner) = parser.parse_unary()?;
+                Ok((parser, Expression::Not(Box::new(inner))))
             }
+            _ => self.parse_postfix(),
         }
     }
 
-    fn parse_next_postfix(&mut self, expr: Expression) -> Result<Expression, ParseError> {
-        match self.peek() {
+    fn parse_postfix(self) -> Result<(Self, Expression), ParseError> {
+        let (parser, expr) = self.parse_primary()?;
+        parser.parse_postfix_tail(expr)
+    }
+
+    fn parse_postfix_tail(self, expr: Expression) -> Result<(Self, Expression), ParseError> {
+        let before = self.pos;
+        let (parser, expr) = self.parse_next_postfix(expr)?;
+        if parser.pos == before {
+            Ok((parser, expr))
+        } else {
+            parser.parse_postfix_tail(expr)
+        }
+    }
+
+    fn parse_next_postfix(self, expr: Expression) -> Result<(Self, Expression), ParseError> {
+        match self.peek().cloned() {
             Some(ExpressionToken::Dot) => self.parse_dot_postfix(expr),
             Some(ExpressionToken::LeftBracket) => self.parse_index_postfix(expr),
             Some(ExpressionToken::LeftParenthesis) => self.parse_call_postfix(expr),
-            _ => Ok(expr),
+            _ => Ok((self, expr)),
         }
     }
 
-    fn parse_dot_postfix(&mut self, expr: Expression) -> Result<Expression, ParseError> {
-        self.advance();
-        if self.peek() == Some(&ExpressionToken::Star) {
-            self.advance();
-            Ok(Expression::ArrayDereference(Box::new(expr)))
+    fn parse_dot_postfix(self, expr: Expression) -> Result<(Self, Expression), ParseError> {
+        let parser = self.advance();
+        if parser.peek() == Some(&ExpressionToken::Star) {
+            let parser = parser.advance();
+            Ok((parser, Expression::ArrayDereference(Box::new(expr))))
         } else {
-            let ident = self.expect_ident("property name after '.'")?;
-            Ok(Expression::PropertyAccess(Box::new(expr), ident))
+            let (parser, ident) = parser.expect_ident("property name after '.'")?;
+            Ok((parser, Expression::PropertyAccess(Box::new(expr), ident)))
         }
     }
 
-    fn parse_index_postfix(&mut self, expr: Expression) -> Result<Expression, ParseError> {
-        self.advance();
-        let idx = self.parse_expression()?;
-        self.expect(ExpressionToken::RightBracket, "expected ']'")?;
-        Ok(Expression::IndexAccess(Box::new(expr), Box::new(idx)))
+    fn parse_index_postfix(self, expr: Expression) -> Result<(Self, Expression), ParseError> {
+        let parser = self.advance();
+        let (parser, idx) = parser.parse_expression()?;
+        let parser = parser.expect(ExpressionToken::RightBracket, "expected ']'")?;
+        Ok((
+            parser,
+            Expression::IndexAccess(Box::new(expr), Box::new(idx)),
+        ))
     }
 
-    fn parse_call_postfix(&mut self, expr: Expression) -> Result<Expression, ParseError> {
-        self.advance();
-        let args = self.parse_args()?;
-        self.expect(ExpressionToken::RightParenthesis, "expected ')'")?;
-        let name = match &expr {
-            Expression::Variable(n) => n.clone(),
-            _ => return Err(self.error("function call requires a function name before '('")),
+    fn parse_call_postfix(self, expr: Expression) -> Result<(Self, Expression), ParseError> {
+        let parser = self.advance();
+        let (parser, args) = parser.parse_args()?;
+        let parser = parser.expect(ExpressionToken::RightParenthesis, "expected ')'")?;
+        let name = match expr {
+            Expression::Variable(name) => name,
+            _ => return Err(parser.error("function call requires a function name before '('")),
         };
-        Ok(Expression::FunctionCall(name, args))
+        Ok((parser, Expression::FunctionCall(name, args)))
     }
 
-    fn parse_primary(&mut self) -> Result<Expression, ParseError> {
+    fn parse_primary(self) -> Result<(Self, Expression), ParseError> {
         match self.peek().cloned() {
             Some(ExpressionToken::Identifier(name)) => {
-                self.advance();
-                Ok(Expression::Variable(name))
+                Ok((self.advance(), Expression::Variable(name)))
             }
-            Some(ExpressionToken::String(s)) => {
-                self.advance();
-                Ok(Expression::Literal(ExpressionLiteral::String(s)))
-            }
-            Some(ExpressionToken::Integer(n)) => {
-                self.advance();
-                Ok(Expression::Literal(ExpressionLiteral::Integer(n)))
-            }
-            Some(ExpressionToken::Float(f)) => {
-                self.advance();
-                Ok(Expression::Literal(ExpressionLiteral::Float(f)))
-            }
-            Some(ExpressionToken::Boolean(b)) => {
-                self.advance();
-                Ok(Expression::Literal(ExpressionLiteral::Boolean(b)))
-            }
+            Some(ExpressionToken::String(s)) => Ok((
+                self.advance(),
+                Expression::Literal(ExpressionLiteral::String(s)),
+            )),
+            Some(ExpressionToken::Integer(n)) => Ok((
+                self.advance(),
+                Expression::Literal(ExpressionLiteral::Integer(n)),
+            )),
+            Some(ExpressionToken::Float(f)) => Ok((
+                self.advance(),
+                Expression::Literal(ExpressionLiteral::Float(f)),
+            )),
+            Some(ExpressionToken::Boolean(b)) => Ok((
+                self.advance(),
+                Expression::Literal(ExpressionLiteral::Boolean(b)),
+            )),
             Some(ExpressionToken::Null) => {
-                self.advance();
-                Ok(Expression::Literal(ExpressionLiteral::Null))
+                Ok((self.advance(), Expression::Literal(ExpressionLiteral::Null)))
             }
             Some(ExpressionToken::LeftParenthesis) => {
-                self.advance();
-                let expr = self.parse_expression()?;
-                self.expect(ExpressionToken::RightParenthesis, "expected ')'")?;
-                Ok(expr)
+                let parser = self.advance();
+                let (parser, expr) = parser.parse_expression()?;
+                let parser = parser.expect(ExpressionToken::RightParenthesis, "expected ')'")?;
+                Ok((parser, expr))
             }
             Some(other) => Err(self.error(&format!("unexpected token: {other:?}"))),
             None => Err(self.error("unexpected end of expression")),
         }
     }
 
-    fn parse_args(&mut self) -> Result<Vec<Expression>, ParseError> {
-        let mut args = Vec::new();
+    fn parse_args(self) -> Result<(Self, Vec<Expression>), ParseError> {
         if self.peek() == Some(&ExpressionToken::RightParenthesis) {
-            return Ok(args);
+            Ok((self, Vec::new()))
+        } else {
+            self.parse_more_args(Vec::new())
         }
-        loop {
-            args.push(self.parse_expression()?);
-            if self.peek() == Some(&ExpressionToken::Comma) {
-                self.advance();
-            } else {
-                break;
-            }
+    }
+
+    fn parse_more_args(self, args: Vec<Expression>) -> Result<(Self, Vec<Expression>), ParseError> {
+        let (parser, arg) = self.parse_expression()?;
+        let args = args
+            .into_iter()
+            .chain(std::iter::once(arg))
+            .collect::<Vec<_>>();
+        if parser.peek() == Some(&ExpressionToken::Comma) {
+            parser.advance().parse_more_args(args)
+        } else {
+            Ok((parser, args))
         }
-        Ok(args)
     }
 
     fn peek(&self) -> Option<&ExpressionToken> {
         self.tokens.get(self.pos)
     }
 
-    fn advance(&mut self) {
-        self.pos += 1;
+    fn advance(self) -> Self {
+        Self {
+            tokens: self.tokens,
+            pos: self.pos + 1,
+        }
     }
 
-    fn expect(&mut self, expected: ExpressionToken, msg: &str) -> Result<(), ParseError> {
-        match self.peek() {
-            Some(t) if *t == expected => {
-                self.advance();
-                Ok(())
-            }
-            Some(t) => Err(self.error(&format!("{msg}, found {t:?}"))),
+    fn expect(self, expected: ExpressionToken, msg: &str) -> Result<Self, ParseError> {
+        match self.peek().cloned() {
+            Some(token) if token == expected => Ok(self.advance()),
+            Some(token) => Err(self.error(&format!("{msg}, found {token:?}"))),
             None => Err(self.error(&format!("{msg}, found end of input"))),
         }
     }
 
-    fn expect_ident(&mut self, msg: &str) -> Result<String, ParseError> {
-        match self.peek() {
-            Some(ExpressionToken::Identifier(name)) => {
-                let name = name.clone();
-                self.advance();
-                Ok(name)
-            }
-            Some(t) => Err(self.error(&format!("{msg}, found {t:?}"))),
+    fn expect_ident(self, msg: &str) -> Result<(Self, String), ParseError> {
+        match self.peek().cloned() {
+            Some(ExpressionToken::Identifier(name)) => Ok((self.advance(), name)),
+            Some(token) => Err(self.error(&format!("{msg}, found {token:?}"))),
             None => Err(self.error(&format!("{msg}, found end of input"))),
         }
     }
@@ -214,25 +227,32 @@ impl ExpressionParser {
 }
 
 impl ExpressionParser {
+    fn collect_tokens(
+        lexer: ExpressionLexer<'_>,
+        tokens: Vec<ExpressionToken>,
+    ) -> Result<Vec<ExpressionToken>, ParseError> {
+        let (lexer, token) = match lexer.next_token() {
+            Ok(result) => result,
+            Err(error) => {
+                return Err(ParseError::new(format!("lexer error: {error:?}"), 0));
+            }
+        };
+        if matches!(&token, ExpressionToken::EndOfInput) {
+            Ok(tokens)
+        } else {
+            let tokens = tokens.into_iter().chain(std::iter::once(token)).collect();
+            Self::collect_tokens(lexer, tokens)
+        }
+    }
+
     /// Lexes and parses an expression string.
     ///
     /// # Errors
     ///
     /// Returns [`ParseError`] if lexing or parsing fails.
     pub fn parse_text(input: &str) -> Result<Expression, ParseError> {
-        let mut lexer = ExpressionLexer::new(input);
-        let mut tokens = Vec::new();
-        loop {
-            match lexer.next_token() {
-                Ok(ExpressionToken::EndOfInput) => break,
-                Ok(tok) => tokens.push(tok),
-                Err(error) => {
-                    return Err(ParseError::new(format!("lexer error: {:?}", error), 0));
-                }
-            }
-        }
-        let mut parser = Self::new(&tokens);
-        parser.parse()
+        let tokens = Self::collect_tokens(ExpressionLexer::new(input), Vec::new())?;
+        Self::new(&tokens).parse()
     }
 }
 #[cfg(test)]

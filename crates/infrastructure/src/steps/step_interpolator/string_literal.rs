@@ -4,24 +4,38 @@ use crate::application::errors::LexerError;
 pub struct StringLiteral;
 
 impl StringLiteral {
-    pub fn recognize(cursor: &mut ExpressionCursor<'_>) -> Result<ExpressionToken, LexerError> {
+    pub fn recognize(
+        cursor: ExpressionCursor<'_>,
+    ) -> Result<(ExpressionToken, ExpressionCursor<'_>), LexerError> {
         let start = cursor.position();
-        cursor.advance();
-        let mut value = String::new();
-        while let Some(ch) = cursor.current() {
-            cursor.advance();
-            if ch != '\'' {
-                value.push(ch);
-                continue;
+        let cursor = cursor.advance();
+        let remaining = cursor.remaining();
+        let (closing, pending) =
+            remaining
+                .char_indices()
+                .fold((None, None), |(closing, pending), (index, ch)| {
+                    if closing.is_some() {
+                        (closing, pending)
+                    } else if ch == '\'' {
+                        match pending {
+                            Some(_) => (None, None),
+                            None => (None, Some(index)),
+                        }
+                    } else {
+                        match pending {
+                            Some(index) => (Some(index), None),
+                            None => (None, None),
+                        }
+                    }
+                });
+        match closing.or(pending) {
+            Some(index) => {
+                let value = remaining[..index].replace("''", "'");
+                let cursor = cursor.advance_bytes(index + 1);
+                Ok((ExpressionToken::String(value), cursor))
             }
-            if cursor.current() == Some('\'') {
-                cursor.advance();
-                value.push('\'');
-                continue;
-            }
-            return Ok(ExpressionToken::String(value));
+            None => Err(LexerError::UnterminatedString(start)),
         }
-        Err(LexerError::UnterminatedString(start))
     }
 }
 
@@ -36,17 +50,11 @@ mod tests {
     #[test]
     fn recognizes_quoted_and_escaped_strings_and_reports_unterminated() {
         for (source, value) in [("'hello'", "hello"), ("'it''s'", "it's"), ("''", "")] {
-            let mut cursor = ExpressionCursor::new(source);
-            assert_eq!(
-                StringLiteral::recognize(&mut cursor).unwrap(),
-                ExpressionToken::String(value.into())
-            );
+            let (token, cursor) = StringLiteral::recognize(ExpressionCursor::new(source)).unwrap();
+            assert_eq!(token, ExpressionToken::String(value.into()));
             assert_eq!(cursor.current(), None);
         }
-        let mut cursor = ExpressionCursor::new("'bad");
-        assert_eq!(
-            StringLiteral::recognize(&mut cursor),
-            Err(LexerError::UnterminatedString(0))
-        );
+        let result = StringLiteral::recognize(ExpressionCursor::new("'bad"));
+        assert!(matches!(result, Err(LexerError::UnterminatedString(0))));
     }
 }
