@@ -17,12 +17,13 @@ mod tests {
 
     #[test]
     fn execute_returns_single_line_outputs() {
-        let container = container("artifact=ready\n");
+        let container = container("artifact=ready\nQUERY=a=b=c\n");
 
         let outputs = ReadStepOutputExportsService::new()
             .read(ReadStepOutputExportsRequest::new(), &container);
 
         assert_eq!(outputs.get("artifact").map(String::as_str), Some("ready"));
+        assert_eq!(outputs.get("QUERY").map(String::as_str), Some("a=b=c"));
     }
 
     #[test]
@@ -36,5 +37,15 @@ mod tests {
             outputs.get("REPORT").map(String::as_str),
             Some("first line\nsecond line"),
         );
+    }
+
+    #[test]
+    fn execute_returns_no_outputs_when_the_file_was_never_written() {
+        let container = StubExportingContainer::empty();
+
+        let outputs = ReadStepOutputExportsService::new()
+            .read(ReadStepOutputExportsRequest::new(), &container);
+
+        assert!(outputs.is_empty());
     }
 }

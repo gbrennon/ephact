@@ -39,13 +39,14 @@ impl ReadStepEnvExportsPort for ReadStepEnvExportsService {
                 &HashMap::new(),
             )
             .map(|result| {
-                let mut exports = RunnerExportParser::parse(result.stdout());
-                exports.retain(|name, _| {
-                    !name.starts_with("GITHUB_")
-                        && !name.starts_with("RUNNER_")
-                        && name != "NODE_OPTIONS"
-                });
-                exports
+                RunnerExportParser::parse(result.stdout())
+                    .into_iter()
+                    .filter(|(name, _)| {
+                        !name.starts_with("GITHUB_")
+                            && !name.starts_with("RUNNER_")
+                            && name != "NODE_OPTIONS"
+                    })
+                    .collect()
             })
             .unwrap_or_default()
     }
