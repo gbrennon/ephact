@@ -63,7 +63,7 @@ mod tests {
     #[test]
     fn execute_rejects_protected_environment_variables() {
         let container = container(
-            "GITHUB_WORKSPACE=/wrong\nRUNNER_OS=Windows\nNODE_OPTIONS=--require=bad\nCI=false\nMODE=release\n",
+            "GITHUB_WORKSPACE=/wrong\nRUNNER_OS=Windows\nNODE_OPTIONS=--require=bad\nGITHUB=allowed\nNODE_OPTIONS_EXTRA=allowed\nCI=false\nMODE=release\n",
         );
 
         let env =
@@ -72,6 +72,11 @@ mod tests {
         assert!(!env.contains_key("GITHUB_WORKSPACE"));
         assert!(!env.contains_key("RUNNER_OS"));
         assert!(!env.contains_key("NODE_OPTIONS"));
+        assert_eq!(env.get("GITHUB").map(String::as_str), Some("allowed"));
+        assert_eq!(
+            env.get("NODE_OPTIONS_EXTRA").map(String::as_str),
+            Some("allowed"),
+        );
         assert_eq!(env.get("CI").map(String::as_str), Some("false"));
         assert_eq!(env.get("MODE").map(String::as_str), Some("release"));
     }

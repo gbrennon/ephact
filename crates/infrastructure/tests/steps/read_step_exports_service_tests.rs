@@ -20,12 +20,14 @@ mod tests {
     #[test]
     fn execute_carries_all_collaborators_results_through() {
         let path_reader = FakeReadStepPathExportsPort::returning(vec!["/opt/bin".to_string()]);
-        let mut exported = HashMap::new();
-        exported.insert("A".to_string(), "1".to_string());
-        let env_reader = FakeReadStepEnvExportsPort::returning(exported);
-        let mut outputs = HashMap::new();
-        outputs.insert("artifact".to_string(), "ready".to_string());
-        let output_reader = FakeReadStepOutputExportsPort::returning(outputs);
+        let env_reader = FakeReadStepEnvExportsPort::returning(HashMap::from([(
+            "A".to_string(),
+            "1".to_string(),
+        )]));
+        let output_reader = FakeReadStepOutputExportsPort::returning(HashMap::from([(
+            "artifact".to_string(),
+            "ready".to_string(),
+        )]));
         let service = ReadStepExportsService::new(
             Box::new(path_reader.clone()),
             Box::new(env_reader.clone()),
