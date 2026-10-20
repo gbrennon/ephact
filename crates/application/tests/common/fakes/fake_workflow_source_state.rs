@@ -6,6 +6,7 @@ use ephact::{
     domain::Repository,
 };
 
+#[derive(Clone)]
 pub struct FakeWorkflowSourceState {
     workflows: Vec<WorkflowListItemResponse>,
     actions: Vec<String>,
@@ -58,54 +59,54 @@ impl Default for FakeWorkflowSourceState {
 }
 
 impl FakeWorkflowSourceState {
-    pub fn configure_workflows(&mut self, workflows: Vec<WorkflowListItemResponse>) {
-        self.workflows = workflows;
+    pub fn configure_workflows(self, workflows: Vec<WorkflowListItemResponse>) -> Self {
+        Self { workflows, ..self }
     }
 
-    pub fn configure_actions(&mut self, actions: Vec<String>) {
-        self.actions = actions;
+    pub fn configure_actions(self, actions: Vec<String>) -> Self {
+        Self { actions, ..self }
     }
 
     pub fn configure_content(
-        &mut self,
+        self,
         content: Option<&str>,
         file_name: Option<&str>,
         all_contents: Option<Vec<String>>,
-    ) {
-        if let Some(content) = content {
-            self.workflow_content = content.to_string();
-        }
-        if let Some(file_name) = file_name {
-            self.workflow_file_name = file_name.to_string();
-        }
-        if let Some(all_contents) = all_contents {
-            self.all_workflow_contents = all_contents;
+    ) -> Self {
+        Self {
+            workflow_content: content.map(str::to_owned).unwrap_or(self.workflow_content),
+            workflow_file_name: file_name
+                .map(str::to_owned)
+                .unwrap_or(self.workflow_file_name),
+            all_workflow_contents: all_contents.unwrap_or(self.all_workflow_contents),
+            ..self
         }
     }
 
     pub fn configure_failures(
-        &mut self,
+        self,
         read_workflow: Option<&str>,
         read_all_workflows: Option<&str>,
         list_actions: Option<&str>,
         list_workflows: Option<&str>,
-    ) {
-        if let Some(message) = read_workflow {
-            self.read_workflow_error = Some(message.to_string());
-        }
-        if let Some(message) = read_all_workflows {
-            self.read_all_workflows_error = Some(message.to_string());
-        }
-        if let Some(message) = list_actions {
-            self.list_actions_error = Some(message.to_string());
-        }
-        if let Some(message) = list_workflows {
-            self.list_workflows_error = Some(message.to_string());
+    ) -> Self {
+        Self {
+            read_workflow_error: read_workflow
+                .map(str::to_owned)
+                .or(self.read_workflow_error),
+            read_all_workflows_error: read_all_workflows
+                .map(str::to_owned)
+                .or(self.read_all_workflows_error),
+            list_actions_error: list_actions.map(str::to_owned).or(self.list_actions_error),
+            list_workflows_error: list_workflows
+                .map(str::to_owned)
+                .or(self.list_workflows_error),
+            ..self
         }
     }
 
     pub fn execute(
-        &mut self,
+        &self,
         operation: FakeWorkflowSourceStateOperation,
     ) -> FakeWorkflowSourceStateResult {
         match operation {
@@ -181,5 +182,123 @@ impl FakeWorkflowSourceState {
 
         let _ = repository;
         Ok(self.workflows.clone())
+    }
+}
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use ephact::domain::{RepoPath, RepositoryName};
+
+    use super::*;
+
+    fn repository() -> Repository {
+        Repository::new(
+            RepoPath::new(PathBuf::from("workspace")).expect("valid repository path"),
+            RepositoryName::new("test-repo".to_string()).expect("valid repository name"),
+        )
+    }
+
+    #[test]
+    fn immutable_configuration_drives_each_execution_result() {
+        let repository = repository();
+        let state = FakeWorkflowSourceState::default()
+            .configure_workflows(vec![WorkflowListItemResponse::new(
+                Some("build".to_string()),
+                Some("build.yml".to_string()),
+                vec!["push".to_string()],
+            )])
+            .configure_actions(vec!["build".to_string()])
+            .configure_content(
+                Some("name: Build"),
+                Some("build.yml"),
+                Some(vec!["name: Build".to_string()]),
+            );
+
+        let FakeWorkflowSourceStateResult::Workflows(Ok(workflows)) =
+            state.execute(FakeWorkflowSourceStateOperation::ListWorkflows {
+                repository: repository.clone(),
+            })
+        else {
+            panic!("expected workflow list result");
+        };
+        assert_eq!(workflows.len(), 1);
+        assert_eq!(workflows[0].name(), Some("build"));
+
+        let FakeWorkflowSourceStateResult::Actions(Ok(actions)) =
+            state.execute(FakeWorkflowSourceStateOperation::ListActions {
+                repository: repository.clone(),
+            })
+        else {
+            panic!("expected action list result");
+        };
+        assert_eq!(actions, vec!["build".to_string()]);
+
+        let FakeWorkflowSourceStateResult::Workflow(Ok(workflow)) =
+            state.execute(FakeWorkflowSourceStateOperation::ReadWorkflow {
+                repository: repository.clone(),
+                workflow_name: Some("build".to_string()),
+            })
+        else {
+            panic!("expected workflow result");
+        };
+        assert_eq!(workflow.content(), "name: Build");
+        assert_eq!(workflow.file_name(), "build.yml");
+
+        let FakeWorkflowSourceStateResult::AllWorkflows(Ok(workflows)) =
+            state.execute(FakeWorkflowSourceStateOperation::ReadAllWorkflows { repository })
+        else {
+            panic!("expected all-workflows result");
+        };
+        assert_eq!(workflows.len(), 1);
+        assert_eq!(workflows[0].content(), "name: Build");
+        assert_eq!(workflows[0].file_name(), "workflow-0.yml");
+    }
+
+    #[test]
+    fn immutable_failure_configuration_is_returned_by_execution() {
+        let repository = repository();
+        let state = FakeWorkflowSourceState::default().configure_failures(
+            Some("workflow missing"),
+            Some("workflows missing"),
+            Some("actions missing"),
+            Some("workflow list missing"),
+        );
+
+        let FakeWorkflowSourceStateResult::Workflow(Err(WorkflowSourceError::NotFound(message))) =
+            state.execute(FakeWorkflowSourceStateOperation::ReadWorkflow {
+                repository: repository.clone(),
+                workflow_name: None,
+            })
+        else {
+            panic!("expected workflow failure");
+        };
+        assert_eq!(message, "workflow missing");
+
+        let FakeWorkflowSourceStateResult::AllWorkflows(Err(WorkflowSourceError::NotFound(
+            message,
+        ))) = state.execute(FakeWorkflowSourceStateOperation::ReadAllWorkflows {
+            repository: repository.clone(),
+        })
+        else {
+            panic!("expected all-workflows failure");
+        };
+        assert_eq!(message, "workflows missing");
+
+        let FakeWorkflowSourceStateResult::Actions(Err(WorkflowSourceError::NotFound(message))) =
+            state.execute(FakeWorkflowSourceStateOperation::ListActions {
+                repository: repository.clone(),
+            })
+        else {
+            panic!("expected action failure");
+        };
+        assert_eq!(message, "actions missing");
+
+        let FakeWorkflowSourceStateResult::Workflows(Err(WorkflowSourceError::NotFound(message))) =
+            state.execute(FakeWorkflowSourceStateOperation::ListWorkflows { repository })
+        else {
+            panic!("expected workflow-list failure");
+        };
+        assert_eq!(message, "workflow list missing");
     }
 }
