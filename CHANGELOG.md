@@ -132,6 +132,7 @@
 - **ci**: Split workflow source test state
 - **domain**: Keep classifier fake in unit tests
 - **ci**: Trigger checks for generated changelog branch
+- **domain**: Elide planner helper lifetime
 
 ### Refactor
 
@@ -222,6 +223,11 @@
 - **steps**: Extract StepInterpolator from mod.rs into its own file
 - **workflows**: Encapsulate execution context fields
 - **infrastructure**: Remove mut from first batch
+- Remove mut from parser state
+- **application**: Remove mut from response DTOs
+- **application**: Split response DTO types
+- **test**: Remove mut from workflow source fakes
+- **domain**: Remove mutable planner state
 
 ### Documentation
 
@@ -405,6 +411,7 @@
 - **workflows**: Cover event conditions end to end
 - **workflows**: Cover event conditions end to end
 - **workflows**: Cover selected job filtering
+- **application**: Remove unnecessary mutable fixtures
 
 ### Continuous Integration
 

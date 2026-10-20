@@ -7,18 +7,15 @@ impl IdentifierToken {
         ch == '_' || ch.is_ascii_alphabetic()
     }
 
-    pub fn recognize(cursor: &mut ExpressionCursor<'_>) -> ExpressionToken {
-        let mut name = String::new();
-        while cursor.current().is_some_and(Self::continues) {
-            name.push(cursor.current().unwrap());
-            cursor.advance();
-        }
-        match name.as_str() {
+    pub fn recognize(cursor: ExpressionCursor<'_>) -> (ExpressionToken, ExpressionCursor<'_>) {
+        let (name, cursor) = cursor.take_while(Self::continues);
+        let token = match name {
             "true" => ExpressionToken::Boolean(true),
             "false" => ExpressionToken::Boolean(false),
             "null" => ExpressionToken::Null,
-            _ => ExpressionToken::Identifier(name),
-        }
+            _ => ExpressionToken::Identifier(name.into()),
+        };
+        (token, cursor)
     }
 
     fn continues(ch: char) -> bool {
@@ -43,8 +40,9 @@ mod tests {
             ("_x", ExpressionToken::Identifier("_x".into())),
         ] {
             assert!(IdentifierToken::starts(source.chars().next().unwrap()));
-            let mut cursor = ExpressionCursor::new(source);
-            assert_eq!(IdentifierToken::recognize(&mut cursor), expected);
+            let cursor = ExpressionCursor::new(source);
+            let (token, cursor) = IdentifierToken::recognize(cursor);
+            assert_eq!(token, expected);
             assert_eq!(cursor.current(), None);
         }
     }

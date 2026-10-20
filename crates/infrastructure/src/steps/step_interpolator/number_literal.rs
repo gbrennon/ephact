@@ -9,45 +9,35 @@ impl NumberLiteral {
                 && cursor.peek_next().is_some_and(|ch| ch.is_ascii_digit()))
     }
 
-    pub fn recognize(cursor: &mut ExpressionCursor<'_>) -> ExpressionToken {
-        let mut literal = String::new();
-        if cursor.current() == Some('-') {
-            literal.push('-');
-            cursor.advance();
-        }
-        Self::append_digits(cursor, &mut literal);
-        let is_float = Self::append_fraction(cursor, &mut literal);
-        if is_float {
-            ExpressionToken::Float(
-                literal
-                    .parse()
-                    .expect("lex_number produced an unparseable float"),
-            )
-        } else {
-            ExpressionToken::Integer(
-                literal
-                    .parse()
-                    .expect("lex_number produced an unparseable int"),
-            )
-        }
-    }
-
-    fn append_digits(cursor: &mut ExpressionCursor<'_>, literal: &mut String) {
-        while cursor.current().is_some_and(|ch| ch.is_ascii_digit()) {
-            literal.push(cursor.current().unwrap());
-            cursor.advance();
-        }
-    }
-
-    fn append_fraction(cursor: &mut ExpressionCursor<'_>, literal: &mut String) -> bool {
+    pub fn recognize(cursor: ExpressionCursor<'_>) -> (ExpressionToken, ExpressionCursor<'_>) {
+        let (sign, cursor) = match cursor.current() {
+            Some('-') => ("-", cursor.advance()),
+            _ => ("", cursor),
+        };
+        let (digits, cursor) = cursor.take_while(|ch| ch.is_ascii_digit());
+        let literal = format!("{sign}{digits}");
         if cursor.current() == Some('.') && cursor.peek_next().is_some_and(|ch| ch.is_ascii_digit())
         {
-            literal.push('.');
-            cursor.advance();
-            Self::append_digits(cursor, literal);
-            true
+            let cursor = cursor.advance();
+            let (fraction, cursor) = cursor.take_while(|ch| ch.is_ascii_digit());
+            let literal = format!("{literal}.{fraction}");
+            (
+                ExpressionToken::Float(
+                    literal
+                        .parse()
+                        .expect("lex_number produced an unparseable float"),
+                ),
+                cursor,
+            )
         } else {
-            false
+            (
+                ExpressionToken::Integer(
+                    literal
+                        .parse()
+                        .expect("lex_number produced an unparseable int"),
+                ),
+                cursor,
+            )
         }
     }
 }
@@ -66,9 +56,10 @@ mod tests {
             ("-7", ExpressionToken::Integer(-7)),
             ("2.5", ExpressionToken::Float(2.5)),
         ] {
-            let mut cursor = ExpressionCursor::new(source);
+            let cursor = ExpressionCursor::new(source);
             assert!(NumberLiteral::starts(&cursor));
-            assert_eq!(NumberLiteral::recognize(&mut cursor), expected);
+            let (token, cursor) = NumberLiteral::recognize(cursor);
+            assert_eq!(token, expected);
             assert_eq!(cursor.current(), None);
         }
         assert!(!NumberLiteral::starts(&ExpressionCursor::new("-x")));
