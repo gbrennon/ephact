@@ -145,9 +145,10 @@ mod tests {
 
     #[test]
     fn for_step_layers_step_env_over_job_env() {
-        let mut job_env = HashMap::new();
-        job_env.insert("MODE".to_string(), "job".to_string());
-        job_env.insert("KEEP".to_string(), "yes".to_string());
+        let job_env = HashMap::from([
+            ("MODE".to_string(), "job".to_string()),
+            ("KEEP".to_string(), "yes".to_string()),
+        ]);
 
         let command = ShellCommand::for_step(
             &ShellCommand::step_for_test(

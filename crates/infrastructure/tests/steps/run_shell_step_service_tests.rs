@@ -68,8 +68,7 @@ mod tests {
         let runtime = FakeRuntime::new();
         let container = container(&runtime);
         let step = step_from("run: echo hi\nenv:\n  MODE: step\n");
-        let mut env = HashMap::new();
-        env.insert("MODE".to_string(), "job".to_string());
+        let env = HashMap::from([("MODE".to_string(), "job".to_string())]);
 
         RunShellStepService::new(Box::new(FakeEventBus::new()))
             .run(RunShellStepRequest::new(&step, container.as_ref(), &env))

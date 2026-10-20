@@ -130,8 +130,7 @@ mod tests {
         let config = make_config("ephact-test-docker-env");
         let _ = runtime.remove_container("ephact-test-docker-env");
         let container = runtime.create_container(&config).unwrap();
-        let mut env = HashMap::new();
-        env.insert("MY_VAR".into(), "my_value".into());
+        let env = HashMap::from([("MY_VAR".into(), "my_value".into())]);
         let result = container
             .exec(
                 &["sh".into(), "-c".into(), "echo -n $MY_VAR".into()],

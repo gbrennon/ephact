@@ -177,8 +177,7 @@ mod tests {
         let service = service(runner.clone());
         let container = StubContainer;
         let request_owner = action_request(&container);
-        let mut inputs = HashMap::new();
-        inputs.insert("mode".to_string(), "staging".to_string());
+        let inputs = HashMap::from([("mode".to_string(), "staging".to_string())]);
 
         service
             .run(
@@ -250,10 +249,8 @@ mod tests {
     #[test]
     fn execute_passes_runner_exports_to_following_steps() {
         let runner = FakeRunCompositeStepPort::queueing(vec![result(0, ""), result(0, "")]);
-        let mut environment_exports = HashMap::new();
-        environment_exports.insert("TOKEN".to_owned(), "secret".to_owned());
-        let mut output_exports = HashMap::new();
-        output_exports.insert("artifact".to_owned(), "ready".to_owned());
+        let environment_exports = HashMap::from([("TOKEN".to_owned(), "secret".to_owned())]);
+        let output_exports = HashMap::from([("artifact".to_owned(), "ready".to_owned())]);
         let exports_reader = FakeStepExportsReaderPort::queueing_with_outputs(vec![(
             vec!["/opt/tool/bin".to_owned()],
             environment_exports,
