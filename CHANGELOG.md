@@ -229,6 +229,8 @@
 - **test**: Remove mut from workflow source fakes
 - **domain**: Remove mutable planner state
 - Remove unnecessary mutability from builders
+- **tests**: Remove mutable export queue setup
+- **infrastructure-tests**: Remove mutable export queue setup
 
 ### Documentation
 
