@@ -35,12 +35,11 @@ impl FakeStepExportsReaderPort {
     }
 
     pub fn queueing_with_outputs(exports: Vec<QueuedStepExportsWithOutputs>) -> Self {
-        let mut queued = Vec::with_capacity(exports.len());
-        let mut output_queued = Vec::with_capacity(exports.len());
-        for (path_additions, env, outputs) in exports {
-            queued.push((path_additions, env));
-            output_queued.push(outputs);
-        }
+        let (queued, output_queued): (Vec<QueuedStepExports>, Vec<HashMap<String, String>>) =
+            exports
+                .into_iter()
+                .map(|(path_additions, env, outputs)| ((path_additions, env), outputs))
+                .unzip();
         Self {
             queued: Arc::new(Mutex::new(queued)),
             output_queued: Arc::new(Mutex::new(output_queued)),
