@@ -228,6 +228,7 @@
 - **application**: Split response DTO types
 - **test**: Remove mut from workflow source fakes
 - **domain**: Remove mutable planner state
+- Remove unnecessary mutability from builders
 
 ### Documentation
 
