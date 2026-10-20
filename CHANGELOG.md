@@ -223,6 +223,8 @@
 - **workflows**: Encapsulate execution context fields
 - **infrastructure**: Remove mut from first batch
 - Remove mut from parser state
+- **application**: Remove mut from response DTOs
+- **application**: Split response DTO types
 
 ### Documentation
 
