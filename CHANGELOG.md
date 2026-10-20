@@ -131,6 +131,7 @@
 - **ci**: Provision nightly coverage toolchain noninteractively
 - **ci**: Split workflow source test state
 - **domain**: Keep classifier fake in unit tests
+- **ci**: Trigger checks for generated changelog branch
 
 ### Refactor
 
