@@ -196,18 +196,18 @@ impl<'a> InputCollector<'a> {
 
     fn apply_input_value(
         &self,
-        mut config: WorkflowRunConfig,
+        config: WorkflowRunConfig,
         declaration: &crate::application::dtos::responses::RunInputDeclarationResponse,
         value: String,
     ) -> Result<WorkflowRunConfig, Box<dyn std::error::Error>> {
-        if !value.is_empty() {
-            let (_, source) =
-                InputParser::parse_input_source(&format!("{}={value}", declaration.name()))?;
-            config = config.add_input(WorkflowInput::new(
-                declaration.name().to_owned(),
-                source.resolve()?,
-            ));
+        if value.is_empty() {
+            return Ok(config);
         }
-        Ok(config)
+        let (_, source) =
+            InputParser::parse_input_source(&format!("{}={value}", declaration.name()))?;
+        Ok(config.add_input(WorkflowInput::new(
+            declaration.name().to_owned(),
+            source.resolve()?,
+        )))
     }
 }
