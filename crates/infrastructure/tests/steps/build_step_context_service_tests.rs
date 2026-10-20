@@ -13,8 +13,7 @@ mod tests {
 
     #[test]
     fn execute_mirrors_the_environment_into_the_env_context() {
-        let mut env = HashMap::new();
-        env.insert("MODE".to_string(), "staging".to_string());
+        let env = HashMap::from([("MODE".to_string(), "staging".to_string())]);
 
         let context = BuildStepContextService::new().build(BuildStepContextRequest::new(
             EvaluationContext::new(),
