@@ -24,118 +24,163 @@ pub struct WorkflowRunConfigMapper {
 }
 
 impl WorkflowRunConfigMapper {
-    pub fn with_workflow(mut self, workflow: Option<String>) -> Self {
-        self.workflow = workflow;
-        self
+    pub fn with_workflow(self, workflow: Option<String>) -> Self {
+        Self { workflow, ..self }
     }
 
-    pub fn with_job(mut self, job: Option<String>) -> Self {
-        self.job = job;
-        self
+    pub fn with_job(self, job: Option<String>) -> Self {
+        Self { job, ..self }
     }
 
-    pub fn with_event(mut self, event: Option<String>) -> Self {
-        self.event = event;
-        self
+    pub fn with_event(self, event: Option<String>) -> Self {
+        Self { event, ..self }
     }
-    pub fn with_event_path(mut self, event_path: Option<PathBuf>) -> Self {
-        self.event_path = event_path;
-        self
+    pub fn with_event_path(self, event_path: Option<PathBuf>) -> Self {
+        Self { event_path, ..self }
     }
 
-    pub fn with_workflow_directory(mut self, workflow_directory: Option<PathBuf>) -> Self {
-        self.workflow_directory = workflow_directory;
-        self
+    pub fn with_workflow_directory(self, workflow_directory: Option<PathBuf>) -> Self {
+        Self {
+            workflow_directory,
+            ..self
+        }
     }
 
-    pub fn with_inputs(mut self, inputs: Vec<(String, String)>) -> Self {
-        self.inputs = inputs;
-        self
+    pub fn with_inputs(self, inputs: Vec<(String, String)>) -> Self {
+        Self { inputs, ..self }
     }
 
-    pub fn with_secrets(mut self, secrets: Vec<(String, String)>) -> Self {
-        self.secrets = secrets;
-        self
+    pub fn with_secrets(self, secrets: Vec<(String, String)>) -> Self {
+        Self { secrets, ..self }
     }
 
-    pub fn with_all_workflows(mut self, all_workflows: bool) -> Self {
-        self.all_workflows = all_workflows;
-        self
+    pub fn with_all_workflows(self, all_workflows: bool) -> Self {
+        Self {
+            all_workflows,
+            ..self
+        }
     }
 
-    pub fn with_allow_repo_writes(mut self, allow_repo_writes: bool) -> Self {
-        self.allow_repo_writes = allow_repo_writes;
-        self
+    pub fn with_allow_repo_writes(self, allow_repo_writes: bool) -> Self {
+        Self {
+            allow_repo_writes,
+            ..self
+        }
     }
 
-    pub fn with_allow_real_container(mut self, allow_real_container: bool) -> Self {
-        self.allow_real_container = allow_real_container;
-        self
+    pub fn with_allow_real_container(self, allow_real_container: bool) -> Self {
+        Self {
+            allow_real_container,
+            ..self
+        }
     }
 
-    pub fn with_allow_real_fetcher(mut self, allow_real_fetcher: bool) -> Self {
-        self.allow_real_fetcher = allow_real_fetcher;
-        self
+    pub fn with_allow_real_fetcher(self, allow_real_fetcher: bool) -> Self {
+        Self {
+            allow_real_fetcher,
+            ..self
+        }
     }
 
-    pub fn with_allow_network(mut self, allow_network: bool) -> Self {
-        self.allow_network = allow_network;
-        self
+    pub fn with_allow_network(self, allow_network: bool) -> Self {
+        Self {
+            allow_network,
+            ..self
+        }
     }
 
     /// Consumes the mapper and builds the domain workflow configuration.
     pub fn into_config(self) -> Result<WorkflowRunConfig, CoreError> {
-        let mut mapper = self;
-        let config = mapper.apply_named_values(WorkflowRunConfig::new())?;
-        let config = mapper.apply_collection_values(config);
-        Ok(mapper.apply_flags(config))
+        let Self {
+            workflow,
+            job,
+            event,
+            event_path,
+            workflow_directory,
+            inputs,
+            secrets,
+            all_workflows,
+            allow_repo_writes,
+            allow_real_container,
+            allow_real_fetcher,
+            allow_network,
+        } = self;
+        let config = Self::apply_named_values(
+            WorkflowRunConfig::new(),
+            workflow,
+            job,
+            event,
+            workflow_directory,
+            event_path,
+        )?;
+        let config = Self::apply_collection_values(config, inputs, secrets);
+        Ok(Self::apply_flags(
+            config,
+            all_workflows,
+            allow_repo_writes,
+            allow_real_container,
+            allow_real_fetcher,
+            allow_network,
+        ))
     }
 
     fn apply_named_values(
-        &mut self,
-        mut config: WorkflowRunConfig,
+        config: WorkflowRunConfig,
+        workflow: Option<String>,
+        job: Option<String>,
+        event: Option<String>,
+        workflow_directory: Option<PathBuf>,
+        event_path: Option<PathBuf>,
     ) -> Result<WorkflowRunConfig, CoreError> {
-        if let Some(workflow) = self.workflow.take() {
-            config = config.with_workflow(WorkflowPath::new(workflow));
+        let config = match workflow {
+            Some(workflow) => config.with_workflow(WorkflowPath::new(workflow)),
+            None => config,
+        };
+        let config = match job {
+            Some(job) => config.with_job(JobName::new(job)),
+            None => config,
+        };
+        let config = match event {
+            Some(event) => config.with_event(WorkflowEvent::new(event)),
+            None => config,
+        };
+        let config = match workflow_directory {
+            Some(workflow_directory) => config.with_workflow_directory(workflow_directory),
+            None => config,
+        };
+        match event_path {
+            Some(event_path) => Ok(config.with_event_path(EventPath::new(event_path)?)),
+            None => Ok(config),
         }
-        if let Some(job) = self.job.take() {
-            config = config.with_job(JobName::new(job));
-        }
-        if let Some(event) = self.event.take() {
-            config = config.with_event(WorkflowEvent::new(event));
-        }
-        if let Some(workflow_directory) = self.workflow_directory.take() {
-            config = config.with_workflow_directory(workflow_directory);
-        }
-        self.apply_event_path(config)
-    }
-    fn apply_event_path(
-        &mut self,
-        mut config: WorkflowRunConfig,
-    ) -> Result<WorkflowRunConfig, CoreError> {
-        if let Some(event_path) = self.event_path.take() {
-            config = config.with_event_path(EventPath::new(event_path)?);
-        }
-        Ok(config)
     }
 
-    fn apply_collection_values(&mut self, mut config: WorkflowRunConfig) -> WorkflowRunConfig {
-        for (key, value) in std::mem::take(&mut self.inputs) {
-            config = config.add_input(WorkflowInput::new(key, value));
-        }
-        for (name, value) in std::mem::take(&mut self.secrets) {
-            config = config.add_secret(Secret::new(name, value));
-        }
-        config
+    fn apply_collection_values(
+        config: WorkflowRunConfig,
+        inputs: Vec<(String, String)>,
+        secrets: Vec<(String, String)>,
+    ) -> WorkflowRunConfig {
+        let config = inputs.into_iter().fold(config, |config, (key, value)| {
+            config.add_input(WorkflowInput::new(key, value))
+        });
+        secrets.into_iter().fold(config, |config, (name, value)| {
+            config.add_secret(Secret::new(name, value))
+        })
     }
 
-    fn apply_flags(&self, config: WorkflowRunConfig) -> WorkflowRunConfig {
+    fn apply_flags(
+        config: WorkflowRunConfig,
+        all_workflows: bool,
+        allow_repo_writes: bool,
+        allow_real_container: bool,
+        allow_real_fetcher: bool,
+        allow_network: bool,
+    ) -> WorkflowRunConfig {
         config
-            .with_all_workflows(self.all_workflows)
-            .with_allow_repo_writes(self.allow_repo_writes)
-            .with_allow_real_container(self.allow_real_container)
-            .with_allow_real_fetcher(self.allow_real_fetcher)
-            .with_allow_network(self.allow_network)
+            .with_all_workflows(all_workflows)
+            .with_allow_repo_writes(allow_repo_writes)
+            .with_allow_real_container(allow_real_container)
+            .with_allow_real_fetcher(allow_real_fetcher)
+            .with_allow_network(allow_network)
     }
 }
 

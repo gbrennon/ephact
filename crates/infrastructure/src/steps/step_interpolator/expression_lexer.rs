@@ -32,13 +32,18 @@ impl<'a> ExpressionLexer<'a> {
     ///
     /// Returns [`LexerError`] if the next characters form an invalid token.
     #[cfg(test)]
-    fn peek_token(&mut self) -> Result<ExpressionToken, LexerError> {
-        if let Some(token) = &self.peeked {
-            return Ok(token.clone());
+    fn peek_token(self) -> Result<(Self, ExpressionToken), LexerError> {
+        if let Some(token) = self.peeked.clone() {
+            return Ok((self, token));
         }
-        let token = self.advance()?;
-        self.peeked = Some(token.clone());
-        Ok(token)
+        let (lexer, token) = self.advance()?;
+        Ok((
+            Self {
+                cursor: lexer.cursor,
+                peeked: Some(token.clone()),
+            },
+            token,
+        ))
     }
 
     /// Consumes and returns the next token from the input stream.
@@ -48,47 +53,60 @@ impl<'a> ExpressionLexer<'a> {
     /// # Errors
     ///
     /// Returns [`LexerError`] if the next characters form an invalid token.
-    pub fn next_token(&mut self) -> Result<ExpressionToken, LexerError> {
-        match self.peeked.take() {
-            Some(token) => Ok(token),
+    pub fn next_token(self) -> Result<(Self, ExpressionToken), LexerError> {
+        match self.peeked {
+            Some(token) => Ok((
+                Self {
+                    cursor: self.cursor,
+                    peeked: None,
+                },
+                token,
+            )),
             None => self.advance(),
         }
     }
 
-    fn advance(&mut self) -> Result<ExpressionToken, LexerError> {
-        self.skip_whitespace();
-        self.dispatch_char()
+    fn advance(self) -> Result<(Self, ExpressionToken), LexerError> {
+        let cursor = Self::skip_whitespace(self.cursor);
+        let (token, cursor) = Self::dispatch_char(cursor)?;
+        Ok((
+            Self {
+                cursor,
+                peeked: None,
+            },
+            token,
+        ))
     }
 
-    fn skip_whitespace(&mut self) {
-        while self
-            .cursor
-            .current()
-            .is_some_and(|ch| ch.is_ascii_whitespace())
-        {
-            self.cursor.advance();
+    fn skip_whitespace(cursor: ExpressionCursor<'a>) -> ExpressionCursor<'a> {
+        cursor.take_while(|ch| ch.is_ascii_whitespace()).1
+    }
+
+    fn dispatch_char(
+        cursor: ExpressionCursor<'a>,
+    ) -> Result<(ExpressionToken, ExpressionCursor<'a>), LexerError> {
+        match cursor.current() {
+            Some('\'') => StringLiteral::recognize(cursor),
+            Some(ch) => Self::dispatch_non_string_char(cursor, ch),
+            None => Ok((ExpressionToken::EndOfInput, cursor)),
         }
     }
 
-    fn dispatch_char(&mut self) -> Result<ExpressionToken, LexerError> {
-        match self.cursor.current() {
-            Some('\'') => StringLiteral::recognize(&mut self.cursor),
-            Some(ch) => self.dispatch_non_string_char(ch),
-            None => Ok(ExpressionToken::EndOfInput),
+    fn dispatch_non_string_char(
+        cursor: ExpressionCursor<'a>,
+        ch: char,
+    ) -> Result<(ExpressionToken, ExpressionCursor<'a>), LexerError> {
+        let (operator, cursor) = OperatorToken::recognize(cursor)?;
+        if let Some(token) = operator {
+            return Ok((token, cursor));
         }
-    }
-
-    fn dispatch_non_string_char(&mut self, ch: char) -> Result<ExpressionToken, LexerError> {
-        if let Some(token) = OperatorToken::recognize(&mut self.cursor)? {
-            return Ok(token);
-        }
-        if NumberLiteral::starts(&self.cursor) {
-            return Ok(NumberLiteral::recognize(&mut self.cursor));
+        if NumberLiteral::starts(&cursor) {
+            return Ok(NumberLiteral::recognize(cursor));
         }
         if IdentifierToken::starts(ch) {
-            return Ok(IdentifierToken::recognize(&mut self.cursor));
+            return Ok(IdentifierToken::recognize(cursor));
         }
-        Err(LexerError::UnexpectedChar(ch, self.cursor.position()))
+        Err(LexerError::UnexpectedChar(ch, cursor.position()))
     }
 }
 
@@ -98,17 +116,23 @@ mod tests {
 
     impl<'a> ExpressionLexer<'a> {
         fn lex_all_for_test(input: &'a str) -> Result<Vec<ExpressionToken>, LexerError> {
-            let mut lexer = ExpressionLexer::new(input);
-            let mut tokens = Vec::new();
-            loop {
-                let token = lexer.next_token()?;
-                let done = matches!(token, ExpressionToken::EndOfInput);
-                tokens.push(token);
-                if done {
-                    break;
-                }
+            Self::lex_all(ExpressionLexer::new(input), Vec::new())
+        }
+
+        fn lex_all(
+            lexer: ExpressionLexer<'a>,
+            tokens: Vec<ExpressionToken>,
+        ) -> Result<Vec<ExpressionToken>, LexerError> {
+            let (lexer, token) = lexer.next_token()?;
+            let tokens = tokens
+                .into_iter()
+                .chain(std::iter::once(token.clone()))
+                .collect();
+            if matches!(&token, ExpressionToken::EndOfInput) {
+                Ok(tokens)
+            } else {
+                Self::lex_all(lexer, tokens)
             }
-            Ok(tokens)
         }
     }
 
@@ -225,46 +249,32 @@ mod tests {
 
     #[test]
     fn peek_does_not_consume() {
-        let mut lexer = ExpressionLexer::new("foo");
-        let first = lexer.peek_token().unwrap();
-        let second = lexer.peek_token().unwrap();
+        let (lexer, first) = ExpressionLexer::new("foo").peek_token().unwrap();
+        let (_, second) = lexer.peek_token().unwrap();
         assert_eq!(first, ExpressionToken::Identifier("foo".into()));
         assert_eq!(second, ExpressionToken::Identifier("foo".into()));
     }
 
     #[test]
     fn peek_then_next_consumes() {
-        let mut lexer = ExpressionLexer::new("foo bar");
-        assert_eq!(
-            lexer.peek_token().unwrap(),
-            ExpressionToken::Identifier("foo".into())
-        );
-        assert_eq!(
-            lexer.next_token().unwrap(),
-            ExpressionToken::Identifier("foo".into())
-        );
-        assert_eq!(
-            lexer.next_token().unwrap(),
-            ExpressionToken::Identifier("bar".into())
-        );
-        assert_eq!(lexer.next_token().unwrap(), ExpressionToken::EndOfInput);
+        let (lexer, token) = ExpressionLexer::new("foo bar").peek_token().unwrap();
+        assert_eq!(token, ExpressionToken::Identifier("foo".into()));
+        let (lexer, token) = lexer.next_token().unwrap();
+        assert_eq!(token, ExpressionToken::Identifier("foo".into()));
+        let (lexer, token) = lexer.next_token().unwrap();
+        assert_eq!(token, ExpressionToken::Identifier("bar".into()));
+        let (_, token) = lexer.next_token().unwrap();
+        assert_eq!(token, ExpressionToken::EndOfInput);
     }
 
     #[test]
     fn peek_after_next_returns_next_token() {
-        let mut lexer = ExpressionLexer::new("a b");
-        assert_eq!(
-            lexer.next_token().unwrap(),
-            ExpressionToken::Identifier("a".into())
-        );
-        assert_eq!(
-            lexer.peek_token().unwrap(),
-            ExpressionToken::Identifier("b".into())
-        );
-        assert_eq!(
-            lexer.next_token().unwrap(),
-            ExpressionToken::Identifier("b".into())
-        );
+        let (lexer, token) = ExpressionLexer::new("a b").next_token().unwrap();
+        assert_eq!(token, ExpressionToken::Identifier("a".into()));
+        let (lexer, token) = lexer.peek_token().unwrap();
+        assert_eq!(token, ExpressionToken::Identifier("b".into()));
+        let (_, token) = lexer.next_token().unwrap();
+        assert_eq!(token, ExpressionToken::Identifier("b".into()));
     }
 
     #[test]
