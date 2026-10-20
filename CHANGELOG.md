@@ -131,6 +131,7 @@
 - **ci**: Provision nightly coverage toolchain noninteractively
 - **ci**: Split workflow source test state
 - **domain**: Keep classifier fake in unit tests
+- **ci**: Trigger checks for generated changelog branch
 
 ### Refactor
 
@@ -220,6 +221,7 @@
 - **cli**: Extract input parsing helpers
 - **steps**: Extract StepInterpolator from mod.rs into its own file
 - **workflows**: Encapsulate execution context fields
+- **infrastructure**: Remove mut from first batch
 
 ### Documentation
 
