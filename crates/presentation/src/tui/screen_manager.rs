@@ -75,48 +75,54 @@ impl ScreenManager {
         if self.current_screen == screen {
             return self.clone();
         }
-        let mut next = self.clone();
-        next.previous_screen = Some(self.current_screen);
-        next.current_screen = screen;
-        next
+        Self {
+            previous_screen: Some(self.current_screen),
+            current_screen: screen,
+            ..self.clone()
+        }
     }
 
-    pub fn with_actions(mut self, actions: Vec<String>) -> Self {
-        self.list_actions = ListActionsScreen::new(actions);
-        self
+    pub fn with_actions(self, actions: Vec<String>) -> Self {
+        Self {
+            list_actions: ListActionsScreen::new(actions),
+            ..self
+        }
     }
 
     pub fn with_settings(
-        mut self,
+        self,
         settings: Settings,
         store: Option<Arc<dyn SettingsStorePort>>,
     ) -> Self {
-        self.settings = SettingsScreen::new(settings, store);
-        self
+        Self {
+            settings: SettingsScreen::new(settings, store),
+            ..self
+        }
     }
 
-    pub fn with_host_ssh_settings(
-        mut self,
-        settings: Arc<dyn HostSshForwardingSettingsPort>,
-    ) -> Self {
-        self.settings = self.settings.with_host_ssh_settings(settings);
-        self
+    pub fn with_host_ssh_settings(self, settings: Arc<dyn HostSshForwardingSettingsPort>) -> Self {
+        Self {
+            settings: self.settings.with_host_ssh_settings(settings),
+            ..self
+        }
     }
     pub fn home_selection(&self) -> usize {
         self.home_selection
     }
 
     pub fn select_home_previous(&self) -> Self {
-        let mut next = self.clone();
-        next.home_selection = self.home_selection.saturating_sub(Self::SELECTION_STEP);
-        next
+        Self {
+            home_selection: self.home_selection.saturating_sub(Self::SELECTION_STEP),
+            ..self.clone()
+        }
     }
 
     pub fn select_home_next(&self) -> Self {
-        let mut next = self.clone();
-        next.home_selection =
-            (self.home_selection + Self::SELECTION_STEP).min(HomeScreen::LAST_MENU_INDEX);
-        next
+        Self {
+            home_selection: (self.home_selection + Self::SELECTION_STEP)
+                .min(HomeScreen::LAST_MENU_INDEX),
+            ..self.clone()
+        }
     }
 
     pub fn render(&self, frame: &mut Frame<'_>, splash_quote: &str) {
