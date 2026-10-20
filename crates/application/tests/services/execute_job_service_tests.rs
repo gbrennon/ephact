@@ -280,7 +280,9 @@ mod tests {
         assert_eq!(execution.job_summary().steps().len(), 2);
         assert_eq!(command_bus.dispatched_steps.lock().len(), 1);
         assert!(!execution.job_summary().steps()[0].is_skipped());
+        assert_eq!(execution.job_summary().steps()[0].exit_code(), Some(1));
         assert!(execution.job_summary().steps()[1].is_skipped());
+        assert_eq!(execution.job_summary().steps()[1].exit_code(), None);
         assert_eq!(
             execution.job_summary().steps()[1].skip_reason(),
             Some("previous step failed")
@@ -386,8 +388,7 @@ mod tests {
         let wf = single_job_workflow("      - run: one\n      - run: two\n");
         let plan = wf.plan().unwrap();
         let run = &plan.stages()[0].runs()[0];
-        let mut exported_env = HashMap::new();
-        exported_env.insert("EXPORTED".to_string(), "yes".to_string());
+        let exported_env = HashMap::from([("EXPORTED".to_string(), "yes".to_string())]);
         let exports =
             FakeStepExportsReaderPort::queueing(vec![(vec!["/opt/bin".to_string()], exported_env)]);
         let command_bus = FakeCommandBus::new();
@@ -571,8 +572,7 @@ mod tests {
         let plan = wf.plan().unwrap();
         let run = &plan.stages()[0].runs()[0];
         let command_bus = FakeCommandBus::new();
-        let mut outputs = HashMap::new();
-        outputs.insert("artifact".to_owned(), "ready".to_owned());
+        let outputs = HashMap::from([("artifact".to_owned(), "ready".to_owned())]);
         let exports = FakeStepExportsReaderPort::queueing_with_outputs(vec![(
             Vec::new(),
             HashMap::new(),
