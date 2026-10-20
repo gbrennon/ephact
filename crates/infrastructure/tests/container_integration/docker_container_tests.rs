@@ -77,8 +77,7 @@ mod tests {
         let _ = runtime.remove_container("ephact-test-docker-ct-env");
         let container = runtime.create_container(&config).unwrap();
 
-        let mut env = HashMap::new();
-        env.insert("CT_VAR".into(), "ct_value".into());
+        let env = HashMap::from([("CT_VAR".into(), "ct_value".into())]);
         let result = container
             .exec(
                 &["sh".into(), "-c".into(), "echo -n $CT_VAR".into()],
