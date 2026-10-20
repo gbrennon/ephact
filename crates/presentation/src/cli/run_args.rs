@@ -147,16 +147,22 @@ impl RunArgs {
             .with_allow_network(self.allow_network)
     }
 
-    fn apply_targets(&self, mut config: WorkflowRunConfig) -> WorkflowRunConfig {
-        if let Some(wf) = &self.workflow {
-            config = config.with_workflow(WorkflowPath::new(wf.clone()));
-        }
-        if let Some(directory) = &self.workflow_dir {
-            config = config.with_workflow_directory(directory.clone());
-        }
-        if let Some(job) = &self.job {
-            config = config.with_job(JobName::new(job.clone()));
-        }
+    fn apply_targets(&self, config: WorkflowRunConfig) -> WorkflowRunConfig {
+        let config = if let Some(wf) = &self.workflow {
+            config.with_workflow(WorkflowPath::new(wf.clone()))
+        } else {
+            config
+        };
+        let config = if let Some(directory) = &self.workflow_dir {
+            config.with_workflow_directory(directory.clone())
+        } else {
+            config
+        };
+        let config = if let Some(job) = &self.job {
+            config.with_job(JobName::new(job.clone()))
+        } else {
+            config
+        };
         if let Some(event) = self.event.clone() {
             config.with_event(WorkflowEvent::new(event))
         } else {
@@ -214,15 +220,17 @@ impl RunArgs {
     }
 
     /// Returns these arguments with persisted run defaults applied.
-    pub fn with_settings(mut self, settings: &crate::domain::Settings) -> Self {
-        self.interactive |= settings.interactive();
-        self.all_workflows |= settings.all_workflows();
-        self.preserve |= settings.preserve();
-        self.allow_repo_writes |= settings.allow_repo_writes();
-        self.allow_real_container |= settings.allow_real_container();
-        self.allow_real_fetcher |= settings.allow_real_fetcher();
-        self.allow_network |= settings.allow_network();
-        self.verbose |= settings.verbose();
-        self
+    pub fn with_settings(self, settings: &crate::domain::Settings) -> Self {
+        Self {
+            interactive: self.interactive | settings.interactive(),
+            all_workflows: self.all_workflows | settings.all_workflows(),
+            preserve: self.preserve | settings.preserve(),
+            allow_repo_writes: self.allow_repo_writes | settings.allow_repo_writes(),
+            allow_real_container: self.allow_real_container | settings.allow_real_container(),
+            allow_real_fetcher: self.allow_real_fetcher | settings.allow_real_fetcher(),
+            allow_network: self.allow_network | settings.allow_network(),
+            verbose: self.verbose | settings.verbose(),
+            ..self
+        }
     }
 }

@@ -90,8 +90,7 @@ mod tests {
             command_bus.clone(),
         );
         let step = step_from("uses: ./actions/greet\n");
-        let mut env = HashMap::new();
-        env.insert("MODE".to_string(), "staging".to_string());
+        let env = HashMap::from([("MODE".to_string(), "staging".to_string())]);
         let executed = service
             .execute(ExecuteStepRequest::new(
                 JsonStepTextCodec.encode(&step).unwrap(),

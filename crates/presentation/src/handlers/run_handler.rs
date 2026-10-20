@@ -302,7 +302,7 @@ impl RunHandler {
     }
 
     fn prepare_interactive_config(
-        mut config: WorkflowRunConfig,
+        config: WorkflowRunConfig,
         repository: &crate::domain::Repository,
         list_workflows_port: &dyn ListWorkflowsPort,
         terminal: &dyn Terminal,
@@ -318,10 +318,12 @@ impl RunHandler {
             .filter(|workflow| workflow.has_pull_request_event())
             .collect();
         let workflow = Self::select_pull_request_workflow(&workflows, terminal)?;
-        if let Some(name) = workflow.name() {
-            config = config.with_workflow(WorkflowPath::new(name.to_string()));
-        }
-        config = config
+        let config = if let Some(name) = workflow.name() {
+            config.with_workflow(WorkflowPath::new(name.to_string()))
+        } else {
+            config
+        };
+        let config = config
             .with_event(WorkflowEvent::new("pull_request".to_string()))
             .with_all_workflows(false);
         if collect_inputs {

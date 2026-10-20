@@ -27,9 +27,11 @@ impl WorkflowCommandHandler {
     }
 
     /// Replaces the filesystem source used to load event payloads.
-    pub fn with_workflow_source(mut self, workflow_source: Arc<dyn WorkflowSourcePort>) -> Self {
-        self.context_builder = GithubContextBuilder::new(workflow_source);
-        self
+    pub fn with_workflow_source(self, workflow_source: Arc<dyn WorkflowSourcePort>) -> Self {
+        Self {
+            context_builder: GithubContextBuilder::new(workflow_source),
+            ..self
+        }
     }
 
     pub fn handle(
