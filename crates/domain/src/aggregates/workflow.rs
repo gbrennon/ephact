@@ -272,7 +272,7 @@ impl Workflow {
         Ok(())
     }
 
-    fn take_next_stage<'a>(queue: VecDeque<&'a str>) -> Option<Vec<&'a str>> {
+    fn take_next_stage(queue: VecDeque<&str>) -> Option<Vec<&str>> {
         let stage_jobs: Vec<_> = queue.into_iter().collect();
         (!stage_jobs.is_empty()).then_some(stage_jobs)
     }
