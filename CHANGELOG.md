@@ -243,6 +243,7 @@
 - **infrastructure-tests**: Simplify shell step env
 - **test-fakes**: Split command bus types
 - **test-fakes**: Keep command bus type in matching file
+- **infrastructure**: Remove mut from export pipeline
 
 ### Documentation
 
