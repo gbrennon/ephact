@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{HashMap, VecDeque},
+    sync::Arc,
+};
 
 use ephact::{
     application::{
@@ -16,7 +19,7 @@ use super::fake_container_handle::FakeContainerHandle;
 pub struct FakeRuntime {
     pub pulled_images: Mutex<Vec<String>>,
     pub created_containers: Mutex<Vec<ContainerConfigResponse>>,
-    pub exec_results: Arc<Mutex<Vec<ExecResultResponse>>>,
+    pub exec_results: Arc<Mutex<VecDeque<ExecResultResponse>>>,
     pub executed_commands: Arc<Mutex<Vec<Vec<String>>>>,
     pub exec_environments: Arc<Mutex<Vec<HashMap<String, String>>>>,
     pub copied_paths: Arc<Mutex<Vec<String>>>,
@@ -30,7 +33,7 @@ impl FakeRuntime {
         Self {
             pulled_images: Mutex::new(vec![]),
             created_containers: Mutex::new(vec![]),
-            exec_results: Arc::new(Mutex::new(vec![])),
+            exec_results: Arc::new(Mutex::new(VecDeque::new())),
             executed_commands: Arc::new(Mutex::new(vec![])),
             exec_environments: Arc::new(Mutex::new(vec![])),
             copied_paths: Arc::new(Mutex::new(vec![])),
