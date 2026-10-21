@@ -244,6 +244,7 @@
 - **test-fakes**: Split command bus types
 - **test-fakes**: Keep command bus type in matching file
 - **infrastructure**: Remove mut from export pipeline
+- **application-tests**: Remove mutable fake guards
 
 ### Documentation
 
