@@ -241,6 +241,8 @@
 - **infrastructure-tests**: Simplify step context env
 - **infrastructure-tests**: Simplify step export maps
 - **infrastructure-tests**: Simplify shell step env
+- **test-fakes**: Split command bus types
+- **test-fakes**: Keep command bus type in matching file
 
 ### Documentation
 
