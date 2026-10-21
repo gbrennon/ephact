@@ -29,19 +29,21 @@ impl ReadStepPathExportsPort for ReadStepPathExportsService {
         _request: ReadStepPathExportsRequest,
         container: &dyn crate::application::ports::outbound::container_port::ContainerPort,
     ) -> Vec<String> {
-        let mut additions = Vec::new();
-        if let Ok(output) = container.exec(
-            &["cat".into(), RUNNER_PATH_FILE.into()],
-            None,
-            &HashMap::new(),
-        ) {
-            for line in output.stdout().lines() {
-                let trimmed = line.trim();
-                if !trimmed.is_empty() {
-                    additions.push(trimmed.to_string());
-                }
-            }
-        }
-        additions
+        container
+            .exec(
+                &["cat".into(), RUNNER_PATH_FILE.into()],
+                None,
+                &HashMap::new(),
+            )
+            .map(|output| {
+                output
+                    .stdout()
+                    .lines()
+                    .map(str::trim)
+                    .filter(|line| !line.is_empty())
+                    .map(str::to_owned)
+                    .collect()
+            })
+            .unwrap_or_default()
     }
 }
