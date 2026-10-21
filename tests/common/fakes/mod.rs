@@ -1,8 +1,11 @@
+pub mod dispatched_action_snapshot;
+pub mod dispatched_step_snapshot;
 pub mod fake_action_fetcher;
 pub mod fake_action_routing_command_bus;
 pub mod fake_build_action_input_environment_port;
 pub mod fake_collect_action_files_port;
 pub mod fake_command_bus;
+pub mod fake_command_bus_impl;
 pub mod fake_container_handle;
 pub mod fake_copy_action_to_container_port;
 pub mod fake_copy_repository_to_container_port;

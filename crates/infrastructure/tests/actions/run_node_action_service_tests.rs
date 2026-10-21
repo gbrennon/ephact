@@ -19,9 +19,7 @@ mod tests {
     };
 
     fn action_env() -> HashMap<String, String> {
-        let mut env = HashMap::new();
-        env.insert("INPUT_KEY".to_string(), "build-cache".to_string());
-        env
+        HashMap::from([("INPUT_KEY".to_string(), "build-cache".to_string())])
     }
 
     fn service(copier: FakeCopyActionToContainerPort) -> RunNodeActionService {

@@ -228,6 +228,21 @@
 - **application**: Split response DTO types
 - **test**: Remove mut from workflow source fakes
 - **domain**: Remove mutable planner state
+- Remove unnecessary mutability from builders
+- **tests**: Remove mutable export queue setup
+- **infrastructure-tests**: Remove mutable export queue setup
+- **domain-tests**: Remove mutable environment setup
+- **infrastructure-tests**: Simplify action test maps
+- **infrastructure-tests**: Simplify node action env
+- **infrastructure-tests**: Simplify docker env setup
+- **infrastructure-tests**: Simplify docker runtime env
+- **infrastructure-tests**: Simplify podman env setup
+- **infrastructure-tests**: Simplify podman runtime env
+- **infrastructure-tests**: Simplify step context env
+- **infrastructure-tests**: Simplify step export maps
+- **infrastructure-tests**: Simplify shell step env
+- **test-fakes**: Split command bus types
+- **test-fakes**: Keep command bus type in matching file
 
 ### Documentation
 
