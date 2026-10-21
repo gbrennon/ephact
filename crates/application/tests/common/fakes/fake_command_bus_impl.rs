@@ -1,0 +1,186 @@
+use std::{collections::HashMap, sync::Arc};
+
+use ephact::{
+    application::{
+        dtos::responses::{
+            ExecuteActionResponse, ExecutedStepResponse, JobExecutionResponse, JobSummaryResponse,
+            WorkflowExecutionResponse,
+        },
+        errors::{ExecuteJobError, ExecuteWorkflowError},
+        ports::outbound::{
+            ActionCommandPublisherPort, ContainerPort, JobCommandPublisherPort,
+            StepCommandPublisherPort, WorkflowCommandPublisherPort,
+        },
+    },
+    domain::{
+        errors::StepError,
+        messages::commands::{
+            ExecuteActionPayload, ExecuteJobPayload, ExecuteStepPayload, ExecuteWorkflowPayload,
+        },
+    },
+};
+
+use super::{
+    dispatched_action_snapshot::DispatchedActionSnapshot,
+    dispatched_step_snapshot::DispatchedStepSnapshot, fake_command_bus::FakeCommandBus,
+};
+
+impl FakeCommandBus {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_workflow_result(self, result: WorkflowExecutionResponse) -> Self {
+        Self {
+            workflow_result: Some(result),
+            ..self
+        }
+    }
+
+    pub fn with_action_result(self, result: ExecuteActionResponse) -> Self {
+        Self {
+            action_result: Some(result),
+            ..self
+        }
+    }
+
+    /// Answers the named jobs with a failed summary.
+    pub fn failing_jobs(self, job_ids: Vec<String>) -> Self {
+        Self {
+            failing_jobs: job_ids,
+            ..self
+        }
+    }
+
+    /// Answers every job publish with an error.
+    pub fn failing_job_dispatch(self, message: &str) -> Self {
+        Self {
+            job_error: Some(message.to_string()),
+            ..self
+        }
+    }
+
+    /// Answers every step publish with an error.
+    pub fn failing_step_dispatch(self, message: &str) -> Self {
+        Self {
+            step_error: Some(message.to_string()),
+            ..self
+        }
+    }
+
+    /// Answers step publishes with the queued exit codes, in order.
+    pub fn queueing_step_exit_codes(self, exit_codes: Vec<i64>) -> Self {
+        *self.step_exit_codes.lock() = exit_codes.into_iter().rev().collect();
+        self
+    }
+
+    /// Environments carried by the published step commands, in order.
+    pub fn dispatched_step_environments(&self) -> Vec<HashMap<String, String>> {
+        self.dispatched_steps
+            .lock()
+            .iter()
+            .map(|cmd| cmd.env().clone())
+            .collect()
+    }
+
+    pub fn dispatched_job_ids(&self) -> Vec<String> {
+        self.dispatched_jobs
+            .lock()
+            .iter()
+            .map(|cmd| cmd.job_id().to_owned())
+            .collect()
+    }
+
+    pub fn dispatched_action_refs(&self) -> Vec<String> {
+        self.dispatched_actions
+            .lock()
+            .iter()
+            .map(|cmd| cmd.action_ref().to_owned())
+            .collect()
+    }
+}
+
+impl WorkflowCommandPublisherPort for FakeCommandBus {
+    fn publish(
+        &self,
+        command: ExecuteWorkflowPayload,
+    ) -> Result<WorkflowExecutionResponse, ExecuteWorkflowError> {
+        self.dispatched_workflows.lock().push(command);
+        Ok(self.workflow_result.clone().unwrap_or_else(|| {
+            WorkflowExecutionResponse::new(
+                "fake-workflow".to_string(),
+                Vec::new(),
+                vec!["c1".to_string()],
+                true,
+            )
+        }))
+    }
+}
+
+impl JobCommandPublisherPort for FakeCommandBus {
+    fn publish(&self, command: ExecuteJobPayload) -> Result<JobExecutionResponse, ExecuteJobError> {
+        let job_id = command.job_id().to_owned();
+        let name = command.job().name().map(str::to_owned);
+        self.dispatched_jobs.lock().push(command);
+        if let Some(message) = &self.job_error {
+            return Err(ExecuteJobError::Preparation(message.clone()));
+        }
+        Ok(JobExecutionResponse::new(
+            JobSummaryResponse::new(
+                job_id.clone(),
+                name,
+                Vec::new(),
+                !self.failing_jobs.contains(&job_id),
+            ),
+            format!("container-{job_id}"),
+        ))
+    }
+}
+
+impl StepCommandPublisherPort for FakeCommandBus {
+    fn publish(
+        &self,
+        command: ExecuteStepPayload,
+        _container: Arc<dyn ContainerPort>,
+    ) -> Result<ExecutedStepResponse, StepError> {
+        let (step, env, context, repo_path) = command.into_parts();
+        self.dispatched_steps
+            .lock()
+            .push(DispatchedStepSnapshot::new(
+                step.clone(),
+                env,
+                context,
+                repo_path,
+            ));
+        if let Some(message) = &self.step_error {
+            return Err(StepError::new(message.clone()));
+        }
+        Ok(ExecutedStepResponse::new(
+            step,
+            ExecuteActionResponse::new(
+                self.step_exit_codes.lock().pop().unwrap_or(0),
+                String::new(),
+                String::new(),
+            ),
+        ))
+    }
+}
+
+impl ActionCommandPublisherPort for FakeCommandBus {
+    fn publish(
+        &self,
+        command: ExecuteActionPayload,
+        _container: Arc<dyn ContainerPort>,
+    ) -> Result<ExecuteActionResponse, StepError> {
+        let (action_ref, step, repo_path, env, context) = command.into_parts();
+        self.dispatched_actions
+            .lock()
+            .push(DispatchedActionSnapshot::new(
+                action_ref, step, repo_path, env, context,
+            ));
+        Ok(self
+            .action_result
+            .clone()
+            .unwrap_or_else(|| ExecuteActionResponse::new(0, String::new(), String::new())))
+    }
+}
