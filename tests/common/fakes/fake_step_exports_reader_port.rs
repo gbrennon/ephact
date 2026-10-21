@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{HashMap, VecDeque},
+    sync::Arc,
+};
 
 use ephact::application::{
     dtos::{requests::ReadStepExportsRequest, responses::StepExportsResponse},
@@ -16,8 +19,8 @@ type QueuedStepExportsWithOutputs = (
 /// Hands out the next queued set of exports, or nothing once drained.
 #[derive(Clone, Default)]
 pub struct FakeStepExportsReaderPort {
-    queued: Arc<Mutex<Vec<QueuedStepExports>>>,
-    output_queued: Arc<Mutex<Vec<HashMap<String, String>>>>,
+    queued: Arc<Mutex<VecDeque<QueuedStepExports>>>,
+    output_queued: Arc<Mutex<VecDeque<HashMap<String, String>>>>,
     calls: Arc<Mutex<usize>>,
 }
 
@@ -28,8 +31,8 @@ impl FakeStepExportsReaderPort {
 
     pub fn queueing(exports: Vec<QueuedStepExports>) -> Self {
         Self {
-            queued: Arc::new(Mutex::new(exports)),
-            output_queued: Arc::new(Mutex::new(Vec::new())),
+            queued: Arc::new(Mutex::new(VecDeque::from(exports))),
+            output_queued: Arc::new(Mutex::new(VecDeque::new())),
             calls: Arc::new(Mutex::new(0)),
         }
     }
@@ -41,8 +44,8 @@ impl FakeStepExportsReaderPort {
                 .map(|(path_additions, env, outputs)| ((path_additions, env), outputs))
                 .unzip();
         Self {
-            queued: Arc::new(Mutex::new(queued)),
-            output_queued: Arc::new(Mutex::new(output_queued)),
+            queued: Arc::new(Mutex::new(VecDeque::from(queued))),
+            output_queued: Arc::new(Mutex::new(VecDeque::from(output_queued))),
             calls: Arc::new(Mutex::new(0)),
         }
     }
@@ -59,19 +62,10 @@ impl StepExportsReaderPort for FakeStepExportsReaderPort {
         _container: &dyn ephact::application::ports::outbound::ContainerPort,
     ) -> StepExportsResponse {
         *self.calls.lock() += 1;
-        let mut queued = self.queued.lock();
-        if queued.is_empty() {
+        let Some((path_additions, env)) = self.queued.lock().pop_front() else {
             return StepExportsResponse::new(Vec::new(), HashMap::new());
-        }
-        let (path_additions, env) = queued.remove(0);
-        let outputs = {
-            let mut output_queued = self.output_queued.lock();
-            if output_queued.is_empty() {
-                HashMap::new()
-            } else {
-                output_queued.remove(0)
-            }
         };
+        let outputs = self.output_queued.lock().pop_front().unwrap_or_default();
         StepExportsResponse::new(path_additions, env).with_outputs(outputs)
     }
 }

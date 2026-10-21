@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{HashMap, VecDeque},
+    sync::Arc,
+};
 
 use ephact::{
     application::{
@@ -16,7 +19,7 @@ use parking_lot::Mutex;
 /// queue is drained. Reading a file the runner writes (`cat`) fails, the way a
 /// container that never wrote the file behaves.
 pub struct FakeContainerHandle {
-    exec_results: Arc<Mutex<Vec<ExecResultResponse>>>,
+    exec_results: Arc<Mutex<VecDeque<ExecResultResponse>>>,
     executed_commands: Arc<Mutex<Vec<Vec<String>>>>,
     exec_environments: Arc<Mutex<Vec<HashMap<String, String>>>>,
     copied_paths: Arc<Mutex<Vec<String>>>,
@@ -24,7 +27,7 @@ pub struct FakeContainerHandle {
 
 impl FakeContainerHandle {
     pub fn new(
-        exec_results: Arc<Mutex<Vec<ExecResultResponse>>>,
+        exec_results: Arc<Mutex<VecDeque<ExecResultResponse>>>,
         executed_commands: Arc<Mutex<Vec<Vec<String>>>>,
         exec_environments: Arc<Mutex<Vec<HashMap<String, String>>>>,
         copied_paths: Arc<Mutex<Vec<String>>>,
@@ -55,12 +58,11 @@ impl ContainerPort for FakeContainerHandle {
         self.executed_commands.lock().push(cmd.to_vec());
         self.exec_environments.lock().push(env.clone());
 
-        let mut results = self.exec_results.lock();
-        if results.is_empty() {
-            Ok(ExecResultResponse::new(0, String::new(), String::new()))
-        } else {
-            Ok(results.remove(0))
-        }
+        Ok(self
+            .exec_results
+            .lock()
+            .pop_front()
+            .unwrap_or_else(|| ExecResultResponse::new(0, String::new(), String::new())))
     }
 
     fn copy_to(&self, path: &str, _entries: &[FileEntry]) -> Result<(), ContainerError> {

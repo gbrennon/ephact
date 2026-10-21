@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::VecDeque, sync::Arc};
 
 use ephact::{
     application::{
@@ -13,7 +13,7 @@ use parking_lot::Mutex;
 /// steps it was asked to run.
 #[derive(Clone, Default)]
 pub struct FakeRunCompositeStepPort {
-    results: Arc<Mutex<Vec<ExecResultResponse>>>,
+    results: Arc<Mutex<VecDeque<ExecResultResponse>>>,
     failure: Option<(String, String, String)>,
     steps: Arc<Mutex<Vec<Step>>>,
 }
@@ -21,7 +21,7 @@ pub struct FakeRunCompositeStepPort {
 impl FakeRunCompositeStepPort {
     pub fn queueing(results: Vec<ExecResultResponse>) -> Self {
         Self {
-            results: Arc::new(Mutex::new(results)),
+            results: Arc::new(Mutex::new(VecDeque::from(results))),
             failure: None,
             steps: Arc::new(Mutex::new(Vec::new())),
         }
@@ -29,7 +29,7 @@ impl FakeRunCompositeStepPort {
 
     pub fn failing(error: StepError) -> Self {
         Self {
-            results: Arc::new(Mutex::new(Vec::new())),
+            results: Arc::new(Mutex::new(VecDeque::new())),
             failure: Some((
                 error.message().to_owned().to_owned(),
                 error.stdout().to_owned().to_owned(),
@@ -58,10 +58,10 @@ impl RunCompositeStepPort for FakeRunCompositeStepPort {
                 .with_stderr(stderr.clone()));
         }
 
-        let mut queued = self.results.lock();
-        if queued.is_empty() {
-            return Ok(ExecResultResponse::new(0, String::new(), String::new()));
-        }
-        Ok(queued.remove(0))
+        Ok(self
+            .results
+            .lock()
+            .pop_front()
+            .unwrap_or_else(|| ExecResultResponse::new(0, String::new(), String::new())))
     }
 }

@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{HashMap, VecDeque},
+    sync::Arc,
+};
 
 use ephact::{
     application::{
@@ -10,13 +13,13 @@ use ephact::{
 use parking_lot::Mutex;
 
 type StepOutcome = Result<ExecResultResponse, StepError>;
-type SharedStepOutcomes = Arc<Mutex<Vec<StepOutcome>>>;
+type SharedStepOutcomes = Arc<Mutex<VecDeque<StepOutcome>>>;
 
 /// Answers each composite step with the next queued result, recording the
 /// steps and execution state it was given.
 #[derive(Clone, Default)]
 pub struct FakeRunCompositeStepPort {
-    results: Arc<Mutex<Vec<ExecResultResponse>>>,
+    results: Arc<Mutex<VecDeque<ExecResultResponse>>>,
     failure: Option<(String, String, String)>,
     outcomes: Option<SharedStepOutcomes>,
     steps: Arc<Mutex<Vec<Step>>>,
@@ -27,7 +30,7 @@ pub struct FakeRunCompositeStepPort {
 impl FakeRunCompositeStepPort {
     pub fn queueing(results: Vec<ExecResultResponse>) -> Self {
         Self {
-            results: Arc::new(Mutex::new(results)),
+            results: Arc::new(Mutex::new(VecDeque::from(results))),
             failure: None,
             outcomes: None,
             steps: Arc::new(Mutex::new(Vec::new())),
@@ -38,7 +41,7 @@ impl FakeRunCompositeStepPort {
 
     pub fn failing(error: StepError) -> Self {
         Self {
-            results: Arc::new(Mutex::new(Vec::new())),
+            results: Arc::new(Mutex::new(VecDeque::new())),
             failure: Some((
                 error.message().to_owned().to_owned(),
                 error.stdout().to_owned().to_owned(),
@@ -53,9 +56,9 @@ impl FakeRunCompositeStepPort {
 
     pub fn sequence(outcomes: Vec<StepOutcome>) -> Self {
         Self {
-            results: Arc::new(Mutex::new(Vec::new())),
+            results: Arc::new(Mutex::new(VecDeque::new())),
             failure: None,
-            outcomes: Some(Arc::new(Mutex::new(outcomes))),
+            outcomes: Some(Arc::new(Mutex::new(VecDeque::from(outcomes)))),
             steps: Arc::new(Mutex::new(Vec::new())),
             contexts: Arc::new(Mutex::new(Vec::new())),
             environments: Arc::new(Mutex::new(Vec::new())),
@@ -92,14 +95,13 @@ impl RunCompositeStepPort for FakeRunCompositeStepPort {
         }
 
         if let Some(outcomes) = &self.outcomes {
-            let mut outcomes = outcomes.lock();
-            return outcomes.remove(0);
+            return outcomes.lock().pop_front().expect("checked non-empty");
         }
 
-        let mut queued = self.results.lock();
-        if queued.is_empty() {
-            return Ok(ExecResultResponse::new(0, String::new(), String::new()));
-        }
-        Ok(queued.remove(0))
+        Ok(self
+            .results
+            .lock()
+            .pop_front()
+            .unwrap_or_else(|| ExecResultResponse::new(0, String::new(), String::new())))
     }
 }
