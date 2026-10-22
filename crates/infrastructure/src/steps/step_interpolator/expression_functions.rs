@@ -1,3 +1,8 @@
+#[path = "format_parts.rs"]
+mod format_parts;
+
+use format_parts::FormatParts;
+
 use super::BuiltinFunction;
 use crate::{application::errors::EvalError, domain::value_objects::ContextValue};
 
@@ -65,59 +70,24 @@ impl ExpressionFunctions {
         template: &ContextValue,
         args: &[ContextValue],
     ) -> Result<ContextValue, EvalError> {
-        let tmpl = Self::expect_string(template, "format", "template")?;
-        let mut result = String::with_capacity(tmpl.len());
-        let mut rest = tmpl;
-
-        while let Some(ch) = rest.chars().next() {
-            Self::process_format_char(ch, &mut rest, &mut result, args)?;
-        }
-        Ok(ContextValue::Text(result))
+        let template = Self::expect_string(template, "format", "template")?;
+        FormatParts::new(template, args)
+            .collect::<Result<String, EvalError>>()
+            .map(ContextValue::Text)
     }
 
-    fn process_format_char(
-        ch: char,
-        rest: &mut &str,
-        result: &mut String,
-        args: &[ContextValue],
-    ) -> Result<(), EvalError> {
-        match ch {
-            '{' => {
-                let (end, idx) = Self::parse_placeholder(rest)?;
-                Self::append_formatted_arg(result, args, idx)?;
-                *rest = &rest[end + 1..];
-                Ok(())
-            }
-            '}' => Err(EvalError::FormatError(
-                "format: single '}' encountered in template".into(),
-            )),
-            other => {
-                result.push(other);
-                *rest = &rest[other.len_utf8()..];
-                Ok(())
-            }
-        }
-    }
-
-    fn append_formatted_arg(
-        result: &mut String,
-        args: &[ContextValue],
-        idx: usize,
-    ) -> Result<(), EvalError> {
-        let replacement = args.get(idx).ok_or_else(|| {
+    fn formatted_argument(args: &[ContextValue], index: usize) -> Result<String, EvalError> {
+        let replacement = args.get(index).ok_or_else(|| {
             EvalError::FormatError(format!(
-                "format: placeholder index {idx} out of range (have {} args)",
+                "format: placeholder index {index} out of range (have {} args)",
                 args.len()
             ))
         })?;
-        result.push_str(&replacement.to_display_text());
-        Ok(())
+        Ok(replacement.to_display_text())
     }
 
     fn parse_placeholder(rest: &str) -> Result<(usize, usize), EvalError> {
-        let mut chars = rest.char_indices();
-        chars.next();
-        let end = Self::find_placeholder_end(&mut chars)?;
+        let end = Self::find_placeholder_end(rest[1..].char_indices())?;
         let idx_str = &rest[1..end];
         let idx: usize = idx_str.parse().map_err(|_| {
             EvalError::FormatError(format!("format: invalid placeholder index '{idx_str}'"))
@@ -125,27 +95,23 @@ impl ExpressionFunctions {
         Ok((end, idx))
     }
 
-    fn find_placeholder_end(chars: &mut std::str::CharIndices<'_>) -> Result<usize, EvalError> {
-        let mut found_close = false;
-        let mut end = 1;
-        for (j, c) in chars.by_ref() {
-            if c == '}' {
-                found_close = true;
-                end = j;
-                break;
+    fn find_placeholder_end(
+        chars: impl Iterator<Item = (usize, char)>,
+    ) -> Result<usize, EvalError> {
+        for (position, character) in chars {
+            if character == '}' {
+                return Ok(position + 1);
             }
-            if !c.is_ascii_digit() {
+            if !character.is_ascii_digit() {
                 return Err(EvalError::FormatError(format!(
-                    "format: invalid placeholder character '{c}' at position {j}"
+                    "format: invalid placeholder character '{character}' at position {}",
+                    position + 1
                 )));
             }
         }
-        if !found_close {
-            return Err(EvalError::FormatError(
-                "format: unclosed placeholder".into(),
-            ));
-        }
-        Ok(end)
+        Err(EvalError::FormatError(
+            "format: unclosed placeholder".into(),
+        ))
     }
 
     pub fn join(
