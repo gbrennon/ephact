@@ -1,3 +1,8 @@
+#[path = "expression_parts.rs"]
+mod expression_parts;
+
+use expression_parts::ExpressionParts;
+
 use super::{expression_evaluator::ExpressionEvaluator, expression_parser::ExpressionParser};
 use crate::{
     application::errors::EvalError,
@@ -28,25 +33,7 @@ impl ExpressionResolver {
     ///
     /// Returns [`EvalError::TypeError`] when an expression cannot be parsed.
     pub fn resolve_text(template: &str, context: &EvaluationContext) -> Result<String, EvalError> {
-        let mut resolved = String::with_capacity(template.len());
-        let mut remainder = template;
-
-        while let Some(open) = remainder.find(EXPRESSION_OPEN) {
-            let (literal, expression_start) = remainder.split_at(open);
-            resolved.push_str(literal);
-
-            let body_start = &expression_start[EXPRESSION_OPEN.len()..];
-            let Some(close) = body_start.find(EXPRESSION_CLOSE) else {
-                resolved.push_str(expression_start);
-                return Ok(resolved);
-            };
-
-            resolved.push_str(&Self::evaluate(body_start[..close].trim(), context)?);
-            remainder = &body_start[close + EXPRESSION_CLOSE.len()..];
-        }
-
-        resolved.push_str(remainder);
-        Ok(resolved)
+        ExpressionParts::new(template, context).collect()
     }
 
     fn evaluate(body: &str, context: &EvaluationContext) -> Result<String, EvalError> {
