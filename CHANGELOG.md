@@ -246,6 +246,8 @@
 - **infrastructure**: Remove mut from export pipeline
 - **application-tests**: Remove mutable fake guards
 - **test-fakes**: Remove mutable queue guards
+- **interpolation**: Remove mutable format state
+- **interpolation**: Remove local mutable resolver state
 
 ### Documentation
 
