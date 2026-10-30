@@ -106,3 +106,8 @@ impl ApplicationRunner {
         )
     }
 }
+impl Default for ApplicationRunner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
