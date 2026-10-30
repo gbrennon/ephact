@@ -133,6 +133,8 @@
 - **domain**: Keep classifier fake in unit tests
 - **ci**: Trigger checks for generated changelog branch
 - **domain**: Elide planner helper lifetime
+- **app-runner**: Satisfy Rust file conventions
+- **app-runner**: Implement runner default
 
 ### Refactor
 
@@ -248,6 +250,9 @@
 - **test-fakes**: Remove mutable queue guards
 - **interpolation**: Remove mutable format state
 - **interpolation**: Remove local mutable resolver state
+- **app-runner**: Extract application orchestration
+- **app-runner**: Split process wrapper from application seam
+- **app-runner**: Name orchestration runner
 
 ### Documentation
 
@@ -432,6 +437,8 @@
 - **workflows**: Cover event conditions end to end
 - **workflows**: Cover selected job filtering
 - **application**: Remove unnecessary mutable fixtures
+- **app-runner**: Add resolver integration test module
+- **app-runner**: Extract resolver integration tests
 
 ### Continuous Integration
 
