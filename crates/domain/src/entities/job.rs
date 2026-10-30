@@ -54,248 +54,178 @@ impl Job {
         needs: Vec<String>,
     ) -> Self {
         Self {
-            identity: JobIdentity { name, needs },
+            identity: JobIdentity::new(name, needs),
             policy: JobExecutionPolicy::default(),
-            runtime: JobRuntime {
-                runs_on,
-                steps,
-                ..JobRuntime::default()
-            },
+            runtime: JobRuntime::new(runs_on, steps),
             contract: JobContract::default(),
         }
     }
 
     /// Sets the condition that controls whether this job runs.
     pub fn with_if_condition(self, condition: Option<String>) -> Self {
-        Self {
-            policy: JobExecutionPolicy {
-                r#if: condition,
-                ..self.policy
-            },
-            ..self
-        }
+        let policy = self.policy.with_if_condition(condition);
+        Self { policy, ..self }
     }
 
     /// Sets the matrix strategy for this job.
     pub fn with_strategy(self, strategy: Option<JobStrategy>) -> Self {
-        Self {
-            policy: JobExecutionPolicy {
-                strategy,
-                ..self.policy
-            },
-            ..self
-        }
+        let policy = self.policy.with_strategy(strategy);
+        Self { policy, ..self }
     }
 
     /// Sets the environment variables scoped to this job.
     pub fn with_env(self, env: HashMap<String, String>) -> Self {
-        Self {
-            runtime: JobRuntime {
-                env,
-                ..self.runtime
-            },
-            ..self
-        }
+        let runtime = self.runtime.with_env(env);
+        Self { runtime, ..self }
     }
 
     /// Sets the container in which this job runs.
     pub fn with_container(self, container: Option<ContainerSpecification>) -> Self {
-        Self {
-            runtime: JobRuntime {
-                container,
-                ..self.runtime
-            },
-            ..self
-        }
+        let runtime = self.runtime.with_container(container);
+        Self { runtime, ..self }
     }
 
     /// Sets the service containers available to this job.
     pub fn with_services(self, services: HashMap<String, ContainerSpecification>) -> Self {
-        Self {
-            runtime: JobRuntime {
-                services,
-                ..self.runtime
-            },
-            ..self
-        }
+        let runtime = self.runtime.with_services(services);
+        Self { runtime, ..self }
     }
 
     /// Sets the outputs produced for dependent jobs.
     pub fn with_outputs(self, outputs: HashMap<String, String>) -> Self {
-        Self {
-            contract: JobContract {
-                outputs,
-                ..self.contract
-            },
-            ..self
-        }
+        let contract = self.contract.with_outputs(outputs);
+        Self { contract, ..self }
     }
 
     /// Sets the input parameters passed to this job.
     pub fn with_inputs(self, inputs: Option<ContextValue>) -> Self {
-        Self {
-            contract: JobContract {
-                with: inputs,
-                ..self.contract
-            },
-            ..self
-        }
+        let contract = self.contract.with_inputs(inputs);
+        Self { contract, ..self }
     }
 
     /// Sets the secrets available to this job.
     pub fn with_secrets(self, secrets: Option<ContextValue>) -> Self {
-        Self {
-            contract: JobContract {
-                secrets,
-                ..self.contract
-            },
-            ..self
-        }
+        let contract = self.contract.with_secrets(secrets);
+        Self { contract, ..self }
     }
 
     /// Sets the maximum runtime for this job in minutes.
     pub fn with_timeout_minutes(self, timeout_minutes: Option<f64>) -> Self {
-        Self {
-            policy: JobExecutionPolicy {
-                timeout_minutes,
-                ..self.policy
-            },
-            ..self
-        }
+        let policy = self.policy.with_timeout_minutes(timeout_minutes);
+        Self { policy, ..self }
     }
 
     /// Sets whether this job may fail without stopping the workflow.
     pub fn with_continue_on_error(self, value: Option<String>) -> Self {
-        Self {
-            policy: JobExecutionPolicy {
-                continue_on_error: value,
-                ..self.policy
-            },
-            ..self
-        }
+        let policy = self.policy.with_continue_on_error(value);
+        Self { policy, ..self }
     }
 
     /// Sets the token permissions for this job.
     pub fn with_permissions(self, permissions: Option<TokenPermissions>) -> Self {
-        Self {
-            policy: JobExecutionPolicy {
-                permissions,
-                ..self.policy
-            },
-            ..self
-        }
+        let policy = self.policy.with_permissions(permissions);
+        Self { policy, ..self }
     }
 
     /// Sets the concurrency settings for this job.
     pub fn with_concurrency(self, concurrency: Option<ConcurrencyGroup>) -> Self {
-        Self {
-            policy: JobExecutionPolicy {
-                concurrency,
-                ..self.policy
-            },
-            ..self
-        }
+        let policy = self.policy.with_concurrency(concurrency);
+        Self { policy, ..self }
     }
 
     /// Returns the job's display name.
     pub fn name(&self) -> Option<&str> {
-        self.identity.name.as_deref()
+        self.identity.name()
     }
 
     /// Returns the machine type assigned to this job.
     pub fn runs_on(&self) -> Option<&str> {
-        self.runtime.runs_on.as_deref()
+        self.runtime.runs_on()
     }
 
     /// Returns the steps executed by this job.
     pub fn steps(&self) -> &[Step] {
-        &self.runtime.steps
+        self.runtime.steps()
     }
 
     /// Returns the identifiers of jobs that must complete first.
     pub fn needs(&self) -> &[String] {
-        &self.identity.needs
+        self.identity.needs()
     }
 
     /// Returns this job's run condition.
     pub fn r#if(&self) -> Option<&str> {
-        self.policy.r#if.as_deref()
+        self.policy.if_condition()
     }
 
     /// Returns the condition controlling whether this job runs.
     pub fn if_condition(&self) -> Option<&str> {
-        self.policy.r#if.as_deref()
+        self.policy.if_condition()
     }
 
     /// Returns this job's matrix strategy.
     pub fn strategy(&self) -> Option<&JobStrategy> {
-        self.policy.strategy.as_ref()
+        self.policy.strategy()
     }
 
     /// Returns the environment variables scoped to this job.
     pub fn env(&self) -> &HashMap<String, String> {
-        &self.runtime.env
+        self.runtime.env()
     }
 
     /// Returns the container specification for this job.
     pub fn container(&self) -> Option<&ContainerSpecification> {
-        self.runtime.container.as_ref()
+        self.runtime.container()
     }
 
     /// Returns the service container specifications for this job.
     pub fn services(&self) -> &HashMap<String, ContainerSpecification> {
-        &self.runtime.services
+        self.runtime.services()
     }
 
     /// Returns the outputs produced by this job.
     pub fn outputs(&self) -> &HashMap<String, String> {
-        &self.contract.outputs
+        self.contract.outputs()
     }
 
     /// Returns the input parameters passed to this job.
     pub fn with(&self) -> Option<&ContextValue> {
-        self.contract.with.as_ref()
+        self.contract.with()
     }
 
     /// Returns the secrets available to this job.
     pub fn secrets(&self) -> Option<&ContextValue> {
-        self.contract.secrets.as_ref()
+        self.contract.secrets()
     }
 
     /// Returns the maximum runtime for this job in minutes.
     pub fn timeout_minutes(&self) -> Option<f64> {
-        self.policy.timeout_minutes
+        self.policy.timeout_minutes()
     }
 
     /// Returns whether this job may continue after failure.
     pub fn continue_on_error(&self) -> Option<&str> {
-        self.policy.continue_on_error.as_deref()
+        self.policy.continue_on_error()
     }
 
     /// Returns the token permissions for this job.
     pub fn permissions(&self) -> Option<&TokenPermissions> {
-        self.policy.permissions.as_ref()
+        self.policy.permissions()
     }
 
     /// Returns the concurrency settings for this job.
     pub fn concurrency(&self) -> Option<&ConcurrencyGroup> {
-        self.policy.concurrency.as_ref()
+        self.policy.concurrency()
     }
 
     /// Returns whether this job depends directly on `job_id`.
     pub fn depends_on(&self, job_id: &str) -> bool {
-        self.identity
-            .needs
-            .iter()
-            .any(|dependency| dependency == job_id)
+        self.identity.depends_on(job_id)
     }
 
     /// Returns whether a failed step should not stop this job.
     pub fn continues_after_failure(&self) -> bool {
-        self.policy
-            .continue_on_error
-            .as_deref()
-            .is_some_and(|value| value.eq_ignore_ascii_case("true"))
+        self.policy.continues_after_failure()
     }
 }
 
@@ -398,21 +328,21 @@ mod tests {
         .with_permissions(Some(TokenPermissions::new()))
         .with_concurrency(Some(ConcurrencyGroup::new("job", Some(false))));
 
-        assert_eq!(job.identity.name.as_deref(), Some("Build"));
-        assert_eq!(job.identity.needs, vec!["setup"]);
-        assert_eq!(job.policy.r#if.as_deref(), Some("always()"));
-        assert_eq!(job.policy.strategy, Some(strategy));
-        assert_eq!(job.policy.timeout_minutes, Some(10.0));
-        assert_eq!(job.policy.continue_on_error.as_deref(), Some("true"));
-        assert!(job.policy.permissions.is_some());
-        assert!(job.policy.concurrency.is_some());
-        assert_eq!(job.runtime.runs_on.as_deref(), Some("ubuntu"));
-        assert!(job.runtime.steps.is_empty());
-        assert_eq!(job.runtime.env["KEY"], "value");
-        assert_eq!(job.runtime.container, Some(container));
-        assert_eq!(job.runtime.services["db"], service);
-        assert_eq!(job.contract.outputs["output"], "value");
-        assert_eq!(job.contract.with, Some(ContextValue::text("input")));
-        assert_eq!(job.contract.secrets, Some(ContextValue::text("secret")));
+        assert_eq!(job.name(), Some("Build"));
+        assert_eq!(job.needs(), &["setup".to_string()]);
+        assert_eq!(job.r#if(), Some("always()"));
+        assert_eq!(job.strategy(), Some(&strategy));
+        assert_eq!(job.timeout_minutes(), Some(10.0));
+        assert_eq!(job.continue_on_error(), Some("true"));
+        assert!(job.permissions().is_some());
+        assert!(job.concurrency().is_some());
+        assert_eq!(job.runs_on(), Some("ubuntu"));
+        assert!(job.steps().is_empty());
+        assert_eq!(job.env()["KEY"], "value");
+        assert_eq!(job.container(), Some(&container));
+        assert_eq!(job.services()["db"], service);
+        assert_eq!(job.outputs()["output"], "value");
+        assert_eq!(job.with(), Some(&ContextValue::text("input")));
+        assert_eq!(job.secrets(), Some(&ContextValue::text("secret")));
     }
 }
