@@ -14,30 +14,50 @@ use crate::{
     },
 };
 
-pub fn run_application() -> Result<(), Box<dyn Error>> {
-    Application::new().run()
-}
+pub(super) mod api {
+    use super::{Application, Error, HostSshForwardingConfig};
+    pub fn run_application() -> Result<(), Box<dyn Error>> {
+        Application::run_application()
+    }
 
-pub fn resolve_ssh_forwarding(
-    persisted_forward_ssh: bool,
-    allow_network: bool,
-    execution_requested: bool,
-    explicit_forward_ssh: bool,
-) -> HostSshForwardingConfig {
-    let forwarding_enabled =
-        execution_requested && allow_network && (persisted_forward_ssh || explicit_forward_ssh);
-    if forwarding_enabled {
-        HostSshForwardingConfig::enabled()
-    } else {
-        HostSshForwardingConfig::disabled()
+    pub fn resolve_ssh_forwarding(
+        persisted_forward_ssh: bool,
+        allow_network: bool,
+        execution_requested: bool,
+        explicit_forward_ssh: bool,
+    ) -> HostSshForwardingConfig {
+        Application::resolve_ssh_forwarding(
+            persisted_forward_ssh,
+            allow_network,
+            execution_requested,
+            explicit_forward_ssh,
+        )
     }
 }
 
-struct Application {
+pub(crate) struct Application {
     config_factory: ConfigFactory,
 }
 
 impl Application {
+    fn run_application() -> Result<(), Box<dyn Error>> {
+        Self::new().run()
+    }
+
+    fn resolve_ssh_forwarding(
+        persisted_forward_ssh: bool,
+        allow_network: bool,
+        execution_requested: bool,
+        explicit_forward_ssh: bool,
+    ) -> HostSshForwardingConfig {
+        let forwarding_enabled =
+            execution_requested && allow_network && (persisted_forward_ssh || explicit_forward_ssh);
+        if forwarding_enabled {
+            HostSshForwardingConfig::enabled()
+        } else {
+            HostSshForwardingConfig::disabled()
+        }
+    }
     fn new() -> Self {
         Self {
             config_factory: ConfigFactory::from_environment(),
@@ -103,7 +123,7 @@ impl Application {
         let execution_requested = invocation
             .is_some_and(|parser| parser.is_run_command() || parser.is_tui_command())
             || (argument_count == 1 && settings.default_interface() == InterfaceMode::Tui);
-        resolve_ssh_forwarding(
+        Self::resolve_ssh_forwarding(
             persisted_forward_ssh,
             allow_network,
             execution_requested,
