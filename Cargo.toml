@@ -39,6 +39,9 @@ path = "crates/presentation/tests/mod.rs"
 [[test]]
 name = "e2e"
 path = "tests/e2e/mod.rs"
+[[test]]
+name = "app_runner"
+path = "tests/app_runner/mod.rs"
 
 [[test]]
 name = "container_integration"
