@@ -1,5 +1,6 @@
+#[path = "app_runner/app_runner.rs"]
 mod app_runner;
 
 fn main() {
-    app_runner::AppRunner::new().run_application();
+    app_runner::run();
 }
