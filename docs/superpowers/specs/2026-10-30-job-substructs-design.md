@@ -12,7 +12,7 @@ and tests.
 ## Chosen design
 
 Keep `Job` as the only public domain entity and compose it from four private
-sub-structs in `crates/domain/src/entities/job.rs`:
+entity submodules:
 
 ```rust
 pub struct Job {
