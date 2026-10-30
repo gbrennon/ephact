@@ -1,4 +1,4 @@
-mod application;
+mod application_runner;
 mod config_factory;
 
-pub use application::api::{resolve_ssh_forwarding, run_application};
+pub use application_runner::ApplicationRunner;

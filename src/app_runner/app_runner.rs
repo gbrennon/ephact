@@ -7,7 +7,7 @@ pub enum BinaryAppRunner {}
 impl BinaryAppRunner {
     pub fn run() {
         let stderr_filter = StderrFilter::install();
-        let result = ephact::app_runner::run_application();
+        let result = ephact::app_runner::ApplicationRunner::new().run();
         stderr_filter.restore();
         Self::finish(result);
     }

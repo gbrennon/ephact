@@ -14,37 +14,12 @@ use crate::{
     },
 };
 
-pub(super) mod api {
-    use super::{Application, Error, HostSshForwardingConfig};
-    pub fn run_application() -> Result<(), Box<dyn Error>> {
-        Application::run_application()
-    }
-
-    pub fn resolve_ssh_forwarding(
-        persisted_forward_ssh: bool,
-        allow_network: bool,
-        execution_requested: bool,
-        explicit_forward_ssh: bool,
-    ) -> HostSshForwardingConfig {
-        Application::resolve_ssh_forwarding(
-            persisted_forward_ssh,
-            allow_network,
-            execution_requested,
-            explicit_forward_ssh,
-        )
-    }
-}
-
-pub(crate) struct Application {
+pub struct ApplicationRunner {
     config_factory: ConfigFactory,
 }
 
-impl Application {
-    fn run_application() -> Result<(), Box<dyn Error>> {
-        Self::new().run()
-    }
-
-    fn resolve_ssh_forwarding(
+impl ApplicationRunner {
+    pub fn resolve_ssh_forwarding(
         persisted_forward_ssh: bool,
         allow_network: bool,
         execution_requested: bool,
@@ -58,13 +33,13 @@ impl Application {
             HostSshForwardingConfig::disabled()
         }
     }
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             config_factory: ConfigFactory::from_environment(),
         }
     }
 
-    fn run(&self) -> Result<(), Box<dyn Error>> {
+    pub fn run(&self) -> Result<(), Box<dyn Error>> {
         let args: Vec<OsString> = std::env::args_os().collect();
         let invocation = CliParser::try_parse_invocation_from(&args).ok();
         let settings_store = self.config_factory.create_settings_store()?;
