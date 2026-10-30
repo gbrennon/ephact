@@ -1,5 +1,14 @@
+mod job_contract;
+mod job_execution_policy;
+mod job_identity;
+mod job_runtime;
+
 use std::collections::HashMap;
 
+use self::{
+    job_contract::JobContract, job_execution_policy::JobExecutionPolicy, job_identity::JobIdentity,
+    job_runtime::JobRuntime,
+};
 use crate::{
     entities::Step,
     value_objects::{
@@ -34,66 +43,6 @@ pub struct Job {
     policy: JobExecutionPolicy,
     runtime: JobRuntime,
     contract: JobContract,
-}
-
-#[derive(Debug, Clone, PartialEq, Default)]
-struct JobIdentity {
-    /// The display name of the job.
-    name: Option<String>,
-
-    /// Jobs that must complete successfully before this job runs.
-    needs: Vec<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Default)]
-struct JobExecutionPolicy {
-    /// An expression that determines whether the job runs.
-    r#if: Option<String>,
-
-    /// A matrix strategy to generate multiple job runs.
-    strategy: Option<JobStrategy>,
-
-    /// Maximum number of minutes to let the job run.
-    timeout_minutes: Option<f64>,
-
-    /// Whether to continue the workflow even if this job fails.
-    continue_on_error: Option<String>,
-
-    /// TokenPermissions override for this job.
-    permissions: Option<TokenPermissions>,
-
-    /// ConcurrencyGroup override for this job.
-    concurrency: Option<ConcurrencyGroup>,
-}
-
-#[derive(Debug, Clone, PartialEq, Default)]
-struct JobRuntime {
-    /// The type of machine to run the job on (e.g. `ubuntu-latest`).
-    runs_on: Option<String>,
-
-    /// The sequence of steps to execute.
-    steps: Vec<Step>,
-
-    /// Environment variables scoped to this job.
-    env: HashMap<String, String>,
-
-    /// Container to run the job inside.
-    container: Option<ContainerSpecification>,
-
-    /// Service containers to run alongside the job.
-    services: HashMap<String, ContainerSpecification>,
-}
-
-#[derive(Debug, Clone, PartialEq, Default)]
-struct JobContract {
-    /// Outputs produced by this job (for dependent jobs).
-    outputs: HashMap<String, String>,
-
-    /// Input parameters passed via `workflow_call`.
-    with: Option<ContextValue>,
-
-    /// Secrets available to this job.
-    secrets: Option<ContextValue>,
 }
 
 impl Job {
