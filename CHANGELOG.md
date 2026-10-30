@@ -439,6 +439,7 @@
 - **application**: Remove unnecessary mutable fixtures
 - **app-runner**: Add resolver integration test module
 - **app-runner**: Extract resolver integration tests
+- **ci**: Cover git-cliff checksum validation
 
 ### Continuous Integration
 
@@ -453,6 +454,8 @@
 - Enforce response DTO conventions
 - Enforce Rust file conventions
 - Explain Rust convention violations
+- Add checksum-verified git-cliff installer
+- Verify git-cliff archive checksums
 
 ### Miscellaneous Tasks
 
