@@ -1,6 +1,6 @@
 use std::{env, ffi::OsString, path::PathBuf, sync::Arc};
 
-use ephact::{application::errors::SettingsStoreError, infrastructure::TomlSettingsStore};
+use crate::{application::errors::SettingsStoreError, infrastructure::TomlSettingsStore};
 
 pub struct ConfigFactory {
     home: Option<OsString>,
