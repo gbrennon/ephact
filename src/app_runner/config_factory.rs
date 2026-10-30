@@ -2,20 +2,22 @@ use std::{env, ffi::OsString, path::PathBuf, sync::Arc};
 
 use crate::{application::errors::SettingsStoreError, infrastructure::TomlSettingsStore};
 
-pub struct ConfigFactory {
+pub(super) struct ConfigFactory {
     home: Option<OsString>,
 }
 
 impl ConfigFactory {
-    pub fn from_environment() -> Self {
+    pub(super) fn from_environment() -> Self {
         Self::from_home(env::var_os("HOME"))
     }
 
-    pub fn from_home(home: Option<OsString>) -> Self {
+    pub(super) fn from_home(home: Option<OsString>) -> Self {
         Self { home }
     }
 
-    pub fn create_settings_store(&self) -> Result<Arc<TomlSettingsStore>, SettingsStoreError> {
+    pub(super) fn create_settings_store(
+        &self,
+    ) -> Result<Arc<TomlSettingsStore>, SettingsStoreError> {
         let home = self
             .home
             .as_ref()
