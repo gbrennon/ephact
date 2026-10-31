@@ -14,38 +14,17 @@ use crate::{
     },
 };
 
-pub struct ApplicationRunner {
-    config_factory: ConfigFactory,
-}
+pub enum ApplicationRunner {}
 
 impl ApplicationRunner {
-    pub fn resolve_ssh_forwarding(
-        persisted_forward_ssh: bool,
-        allow_network: bool,
-        execution_requested: bool,
-        explicit_forward_ssh: bool,
-    ) -> HostSshForwardingConfig {
-        let forwarding_enabled =
-            execution_requested && allow_network && (persisted_forward_ssh || explicit_forward_ssh);
-        if forwarding_enabled {
-            HostSshForwardingConfig::enabled()
-        } else {
-            HostSshForwardingConfig::disabled()
-        }
-    }
-    pub fn new() -> Self {
-        Self {
-            config_factory: ConfigFactory::from_environment(),
-        }
-    }
-
-    pub fn run(&self) -> Result<(), Box<dyn Error>> {
+    /// Runs the composed application through the binary's process boundary.
+    pub fn run_application() -> Result<(), Box<dyn Error>> {
         let args: Vec<OsString> = std::env::args_os().collect();
         let invocation = CliParser::try_parse_invocation_from(&args).ok();
-        let settings_store = self.config_factory.create_settings_store()?;
+        let settings_store = ConfigFactory::from_environment().create_settings_store()?;
         let settings = settings_store.read_settings()?;
         let persisted_forward_ssh = settings_store.read_forward_ssh()?;
-        let ssh_forwarding = self.resolve_ssh_forwarding_for_invocation(
+        let ssh_forwarding = Self::resolve_ssh_forwarding_for_invocation(
             invocation.as_ref(),
             args.len(),
             &settings,
@@ -86,8 +65,22 @@ impl ApplicationRunner {
         app.run(args)
     }
 
+    pub fn resolve_ssh_forwarding(
+        persisted_forward_ssh: bool,
+        allow_network: bool,
+        execution_requested: bool,
+        explicit_forward_ssh: bool,
+    ) -> HostSshForwardingConfig {
+        let forwarding_enabled =
+            execution_requested && allow_network && (persisted_forward_ssh || explicit_forward_ssh);
+        if forwarding_enabled {
+            HostSshForwardingConfig::enabled()
+        } else {
+            HostSshForwardingConfig::disabled()
+        }
+    }
+
     fn resolve_ssh_forwarding_for_invocation(
-        &self,
         invocation: Option<&CliParser>,
         argument_count: usize,
         settings: &Settings,
@@ -104,10 +97,5 @@ impl ApplicationRunner {
             execution_requested,
             invocation.is_some_and(CliParser::is_ssh_forwarding_requested),
         )
-    }
-}
-impl Default for ApplicationRunner {
-    fn default() -> Self {
-        Self::new()
     }
 }
