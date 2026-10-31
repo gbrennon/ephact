@@ -253,6 +253,14 @@
 - **app-runner**: Extract application orchestration
 - **app-runner**: Split process wrapper from application seam
 - **app-runner**: Name orchestration runner
+- **domain**: Group Job fields by concern
+- **domain**: Extract Job identity
+- **domain**: Extract Job execution policy
+- **domain**: Extract Job runtime
+- **domain**: Extract Job contract
+- **domain**: Wire Job submodules
+- **domain**: Encapsulate Job sub-structs
+- **app-runner**: Hide orchestration state
 
 ### Documentation
 
@@ -312,6 +320,8 @@
 - **inspiration**: Clarify workflow execution metaphor
 - **development**: Explain changelog release flow
 - **development**: Document changelog pull requests
+- **domain**: Design Job sub-struct decomposition
+- **domain**: Describe Job submodules
 
 ### Testing
 
