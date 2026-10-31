@@ -1,4 +1,4 @@
-mod application_runner;
+mod application;
 mod config_factory;
 
-pub use application_runner::ApplicationRunner;
+pub use application::ApplicationRunner;
