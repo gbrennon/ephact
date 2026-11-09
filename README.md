@@ -34,6 +34,9 @@ Running `ephact` with no subcommand opens the TUI, which is the default
 interface. The splash screen greets you first; press any key to reach the home
 menu.
 
+![GitHub workflow execution](./docs/gifs/tui-github-workflow-demo.gif)
+See [`docs/demos.md`](docs/demos.md) for detailed descriptions of each demo.
+
 ## Terminal user interface
 
 The TUI is the primary way to use `ephact`. It discovers workflows from the
@@ -134,3 +137,7 @@ Built on Rust edition **2024**; the toolchain comes from
   development workflows, and the `just` command reference in
   [`CONTRIBUTING.md`](CONTRIBUTING.md) and
   [`docs/development.md`](docs/development.md).
+
+## Demos
+
+The demos are cataloged in [`docs/demos.md`](docs/demos.md).
