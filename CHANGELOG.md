@@ -323,6 +323,7 @@
 - **domain**: Design Job sub-struct decomposition
 - **domain**: Describe Job submodules
 - Rm old md fie
+- Add GitHub and Woodpecker TUI demos
 
 ### Testing
 
