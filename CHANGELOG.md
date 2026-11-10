@@ -322,6 +322,7 @@
 - **development**: Document changelog pull requests
 - **domain**: Design Job sub-struct decomposition
 - **domain**: Describe Job submodules
+- Rm old md fie
 
 ### Testing
 
