@@ -324,6 +324,7 @@
 - **domain**: Describe Job submodules
 - Rm old md fie
 - Add GitHub and Woodpecker TUI demos
+- **README**: Add terminal badge
 
 ### Testing
 
@@ -468,6 +469,7 @@
 - Explain Rust convention violations
 - Add checksum-verified git-cliff installer
 - Verify git-cliff archive checksums
+- Pin nightly toolchain
 
 ### Miscellaneous Tasks
 
