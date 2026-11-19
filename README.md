@@ -1,5 +1,7 @@
 # ephact
 
+[![ephact on The Terminal Index](https://cli.masoko.net/badge/ephact.svg)](https://cli.masoko.net/tools/ephact/)
+
 > *"Simply to survive by avoiding the weaknesses of an unchanging system."* —
 > **The Puppet Master**, *Ghost in the Shell* (1995).
 > [Why this inspires `ephact`](docs/inspiration.md).
