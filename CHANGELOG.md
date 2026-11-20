@@ -136,6 +136,7 @@
 - **app-runner**: Satisfy Rust file conventions
 - **app-runner**: Implement runner default
 - **workflows**: Display relative workflow paths
+- **runner**: Update Ubuntu Node path
 
 ### Refactor
 
@@ -454,6 +455,8 @@
 - **app-runner**: Add resolver integration test module
 - **app-runner**: Extract resolver integration tests
 - **ci**: Cover git-cliff checksum validation
+- **runner**: Track Ubuntu Node path
+- **infrastructure**: Gate container integration
 
 ### Continuous Integration
 
