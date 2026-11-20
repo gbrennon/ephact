@@ -16,9 +16,7 @@ use ephact_infrastructure::{
         errors::{PrepareJobContainerError, RunActionError},
         ports::{
             inbound::RunActionPort,
-            outbound::{
-                ContainerPort, DomainEventPublisherPort, JobContainerPreparerPort,
-            },
+            outbound::{ContainerPort, DomainEventPublisherPort, JobContainerPreparerPort},
         },
     },
     domain::{

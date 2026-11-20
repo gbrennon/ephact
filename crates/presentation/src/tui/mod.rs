@@ -10,6 +10,6 @@ pub mod tui_runner;
 
 pub use screen_manager::{ScreenManager, TuiScreen};
 pub use tui_app::TuiApp;
-pub use tui_runner::TuiRunner;
+pub use tui_runner::{TuiLoopState, TuiRunner};
 
 pub use crate::handlers::{ListActionsHandler, ListWorkflowsHandler, RunHandler};

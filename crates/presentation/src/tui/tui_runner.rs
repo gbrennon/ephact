@@ -35,16 +35,16 @@ use crate::{
     tui::components::PROJECT_EMBLEM,
 };
 
-struct RunTask {
+pub struct RunTask {
     handle: tokio::task::JoinHandle<Result<RunSummaryResponse, String>>,
     run_id: String,
 }
 
-struct ActionTask {
+pub struct ActionTask {
     handle: tokio::task::JoinHandle<Result<ExecuteActionResponse, String>>,
 }
 
-enum TuiLoopState {
+pub enum TuiLoopState {
     Idle,
     InputConfigurationPending,
     ActionInputConfigurationPending,
@@ -55,7 +55,7 @@ enum TuiLoopState {
 }
 
 impl TuiLoopState {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self::Idle
     }
 }
@@ -246,8 +246,16 @@ impl TuiRunner {
         app: &mut TuiApp,
         state: &mut TuiLoopState,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        self.process_progress(app);
         Self::render_and_handle_input(terminal, app)?;
+        self.process_event_loop_step(app, state).await
+    }
+
+    pub async fn process_event_loop_step(
+        &self,
+        app: &mut TuiApp,
+        state: &mut TuiLoopState,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.process_progress(app);
         self.process_cancel_request(app, state);
         self.process_finished_run(app, state).await?;
         self.process_run_request(app, state)?;
