@@ -2,6 +2,7 @@
 pub mod common;
 
 mod actions;
+#[cfg(feature = "container-integration")]
 mod container_integration;
 mod containers;
 mod di;
