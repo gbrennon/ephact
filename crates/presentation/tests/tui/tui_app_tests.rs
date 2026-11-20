@@ -157,7 +157,7 @@ mod tests {
         assert!(home_lines.iter().any(|line| line.contains(title)));
         assert!(workflow_lines.iter().any(|line| line.contains(title)));
         assert_eq!(home_lines[..5], workflow_lines[..5]);
-        assert!(home_lines[5].contains("What would you like to do?"));
+        assert!(home_lines[5].contains("What would you like to run?"));
         assert!(workflow_lines[5].contains("Workflows"));
     }
     #[test]
@@ -197,21 +197,9 @@ mod tests {
     }
 
     #[test]
-    fn selecting_list_workflows_enters_workflow_screen() {
-        let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string());
-        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-
-        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-
-        assert_eq!(app.screen(), TuiScreen::ListWorkflows);
-    }
-
-    #[test]
     fn selecting_list_actions_enters_actions_screen() {
         let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string());
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
 
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
@@ -227,7 +215,6 @@ mod tests {
                 "docker://node:20".to_owned(),
             ]);
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
@@ -248,7 +235,6 @@ mod tests {
                 ]);
             app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
             app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-            app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
             app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
             app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
             app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
@@ -264,7 +250,6 @@ mod tests {
         let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string())
             .with_actions(vec!["actions/checkout@v4".to_owned()]);
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
@@ -285,7 +270,6 @@ mod tests {
         let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string())
             .with_actions(vec!["actions/checkout@v4".to_owned()]);
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));

@@ -24,7 +24,7 @@ screen appears first; press any key to reach the home menu.
 
 ### Home menu
 
-The home menu lists the available actions: **Run workflow**, **List workflows**,
+The home menu asks what you would like to run and lists **Run workflow**,
 **List actions**, and **Settings**. Move the selection with `Up`/`Down` or
 `j`/`k`, open it with `Enter`, and quit with `q`.
 
@@ -53,8 +53,6 @@ go back.
 
 - **Splash**: press any key to continue.
 - **Home**: use `Up`/`Down`/`j`/`k` to move, `Enter` to select, or `q` to quit.
-- **List workflows**: use `Up`/`Down`/`j`/`k` to move, `Esc`/`Bksp` to go
-  back, or `q` to quit.
 - **List actions**: use `Up`/`Down`/`j`/`k` to move, `Esc`/`Bksp` to go
   back, or `q` to quit.
 - **Run workflow**: use `Up`/`Down`/`j`/`k` to move, `Enter` to configure,

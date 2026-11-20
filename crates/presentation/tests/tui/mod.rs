@@ -115,7 +115,7 @@ mod tests {
         });
 
         let home_column =
-            TuiRenderAssertions::label_start_column(&home, "What would you like to do?", 5);
+            TuiRenderAssertions::label_start_column(&home, "What would you like to run?", 5);
         let actions_column = TuiRenderAssertions::label_start_column(&actions, "Actions", 5);
 
         assert_eq!(home_column, actions_column);
@@ -165,75 +165,7 @@ mod tests {
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         assert_eq!(app.home_selection(), 2);
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-        assert_eq!(app.home_selection(), 3);
-    }
-
-    #[test]
-    fn home_down_then_enter_transitions_to_list_workflows() {
-        let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
-        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-
-        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-
-        assert_eq!(app.screen(), TuiScreen::ListWorkflows);
-    }
-
-    #[test]
-    fn list_workflows_esc_returns_to_home() {
-        let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
-        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-
-        app.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
-
-        assert_eq!(app.screen(), TuiScreen::Home);
-    }
-
-    #[test]
-    fn list_workflows_backspace_returns_to_home() {
-        let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
-        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-
-        app.handle_key(KeyEvent::new(KeyCode::Backspace, KeyModifiers::NONE));
-
-        assert_eq!(app.screen(), TuiScreen::Home);
-    }
-
-    #[test]
-    fn list_workflows_q_exits() {
-        let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
-        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-
-        app.handle_key(KeyEvent::new(KeyCode::Char(QUIT_KEY), KeyModifiers::NONE));
-
-        assert_eq!(app.screen(), TuiScreen::Exit);
-    }
-
-    #[test]
-    fn list_workflows_selection_bounds() {
-        let workflows = vec![
-            WorkflowListItemResponse::new(Some("first".into()), None, vec![]),
-            WorkflowListItemResponse::new(Some("second".into()), None, vec![]),
-        ];
-        let mut app = TuiApp::new(workflows, ephact::PROJECT_EMBLEM.to_string());
-        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-
-        app.handle_key(KeyEvent::new(KeyCode::Up, KeyModifiers::NONE));
-        assert_eq!(app.selected_workflow_index(), 0);
-        app.handle_key(KeyEvent::new(KeyCode::Up, KeyModifiers::NONE));
-        assert_eq!(app.selected_workflow_index(), 0);
-        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-        assert_eq!(app.selected_workflow_index(), 1);
-        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-        assert_eq!(app.selected_workflow_index(), 1);
+        assert_eq!(app.home_selection(), 2);
     }
 
     #[test]
@@ -283,8 +215,9 @@ mod tests {
         ));
 
         assert!(text.contains("Run workflow"));
-        assert!(text.contains("List workflows"));
         assert!(text.contains("List actions"));
+        assert!(text.contains("Settings"));
+        assert!(!text.contains("List workflows"));
     }
 
     #[test]
@@ -294,7 +227,7 @@ mod tests {
         });
 
         let title_styles =
-            TuiRenderAssertions::styles_for_label(&buffer, "What would you like to do?");
+            TuiRenderAssertions::styles_for_label(&buffer, "What would you like to run?");
 
         assert!(
             title_styles
@@ -360,7 +293,7 @@ mod tests {
         let buffer =
             TuiRenderAssertions::rendered_screen(|frame, area| HomeScreen::render(frame, area, 1));
 
-        let selected = TuiRenderAssertions::styles_for_label(&buffer, "List workflows");
+        let selected = TuiRenderAssertions::styles_for_label(&buffer, "List actions");
         let unselected = TuiRenderAssertions::styles_for_label(&buffer, "Run workflow");
         assert!(
             selected
@@ -400,10 +333,9 @@ mod tests {
     }
 
     #[test]
-    fn home_down_twice_then_enter_transitions_to_list_actions() {
+    fn home_down_then_enter_transitions_to_list_actions() {
         let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
 
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
@@ -415,7 +347,6 @@ mod tests {
     fn list_actions_esc_returns_to_home() {
         let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
@@ -429,7 +360,6 @@ mod tests {
         let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
         app.handle_key(KeyEvent::new(KeyCode::Backspace, KeyModifiers::NONE));
@@ -441,7 +371,6 @@ mod tests {
     fn list_actions_q_exits() {
         let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
@@ -458,7 +387,6 @@ mod tests {
         ];
         let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string()).with_actions(actions);
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 

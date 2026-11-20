@@ -306,7 +306,6 @@ impl TuiApp {
     fn open_selected_home_screen(&mut self) {
         let screen = match self.screens.home_selection() {
             HomeScreen::RUN_WORKFLOW_INDEX => TuiScreen::RunWorkflow,
-            HomeScreen::LIST_WORKFLOWS_INDEX => TuiScreen::ListWorkflows,
             HomeScreen::LIST_ACTIONS_INDEX => TuiScreen::ListActions,
             HomeScreen::SETTINGS_INDEX => TuiScreen::Settings,
             _ => return,
