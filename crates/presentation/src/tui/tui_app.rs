@@ -290,7 +290,6 @@ impl TuiApp {
             KeyCode::Enter => {
                 if self.screens.selected_action().is_some() {
                     self.screens = self.screens.open_selected_action();
-                    self.run_requested = true;
                     self.transition_to(TuiScreen::RunAction);
                 }
             }
