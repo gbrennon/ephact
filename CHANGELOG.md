@@ -135,6 +135,7 @@
 - **domain**: Elide planner helper lifetime
 - **app-runner**: Satisfy Rust file conventions
 - **app-runner**: Implement runner default
+- **workflows**: Display relative workflow paths
 
 ### Refactor
 
