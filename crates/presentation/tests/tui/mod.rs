@@ -1,2 +1,2 @@
-#[path = "tui_root_tests.rs"]
+#[path = "tui_render_assertions.rs"]
 mod tests;
