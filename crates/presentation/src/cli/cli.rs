@@ -17,7 +17,8 @@ use crate::{
     application::ports::{
         inbound::{
             list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
-            run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
+            run_action_port::RunActionPort, run_all_workflows_port::RunAllWorkflowsPort,
+            run_workflow_port::RunWorkflowPort,
             show_project_branding_info_port::ShowProjectBrandingInfoPort,
         },
         outbound::{RunInputsDiscovererPort, SettingsStorePort},
@@ -106,6 +107,11 @@ impl Cli {
         let mut cli = Self::new_with_failure_stores(dependencies, failure_log_stores);
         cli.tui_runner = cli.tui_runner.with_progress_stream(progress_stream);
         cli
+    }
+
+    pub fn with_action_port(mut self, port: Box<dyn RunActionPort>) -> Self {
+        self.tui_runner = self.tui_runner.with_action_port(Arc::from(port));
+        self
     }
 
     pub fn with_settings(

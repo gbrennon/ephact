@@ -52,6 +52,10 @@ impl ListActionsScreen {
         self.selected_index
     }
 
+    pub fn selected_action(&self) -> Option<&str> {
+        self.actions.get(self.selected_index).map(String::as_str)
+    }
+
     pub fn select_next(&mut self) {
         if !self.actions.is_empty()
             && self.selected_index + Self::SELECTION_STEP < self.actions.len()

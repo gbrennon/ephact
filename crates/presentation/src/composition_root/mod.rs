@@ -1,5 +1,6 @@
 pub mod application;
-pub mod root;
+#[allow(clippy::module_inception)]
+pub mod composition_root;
 
 pub use application::Application;
-pub use root::CompositionRoot;
+pub use composition_root::CompositionRoot;

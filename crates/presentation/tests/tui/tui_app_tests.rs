@@ -220,6 +220,82 @@ mod tests {
     }
 
     #[test]
+    fn selecting_action_opens_action_screen() {
+        let mut app =
+            TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string()).with_actions(vec![
+                "actions/checkout@v4".to_owned(),
+                "docker://node:20".to_owned(),
+            ]);
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        assert_eq!(app.screen(), TuiScreen::RunAction);
+        assert_eq!(app.selected_action_index(), 1);
+        assert!(!app.take_run_request());
+    }
+
+    #[test]
+    fn action_screen_back_navigation_preserves_highlighted_action() {
+        for back_key in [KeyCode::Esc, KeyCode::Backspace] {
+            let mut app =
+                TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string()).with_actions(vec![
+                    "actions/checkout@v4".to_owned(),
+                    "docker://node:20".to_owned(),
+                ]);
+            app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+            app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+            app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+            app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+            app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+            app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+            app.handle_key(KeyEvent::new(back_key, KeyModifiers::NONE));
+
+            assert_eq!(app.screen(), TuiScreen::ListActions);
+            assert_eq!(app.selected_action_index(), 1);
+        }
+    }
+
+    #[test]
+    fn submitted_action_configuration_request_is_one_shot() {
+        let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string())
+            .with_actions(vec!["actions/checkout@v4".to_owned()]);
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.begin_action_configuration(Vec::new());
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        let (action, configuration) = app
+            .take_action_run_request()
+            .expect("submitted action request");
+        assert_eq!(action, "actions/checkout@v4");
+        assert_eq!(configuration.event(), "actions/checkout@v4");
+        assert!(app.take_action_run_request().is_none());
+    }
+
+    #[test]
+    fn cancelling_action_configuration_returns_to_action_list() {
+        let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string())
+            .with_actions(vec!["actions/checkout@v4".to_owned()]);
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.begin_action_configuration(Vec::new());
+        app.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+
+        assert_eq!(app.screen(), TuiScreen::ListActions);
+    }
+
+    #[test]
     fn configured_marker_is_used_by_text_input_form() {
         let settings = Settings::default().with_marker(Marker::custom_text("❯"));
         let mut app = TuiApp::new(

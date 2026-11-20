@@ -25,6 +25,7 @@ pub struct TuiApp {
     run_requested: bool,
     cancel_requested: bool,
     configuration_requested: bool,
+    action_configuration_requested: bool,
     splash_quote: &'static str,
 }
 
@@ -40,6 +41,7 @@ impl TuiApp {
             run_requested: false,
             cancel_requested: false,
             configuration_requested: false,
+            action_configuration_requested: false,
             splash_quote: SplashQuotes::random(),
         }
     }
@@ -93,6 +95,17 @@ impl TuiApp {
         configuration
     }
 
+    pub fn take_action_run_request(&mut self) -> Option<(String, RunConfigurationValues)> {
+        if !self.action_configuration_requested {
+            return None;
+        }
+        self.action_configuration_requested = false;
+        let action = self.screens.selected_action_for_run()?;
+        let (screens, configuration) = self.screens.take_action_configuration();
+        self.screens = screens;
+        configuration.map(|configuration| (action, configuration))
+    }
+
     pub fn begin_run_configuration(
         &mut self,
         events: Vec<String>,
@@ -134,6 +147,43 @@ impl TuiApp {
     pub fn selected_action_index(&self) -> usize {
         self.screens.selected_action_index()
     }
+
+    pub fn selected_action(&self) -> Option<&str> {
+        self.screens.selected_action()
+    }
+
+    pub fn begin_action_configuration(&mut self, declarations: Vec<RunInputDeclarationResponse>) {
+        self.screens = self.screens.begin_action_configuration(declarations);
+    }
+
+    pub fn report_action_configuration_error(&mut self, error: String) {
+        self.screens = self.screens.report_action_configuration_error(error);
+    }
+
+    pub fn is_action_configuration_ready(&self) -> bool {
+        self.screens.action_configuration_footer().is_some()
+            || self.screens.has_action_configuration_error()
+    }
+
+    pub fn start_action_run(&mut self) {
+        self.screens = self.screens.start_action_run();
+    }
+
+    pub fn record_action_progress(&mut self, line: String) {
+        self.screens = self.screens.record_action_progress(line);
+    }
+
+    pub fn record_action_outcome(
+        &mut self,
+        outcome: crate::application::dtos::responses::ExecuteActionResponse,
+    ) {
+        self.screens = self.screens.record_action_outcome(outcome);
+    }
+
+    pub fn record_action_cancelled(&mut self) {
+        self.screens = self.screens.record_action_cancelled();
+    }
+
     pub fn run_outcome(&self) -> Option<&RunSummaryResponse> {
         self.screens.run_outcome()
     }
@@ -176,7 +226,9 @@ impl TuiApp {
     pub fn handle_key(&mut self, key: KeyEvent) {
         if key.code == KeyCode::Char(Self::QUIT_KEY)
             && !self.screens.is_workflow_running()
+            && !self.screens.is_action_running()
             && !self.screens.is_configuration_editing()
+            && !self.screens.is_action_configuration_editing()
             && !self.screens.is_settings_editing()
         {
             self.screens = self.screens.transition_to(TuiScreen::Exit);
@@ -188,6 +240,7 @@ impl TuiApp {
             TuiScreen::ListWorkflows => self.handle_list_workflows_key(key),
             TuiScreen::ListActions => self.handle_list_actions_key(key),
             TuiScreen::RunWorkflow => self.handle_run_workflow_key(key),
+            TuiScreen::RunAction => self.handle_run_action_key(key),
             TuiScreen::Settings => self.handle_settings_key(key),
             TuiScreen::Exit => {}
         }
@@ -199,6 +252,34 @@ impl TuiApp {
 
     pub fn screen(&self) -> TuiScreen {
         self.screens.current_screen()
+    }
+
+    pub fn is_action_running(&self) -> bool {
+        self.screens.is_action_running()
+    }
+
+    pub fn has_action_outcome(&self) -> bool {
+        self.screens.has_action_outcome()
+    }
+
+    pub fn is_showing_action_details(&self) -> bool {
+        self.screens.is_showing_action_details()
+    }
+
+    pub fn open_action_details(&mut self) {
+        self.screens = self.screens.open_action_details();
+    }
+
+    pub fn close_action_details(&mut self) {
+        self.screens = self.screens.close_action_details();
+    }
+
+    pub fn scroll_action_summary_up(&mut self) {
+        self.screens = self.screens.scroll_action_summary_up();
+    }
+
+    pub fn scroll_action_summary_down(&mut self) {
+        self.screens = self.screens.scroll_action_summary_down();
     }
 
     fn transition_to(&mut self, screen: TuiScreen) {
@@ -262,7 +343,48 @@ impl TuiApp {
                 self.screens = self.screens.select_list_actions_next();
             }
             KeyCode::Esc | KeyCode::Backspace => self.transition_to(TuiScreen::Home),
+            KeyCode::Enter if self.screens.selected_action().is_some() => {
+                self.screens = self.screens.open_selected_action();
+                self.transition_to(TuiScreen::RunAction);
+            }
             _ => {}
+        }
+    }
+
+    fn handle_run_action_key(&mut self, key: KeyEvent) {
+        if self.screens.has_action_configuration_error() {
+            self.handle_action_configuration_key(key);
+            return;
+        }
+        if self.screens.is_showing_action_details() {
+            match key.code {
+                KeyCode::Up | KeyCode::Char(Self::PREVIOUS_KEY) => {
+                    self.scroll_action_summary_up();
+                }
+                KeyCode::Down | KeyCode::Char(Self::NEXT_KEY) => {
+                    self.scroll_action_summary_down();
+                }
+                KeyCode::Esc | KeyCode::Backspace => self.close_action_details(),
+                _ => {}
+            }
+            return;
+        }
+        if self.screens.is_action_running() {
+            if matches!(key.code, KeyCode::Esc | KeyCode::Backspace) {
+                self.cancel_requested = true;
+            }
+            return;
+        }
+        if self.screens.action_configuration_footer().is_some() {
+            self.handle_action_configuration_key(key);
+            return;
+        }
+        if self.screens.has_action_outcome() && key.code == KeyCode::Char(Self::DETAILS_KEY) {
+            self.open_action_details();
+            return;
+        }
+        if matches!(key.code, KeyCode::Esc | KeyCode::Backspace) {
+            self.transition_to(TuiScreen::ListActions);
         }
     }
 
@@ -280,6 +402,19 @@ impl TuiApp {
             return;
         }
         self.handle_workflow_picker_key(key);
+    }
+
+    fn handle_action_configuration_key(&mut self, key: KeyEvent) {
+        let (screens, action) = self.screens.handle_action_configuration_key(key);
+        self.screens = screens;
+        match action {
+            ConfigurationAction::Submit => self.action_configuration_requested = true,
+            ConfigurationAction::Cancel => {
+                let (screens, _) = self.screens.take_action_configuration();
+                self.screens = screens.transition_to(TuiScreen::ListActions);
+            }
+            ConfigurationAction::Continue => {}
+        }
     }
 
     fn handle_configuration_key(&mut self, key: KeyEvent) {
