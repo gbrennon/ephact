@@ -191,6 +191,10 @@ impl TuiApp {
         self.screens = self.screens.report_configuration_error(error);
     }
 
+    pub fn has_configuration_error(&self) -> bool {
+        self.screens.has_configuration_error()
+    }
+
     pub fn take_cancel_request(&mut self) -> bool {
         let requested = self.cancel_requested;
         self.cancel_requested = false;
