@@ -4,7 +4,7 @@ use crate::{
 };
 
 /// Executes one action from a serialized workflow step.
-pub trait RunActionPort {
+pub trait RunActionPort: Send + Sync {
     /// Decodes the requested step, resolves its action reference, and returns
     /// the action's exit code and captured output.
     ///

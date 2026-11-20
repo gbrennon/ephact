@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 pub use super::container_collaborators::ContainerCollaborators;
 use crate::{
-    actions::{GitActionFetcher, RunActionFactory},
+    actions::{GitActionFetcher, RunActionFactory, StandaloneRunActionAdapter},
     application::{
         ports::outbound::{
             ActionCommandPublisherPort, ActionFetcherPort, ContainerRuntimePort,
@@ -17,8 +17,9 @@ use crate::{
         },
     },
     containers::{
-        ContainerCleanupHandler, ContainerRuntimeAdapter, HostSshForwardingConfig,
-        UnavailableContainerRuntime,
+        ContainerCleanupHandler, ContainerRuntimeAdapter, CreateJobContainerService,
+        GITHUB_HOSTED_RUNNER_IMAGE, HostSshForwardingConfig, PrepareJobContainerService,
+        PullJobImageService, RepositoryContainerCopyAdapter, UnavailableContainerRuntime,
     },
     di::{
         app_container::{AppContainer, AppContainerParts},
@@ -119,20 +120,27 @@ impl Container {
         let (event_publisher, failure_log_stores) =
             Self::build_event_bus(runtime.clone(), progress_reporter);
         let command_publisher = Self::build_command_bus(
-            runtime,
+            runtime.clone(),
             action_fetcher,
             event_publisher.clone(),
-            ssh_forwarding,
+            ssh_forwarding.clone(),
             workflow_source.clone(),
         );
         let shared_workflow_source = SharedWorkflowSource::new(workflow_source);
         let parts = Self::build_app_parts(
             shared_workflow_source,
             command_publisher,
-            event_publisher,
+            event_publisher.clone(),
             branding_store,
+            runtime,
+            ssh_forwarding.clone(),
         );
-        AppContainer::new_with_discovery_and_failure_stores(parts, failure_log_stores)
+        let (parts, action_port) = parts;
+        AppContainer::new_with_discovery_and_action_port_and_failure_stores(
+            parts,
+            action_port,
+            failure_log_stores,
+        )
     }
 
     fn build_app_parts(
@@ -140,7 +148,12 @@ impl Container {
         command_publisher: CommandPublisherAdapter,
         event_publisher: DomainEventPublisherAdapter,
         branding_store: Box<dyn ProjectBrandingStorePort>,
-    ) -> AppContainerParts {
+        runtime: Arc<dyn ContainerRuntimePort>,
+        ssh_forwarding: HostSshForwardingConfig,
+    ) -> (
+        AppContainerParts,
+        Box<dyn crate::application::ports::inbound::RunActionPort>,
+    ) {
         let list_workflows_service = ListWorkflowsService::new(Box::new(workflow_source.clone()));
         let list_actions_service = ListActionsService::new(Box::new(workflow_source.clone()));
         let run_workflow_service = RunWorkflowService::new(
@@ -154,27 +167,51 @@ impl Container {
         let run_all_workflows_service = RunAllWorkflowsService::new(
             Box::new(workflow_source),
             Box::new(command_publisher.clone()) as Box<dyn WorkflowCommandPublisherPort>,
-            Box::new(event_publisher) as Box<dyn DomainEventPublisherPort>,
+            Box::new(event_publisher.clone()) as Box<dyn DomainEventPublisherPort>,
             Box::new(DetectWorkflowTriggerService::new()),
         );
+        let action_command_publisher = command_publisher.clone();
         let run_action_factory: RunActionFactory = Box::new(move |container| {
+            Box::new(RunActionService::new(
+                Box::new(action_command_publisher.clone()) as Box<dyn ActionCommandPublisherPort>,
+                container,
+                Arc::new(JsonStepTextCodec),
+            ))
+        });
+        let standalone_action_factory: RunActionFactory = Box::new(move |container| {
             Box::new(RunActionService::new(
                 Box::new(command_publisher.clone()) as Box<dyn ActionCommandPublisherPort>,
                 container,
                 Arc::new(JsonStepTextCodec),
             ))
         });
+        let standalone_action_port = Box::new(StandaloneRunActionAdapter::new(
+            Box::new(PrepareJobContainerService::with_default_image(
+                GITHUB_HOSTED_RUNNER_IMAGE,
+                Box::new(PullJobImageService::new(runtime.clone())),
+                Box::new(CreateJobContainerService::with_ssh_forwarding(
+                    runtime,
+                    ssh_forwarding,
+                )),
+                Box::new(RepositoryContainerCopyAdapter::new()),
+            )),
+            standalone_action_factory,
+            Arc::new(event_publisher),
+        ));
         let show_project_branding_info_service =
             ShowProjectBrandingInfoService::new(branding_store);
 
         (
-            Box::new(show_project_branding_info_service),
-            Box::new(run_all_workflows_service),
-            Box::new(run_workflow_service),
-            run_action_factory,
-            Box::new(discover_run_inputs_service),
-            Box::new(list_workflows_service),
-            Box::new(list_actions_service),
+            (
+                Box::new(show_project_branding_info_service),
+                Box::new(run_all_workflows_service),
+                Box::new(run_workflow_service),
+                run_action_factory,
+                Box::new(discover_run_inputs_service),
+                Box::new(list_workflows_service),
+                Box::new(list_actions_service),
+            ),
+            standalone_action_port,
         )
     }
 

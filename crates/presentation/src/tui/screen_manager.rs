@@ -6,8 +6,8 @@ use ratatui::{Frame, widgets::Block};
 use super::{
     components::{ConfigurationAction, Renderable, RunConfigurationValues, ScreenFrame},
     screens::{
-        HomeScreen, ListActionsScreen, ListWorkflowsScreen, RunWorkflowScreen, SettingsAction,
-        SettingsScreen, SplashScreen,
+        HomeScreen, ListActionsScreen, ListWorkflowsScreen, RunActionScreen, RunWorkflowScreen,
+        SettingsAction, SettingsScreen, SplashScreen,
     },
     theme::Theme,
 };
@@ -30,6 +30,7 @@ pub enum TuiScreen {
     ListWorkflows,
     ListActions,
     RunWorkflow,
+    RunAction,
     Settings,
     Exit,
 }
@@ -42,6 +43,7 @@ pub struct ScreenManager {
     list_workflows: ListWorkflowsScreen,
     list_actions: ListActionsScreen,
     run_workflow: RunWorkflowScreen,
+    run_action: Option<RunActionScreen>,
     settings: SettingsScreen,
     emblem: String,
 }
@@ -58,6 +60,7 @@ impl ScreenManager {
             list_workflows: ListWorkflowsScreen::new(workflows.clone()),
             list_actions: ListActionsScreen::new(Vec::new()),
             run_workflow: RunWorkflowScreen::new(workflows),
+            run_action: None,
             settings: SettingsScreen::new(Settings::default(), None),
             emblem,
         }
@@ -146,6 +149,11 @@ impl ScreenManager {
             TuiScreen::ListWorkflows => self.list_workflows.render(frame, content_area),
             TuiScreen::ListActions => self.list_actions.render(frame, content_area),
             TuiScreen::RunWorkflow => self.run_workflow.render(frame, content_area),
+            TuiScreen::RunAction => {
+                if let Some(run_action) = &self.run_action {
+                    run_action.render(frame, content_area);
+                }
+            }
             TuiScreen::Settings => self.settings.render(frame, content_area),
             TuiScreen::Splash => {}
         }
@@ -178,6 +186,19 @@ impl ScreenManager {
     pub fn select_list_actions_next(&self) -> Self {
         let mut next = self.clone();
         next.list_actions.select_next();
+        next
+    }
+
+    pub fn selected_action(&self) -> Option<&str> {
+        self.list_actions.selected_action()
+    }
+
+    pub fn open_selected_action(&self) -> Self {
+        let mut next = self.clone();
+        next.run_action = next
+            .list_actions
+            .selected_action()
+            .map(|action| RunActionScreen::new(action.to_owned()));
         next
     }
 
@@ -219,6 +240,33 @@ impl ScreenManager {
         (next, configuration)
     }
 
+    pub fn begin_action_configuration(
+        &self,
+        declarations: Vec<RunInputDeclarationResponse>,
+    ) -> Self {
+        let mut next = self.clone();
+        if let Some(run_action) = next.run_action.as_mut() {
+            run_action
+                .begin_configuration_with_marker(declarations, next.settings.settings().marker());
+        }
+        next
+    }
+
+    pub fn take_action_configuration(&self) -> (Self, Option<RunConfigurationValues>) {
+        let mut next = self.clone();
+        let configuration = next
+            .run_action
+            .as_mut()
+            .and_then(RunActionScreen::take_configuration);
+        (next, configuration)
+    }
+
+    pub fn selected_action_for_run(&self) -> Option<String> {
+        self.run_action
+            .as_ref()
+            .map(|run_action| run_action.selected_action().to_owned())
+    }
+
     pub fn selected_workflow_events(&self) -> Vec<String> {
         self.run_workflow.selected_workflow_events()
     }
@@ -235,6 +283,24 @@ impl ScreenManager {
         self.run_workflow.is_running()
     }
 
+    pub fn is_action_running(&self) -> bool {
+        self.run_action
+            .as_ref()
+            .is_some_and(RunActionScreen::is_running)
+    }
+
+    pub fn has_action_outcome(&self) -> bool {
+        self.run_action
+            .as_ref()
+            .is_some_and(RunActionScreen::has_outcome)
+    }
+
+    pub fn is_showing_action_details(&self) -> bool {
+        self.run_action
+            .as_ref()
+            .is_some_and(RunActionScreen::is_showing_details)
+    }
+
     pub fn has_configuration_error(&self) -> bool {
         self.run_workflow.configuration_error().is_some()
             || self.run_workflow.configuration_footer().is_some()
@@ -242,6 +308,24 @@ impl ScreenManager {
 
     pub fn is_configuration_editing(&self) -> bool {
         self.run_workflow.configuration_is_editing()
+    }
+
+    pub fn has_action_configuration_error(&self) -> bool {
+        self.run_action
+            .as_ref()
+            .is_some_and(|screen| screen.configuration_error().is_some())
+    }
+
+    pub fn action_configuration_footer(&self) -> Option<&'static str> {
+        self.run_action
+            .as_ref()
+            .and_then(RunActionScreen::configuration_footer)
+    }
+
+    pub fn is_action_configuration_editing(&self) -> bool {
+        self.run_action
+            .as_ref()
+            .is_some_and(RunActionScreen::configuration_is_editing)
     }
 
     pub fn is_settings_editing(&self) -> bool {
@@ -280,6 +364,91 @@ impl ScreenManager {
         let mut next = self.clone();
         let action = next.run_workflow.handle_configuration_key(key);
         (next, action)
+    }
+
+    pub fn handle_action_configuration_key(&self, key: KeyEvent) -> (Self, ConfigurationAction) {
+        let mut next = self.clone();
+        let action = next
+            .run_action
+            .as_mut()
+            .map(|screen| screen.handle_configuration_key(key))
+            .unwrap_or(ConfigurationAction::Cancel);
+        (next, action)
+    }
+
+    pub fn report_action_configuration_error(&self, error: String) -> Self {
+        let mut next = self.clone();
+        if let Some(run_action) = next.run_action.as_mut() {
+            run_action.report_configuration_error(error);
+        }
+        next
+    }
+
+    pub fn start_action_run(&self) -> Self {
+        let mut next = self.clone();
+        if let Some(run_action) = next.run_action.as_mut() {
+            run_action.start_run();
+        }
+        next
+    }
+
+    pub fn record_action_progress(&self, line: String) -> Self {
+        let mut next = self.clone();
+        if let Some(run_action) = next.run_action.as_mut() {
+            run_action.record_progress(line);
+        }
+        next
+    }
+
+    pub fn record_action_outcome(
+        &self,
+        outcome: crate::application::dtos::responses::ExecuteActionResponse,
+    ) -> Self {
+        let mut next = self.clone();
+        if let Some(run_action) = next.run_action.as_mut() {
+            run_action.record_outcome(outcome);
+        }
+        next
+    }
+
+    pub fn record_action_cancelled(&self) -> Self {
+        let mut next = self.clone();
+        if let Some(run_action) = next.run_action.as_mut() {
+            run_action.record_cancelled();
+        }
+        next
+    }
+
+    pub fn open_action_details(&self) -> Self {
+        let mut next = self.clone();
+        if let Some(run_action) = next.run_action.as_mut() {
+            run_action.open_details();
+        }
+        next
+    }
+
+    pub fn close_action_details(&self) -> Self {
+        let mut next = self.clone();
+        if let Some(run_action) = next.run_action.as_mut() {
+            run_action.close_details();
+        }
+        next
+    }
+
+    pub fn scroll_action_summary_up(&self) -> Self {
+        let mut next = self.clone();
+        if let Some(run_action) = next.run_action.as_mut() {
+            run_action.scroll_summary_up();
+        }
+        next
+    }
+
+    pub fn scroll_action_summary_down(&self) -> Self {
+        let mut next = self.clone();
+        if let Some(run_action) = next.run_action.as_mut() {
+            run_action.scroll_summary_down();
+        }
+        next
     }
 
     pub fn report_configuration_error(&self, error: String) -> Self {
