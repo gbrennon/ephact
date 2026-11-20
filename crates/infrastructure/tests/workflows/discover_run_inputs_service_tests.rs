@@ -12,6 +12,47 @@ mod tests {
     };
 
     #[test]
+    fn discover_action_inputs() {
+        let temporary = tempfile::tempdir().unwrap();
+        fs::create_dir(temporary.path().join(".git")).unwrap();
+        let action_dir = temporary.path().join(".github/actions/demo");
+        fs::create_dir_all(&action_dir).unwrap();
+        fs::write(
+            action_dir.join("action.yml"),
+            "name: Demo\ninputs:\n  required_name:\n    required: true\n  optional_name:\n    default: fallback\nruns:\n  using: composite\n  steps:\n    - run: echo demo\n",
+        )
+        .unwrap();
+        let repository = Repository::new(
+            RepoPath::new(temporary.path().to_path_buf()).unwrap(),
+            RepositoryName::new("test".to_string()).unwrap(),
+        );
+        let service =
+            FilesystemRunInputDiscoveryService::new(Box::new(FilesystemWorkflowSource::new(&[
+                ".github/workflows",
+            ])));
+
+        let declarations = service
+            .discover(DiscoverRunInputsRequest::for_action(
+                "./.github/actions/demo".to_owned(),
+                repository,
+            ))
+            .unwrap();
+
+        let required = declarations
+            .iter()
+            .find(|declaration| declaration.name() == "required_name")
+            .expect("required action input");
+        assert!(required.required());
+        assert_eq!(required.default(), None);
+        let optional = declarations
+            .iter()
+            .find(|declaration| declaration.name() == "optional_name")
+            .expect("defaulted action input");
+        assert!(!optional.required());
+        assert_eq!(optional.default(), Some("fallback"));
+    }
+
+    #[test]
     fn discovers_required_workflow_and_local_action_inputs() {
         let temporary = tempfile::tempdir().unwrap();
         fs::create_dir(temporary.path().join(".git")).unwrap();

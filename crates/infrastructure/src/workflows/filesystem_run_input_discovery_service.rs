@@ -286,10 +286,18 @@ impl RunInputsDiscovererPort for FilesystemRunInputDiscoveryService {
         &self,
         request: DiscoverRunInputsRequest,
     ) -> Result<Vec<RunInputDeclarationResponse>, DiscoverRunInputsError> {
-        let sources = self.workflow_contents(&request)?;
         let supplied = Self::collect_supplied_inputs(request.config());
         let repo_path = request.repository().path().as_path();
-        let (declarations, provided) = Self::process_workflows(&sources, repo_path)?;
+        let (declarations, provided) = match request.action_ref() {
+            Some(action_ref) => (
+                Self::add_action_inputs(repo_path, action_ref, Vec::new())?,
+                HashSet::new(),
+            ),
+            None => {
+                let sources = self.workflow_contents(&request)?;
+                Self::process_workflows(&sources, repo_path)?
+            }
+        };
         Ok(Self::resolve_declarations(declarations, supplied, provided))
     }
 }
