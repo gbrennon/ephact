@@ -156,6 +156,30 @@ impl TuiApp {
         self.screens = self.screens.begin_action_configuration(declarations);
     }
 
+    pub fn report_action_configuration_error(&mut self, error: String) {
+        self.screens = self.screens.report_action_configuration_error(error);
+    }
+
+    pub fn is_action_configuration_ready(&self) -> bool {
+        self.screens.action_configuration_footer().is_some()
+            || self.screens.has_action_configuration_error()
+    }
+
+    pub fn start_action_run(&mut self) {
+        self.screens = self.screens.start_action_run();
+    }
+
+    pub fn record_action_progress(&mut self, line: String) {
+        self.screens = self.screens.record_action_progress(line);
+    }
+
+    pub fn record_action_outcome(
+        &mut self,
+        outcome: crate::application::dtos::responses::ExecuteActionResponse,
+    ) {
+        self.screens = self.screens.record_action_outcome(outcome);
+    }
+
     pub fn run_outcome(&self) -> Option<&RunSummaryResponse> {
         self.screens.run_outcome()
     }
@@ -340,7 +364,7 @@ impl TuiApp {
             ConfigurationAction::Submit => self.action_configuration_requested = true,
             ConfigurationAction::Cancel => {
                 let (screens, _) = self.screens.take_action_configuration();
-                self.screens = screens;
+                self.screens = screens.transition_to(TuiScreen::ListActions);
             }
             ConfigurationAction::Continue => {}
         }

@@ -6,7 +6,8 @@ use crate::{
         ports::{
             inbound::{
                 list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
-                run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
+                run_action_port::RunActionPort, run_all_workflows_port::RunAllWorkflowsPort,
+                run_workflow_port::RunWorkflowPort,
                 show_project_branding_info_port::ShowProjectBrandingInfoPort,
             },
             outbound::RunInputsDiscovererPort,
@@ -22,6 +23,7 @@ pub struct AppContainer {
     run_all_workflows_port: Box<dyn RunAllWorkflowsPort>,
     run_workflow_port: Box<dyn RunWorkflowPort>,
     run_action_factory: RunActionFactory,
+    run_action_port: Option<Box<dyn RunActionPort>>,
     discover_run_inputs_port: Box<dyn RunInputsDiscovererPort>,
     list_workflows_port: Box<dyn ListWorkflowsPort>,
     list_actions_port: Box<dyn ListActionsPort>,
@@ -102,6 +104,36 @@ impl AppContainer {
             run_all_workflows_port,
             run_workflow_port,
             run_action_factory,
+            run_action_port: None,
+            discover_run_inputs_port,
+            list_workflows_port,
+            list_actions_port,
+            failure_log_error_store: stores.error_store(),
+            failure_log_path_store: stores.path_store(),
+            failure_log_retention_store: stores.retention_store(),
+        }
+    }
+
+    pub fn new_with_discovery_and_action_port_and_failure_stores(
+        parts: AppContainerParts,
+        run_action_port: Box<dyn RunActionPort>,
+        stores: FailureLogStores,
+    ) -> Self {
+        let (
+            show_project_branding_info_port,
+            run_all_workflows_port,
+            run_workflow_port,
+            run_action_factory,
+            discover_run_inputs_port,
+            list_workflows_port,
+            list_actions_port,
+        ) = parts;
+        Self {
+            show_project_branding_info_port,
+            run_all_workflows_port,
+            run_workflow_port,
+            run_action_factory,
+            run_action_port: Some(run_action_port),
             discover_run_inputs_port,
             list_workflows_port,
             list_actions_port,
@@ -132,6 +164,34 @@ impl AppContainer {
             self.discover_run_inputs_port,
             self.list_workflows_port,
             self.list_actions_port,
+        )
+    }
+
+    pub fn into_parts_with_action_port(
+        self,
+    ) -> (AppContainerParts, Option<Box<dyn RunActionPort>>) {
+        let AppContainer {
+            show_project_branding_info_port,
+            run_all_workflows_port,
+            run_workflow_port,
+            run_action_factory,
+            run_action_port,
+            discover_run_inputs_port,
+            list_workflows_port,
+            list_actions_port,
+            ..
+        } = self;
+        (
+            (
+                show_project_branding_info_port,
+                run_all_workflows_port,
+                run_workflow_port,
+                run_action_factory,
+                discover_run_inputs_port,
+                list_workflows_port,
+                list_actions_port,
+            ),
+            run_action_port,
         )
     }
 }

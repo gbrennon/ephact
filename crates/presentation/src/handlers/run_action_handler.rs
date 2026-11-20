@@ -20,6 +20,16 @@ impl RunActionHandler {
         inputs: Vec<(String, String)>,
         repository_path: PathBuf,
     ) -> Result<ExecuteActionResponse, Box<dyn std::error::Error>> {
+        Self::handle_sync(port, step_codec, action_ref, inputs, repository_path)
+    }
+
+    pub fn handle_sync(
+        port: &dyn RunActionPort,
+        step_codec: &dyn StepTextCodecPort,
+        action_ref: String,
+        inputs: Vec<(String, String)>,
+        repository_path: PathBuf,
+    ) -> Result<ExecuteActionResponse, Box<dyn std::error::Error>> {
         let inputs = inputs.into_iter().collect::<HashMap<_, _>>();
         let input =
             RunActionRequestInput::for_action(action_ref, inputs, repository_path, step_codec)?;

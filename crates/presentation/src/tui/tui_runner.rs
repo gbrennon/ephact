@@ -11,7 +11,10 @@ use super::{
 };
 use crate::{
     application::{
-        dtos::responses::RunSummaryResponse,
+        dtos::{
+            requests::DiscoverRunInputsRequest,
+            responses::{ExecuteActionResponse, RunSummaryResponse},
+        },
         ports::{
             inbound::{
                 list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
@@ -21,11 +24,13 @@ use crate::{
         },
     },
     cli::TuiProgressStream,
-    domain::Settings,
+    domain::{
+        Repository, Settings,
+        value_objects::{RepoPath, RepositoryName},
+    },
     handlers::{RunActionHandler, RunHandler, SingleWorkflowRun},
     infrastructure::{
-        HostSshForwardingSettingsPort, actions::RunActionFactory, logging::FailureLogPathStore,
-        steps::JsonStepTextCodec,
+        HostSshForwardingSettingsPort, logging::FailureLogPathStore, steps::JsonStepTextCodec,
     },
     tui::components::PROJECT_EMBLEM,
 };
@@ -35,11 +40,18 @@ struct RunTask {
     run_id: String,
 }
 
+struct ActionTask {
+    handle: tokio::task::JoinHandle<Result<ExecuteActionResponse, String>>,
+}
+
 enum TuiLoopState {
     Idle,
     InputConfigurationPending,
+    ActionInputConfigurationPending,
     Running { task: RunTask },
     Cancelling { task: RunTask },
+    ActionRunning { task: ActionTask },
+    ActionCancelling { task: ActionTask },
 }
 
 impl TuiLoopState {
@@ -53,7 +65,6 @@ pub struct TuiRunner {
     list_actions_port: Arc<dyn ListActionsPort>,
     run_workflow_port: Arc<dyn RunWorkflowPort>,
     run_action_port: Option<Arc<dyn RunActionPort>>,
-    run_action_factory: Option<RunActionFactory>,
     step_text_codec: Arc<dyn StepTextCodecPort>,
     progress_stream: Option<TuiProgressStream>,
     discover_run_inputs_port: Option<Arc<dyn RunInputsDiscovererPort>>,
@@ -74,7 +85,6 @@ impl TuiRunner {
             list_actions_port,
             run_workflow_port,
             run_action_port: None,
-            run_action_factory: None,
             step_text_codec: Arc::new(JsonStepTextCodec),
             progress_stream: None,
             discover_run_inputs_port: None,
@@ -87,11 +97,6 @@ impl TuiRunner {
 
     pub fn with_action_port(mut self, run_action_port: Arc<dyn RunActionPort>) -> Self {
         self.run_action_port = Some(run_action_port);
-        self
-    }
-
-    pub fn with_action_factory(mut self, run_action_factory: RunActionFactory) -> Self {
-        self.run_action_factory = Some(run_action_factory);
         self
     }
 
@@ -247,6 +252,9 @@ impl TuiRunner {
         self.process_finished_run(app, state).await?;
         self.process_run_request(app, state)?;
         self.process_configured_run_request(app, state)?;
+        self.process_action_input_discovery(app, state)?;
+        self.process_configured_action_request(app, state)?;
+        self.process_finished_action(app, state).await?;
         Ok(())
     }
 
@@ -255,8 +263,112 @@ impl TuiRunner {
             return;
         };
         while let Some(line) = stream.try_recv() {
-            app.record_progress(line);
+            if app.screen() == TuiScreen::RunAction {
+                app.record_action_progress(line);
+            } else {
+                app.record_progress(line);
+            }
         }
+    }
+
+    fn process_action_input_discovery(
+        &self,
+        app: &mut TuiApp,
+        state: &mut TuiLoopState,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if app.screen() != TuiScreen::RunAction
+            || !matches!(state, TuiLoopState::Idle)
+            || app.is_action_configuration_ready()
+        {
+            return Ok(());
+        }
+        let Some(discover) = &self.discover_run_inputs_port else {
+            app.begin_action_configuration(Vec::new());
+            return Ok(());
+        };
+        let action = app
+            .selected_action()
+            .ok_or_else(|| std::io::Error::other("no action selected"))?
+            .to_owned();
+        let repository_path = std::env::current_dir()?;
+        let name = repository_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("repository")
+            .to_owned();
+        let repository =
+            Repository::new(RepoPath::new(repository_path)?, RepositoryName::new(name)?);
+        match discover.discover(DiscoverRunInputsRequest::for_action(action, repository)) {
+            Ok(declarations) => app.begin_action_configuration(declarations),
+            Err(error) => {
+                app.begin_action_configuration(Vec::new());
+                app.report_action_configuration_error(error.to_string());
+            }
+        }
+        *state = TuiLoopState::ActionInputConfigurationPending;
+        Ok(())
+    }
+
+    fn process_configured_action_request(
+        &self,
+        app: &mut TuiApp,
+        state: &mut TuiLoopState,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if !matches!(
+            state,
+            TuiLoopState::ActionInputConfigurationPending | TuiLoopState::Idle
+        ) || !app.is_action_configuration_ready()
+        {
+            return Ok(());
+        }
+        let Some((action, configuration)) = app.take_action_run_request() else {
+            return Ok(());
+        };
+        let port = self
+            .run_action_port
+            .clone()
+            .ok_or_else(|| std::io::Error::other("action execution is not configured"))?;
+        let inputs = configuration.inputs().to_vec();
+        let repository_path = std::env::current_dir()?;
+        let codec = self.step_text_codec.clone();
+        app.start_action_run();
+        let handle = tokio::task::spawn_blocking(move || {
+            RunActionHandler::handle_sync(&*port, &*codec, action, inputs, repository_path)
+                .map_err(|error| error.to_string())
+        });
+        *state = TuiLoopState::ActionRunning {
+            task: ActionTask { handle },
+        };
+        Ok(())
+    }
+
+    async fn process_finished_action(
+        &self,
+        app: &mut TuiApp,
+        state: &mut TuiLoopState,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let finished = match state {
+            TuiLoopState::ActionRunning { task } | TuiLoopState::ActionCancelling { task } => {
+                task.handle.is_finished()
+            }
+            _ => return Ok(()),
+        };
+        if !finished {
+            return Ok(());
+        }
+        let previous = std::mem::replace(state, TuiLoopState::Idle);
+        if let TuiLoopState::ActionRunning { task } = previous {
+            match task.handle.await.map_err(|error| error.to_string())? {
+                Ok(response) => app.record_action_outcome(response),
+                Err(error) => app.record_action_outcome(
+                    ExecuteActionResponse::builder()
+                        .exit_code(1)
+                        .stderr(error)
+                        .build(),
+                ),
+            }
+        }
+        Ok(())
     }
 
     fn process_cancel_request(&self, app: &mut TuiApp, state: &mut TuiLoopState) {
@@ -264,6 +376,7 @@ impl TuiRunner {
             return;
         }
         let previous_state = std::mem::replace(state, TuiLoopState::Idle);
+        let workflow_cancelled = matches!(previous_state, TuiLoopState::Running { .. });
         match previous_state {
             TuiLoopState::Running { task } => {
                 task.handle.abort();
@@ -273,9 +386,21 @@ impl TuiRunner {
             TuiLoopState::Cancelling { task } => {
                 *state = TuiLoopState::Cancelling { task };
             }
-            TuiLoopState::Idle | TuiLoopState::InputConfigurationPending => {}
+            TuiLoopState::ActionRunning { task } => {
+                task.handle.abort();
+                app.record_action_outcome(ExecuteActionResponse::note("Cancelled".to_owned()));
+                *state = TuiLoopState::ActionCancelling { task };
+            }
+            TuiLoopState::ActionCancelling { task } => {
+                *state = TuiLoopState::ActionCancelling { task };
+            }
+            TuiLoopState::Idle
+            | TuiLoopState::InputConfigurationPending
+            | TuiLoopState::ActionInputConfigurationPending => {}
         }
-        app.record_run_outcome(Self::cancelled_summary());
+        if workflow_cancelled {
+            app.record_run_outcome(Self::cancelled_summary());
+        }
     }
 
     async fn process_finished_run(
@@ -287,7 +412,11 @@ impl TuiRunner {
             TuiLoopState::Running { task } | TuiLoopState::Cancelling { task } => {
                 task.handle.is_finished()
             }
-            TuiLoopState::Idle | TuiLoopState::InputConfigurationPending => return Ok(()),
+            TuiLoopState::Idle
+            | TuiLoopState::InputConfigurationPending
+            | TuiLoopState::ActionInputConfigurationPending
+            | TuiLoopState::ActionRunning { .. }
+            | TuiLoopState::ActionCancelling { .. } => return Ok(()),
         };
         if !is_finished {
             return Ok(());
@@ -309,7 +438,11 @@ impl TuiRunner {
                     Err(error) => self.record_failed_run(app, &task.run_id, error),
                 }
             }
-            TuiLoopState::Idle | TuiLoopState::InputConfigurationPending => Ok(()),
+            TuiLoopState::Idle
+            | TuiLoopState::InputConfigurationPending
+            | TuiLoopState::ActionInputConfigurationPending
+            | TuiLoopState::ActionRunning { .. }
+            | TuiLoopState::ActionCancelling { .. } => Ok(()),
         }
     }
 
@@ -370,7 +503,10 @@ impl TuiRunner {
     ) -> Result<(), Box<dyn std::error::Error>> {
         if matches!(
             state,
-            TuiLoopState::Running { .. } | TuiLoopState::Cancelling { .. }
+            TuiLoopState::Running { .. }
+                | TuiLoopState::Cancelling { .. }
+                | TuiLoopState::ActionRunning { .. }
+                | TuiLoopState::ActionCancelling { .. }
         ) {
             return Ok(());
         }

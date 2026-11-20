@@ -9,3 +9,4 @@ mod resolve_action_inputs_service_tests;
 mod resolve_node_binary_service_tests;
 mod run_composite_action_service_tests;
 mod run_node_action_service_tests;
+mod standalone_run_action_adapter_tests;

@@ -17,7 +17,8 @@ use crate::{
     application::ports::{
         inbound::{
             list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
-            run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
+            run_action_port::RunActionPort, run_all_workflows_port::RunAllWorkflowsPort,
+            run_workflow_port::RunWorkflowPort,
             show_project_branding_info_port::ShowProjectBrandingInfoPort,
         },
         outbound::{RunInputsDiscovererPort, SettingsStorePort},
@@ -26,7 +27,7 @@ use crate::{
     handlers::{
         DiagnosticStores, ListActionsHandler, ListWorkflowsHandler, PreflightPorts, RunHandler,
     },
-    infrastructure::{HostSshForwardingSettingsPort, actions::RunActionFactory},
+    infrastructure::HostSshForwardingSettingsPort,
     tui::TuiRunner,
 };
 
@@ -108,8 +109,8 @@ impl Cli {
         cli
     }
 
-    pub fn with_action_factory(mut self, factory: RunActionFactory) -> Self {
-        self.tui_runner = self.tui_runner.with_action_factory(factory);
+    pub fn with_action_port(mut self, port: Box<dyn RunActionPort>) -> Self {
+        self.tui_runner = self.tui_runner.with_action_port(Arc::from(port));
         self
     }
 

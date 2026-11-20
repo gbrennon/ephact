@@ -31,14 +31,17 @@ impl CompositionRoot {
         let failure_log_path_store = container.failure_log_path_store();
         let failure_log_retention_store = container.failure_log_retention_store();
         let (
-            show_project_branding_info_port,
-            run_all_workflows_port,
-            run_workflow_port,
-            run_action_factory,
-            discover_run_inputs_port,
-            list_workflows_port,
-            list_actions_port,
-        ) = container.into_parts();
+            (
+                show_project_branding_info_port,
+                run_all_workflows_port,
+                run_workflow_port,
+                _legacy_run_action_factory,
+                discover_run_inputs_port,
+                list_workflows_port,
+                list_actions_port,
+            ),
+            run_action_port,
+        ) = container.into_parts_with_action_port();
         let dependencies = CliDependencies::new(
             (
                 run_workflow_port,
@@ -61,8 +64,11 @@ impl CompositionRoot {
                 Cli::new_with_failure_stores_and_progress_stream(dependencies, stores, stream)
             }
             None => Cli::new_with_failure_stores(dependencies, stores),
-        }
-        .with_action_factory(run_action_factory);
+        };
+        let cli = match run_action_port {
+            Some(port) => cli.with_action_port(port),
+            None => cli,
+        };
         Application::new(cli)
     }
 }
