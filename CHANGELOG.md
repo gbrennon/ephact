@@ -148,6 +148,7 @@
 - **tui**: Resolve clippy warnings
 - **lint**: Split Rust structs by file
 - **lint**: Allow nested module names
+- **tui**: Recover cancelled workflow configuration
 
 ### Refactor
 
