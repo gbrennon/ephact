@@ -26,7 +26,7 @@ use crate::{
     handlers::{
         DiagnosticStores, ListActionsHandler, ListWorkflowsHandler, PreflightPorts, RunHandler,
     },
-    infrastructure::HostSshForwardingSettingsPort,
+    infrastructure::{HostSshForwardingSettingsPort, actions::RunActionFactory},
     tui::TuiRunner,
 };
 
@@ -106,6 +106,11 @@ impl Cli {
         let mut cli = Self::new_with_failure_stores(dependencies, failure_log_stores);
         cli.tui_runner = cli.tui_runner.with_progress_stream(progress_stream);
         cli
+    }
+
+    pub fn with_action_factory(mut self, factory: RunActionFactory) -> Self {
+        self.tui_runner = self.tui_runner.with_action_factory(factory);
+        self
     }
 
     pub fn with_settings(

@@ -15,15 +15,18 @@ use crate::{
         ports::{
             inbound::{
                 list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
-                run_workflow_port::RunWorkflowPort,
+                run_action_port::RunActionPort, run_workflow_port::RunWorkflowPort,
             },
-            outbound::{RunInputsDiscovererPort, SettingsStorePort},
+            outbound::{RunInputsDiscovererPort, SettingsStorePort, StepTextCodecPort},
         },
     },
     cli::TuiProgressStream,
     domain::Settings,
-    handlers::{RunHandler, SingleWorkflowRun},
-    infrastructure::{HostSshForwardingSettingsPort, logging::FailureLogPathStore},
+    handlers::{RunActionHandler, RunHandler, SingleWorkflowRun},
+    infrastructure::{
+        HostSshForwardingSettingsPort, actions::RunActionFactory, logging::FailureLogPathStore,
+        steps::JsonStepTextCodec,
+    },
     tui::components::PROJECT_EMBLEM,
 };
 
@@ -49,6 +52,9 @@ pub struct TuiRunner {
     list_workflows_port: Arc<dyn ListWorkflowsPort>,
     list_actions_port: Arc<dyn ListActionsPort>,
     run_workflow_port: Arc<dyn RunWorkflowPort>,
+    run_action_port: Option<Arc<dyn RunActionPort>>,
+    run_action_factory: Option<RunActionFactory>,
+    step_text_codec: Arc<dyn StepTextCodecPort>,
     progress_stream: Option<TuiProgressStream>,
     discover_run_inputs_port: Option<Arc<dyn RunInputsDiscovererPort>>,
     failure_log_path_store: Option<FailureLogPathStore>,
@@ -67,6 +73,9 @@ impl TuiRunner {
             list_workflows_port,
             list_actions_port,
             run_workflow_port,
+            run_action_port: None,
+            run_action_factory: None,
+            step_text_codec: Arc::new(JsonStepTextCodec),
             progress_stream: None,
             discover_run_inputs_port: None,
             failure_log_path_store: None,
@@ -74,6 +83,16 @@ impl TuiRunner {
             settings_store: None,
             host_ssh_settings: None,
         }
+    }
+
+    pub fn with_action_port(mut self, run_action_port: Arc<dyn RunActionPort>) -> Self {
+        self.run_action_port = Some(run_action_port);
+        self
+    }
+
+    pub fn with_action_factory(mut self, run_action_factory: RunActionFactory) -> Self {
+        self.run_action_factory = Some(run_action_factory);
+        self
     }
 
     pub fn with_input_discovery(
@@ -151,6 +170,28 @@ impl TuiRunner {
 
     /// Runs the given workflow (or all workflows when `None`) in the current
     /// directory and returns its run summary.
+    pub async fn run_action(
+        &self,
+        action_ref: String,
+        inputs: Vec<(String, String)>,
+    ) -> Result<
+        crate::application::dtos::responses::ExecuteActionResponse,
+        Box<dyn std::error::Error>,
+    > {
+        let port = self
+            .run_action_port
+            .as_ref()
+            .ok_or_else(|| std::io::Error::other("action execution is not configured"))?;
+        RunActionHandler::handle(
+            &**port,
+            &*self.step_text_codec,
+            action_ref,
+            inputs,
+            std::env::current_dir()?,
+        )
+        .await
+    }
+
     pub async fn run_workflow(
         &self,
         workflow: Option<String>,

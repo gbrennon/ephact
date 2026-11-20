@@ -34,7 +34,7 @@ impl CompositionRoot {
             show_project_branding_info_port,
             run_all_workflows_port,
             run_workflow_port,
-            _run_action_port,
+            run_action_factory,
             discover_run_inputs_port,
             list_workflows_port,
             list_actions_port,
@@ -61,7 +61,8 @@ impl CompositionRoot {
                 Cli::new_with_failure_stores_and_progress_stream(dependencies, stores, stream)
             }
             None => Cli::new_with_failure_stores(dependencies, stores),
-        };
+        }
+        .with_action_factory(run_action_factory);
         Application::new(cli)
     }
 }
