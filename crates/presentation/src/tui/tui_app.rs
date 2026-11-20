@@ -250,6 +250,10 @@ impl TuiApp {
         self.screens.current_screen()
     }
 
+    pub fn is_action_running(&self) -> bool {
+        self.screens.is_action_running()
+    }
+
     fn transition_to(&mut self, screen: TuiScreen) {
         self.screens = self.screens.transition_to(screen);
     }

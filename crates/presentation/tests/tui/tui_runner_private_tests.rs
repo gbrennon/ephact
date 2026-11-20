@@ -18,7 +18,10 @@ mod tests {
         application::{
             dtos::{
                 requests::{ListActionsRequest, ListWorkflowsRequest, RunWorkflowRequest},
-                responses::{ListActionsResponse, ListWorkflowsResponse, RunSummaryResponse},
+                responses::{
+                    ExecuteActionResponse, ListActionsResponse, ListWorkflowsResponse,
+                    RunSummaryResponse,
+                },
             },
             errors::{ApplicationError, ListActionsError, ListWorkflowsError},
             ports::{
@@ -152,5 +155,63 @@ mod tests {
         let state = TuiLoopState::new();
 
         assert!(matches!(state, TuiLoopState::Idle));
+    }
+
+    fn action_app() -> TuiApp {
+        let mut app =
+            TuiApp::new(Vec::new(), String::new()).with_actions(vec!["actions/demo".to_owned()]);
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app
+    }
+
+    #[test]
+    fn backing_out_of_action_configuration_resets_discovery_state() {
+        let runner = TuiRunner::new(
+            Arc::new(EmptyListWorkflowsPort),
+            Arc::new(EmptyListActionsPort),
+            Arc::new(UnusedRunWorkflowPort),
+        );
+        let mut app = action_app();
+        app.begin_action_configuration(Vec::new());
+        app.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+        let mut state = TuiLoopState::ActionInputConfigurationPending;
+
+        runner
+            .process_action_input_discovery(&mut app, &mut state)
+            .expect("back navigation should be handled");
+
+        assert!(matches!(state, TuiLoopState::Idle));
+    }
+
+    #[tokio::test]
+    async fn action_join_failure_is_rendered_as_action_outcome() {
+        let runner = TuiRunner::new(
+            Arc::new(EmptyListWorkflowsPort),
+            Arc::new(EmptyListActionsPort),
+            Arc::new(UnusedRunWorkflowPort),
+        );
+        let mut app = action_app();
+        app.start_action_run();
+        let handle = tokio::spawn(async move {
+            panic!("action task panicked");
+            #[allow(unreachable_code)]
+            Ok::<ExecuteActionResponse, String>(ExecuteActionResponse::note("unused".into()))
+        });
+        let mut state = TuiLoopState::ActionRunning {
+            task: super::super::ActionTask { handle },
+        };
+        tokio::task::yield_now().await;
+
+        runner
+            .process_finished_action(&mut app, &mut state)
+            .await
+            .expect("join failures should become action outcomes");
+
+        assert!(render_text(&app).contains("Exit code: 1"));
     }
 }

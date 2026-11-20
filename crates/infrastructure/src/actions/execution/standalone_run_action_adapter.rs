@@ -1,4 +1,11 @@
-use std::{process, sync::Arc, time::SystemTime};
+use std::{
+    process,
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
+    time::SystemTime,
+};
 
 use ephact_application::{
     dtos::{
@@ -28,6 +35,8 @@ pub struct StandaloneRunActionAdapter {
     events: Arc<dyn DomainEventPublisherPort>,
 }
 
+static NEXT_ACTION_RUN_ID: AtomicU64 = AtomicU64::new(0);
+
 impl StandaloneRunActionAdapter {
     pub fn new(
         preparer: Box<dyn JobContainerPreparerPort>,
@@ -42,10 +51,11 @@ impl StandaloneRunActionAdapter {
     }
 
     fn run_id() -> String {
-        let millis = SystemTime::now()
+        let timestamp = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
-            .map_or(0, |duration| duration.as_millis());
-        format!("action-{}-{millis}", process::id())
+            .map_or(0, |duration| duration.as_nanos());
+        let sequence = NEXT_ACTION_RUN_ID.fetch_add(1, Ordering::Relaxed);
+        format!("run-{}-{timestamp}-{sequence}", process::id())
     }
 }
 
@@ -72,12 +82,12 @@ impl RunActionPort for StandaloneRunActionAdapter {
 
         let result = (self.action_factory)(container).execute(request);
         match &result {
-            Ok(_) => self.events.publish(Event::WorkflowRunCompleted(
+            Ok(response) => self.events.publish(Event::WorkflowRunCompleted(
                 WorkflowRunCompletedPayload::new(
                     run_id,
                     repository_path.display().to_string(),
                     vec![container_name],
-                    true,
+                    response.exit_code() == 0,
                 ),
             )),
             Err(error) => self.events.publish(Event::RunFailed(RunFailedPayload::new(

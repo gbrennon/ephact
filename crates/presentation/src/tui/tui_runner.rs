@@ -263,7 +263,7 @@ impl TuiRunner {
             return;
         };
         while let Some(line) = stream.try_recv() {
-            if app.screen() == TuiScreen::RunAction {
+            if app.screen() == TuiScreen::RunAction && app.is_action_running() {
                 app.record_action_progress(line);
             } else {
                 app.record_progress(line);
@@ -276,10 +276,13 @@ impl TuiRunner {
         app: &mut TuiApp,
         state: &mut TuiLoopState,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        if app.screen() != TuiScreen::RunAction
-            || !matches!(state, TuiLoopState::Idle)
-            || app.is_action_configuration_ready()
-        {
+        if app.screen() != TuiScreen::RunAction {
+            if matches!(state, TuiLoopState::ActionInputConfigurationPending) {
+                *state = TuiLoopState::Idle;
+            }
+            return Ok(());
+        }
+        if !matches!(state, TuiLoopState::Idle) || app.is_action_configuration_ready() {
             return Ok(());
         }
         let Some(discover) = &self.discover_run_inputs_port else {
@@ -324,10 +327,16 @@ impl TuiRunner {
         let Some((action, configuration)) = app.take_action_run_request() else {
             return Ok(());
         };
-        let port = self
-            .run_action_port
-            .clone()
-            .ok_or_else(|| std::io::Error::other("action execution is not configured"))?;
+        let Some(port) = self.run_action_port.clone() else {
+            app.record_action_outcome(
+                ExecuteActionResponse::builder()
+                    .exit_code(1)
+                    .stderr("action execution is not configured".to_owned())
+                    .build(),
+            );
+            *state = TuiLoopState::Idle;
+            return Ok(());
+        };
         let inputs = configuration.inputs().to_vec();
         let repository_path = std::env::current_dir()?;
         let codec = self.step_text_codec.clone();
@@ -357,16 +366,24 @@ impl TuiRunner {
             return Ok(());
         }
         let previous = std::mem::replace(state, TuiLoopState::Idle);
-        if let TuiLoopState::ActionRunning { task } = previous {
-            match task.handle.await.map_err(|error| error.to_string())? {
-                Ok(response) => app.record_action_outcome(response),
-                Err(error) => app.record_action_outcome(
-                    ExecuteActionResponse::builder()
-                        .exit_code(1)
-                        .stderr(error)
-                        .build(),
-                ),
-            }
+        if let TuiLoopState::ActionRunning { task } | TuiLoopState::ActionCancelling { task } =
+            previous
+        {
+            let outcome = match task.handle.await {
+                Ok(Ok(response)) => response,
+                Ok(Err(error)) => ExecuteActionResponse::builder()
+                    .exit_code(1)
+                    .stderr(error)
+                    .build(),
+                Err(error) if error.is_cancelled() => {
+                    ExecuteActionResponse::note("Cancelled".to_owned())
+                }
+                Err(error) => ExecuteActionResponse::builder()
+                    .exit_code(1)
+                    .stderr(format!("action task failed: {error}"))
+                    .build(),
+            };
+            app.record_action_outcome(outcome);
         }
         Ok(())
     }
@@ -388,7 +405,6 @@ impl TuiRunner {
             }
             TuiLoopState::ActionRunning { task } => {
                 task.handle.abort();
-                app.record_action_outcome(ExecuteActionResponse::note("Cancelled".to_owned()));
                 *state = TuiLoopState::ActionCancelling { task };
             }
             TuiLoopState::ActionCancelling { task } => {
