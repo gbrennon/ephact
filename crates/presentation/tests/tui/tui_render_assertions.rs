@@ -38,7 +38,7 @@ use crate::common::fakes::{
 };
 
 const QUIT_KEY: char = '\x71';
-struct TuiRenderAssertions;
+enum TuiRenderAssertions {}
 
 impl TuiRenderAssertions {
     fn rendered_buffer(render: impl FnOnce(&mut ratatui::Frame<'_>)) -> Buffer {
