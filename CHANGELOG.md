@@ -55,6 +55,11 @@
 - **workflows**: Filter execution by selected job
 - Expose event context in job environments
 - **workflows**: Support custom workflow directories
+- **inputs**: Discover standalone action inputs
+- **actions**: Expose standalone action execution
+- **tui**: Add action run screen
+- **tui**: Run selected actions independently
+- **tui**: Complete standalone action execution
 
 ### Bug Fixes
 
@@ -137,6 +142,12 @@
 - **app-runner**: Implement runner default
 - **workflows**: Display relative workflow paths
 - **runner**: Update Ubuntu Node path
+- **tui**: Isolate action navigation requests
+- **tui**: Harden standalone action runs
+- **tui**: Stabilize standalone action results
+- **tui**: Resolve clippy warnings
+- **lint**: Split Rust structs by file
+- **lint**: Allow nested module names
 
 ### Refactor
 
@@ -457,6 +468,7 @@
 - **ci**: Cover git-cliff checksum validation
 - **runner**: Track Ubuntu Node path
 - **infrastructure**: Gate container integration
+- **tui**: Cover action event loop
 
 ### Continuous Integration
 
