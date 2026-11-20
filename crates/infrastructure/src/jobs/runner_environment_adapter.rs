@@ -14,7 +14,7 @@ use crate::{
 
 /// `PATH` a job runs with when neither the workflow nor the job declares one.
 const DEFAULT_PATH: &str = concat!(
-    "/opt/acttoolcache/node/24.19.0/x64/bin:",
+    "/opt/acttoolcache/node/24.22.3/x64/bin:",
     "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 );
 
