@@ -335,6 +335,26 @@ mod tests {
     }
 
     #[test]
+    fn workflow_configuration_submits_from_the_run_screen() {
+        let mut app = TuiApp::new(
+            vec![WorkflowListItemResponse::new(
+                Some("CI".to_string()),
+                None,
+                vec!["push".to_string()],
+            )],
+            ephact::PROJECT_EMBLEM.to_string(),
+        );
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.begin_run_configuration(vec!["push".to_string()], vec![]);
+
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        assert!(app.take_configured_run_request().is_some());
+        assert!(!app.take_run_request());
+    }
+
+    #[test]
     fn run_picker_configures_on_enter_and_ignores_details_key() {
         let mut app = TuiApp::new(
             vec![WorkflowListItemResponse::new(

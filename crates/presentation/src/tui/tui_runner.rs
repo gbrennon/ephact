@@ -543,6 +543,11 @@ impl TuiRunner {
         app: &mut TuiApp,
         state: &mut TuiLoopState,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        if matches!(state, TuiLoopState::InputConfigurationPending)
+            && !app.has_configuration_error()
+        {
+            *state = TuiLoopState::Idle;
+        }
         if matches!(
             state,
             TuiLoopState::Running { .. }

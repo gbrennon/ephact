@@ -6,7 +6,7 @@ mod tests {
     use ratatui::{Terminal, backend::TestBackend};
 
     use super::super::{RunTask, TuiApp, TuiLoopState, TuiRunner};
-    use crate::application::dtos::responses::ExecuteActionResponse;
+    use crate::application::dtos::responses::{ExecuteActionResponse, WorkflowListItemResponse};
 
     #[path = "empty_list_actions_port.rs"]
     mod empty_list_actions_port;
@@ -80,6 +80,34 @@ mod tests {
         runner
             .process_action_input_discovery(&mut app, &mut state)
             .expect("back navigation should be handled");
+
+        assert!(matches!(state, TuiLoopState::Idle));
+    }
+
+    #[test]
+    fn cancelled_workflow_configuration_releases_pending_state() {
+        let runner = TuiRunner::new(
+            Arc::new(EmptyListWorkflowsPort),
+            Arc::new(EmptyListActionsPort),
+            Arc::new(UnusedRunWorkflowPort),
+        );
+        let mut app = TuiApp::new(
+            vec![WorkflowListItemResponse::new(
+                Some("CI".to_owned()),
+                None,
+                vec!["push".to_owned()],
+            )],
+            String::new(),
+        );
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.begin_run_configuration(vec!["push".to_owned()], vec![]);
+        app.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+        let mut state = TuiLoopState::InputConfigurationPending;
+
+        runner
+            .process_configured_run_request(&mut app, &mut state)
+            .expect("cancelled configuration should be handled");
 
         assert!(matches!(state, TuiLoopState::Idle));
     }
