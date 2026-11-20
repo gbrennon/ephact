@@ -1,44 +1,16 @@
-use std::{collections::HashMap, path::PathBuf, sync::Mutex};
+use std::{collections::HashMap, path::PathBuf};
 
 use ephact::{
-    application::{
-        dtos::{requests::RunActionRequest, responses::ExecuteActionResponse},
-        errors::RunActionError,
-        ports::{inbound::RunActionPort, outbound::StepTextCodecPort},
-    },
+    application::{dtos::responses::ExecuteActionResponse, ports::outbound::StepTextCodecPort},
     domain::value_objects::{ContextValue, EvaluationContext},
     infrastructure::steps::JsonStepTextCodec,
     presentation::handlers::RunActionHandler,
 };
 
-struct RecordingRunActionPort {
-    response: ExecuteActionResponse,
-    request: Mutex<Option<RunActionRequest>>,
-}
+#[path = "recording_run_action_port.rs"]
+mod recording_run_action_port;
 
-impl RecordingRunActionPort {
-    fn new(response: ExecuteActionResponse) -> Self {
-        Self {
-            response,
-            request: Mutex::new(None),
-        }
-    }
-
-    fn request(&self) -> RunActionRequest {
-        self.request
-            .lock()
-            .expect("recording lock")
-            .take()
-            .expect("recorded request")
-    }
-}
-
-impl RunActionPort for RecordingRunActionPort {
-    fn execute(&self, request: RunActionRequest) -> Result<ExecuteActionResponse, RunActionError> {
-        *self.request.lock().expect("recording lock") = Some(request);
-        Ok(self.response.clone())
-    }
-}
+use recording_run_action_port::RecordingRunActionPort;
 
 #[tokio::test]
 async fn handle_delegates_selected_action_without_workflow_selection() {

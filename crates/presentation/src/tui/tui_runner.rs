@@ -1,6 +1,11 @@
+mod action_task;
+mod run_task;
+
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
+pub use action_task::ActionTask;
 use ratatui::{DefaultTerminal, Terminal, backend::CrosstermBackend};
+pub use run_task::RunTask;
 
 use super::{
     event_reader::EventReader,
@@ -34,15 +39,6 @@ use crate::{
     },
     tui::components::PROJECT_EMBLEM,
 };
-
-pub struct RunTask {
-    handle: tokio::task::JoinHandle<Result<RunSummaryResponse, String>>,
-    run_id: String,
-}
-
-pub struct ActionTask {
-    handle: tokio::task::JoinHandle<Result<ExecuteActionResponse, String>>,
-}
 
 #[derive(Default)]
 pub enum TuiLoopState {

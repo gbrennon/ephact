@@ -1,100 +1,30 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use std::{collections::HashMap, sync::Arc};
 
 use ephact_infrastructure::{
     actions::{RunActionFactory, StandaloneRunActionAdapter},
     application::{
-        dtos::{
-            requests::{PrepareJobContainerRequest, RunActionRequest, RunActionRequestInput},
-            responses::{
-                ExecResultResponse, ExecuteActionResponse, PreparedJobContainerResponse,
-                RunnerContextResponse,
-            },
-        },
-        errors::{PrepareJobContainerError, RunActionError},
-        ports::{
-            inbound::RunActionPort,
-            outbound::{ContainerPort, DomainEventPublisherPort, JobContainerPreparerPort},
-        },
+        dtos::requests::{RunActionRequest, RunActionRequestInput},
+        ports::inbound::RunActionPort,
     },
-    domain::{
-        entities::FileEntry,
-        errors::ContainerError,
-        messages::events::{Event, OutputStream},
-    },
+    domain::messages::events::Event,
     steps::JsonStepTextCodec,
 };
 
-struct FakeContainer;
-impl ContainerPort for FakeContainer {
-    fn exec(
-        &self,
-        _: &[String],
-        _: Option<&str>,
-        _: &HashMap<String, String>,
-    ) -> Result<ExecResultResponse, ContainerError> {
-        unimplemented!()
-    }
-    fn exec_streaming(
-        &self,
-        _: ephact_infrastructure::application::dtos::requests::ExecOptions<'_>,
-        _: &mut dyn FnMut(OutputStream, &str),
-    ) -> Result<ExecResultResponse, ContainerError> {
-        unimplemented!()
-    }
-    fn copy_to(&self, _: &str, _: &[FileEntry]) -> Result<(), ContainerError> {
-        unimplemented!()
-    }
-    fn copy_from(&self, _: &str) -> Result<Vec<FileEntry>, ContainerError> {
-        unimplemented!()
-    }
-    fn remove(&self) -> Result<(), ContainerError> {
-        unimplemented!()
-    }
-    fn get_runner_context(&self) -> Result<RunnerContextResponse, ContainerError> {
-        unimplemented!()
-    }
-}
+#[path = "failing_action.rs"]
+mod failing_action;
+#[path = "fake_action.rs"]
+mod fake_action;
+#[path = "fake_container.rs"]
+mod fake_container;
+#[path = "fake_preparer.rs"]
+mod fake_preparer;
+#[path = "recording_events.rs"]
+mod recording_events;
 
-struct FakePreparer;
-impl JobContainerPreparerPort for FakePreparer {
-    fn prepare(
-        &self,
-        _: PrepareJobContainerRequest,
-    ) -> Result<PreparedJobContainerResponse, PrepareJobContainerError> {
-        Ok(PreparedJobContainerResponse::new(
-            Box::new(FakeContainer),
-            "standalone-action".into(),
-        ))
-    }
-}
-
-struct FakeAction;
-impl RunActionPort for FakeAction {
-    fn execute(&self, _: RunActionRequest) -> Result<ExecuteActionResponse, RunActionError> {
-        Ok(ExecuteActionResponse::note("done".into()))
-    }
-}
-
-struct FailingAction;
-impl RunActionPort for FailingAction {
-    fn execute(&self, _: RunActionRequest) -> Result<ExecuteActionResponse, RunActionError> {
-        Ok(ExecuteActionResponse::builder()
-            .exit_code(7)
-            .stderr("failed".into())
-            .build())
-    }
-}
-
-#[derive(Default)]
-struct RecordingEvents(Mutex<Vec<Event>>);
-impl DomainEventPublisherPort for RecordingEvents {
-    fn publish(&self, event: Event) {
-        self.0.lock().unwrap().push(event);
-    }
-}
+use failing_action::FailingAction;
+use fake_action::FakeAction;
+use fake_preparer::FakePreparer;
+use recording_events::RecordingEvents;
 
 fn request() -> RunActionRequest {
     let codec = JsonStepTextCodec;

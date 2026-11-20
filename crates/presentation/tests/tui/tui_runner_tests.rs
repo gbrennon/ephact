@@ -1,22 +1,14 @@
 #[cfg(test)]
 mod tests {
     use std::{
-        sync::{Arc, Mutex, mpsc},
+        sync::{Arc, mpsc},
         time::Duration,
     };
 
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ephact::{
         application::{
-            dtos::{
-                requests::RunActionRequest,
-                responses::{ExecuteActionResponse, RunSummaryResponse},
-            },
-            errors::RunActionError,
-            ports::{
-                inbound::RunActionPort,
-                outbound::{DomainEventHandlerPort, RunInputsDiscovererPort},
-            },
+            dtos::responses::RunSummaryResponse, ports::outbound::DomainEventHandlerPort,
         },
         domain::messages::events::{Event, StepStartedPayload},
         presentation::{
@@ -33,85 +25,16 @@ mod tests {
         fakes::recording_run_workflow_port::RecordingRunWorkflowPort,
     };
 
-    struct RecordingRunActionPort {
-        requests: Mutex<Vec<RunActionRequest>>,
-    }
+    #[path = "blocking_run_action_port.rs"]
+    mod blocking_run_action_port;
+    #[path = "recording_discovery.rs"]
+    mod recording_discovery;
+    #[path = "recording_run_action_port.rs"]
+    mod recording_run_action_port;
 
-    impl RecordingRunActionPort {
-        fn new() -> Self {
-            Self {
-                requests: Mutex::new(Vec::new()),
-            }
-        }
-
-        fn requests(&self) -> Vec<RunActionRequest> {
-            self.requests.lock().expect("request lock").clone()
-        }
-    }
-
-    impl RunActionPort for RecordingRunActionPort {
-        fn execute(
-            &self,
-            request: RunActionRequest,
-        ) -> Result<ExecuteActionResponse, RunActionError> {
-            self.requests.lock().expect("request lock").push(request);
-            Ok(ExecuteActionResponse::note("action completed".to_owned()))
-        }
-    }
-
-    struct BlockingRunActionPort {
-        started: Mutex<Option<mpsc::Sender<()>>>,
-        release: Mutex<mpsc::Receiver<()>>,
-    }
-
-    impl RunActionPort for BlockingRunActionPort {
-        fn execute(
-            &self,
-            _request: RunActionRequest,
-        ) -> Result<ExecuteActionResponse, RunActionError> {
-            self.started
-                .lock()
-                .expect("started lock")
-                .take()
-                .expect("started sender")
-                .send(())
-                .expect("started receiver");
-            self.release
-                .lock()
-                .expect("release lock")
-                .recv()
-                .expect("release signal");
-            Ok(ExecuteActionResponse::note("action completed".to_owned()))
-        }
-    }
-
-    struct RecordingDiscovery {
-        requests: Mutex<Vec<String>>,
-    }
-
-    impl RecordingDiscovery {
-        fn new() -> Self {
-            Self {
-                requests: Mutex::new(Vec::new()),
-            }
-        }
-    }
-
-    impl RunInputsDiscovererPort for RecordingDiscovery {
-        fn discover(
-            &self,
-            request: ephact::application::dtos::requests::DiscoverRunInputsRequest,
-        ) -> Result<
-            Vec<ephact::application::dtos::responses::RunInputDeclarationResponse>,
-            ephact::application::errors::DiscoverRunInputsError,
-        > {
-            self.requests
-                .lock()
-                .expect("discovery lock")
-                .push(request.action_ref().unwrap_or_default().to_owned());
-            Ok(Vec::new())
-        }
-    }
+    use blocking_run_action_port::BlockingRunActionPort;
+    use recording_discovery::RecordingDiscovery;
+    use recording_run_action_port::RecordingRunActionPort;
 
     fn action_app() -> TuiApp {
         let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_owned())
@@ -162,14 +85,7 @@ mod tests {
             .process_event_loop_step(&mut app, &mut state)
             .await
             .expect("discovery should be processed");
-        assert_eq!(
-            discovery
-                .requests
-                .lock()
-                .expect("discovery lock")
-                .as_slice(),
-            &["./.github/actions/demo"]
-        );
+        assert_eq!(discovery.requests().as_slice(), &["./.github/actions/demo"]);
 
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         runner
@@ -203,7 +119,7 @@ mod tests {
             .await
             .expect("the completed action should remain stable on the next tick");
         assert_eq!(
-            discovery.requests.lock().expect("discovery lock").len(),
+            discovery.requests().len(),
             1,
             "completed actions must not rediscover inputs on the next tick"
         );
@@ -217,10 +133,7 @@ mod tests {
     async fn event_loop_cancellation_waits_for_action_and_back_navigation_returns_to_list() {
         let (started_tx, started_rx) = mpsc::channel();
         let (release_tx, release_rx) = mpsc::channel();
-        let action_port = Arc::new(BlockingRunActionPort {
-            started: Mutex::new(Some(started_tx)),
-            release: Mutex::new(release_rx),
-        });
+        let action_port = Arc::new(BlockingRunActionPort::new(started_tx, release_rx));
         let (handler, progress) = RunProgressHandler::with_tui_stream(true);
         progress.activate_tui();
         let runner = TuiRunner::new(

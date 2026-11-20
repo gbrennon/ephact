@@ -1,130 +1,26 @@
 #[cfg(test)]
 mod tests {
-    use std::{
-        future::Future,
-        path::PathBuf,
-        pin::Pin,
-        sync::{
-            Arc,
-            atomic::{AtomicU64, Ordering},
-        },
-    };
+    use std::sync::Arc;
 
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ratatui::{Terminal, backend::TestBackend};
 
     use super::super::{RunTask, TuiApp, TuiLoopState, TuiRunner};
-    use crate::{
-        application::{
-            dtos::{
-                requests::{ListActionsRequest, ListWorkflowsRequest, RunWorkflowRequest},
-                responses::{
-                    ExecuteActionResponse, ListActionsResponse, ListWorkflowsResponse,
-                    RunSummaryResponse,
-                },
-            },
-            errors::{ApplicationError, ListActionsError, ListWorkflowsError},
-            ports::{
-                inbound::{ListActionsPort, ListWorkflowsPort, RunWorkflowPort},
-                outbound::DomainEventHandlerPort,
-            },
-        },
-        domain::messages::events::{Event, RunFailedPayload, RunStartedPayload},
-        infrastructure::logging::FailureLogHandler,
-    };
+    use crate::application::dtos::responses::ExecuteActionResponse;
 
-    struct EmptyListWorkflowsPort;
+    #[path = "empty_list_actions_port.rs"]
+    mod empty_list_actions_port;
+    #[path = "empty_list_workflows_port.rs"]
+    mod empty_list_workflows_port;
+    #[path = "failure_log_scenario.rs"]
+    mod failure_log_scenario;
+    #[path = "unused_run_workflow_port.rs"]
+    mod unused_run_workflow_port;
 
-    impl ListWorkflowsPort for EmptyListWorkflowsPort {
-        fn execute(
-            &self,
-            _request: ListWorkflowsRequest,
-        ) -> Result<ListWorkflowsResponse, ListWorkflowsError> {
-            Ok(ListWorkflowsResponse::new(Vec::new()))
-        }
-    }
-
-    struct EmptyListActionsPort;
-
-    impl ListActionsPort for EmptyListActionsPort {
-        fn execute(
-            &self,
-            _request: ListActionsRequest,
-        ) -> Result<ListActionsResponse, ListActionsError> {
-            Ok(ListActionsResponse::new(Vec::new()))
-        }
-    }
-
-    struct UnusedRunWorkflowPort;
-
-    impl RunWorkflowPort for UnusedRunWorkflowPort {
-        fn execute(
-            &self,
-            _request: RunWorkflowRequest,
-        ) -> Pin<Box<dyn Future<Output = Result<RunSummaryResponse, ApplicationError>> + Send + '_>>
-        {
-            Box::pin(async { Err(ApplicationError::Workflow("unused".to_string())) })
-        }
-    }
-
-    static NEXT_SCENARIO_ID: AtomicU64 = AtomicU64::new(0);
-
-    struct FailureLogScenario {
-        temp_root: PathBuf,
-        handler: FailureLogHandler,
-        runner: TuiRunner,
-        app: TuiApp,
-    }
-
-    impl FailureLogScenario {
-        fn new(run_ids: &[&str]) -> Self {
-            let sequence = NEXT_SCENARIO_ID.fetch_add(1, Ordering::Relaxed);
-            let temp_root = std::env::temp_dir().join(format!(
-                "ephact-tui-failure-{}-{sequence}",
-                std::process::id()
-            ));
-            let handler = FailureLogHandler::with_temp_root(&temp_root);
-            for run_id in run_ids {
-                handler.handle(&Event::RunStarted(RunStartedPayload::new(
-                    (*run_id).to_string(),
-                    "/repo/project".to_string(),
-                )));
-                handler.handle(&Event::RunFailed(RunFailedPayload::new(
-                    (*run_id).to_string(),
-                    "/repo/project".to_string(),
-                    None,
-                    "workflow could not be read".to_string(),
-                )));
-            }
-            let runner = TuiRunner::new(
-                Arc::new(EmptyListWorkflowsPort),
-                Arc::new(EmptyListActionsPort),
-                Arc::new(UnusedRunWorkflowPort),
-            )
-            .with_failure_log_path_store(handler.path_store());
-            let mut app = TuiApp::new(Vec::new(), String::new());
-            app.handle_key(KeyEvent::new(KeyCode::Char('x'), KeyModifiers::NONE));
-            app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
-            app.start_run();
-            Self {
-                temp_root,
-                handler,
-                runner,
-                app,
-            }
-        }
-
-        fn path(&self, run_id: &str) -> PathBuf {
-            self.temp_root
-                .join("ephact")
-                .join("project")
-                .join(format!("failure-{run_id}.log"))
-        }
-
-        fn cleanup(self) {
-            std::fs::remove_dir_all(self.temp_root).expect("test diagnostics should be removed");
-        }
-    }
+    use empty_list_actions_port::EmptyListActionsPort;
+    use empty_list_workflows_port::EmptyListWorkflowsPort;
+    use failure_log_scenario::FailureLogScenario;
+    use unused_run_workflow_port::UnusedRunWorkflowPort;
 
     #[path = "tui_runner_active_path_test.rs"]
     mod active_path_test;

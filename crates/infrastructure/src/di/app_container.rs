@@ -1,17 +1,17 @@
+mod empty_run_input_discovery;
+
+use empty_run_input_discovery::EmptyRunInputDiscovery;
+
 use crate::{
     actions::RunActionFactory,
-    application::{
-        dtos::{requests::DiscoverRunInputsRequest, responses::RunInputDeclarationResponse},
-        errors::DiscoverRunInputsError,
-        ports::{
-            inbound::{
-                list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
-                run_action_port::RunActionPort, run_all_workflows_port::RunAllWorkflowsPort,
-                run_workflow_port::RunWorkflowPort,
-                show_project_branding_info_port::ShowProjectBrandingInfoPort,
-            },
-            outbound::RunInputsDiscovererPort,
+    application::ports::{
+        inbound::{
+            list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
+            run_action_port::RunActionPort, run_all_workflows_port::RunAllWorkflowsPort,
+            run_workflow_port::RunWorkflowPort,
+            show_project_branding_info_port::ShowProjectBrandingInfoPort,
         },
+        outbound::RunInputsDiscovererPort,
     },
     logging::{
         FailureLogErrorStore, FailureLogPathStore, FailureLogRetentionStore, FailureLogStores,
@@ -49,17 +49,6 @@ pub type AppContainerRequiredParts = (
     Box<dyn ListWorkflowsPort>,
     Box<dyn ListActionsPort>,
 );
-
-struct EmptyRunInputDiscovery;
-
-impl RunInputsDiscovererPort for EmptyRunInputDiscovery {
-    fn discover(
-        &self,
-        _request: DiscoverRunInputsRequest,
-    ) -> Result<Vec<RunInputDeclarationResponse>, DiscoverRunInputsError> {
-        Ok(Vec::new())
-    }
-}
 
 impl AppContainer {
     pub fn new(parts: AppContainerRequiredParts) -> Self {
