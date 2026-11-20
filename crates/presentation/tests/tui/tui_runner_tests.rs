@@ -198,6 +198,17 @@ mod tests {
         assert!(rendered_text(&app).contains("action completed"));
         assert_eq!(action_port.requests().len(), 1);
 
+        runner
+            .process_event_loop_step(&mut app, &mut state)
+            .await
+            .expect("the completed action should remain stable on the next tick");
+        assert_eq!(
+            discovery.requests.lock().expect("discovery lock").len(),
+            1,
+            "completed actions must not rediscover inputs on the next tick"
+        );
+        assert!(rendered_text(&app).contains("action completed"));
+
         app.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
         assert_eq!(app.screen(), TuiScreen::ListActions);
     }
@@ -251,7 +262,8 @@ mod tests {
             .await
             .expect("cancellation should be processed");
         assert!(matches!(state, TuiLoopState::ActionCancelling { .. }));
-        assert!(app.is_action_running());
+        assert!(!app.is_action_running());
+        assert!(rendered_text(&app).contains("CANCELLED"));
 
         release_tx.send(()).expect("release action");
         for _ in 0..10 {
@@ -264,7 +276,12 @@ mod tests {
                 break;
             }
         }
-        assert!(rendered_text(&app).contains("action completed"));
+        assert!(rendered_text(&app).contains("CANCELLED"));
+        runner
+            .process_event_loop_step(&mut app, &mut state)
+            .await
+            .expect("the cancelled action should remain stable on the next tick");
+        assert!(rendered_text(&app).contains("CANCELLED"));
 
         app.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
         assert_eq!(app.screen(), TuiScreen::ListActions);
@@ -289,6 +306,12 @@ mod tests {
             .await
             .expect("missing action port should be rendered");
 
+        assert!(rendered_text(&app).contains("action execution is not configured"));
+
+        runner
+            .process_event_loop_step(&mut app, &mut state)
+            .await
+            .expect("missing-port result should remain stable on the next tick");
         assert!(rendered_text(&app).contains("action execution is not configured"));
     }
 

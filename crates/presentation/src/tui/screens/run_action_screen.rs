@@ -21,6 +21,9 @@ pub struct RunActionScreen {
     running: bool,
     progress_lines: Vec<String>,
     outcome: Option<ExecuteActionResponse>,
+    cancelled: bool,
+    showing_details: bool,
+    summary_scroll: u16,
 }
 
 impl RunActionScreen {
@@ -35,6 +38,9 @@ impl RunActionScreen {
             running: false,
             progress_lines: Vec::new(),
             outcome: None,
+            cancelled: false,
+            showing_details: false,
+            summary_scroll: 0,
         }
     }
 
@@ -101,6 +107,9 @@ impl RunActionScreen {
     pub fn start_run(&mut self) {
         self.configuration = None;
         self.outcome = None;
+        self.cancelled = false;
+        self.showing_details = false;
+        self.summary_scroll = 0;
         self.progress_lines.clear();
         self.running = true;
     }
@@ -112,7 +121,44 @@ impl RunActionScreen {
 
     pub fn record_outcome(&mut self, outcome: ExecuteActionResponse) {
         self.outcome = Some(outcome);
+        self.cancelled = false;
         self.running = false;
+        self.showing_details = false;
+        self.summary_scroll = 0;
+    }
+
+    pub fn record_cancelled(&mut self) {
+        self.outcome = Some(ExecuteActionResponse::note("Cancelled".to_owned()));
+        self.cancelled = true;
+        self.running = false;
+        self.showing_details = false;
+        self.summary_scroll = 0;
+    }
+
+    pub fn has_outcome(&self) -> bool {
+        self.outcome.is_some()
+    }
+
+    pub fn is_showing_details(&self) -> bool {
+        self.showing_details
+    }
+
+    pub fn open_details(&mut self) {
+        if self.outcome.is_some() {
+            self.showing_details = true;
+        }
+    }
+
+    pub fn close_details(&mut self) {
+        self.showing_details = false;
+    }
+
+    pub fn scroll_summary_up(&mut self) {
+        self.summary_scroll = self.summary_scroll.saturating_sub(1);
+    }
+
+    pub fn scroll_summary_down(&mut self) {
+        self.summary_scroll = self.summary_scroll.saturating_add(1);
     }
 
     pub fn is_running(&self) -> bool {
@@ -120,12 +166,19 @@ impl RunActionScreen {
     }
 
     pub fn render(&self, frame: &mut Frame<'_>, area: Rect) {
+        let title = if self.showing_details {
+            "Action Details"
+        } else if self.outcome.is_some() && !self.running {
+            "Action Result"
+        } else {
+            Self::TITLE
+        };
         let block = Block::default()
             .borders(Borders::ALL)
             .border_style(Theme::border_style())
             .padding(Padding::horizontal(1))
             .title(Span::styled(
-                format!("{}: {}", Self::TITLE, self.action_ref),
+                format!("{title}: {}", self.action_ref),
                 Theme::title_style(),
             ));
         let content_area = block.inner(area);
@@ -134,18 +187,37 @@ impl RunActionScreen {
             .direction(Direction::Vertical)
             .constraints([Constraint::Min(1), Constraint::Length(1)])
             .split(content_area);
-        if let Some(configuration) = &self.configuration {
+        if self.showing_details {
+            frame.render_widget(
+                Paragraph::new(self.details_text()).scroll((self.summary_scroll, 0)),
+                chunks[0],
+            );
+        } else if let Some(configuration) = &self.configuration {
             configuration.render(frame, chunks[0]);
         } else if self.running {
-            frame.render_widget(Paragraph::new(self.progress_lines.join("\n")), chunks[0]);
-        } else if let Some(outcome) = &self.outcome {
             frame.render_widget(
                 Paragraph::new(format!(
-                    "Exit code: {}\n{}{}",
+                    "Action is running...\n{}",
+                    self.progress_lines.join("\n")
+                )),
+                chunks[0],
+            );
+        } else if let Some(outcome) = &self.outcome {
+            let status = if self.cancelled {
+                "CANCELLED"
+            } else if outcome.exit_code() == 0 {
+                "SUCCESS"
+            } else {
+                "FAILED"
+            };
+            frame.render_widget(
+                Paragraph::new(format!(
+                    "Status: {status}\nExit code: {}\n{}{}",
                     outcome.exit_code(),
                     outcome.stdout(),
                     outcome.stderr()
-                )),
+                ))
+                .scroll((self.summary_scroll, 0)),
                 chunks[0],
             );
         } else {
@@ -157,11 +229,30 @@ impl RunActionScreen {
         );
     }
 
+    fn details_text(&self) -> String {
+        self.outcome
+            .as_ref()
+            .map(|outcome| {
+                format!(
+                    "stdout:\n{}\nstderr:\n{}",
+                    outcome.stdout(),
+                    outcome.stderr()
+                )
+            })
+            .unwrap_or_else(|| "No action details available".to_owned())
+    }
+
     pub fn footer(&self) -> &'static str {
-        self.configuration_footer().unwrap_or(if self.running {
-            Self::RUNNING_FOOTER
+        if self.showing_details {
+            "Up/Down: Scroll | Esc/Bksp: Result"
+        } else if self.outcome.is_some() && !self.running {
+            "d: Details | Up/Down: Scroll | Esc/Bksp: Back | q: Quit"
         } else {
-            Self::EMPTY_FOOTER
-        })
+            self.configuration_footer().unwrap_or(if self.running {
+                Self::RUNNING_FOOTER
+            } else {
+                Self::EMPTY_FOOTER
+            })
+        }
     }
 }

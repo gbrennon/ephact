@@ -290,7 +290,10 @@ impl TuiRunner {
             }
             return Ok(());
         }
-        if !matches!(state, TuiLoopState::Idle) || app.is_action_configuration_ready() {
+        if !matches!(state, TuiLoopState::Idle)
+            || app.is_action_configuration_ready()
+            || app.has_action_outcome()
+        {
             return Ok(());
         }
         let Some(discover) = &self.discover_run_inputs_port else {
@@ -374,24 +377,32 @@ impl TuiRunner {
             return Ok(());
         }
         let previous = std::mem::replace(state, TuiLoopState::Idle);
-        if let TuiLoopState::ActionRunning { task } | TuiLoopState::ActionCancelling { task } =
-            previous
-        {
-            let outcome = match task.handle.await {
-                Ok(Ok(response)) => response,
-                Ok(Err(error)) => ExecuteActionResponse::builder()
-                    .exit_code(1)
-                    .stderr(error)
-                    .build(),
-                Err(error) if error.is_cancelled() => {
-                    ExecuteActionResponse::note("Cancelled".to_owned())
-                }
-                Err(error) => ExecuteActionResponse::builder()
-                    .exit_code(1)
-                    .stderr(format!("action task failed: {error}"))
-                    .build(),
-            };
-            app.record_action_outcome(outcome);
+        match previous {
+            TuiLoopState::ActionCancelling { task } => {
+                let _ = task.handle.await;
+            }
+            TuiLoopState::ActionRunning { task } => {
+                let outcome = match task.handle.await {
+                    Ok(Ok(response)) => response,
+                    Ok(Err(error)) => ExecuteActionResponse::builder()
+                        .exit_code(1)
+                        .stderr(error)
+                        .build(),
+                    Err(error) if error.is_cancelled() => {
+                        ExecuteActionResponse::note("Cancelled".to_owned())
+                    }
+                    Err(error) => ExecuteActionResponse::builder()
+                        .exit_code(1)
+                        .stderr(format!("action task failed: {error}"))
+                        .build(),
+                };
+                app.record_action_outcome(outcome);
+            }
+            TuiLoopState::Idle
+            | TuiLoopState::InputConfigurationPending
+            | TuiLoopState::ActionInputConfigurationPending
+            | TuiLoopState::Running { .. }
+            | TuiLoopState::Cancelling { .. } => {}
         }
         Ok(())
     }
@@ -413,6 +424,7 @@ impl TuiRunner {
             }
             TuiLoopState::ActionRunning { task } => {
                 task.handle.abort();
+                app.record_action_cancelled();
                 *state = TuiLoopState::ActionCancelling { task };
             }
             TuiLoopState::ActionCancelling { task } => {

@@ -180,6 +180,10 @@ impl TuiApp {
         self.screens = self.screens.record_action_outcome(outcome);
     }
 
+    pub fn record_action_cancelled(&mut self) {
+        self.screens = self.screens.record_action_cancelled();
+    }
+
     pub fn run_outcome(&self) -> Option<&RunSummaryResponse> {
         self.screens.run_outcome()
     }
@@ -252,6 +256,30 @@ impl TuiApp {
 
     pub fn is_action_running(&self) -> bool {
         self.screens.is_action_running()
+    }
+
+    pub fn has_action_outcome(&self) -> bool {
+        self.screens.has_action_outcome()
+    }
+
+    pub fn is_showing_action_details(&self) -> bool {
+        self.screens.is_showing_action_details()
+    }
+
+    pub fn open_action_details(&mut self) {
+        self.screens = self.screens.open_action_details();
+    }
+
+    pub fn close_action_details(&mut self) {
+        self.screens = self.screens.close_action_details();
+    }
+
+    pub fn scroll_action_summary_up(&mut self) {
+        self.screens = self.screens.scroll_action_summary_up();
+    }
+
+    pub fn scroll_action_summary_down(&mut self) {
+        self.screens = self.screens.scroll_action_summary_down();
     }
 
     fn transition_to(&mut self, screen: TuiScreen) {
@@ -330,6 +358,19 @@ impl TuiApp {
             self.handle_action_configuration_key(key);
             return;
         }
+        if self.screens.is_showing_action_details() {
+            match key.code {
+                KeyCode::Up | KeyCode::Char(Self::PREVIOUS_KEY) => {
+                    self.scroll_action_summary_up();
+                }
+                KeyCode::Down | KeyCode::Char(Self::NEXT_KEY) => {
+                    self.scroll_action_summary_down();
+                }
+                KeyCode::Esc | KeyCode::Backspace => self.close_action_details(),
+                _ => {}
+            }
+            return;
+        }
         if self.screens.is_action_running() {
             if matches!(key.code, KeyCode::Esc | KeyCode::Backspace) {
                 self.cancel_requested = true;
@@ -339,6 +380,12 @@ impl TuiApp {
         if self.screens.action_configuration_footer().is_some() {
             self.handle_action_configuration_key(key);
             return;
+        }
+        if self.screens.has_action_outcome() {
+            if key.code == KeyCode::Char(Self::DETAILS_KEY) {
+                self.open_action_details();
+                return;
+            }
         }
         if matches!(key.code, KeyCode::Esc | KeyCode::Backspace) {
             self.transition_to(TuiScreen::ListActions);

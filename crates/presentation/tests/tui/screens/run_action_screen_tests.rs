@@ -60,4 +60,23 @@ mod tests {
 
         assert!(rendered_text(&screen).contains("Error: token is required"));
     }
+
+    #[test]
+    fn action_screen_renders_status_and_scrollable_details() {
+        let mut screen = RunActionScreen::new("./.github/actions/demo".to_owned());
+        screen.record_outcome(
+            ephact::application::dtos::responses::ExecuteActionResponse::builder()
+                .exit_code(2)
+                .stdout("output".to_owned())
+                .stderr("failure log".to_owned())
+                .build(),
+        );
+
+        assert!(rendered_text(&screen).contains("Status: FAILED"));
+        assert!(rendered_text(&screen).contains("Exit code: 2"));
+        screen.open_details();
+        let details = rendered_text(&screen);
+        assert!(details.contains("stdout:"));
+        assert!(details.contains("failure log"));
+    }
 }

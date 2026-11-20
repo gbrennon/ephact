@@ -289,6 +289,18 @@ impl ScreenManager {
             .is_some_and(RunActionScreen::is_running)
     }
 
+    pub fn has_action_outcome(&self) -> bool {
+        self.run_action
+            .as_ref()
+            .is_some_and(RunActionScreen::has_outcome)
+    }
+
+    pub fn is_showing_action_details(&self) -> bool {
+        self.run_action
+            .as_ref()
+            .is_some_and(RunActionScreen::is_showing_details)
+    }
+
     pub fn has_configuration_error(&self) -> bool {
         self.run_workflow.configuration_error().is_some()
             || self.run_workflow.configuration_footer().is_some()
@@ -395,6 +407,46 @@ impl ScreenManager {
         let mut next = self.clone();
         if let Some(run_action) = next.run_action.as_mut() {
             run_action.record_outcome(outcome);
+        }
+        next
+    }
+
+    pub fn record_action_cancelled(&self) -> Self {
+        let mut next = self.clone();
+        if let Some(run_action) = next.run_action.as_mut() {
+            run_action.record_cancelled();
+        }
+        next
+    }
+
+    pub fn open_action_details(&self) -> Self {
+        let mut next = self.clone();
+        if let Some(run_action) = next.run_action.as_mut() {
+            run_action.open_details();
+        }
+        next
+    }
+
+    pub fn close_action_details(&self) -> Self {
+        let mut next = self.clone();
+        if let Some(run_action) = next.run_action.as_mut() {
+            run_action.close_details();
+        }
+        next
+    }
+
+    pub fn scroll_action_summary_up(&self) -> Self {
+        let mut next = self.clone();
+        if let Some(run_action) = next.run_action.as_mut() {
+            run_action.scroll_summary_up();
+        }
+        next
+    }
+
+    pub fn scroll_action_summary_down(&self) -> Self {
+        let mut next = self.clone();
+        if let Some(run_action) = next.run_action.as_mut() {
+            run_action.scroll_summary_down();
         }
         next
     }
