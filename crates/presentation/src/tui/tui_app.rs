@@ -343,11 +343,9 @@ impl TuiApp {
                 self.screens = self.screens.select_list_actions_next();
             }
             KeyCode::Esc | KeyCode::Backspace => self.transition_to(TuiScreen::Home),
-            KeyCode::Enter => {
-                if self.screens.selected_action().is_some() {
-                    self.screens = self.screens.open_selected_action();
-                    self.transition_to(TuiScreen::RunAction);
-                }
+            KeyCode::Enter if self.screens.selected_action().is_some() => {
+                self.screens = self.screens.open_selected_action();
+                self.transition_to(TuiScreen::RunAction);
             }
             _ => {}
         }
@@ -381,11 +379,9 @@ impl TuiApp {
             self.handle_action_configuration_key(key);
             return;
         }
-        if self.screens.has_action_outcome() {
-            if key.code == KeyCode::Char(Self::DETAILS_KEY) {
-                self.open_action_details();
-                return;
-            }
+        if self.screens.has_action_outcome() && key.code == KeyCode::Char(Self::DETAILS_KEY) {
+            self.open_action_details();
+            return;
         }
         if matches!(key.code, KeyCode::Esc | KeyCode::Backspace) {
             self.transition_to(TuiScreen::ListActions);

@@ -44,19 +44,29 @@ pub struct ActionTask {
     handle: tokio::task::JoinHandle<Result<ExecuteActionResponse, String>>,
 }
 
+#[derive(Default)]
 pub enum TuiLoopState {
+    #[default]
     Idle,
     InputConfigurationPending,
     ActionInputConfigurationPending,
-    Running { task: RunTask },
-    Cancelling { task: RunTask },
-    ActionRunning { task: ActionTask },
-    ActionCancelling { task: ActionTask },
+    Running {
+        task: RunTask,
+    },
+    Cancelling {
+        task: RunTask,
+    },
+    ActionRunning {
+        task: ActionTask,
+    },
+    ActionCancelling {
+        task: ActionTask,
+    },
 }
 
 impl TuiLoopState {
     pub fn new() -> Self {
-        Self::Idle
+        Self::default()
     }
 }
 
