@@ -220,6 +220,24 @@ mod tests {
     }
 
     #[test]
+    fn selecting_action_opens_action_screen() {
+        let mut app =
+            TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string()).with_actions(vec![
+                "actions/checkout@v4".to_owned(),
+                "docker://node:20".to_owned(),
+            ]);
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        assert_eq!(app.screen(), TuiScreen::RunAction);
+        assert_eq!(app.selected_action_index(), 1);
+    }
+
+    #[test]
     fn configured_marker_is_used_by_text_input_form() {
         let settings = Settings::default().with_marker(Marker::custom_text("❯"));
         let mut app = TuiApp::new(
