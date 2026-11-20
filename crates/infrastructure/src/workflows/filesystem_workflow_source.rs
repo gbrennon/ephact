@@ -256,7 +256,12 @@ impl WorkflowSourcePort for FilesystemWorkflowSource {
             items.push(
                 crate::application::dtos::responses::WorkflowListItemResponse::new(
                     name,
-                    Some(file.to_string_lossy().to_string()),
+                    Some(
+                        file.strip_prefix(repository.path().as_path())
+                            .unwrap_or(&file)
+                            .to_string_lossy()
+                            .to_string(),
+                    ),
                     Self::extrworkflow_events(&content),
                 ),
             );

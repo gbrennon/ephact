@@ -135,6 +135,8 @@
 - **domain**: Elide planner helper lifetime
 - **app-runner**: Satisfy Rust file conventions
 - **app-runner**: Implement runner default
+- **workflows**: Display relative workflow paths
+- **runner**: Update Ubuntu Node path
 
 ### Refactor
 
@@ -324,6 +326,7 @@
 - **domain**: Describe Job submodules
 - Rm old md fie
 - Add GitHub and Woodpecker TUI demos
+- **README**: Add terminal badge
 
 ### Testing
 
@@ -452,6 +455,8 @@
 - **app-runner**: Add resolver integration test module
 - **app-runner**: Extract resolver integration tests
 - **ci**: Cover git-cliff checksum validation
+- **runner**: Track Ubuntu Node path
+- **infrastructure**: Gate container integration
 
 ### Continuous Integration
 
@@ -468,6 +473,7 @@
 - Explain Rust convention violations
 - Add checksum-verified git-cliff installer
 - Verify git-cliff archive checksums
+- Pin nightly toolchain
 
 ### Miscellaneous Tasks
 

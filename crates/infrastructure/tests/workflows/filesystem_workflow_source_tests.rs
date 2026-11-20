@@ -68,10 +68,7 @@ mod tests {
         assert_eq!(workflows.len(), 1);
         assert_eq!(workflows[0].name(), Some("CI"));
         let file = workflows[0].file().expect("workflow file path");
-        assert!(
-            file.ends_with(".forgejo/workflows/ci.yml"),
-            "expected the full workflow path, got {file:?}"
-        );
+        assert_eq!(file, ".forgejo/workflows/ci.yml");
     }
 
     #[test]
@@ -88,10 +85,7 @@ mod tests {
         assert_eq!(workflows.len(), 1);
         assert_eq!(workflows[0].name(), Some("Build"));
         let file = workflows[0].file().expect("workflow file path");
-        assert!(
-            file.ends_with(".github/workflows/build.yml"),
-            "expected the full workflow path, got {file:?}"
-        );
+        assert_eq!(file, ".github/workflows/build.yml");
     }
     #[test]
     fn read_workflow_finds_named_workflow_in_custom_directory() {
