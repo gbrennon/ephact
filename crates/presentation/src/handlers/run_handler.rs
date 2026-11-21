@@ -26,7 +26,7 @@ use crate::{
     },
     cli::{InputCollector, run_args::RunArgs},
     domain::{
-        Repository,
+        Repository, Settings,
         value_objects::{WorkflowEvent, WorkflowInput, WorkflowPath, WorkflowRunConfig},
     },
     infrastructure::RepositoryResolver,
@@ -95,7 +95,11 @@ impl RunHandler {
             run.workflow().map(str::to_owned),
             run.event().map(str::to_owned),
             run.inputs().to_vec(),
-        );
+        )
+        .with_allow_repo_writes(run.allow_repo_writes())
+        .with_allow_real_container(run.allow_real_container())
+        .with_allow_real_fetcher(run.allow_real_fetcher())
+        .with_allow_network(run.allow_network());
         let request = Self::build_run_workflow_request(&config, &repository, run.run_id());
         Ok(run_workflow_port.execute(request).await?)
     }
@@ -109,8 +113,31 @@ impl RunHandler {
         Vec<crate::application::dtos::responses::RunInputDeclarationResponse>,
         Box<dyn std::error::Error>,
     > {
+        Self::discover_inputs_with_settings(
+            discover_run_inputs_port,
+            repository_path,
+            workflow,
+            event,
+            &Settings::default(),
+        )
+    }
+
+    pub fn discover_inputs_with_settings(
+        discover_run_inputs_port: &dyn RunInputsDiscovererPort,
+        repository_path: PathBuf,
+        workflow: Option<String>,
+        event: Option<String>,
+        settings: &Settings,
+    ) -> Result<
+        Vec<crate::application::dtos::responses::RunInputDeclarationResponse>,
+        Box<dyn std::error::Error>,
+    > {
         let repository = Self::build_repository(repository_path)?;
-        let config = Self::single_workflow_config(workflow, event, Vec::new());
+        let config = Self::single_workflow_config(workflow, event, Vec::new())
+            .with_allow_repo_writes(settings.allow_repo_writes())
+            .with_allow_real_container(settings.allow_real_container())
+            .with_allow_real_fetcher(settings.allow_real_fetcher())
+            .with_allow_network(settings.allow_network());
         Ok(discover_run_inputs_port.discover(DiscoverRunInputsRequest::new(config, repository))?)
     }
 
