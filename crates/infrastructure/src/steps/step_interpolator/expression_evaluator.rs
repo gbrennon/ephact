@@ -109,6 +109,19 @@ impl<'a> ExpressionEvaluator<'a> {
     ) -> Result<ContextValue, EvalError> {
         let lhs = self.evaluate(left)?;
         let rhs = self.evaluate(right)?;
+        let left_is_null = matches!(lhs, ContextValue::Null);
+        let right_is_null = matches!(rhs, ContextValue::Null);
+        if left_is_null || right_is_null {
+            let result = match op {
+                ComparisonOperator::Equal => left_is_null && right_is_null,
+                ComparisonOperator::NotEqual => left_is_null != right_is_null,
+                ComparisonOperator::LessThan
+                | ComparisonOperator::LessThanOrEqual
+                | ComparisonOperator::GreaterThan
+                | ComparisonOperator::GreaterThanOrEqual => false,
+            };
+            return Ok(ContextValue::Boolean(result));
+        }
         let ordering = self.compare_values(&lhs, &rhs)?;
         let result = match op {
             ComparisonOperator::Equal => ordering == std::cmp::Ordering::Equal,
@@ -512,6 +525,44 @@ mod tests {
         let result = eval(&expr);
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), EvalError::TypeError(_)));
+    }
+
+    #[test]
+    fn eval_missing_property_against_text_is_false_without_type_error() {
+        let event = ContextValue::mapping([("event_name".to_owned(), ContextValue::text("push"))]);
+        let github = ContextValue::mapping([("event".to_owned(), event)]);
+        let context = EvaluationContext::new().with_root("github", github);
+        let expression = Expression::Comparison(
+            ComparisonOperator::Equal,
+            Box::new(Expression::PropertyAccess(
+                Box::new(Expression::PropertyAccess(
+                    Box::new(Expression::Variable("github".to_owned())),
+                    "event".to_owned(),
+                )),
+                "pull_request".to_owned(),
+            )),
+            Box::new(Expression::Literal(ExpressionLiteral::String(
+                "pull_request".to_owned(),
+            ))),
+        );
+
+        assert_eq!(
+            eval_in_context(&expression, &context).unwrap(),
+            ContextValue::Boolean(false)
+        );
+    }
+
+    #[test]
+    fn eval_missing_event_name_against_text_is_not_equal_without_type_error() {
+        let expression = Expression::Comparison(
+            ComparisonOperator::NotEqual,
+            Box::new(Expression::Variable("github.event_name".to_owned())),
+            Box::new(Expression::Literal(ExpressionLiteral::String(
+                "pull_request".to_owned(),
+            ))),
+        );
+
+        assert_eq!(eval(&expression).unwrap(), ContextValue::Boolean(true));
     }
 
     #[test]

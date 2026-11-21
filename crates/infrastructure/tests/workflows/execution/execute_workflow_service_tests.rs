@@ -376,6 +376,24 @@ mod tests {
     }
 
     #[test]
+    fn execute_treats_conditionally_skipped_jobs_as_neutral() {
+        let workflow = "name: Ci\non: push\njobs:\n  protected:\n    if: \"${{ github.event.pull_request.merged }}\"\n    runs-on: ubuntu-latest\n    steps:\n      - run: protected\n";
+        let execution = execute_with_context(
+            FakeWorkflowLoaderPort::holding(workflow),
+            FakeCommandBus::new(),
+            EvaluationContext::new(),
+        )
+        .unwrap();
+
+        assert!(execution.success());
+        assert!(execution.job_summaries()[0].is_skipped());
+        assert_eq!(
+            execution.job_summaries()[0].skip_reason(),
+            Some("job condition evaluated to false")
+        );
+    }
+
+    #[test]
     fn execute_propagates_a_failed_job_dispatch() {
         let result = execute(
             FakeWorkflowLoaderPort::holding(TWO_JOBS),
