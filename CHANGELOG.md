@@ -154,6 +154,7 @@
 - **ci**: Preserve TUI test module paths
 - **ci**: Satisfy changed test conventions
 - **tui**: Forward workflow execution settings
+- **workflows**: Preserve failure diagnostics
 
 ### Refactor
 
