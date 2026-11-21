@@ -134,6 +134,7 @@ impl Container {
             branding_store,
             runtime,
             ssh_forwarding.clone(),
+            failure_log_stores.path_store(),
         );
         let (parts, action_port) = parts;
         AppContainer::new_with_discovery_and_action_port_and_failure_stores(
@@ -150,6 +151,7 @@ impl Container {
         branding_store: Box<dyn ProjectBrandingStorePort>,
         runtime: Arc<dyn ContainerRuntimePort>,
         ssh_forwarding: HostSshForwardingConfig,
+        failure_log_path_store: crate::logging::FailureLogPathStore,
     ) -> (
         AppContainerParts,
         Box<dyn crate::application::ports::inbound::RunActionPort>,
@@ -185,19 +187,22 @@ impl Container {
                 Arc::new(JsonStepTextCodec),
             ))
         });
-        let standalone_action_port = Box::new(StandaloneRunActionAdapter::new(
-            Box::new(PrepareJobContainerService::with_default_image(
-                GITHUB_HOSTED_RUNNER_IMAGE,
-                Box::new(PullJobImageService::new(runtime.clone())),
-                Box::new(CreateJobContainerService::with_ssh_forwarding(
-                    runtime,
-                    ssh_forwarding,
+        let standalone_action_port = Box::new(
+            StandaloneRunActionAdapter::new(
+                Box::new(PrepareJobContainerService::with_default_image(
+                    GITHUB_HOSTED_RUNNER_IMAGE,
+                    Box::new(PullJobImageService::new(runtime.clone())),
+                    Box::new(CreateJobContainerService::with_ssh_forwarding(
+                        runtime,
+                        ssh_forwarding,
+                    )),
+                    Box::new(RepositoryContainerCopyAdapter::new()),
                 )),
-                Box::new(RepositoryContainerCopyAdapter::new()),
-            )),
-            standalone_action_factory,
-            Arc::new(event_publisher),
-        ));
+                standalone_action_factory,
+                Arc::new(event_publisher),
+            )
+            .with_failure_log_path_store(failure_log_path_store),
+        );
         let show_project_branding_info_service =
             ShowProjectBrandingInfoService::new(branding_store);
 

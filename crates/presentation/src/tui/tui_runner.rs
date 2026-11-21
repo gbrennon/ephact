@@ -391,17 +391,22 @@ impl TuiRunner {
             TuiLoopState::ActionRunning { task } => {
                 let outcome = match task.handle.await {
                     Ok(Ok(response)) => response,
-                    Ok(Err(error)) => ExecuteActionResponse::builder()
-                        .exit_code(1)
-                        .stderr(error)
-                        .build(),
+                    Ok(Err(error)) => {
+                        let response = ExecuteActionResponse::builder()
+                            .exit_code(1)
+                            .stderr(error)
+                            .build();
+                        self.with_action_diagnostics_path(response)
+                    }
                     Err(error) if error.is_cancelled() => {
                         ExecuteActionResponse::note("Cancelled".to_owned())
                     }
-                    Err(error) => ExecuteActionResponse::builder()
-                        .exit_code(1)
-                        .stderr(format!("action task failed: {error}"))
-                        .build(),
+                    Err(error) => self.with_action_diagnostics_path(
+                        ExecuteActionResponse::builder()
+                            .exit_code(1)
+                            .stderr(format!("action task failed: {error}"))
+                            .build(),
+                    ),
                 };
                 app.record_action_outcome(outcome);
             }
@@ -412,6 +417,20 @@ impl TuiRunner {
             | TuiLoopState::Cancelling { .. } => {}
         }
         Ok(())
+    }
+
+    fn with_action_diagnostics_path(
+        &self,
+        response: ExecuteActionResponse,
+    ) -> ExecuteActionResponse {
+        match self
+            .failure_log_path_store
+            .as_ref()
+            .and_then(|store| store.read_and_clear().into_values().next())
+        {
+            Some(path) => response.with_diagnostics_path(path.display().to_string()),
+            None => response,
+        }
     }
 
     fn process_cancel_request(&self, app: &mut TuiApp, state: &mut TuiLoopState) {

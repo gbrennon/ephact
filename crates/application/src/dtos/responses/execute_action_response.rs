@@ -7,6 +7,7 @@ pub struct ExecuteActionResponse {
     exit_code: i64,
     stdout: String,
     stderr: String,
+    diagnostics_path: Option<String>,
 }
 
 impl ExecuteActionResponse {
@@ -16,6 +17,7 @@ impl ExecuteActionResponse {
             exit_code,
             stdout,
             stderr,
+            diagnostics_path: None,
         }
     }
 
@@ -42,6 +44,19 @@ impl ExecuteActionResponse {
     /// Returns standard error.
     pub fn stderr(&self) -> &str {
         &self.stderr
+    }
+
+    /// Returns the path to persisted failure diagnostics, when available.
+    pub fn diagnostics_path(&self) -> Option<&str> {
+        self.diagnostics_path.as_deref()
+    }
+
+    /// Attaches the path to persisted failure diagnostics.
+    pub fn with_diagnostics_path(self, path: String) -> Self {
+        Self {
+            diagnostics_path: Some(path),
+            ..self
+        }
     }
 
     /// Consumes the response and returns its exit code and output streams.
