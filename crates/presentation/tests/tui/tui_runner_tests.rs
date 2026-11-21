@@ -10,7 +10,11 @@ mod tests {
         application::{
             dtos::responses::RunSummaryResponse, ports::outbound::DomainEventHandlerPort,
         },
-        domain::messages::events::{Event, StepStartedPayload},
+        domain::{
+            Settings,
+            messages::events::{Event, StepStartedPayload},
+            value_objects::Permissions,
+        },
         presentation::{
             cli::RunProgressHandler,
             tui::{TuiApp, TuiLoopState, TuiRunner, TuiScreen},
@@ -62,6 +66,56 @@ mod tests {
 
     fn ci_summary() -> RunSummaryResponse {
         RunSummaryResponse::new("CI".to_owned(), vec![], true, Duration::from_secs(1))
+    }
+
+    #[tokio::test]
+    async fn event_loop_workflow_path_forwards_execution_permissions() {
+        let workflow_port = Arc::new(RecordingRunWorkflowPort::new(ci_summary()));
+        let settings = Settings::default().with_permissions(
+            Permissions::default()
+                .with_allow_repo_writes(true)
+                .with_allow_real_container(true)
+                .with_allow_real_fetcher(true)
+                .with_allow_network(true),
+        );
+        let runner = TuiRunner::new(
+            Arc::new(FakeListWorkflowsPort::new()),
+            Arc::new(FakeListActionsPort::new()),
+            workflow_port.clone(),
+        )
+        .with_settings(settings, None);
+        let mut app = TuiApp::new(
+            vec![
+                ephact::application::dtos::responses::WorkflowListItemResponse::new(
+                    Some("CI".to_owned()),
+                    None,
+                    vec!["push".to_owned()],
+                ),
+            ],
+            ephact::PROJECT_EMBLEM.to_owned(),
+        );
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.begin_run_configuration(vec!["push".to_owned()], Vec::new());
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        let mut state = TuiLoopState::new();
+
+        for _ in 0..10 {
+            runner
+                .process_event_loop_step(&mut app, &mut state)
+                .await
+                .expect("workflow should process");
+            if workflow_port.recorded_request().is_some() {
+                break;
+            }
+            tokio::task::yield_now().await;
+        }
+
+        let request = workflow_port.recorded_request().expect("workflow request");
+        assert!(request.allow_repo_writes());
+        assert!(request.allow_real_container());
+        assert!(request.allow_real_fetcher());
+        assert!(request.allow_network());
     }
 
     #[tokio::test]

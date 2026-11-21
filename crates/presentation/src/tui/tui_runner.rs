@@ -575,6 +575,7 @@ impl TuiRunner {
                 workflow,
                 configuration.event().to_string(),
                 configuration.inputs().to_vec(),
+                self.settings.clone(),
             ),
         };
         Ok(())
@@ -593,11 +594,12 @@ impl TuiRunner {
         let Some(discover_port) = self.discover_run_inputs_port.as_ref() else {
             return Ok(false);
         };
-        let declarations = RunHandler::discover_inputs(
+        let declarations = RunHandler::discover_inputs_with_settings(
             &**discover_port,
             std::env::current_dir()?,
             workflow.clone(),
             Some(event.to_string()),
+            &self.settings,
         );
         match declarations {
             Ok(declarations) if !declarations.is_empty() => {
@@ -620,10 +622,12 @@ impl TuiRunner {
         workflow: Option<String>,
         event: String,
         inputs: Vec<(String, String)>,
+        settings: Settings,
     ) -> RunTask {
         let run_id = RunHandler::new_run_id();
         let task_run_id = run_id.clone();
-        let run = SingleWorkflowRun::new(repository_path, workflow, Some(event), inputs, &run_id);
+        let run = SingleWorkflowRun::new(repository_path, workflow, Some(event), inputs, &run_id)
+            .with_settings(&settings);
         let handle = tokio::spawn(async move {
             RunHandler::execute(&*port, run)
                 .await
