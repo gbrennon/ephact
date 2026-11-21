@@ -153,6 +153,7 @@
 - **tui**: Recover cancelled workflow configuration
 - **ci**: Preserve TUI test module paths
 - **ci**: Satisfy changed test conventions
+- **tui**: Forward workflow execution settings
 
 ### Refactor
 
