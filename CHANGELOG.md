@@ -60,6 +60,7 @@
 - **tui**: Add action run screen
 - **tui**: Run selected actions independently
 - **tui**: Complete standalone action execution
+- **tui**: Simplify home run menu
 
 ### Bug Fixes
 
@@ -149,6 +150,8 @@
 - **lint**: Split Rust structs by file
 - **lint**: Allow nested module names
 - **tui**: Recover cancelled workflow configuration
+- **ci**: Preserve TUI test module paths
+- **ci**: Satisfy changed test conventions
 
 ### Refactor
 
@@ -275,6 +278,7 @@
 - **domain**: Wire Job submodules
 - **domain**: Encapsulate Job sub-structs
 - **app-runner**: Hide orchestration state
+- **tui**: Isolate root test module
 
 ### Documentation
 
@@ -598,6 +602,7 @@
 - **application**: Enforce immutable workflow request receiver
 - **application**: Enforce immutable container request receiver
 - **application**: Enforce immutable composite step receiver
+- **ci**: Rerun home menu checks
 
 ## [0.4.0] - 2026-09-29
 
