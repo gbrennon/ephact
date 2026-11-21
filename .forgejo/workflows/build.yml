@@ -23,7 +23,9 @@ jobs:
           rustc-version: stable
           include-sysroot: "false"
       - name: Build release binary
-        run: cargo build --release --locked
+        run: |
+          export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+          cargo build --release --locked
         timeout-minutes: 15
       - name: Run tests
         uses: ./.forgejo/actions/run-tests

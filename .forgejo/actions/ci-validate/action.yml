@@ -7,4 +7,6 @@ runs:
   steps:
     - name: Check formatting
       shell: bash
-      run: cargo fmt --all -- --check
+      run: |
+        export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+        cargo fmt --all -- --check
