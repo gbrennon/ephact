@@ -26,6 +26,7 @@ pub struct TuiApp {
     cancel_requested: bool,
     configuration_requested: bool,
     action_configuration_requested: bool,
+    action_selection_requested: bool,
     splash_quote: &'static str,
 }
 
@@ -42,6 +43,7 @@ impl TuiApp {
             cancel_requested: false,
             configuration_requested: false,
             action_configuration_requested: false,
+            action_selection_requested: false,
             splash_quote: SplashQuotes::random(),
         }
     }
@@ -93,6 +95,12 @@ impl TuiApp {
         let (screens, configuration) = self.screens.take_configuration();
         self.screens = screens;
         configuration
+    }
+
+    pub fn take_action_selection_request(&mut self) -> bool {
+        let requested = self.action_selection_requested;
+        self.action_selection_requested = false;
+        requested
     }
 
     pub fn take_action_run_request(&mut self) -> Option<(String, RunConfigurationValues)> {
@@ -258,6 +266,10 @@ impl TuiApp {
         self.screens.current_screen()
     }
 
+    pub fn is_action_picker(&self) -> bool {
+        self.screens.is_action_picker()
+    }
+
     pub fn is_action_running(&self) -> bool {
         self.screens.is_action_running()
     }
@@ -306,13 +318,15 @@ impl TuiApp {
     fn open_selected_home_screen(&mut self) {
         let screen = match self.screens.home_selection() {
             HomeScreen::RUN_WORKFLOW_INDEX => TuiScreen::RunWorkflow,
-            HomeScreen::LIST_ACTIONS_INDEX => TuiScreen::ListActions,
+            HomeScreen::RUN_ACTION_INDEX => TuiScreen::RunAction,
             HomeScreen::SETTINGS_INDEX => TuiScreen::Settings,
             _ => return,
         };
         self.screens = self.screens.transition_to(screen);
         if screen == TuiScreen::RunWorkflow {
             self.screens = self.screens.reset_run_workflow();
+        } else if screen == TuiScreen::RunAction {
+            self.screens = self.screens.open_action_picker();
         }
     }
 
@@ -348,6 +362,7 @@ impl TuiApp {
             KeyCode::Esc | KeyCode::Backspace => self.transition_to(TuiScreen::Home),
             KeyCode::Enter if self.screens.selected_action().is_some() => {
                 self.screens = self.screens.open_selected_action();
+                self.action_selection_requested = true;
                 self.transition_to(TuiScreen::RunAction);
             }
             _ => {}
@@ -355,6 +370,23 @@ impl TuiApp {
     }
 
     fn handle_run_action_key(&mut self, key: KeyEvent) {
+        if self.screens.is_action_picker() {
+            match key.code {
+                KeyCode::Up | KeyCode::Char(Self::PREVIOUS_KEY) => {
+                    self.screens = self.screens.select_list_actions_previous();
+                }
+                KeyCode::Down | KeyCode::Char(Self::NEXT_KEY) => {
+                    self.screens = self.screens.select_list_actions_next();
+                }
+                KeyCode::Enter if self.screens.selected_action().is_some() => {
+                    self.screens = self.screens.confirm_action_selection();
+                    self.action_selection_requested = true;
+                }
+                KeyCode::Esc | KeyCode::Backspace => self.transition_to(TuiScreen::Home),
+                _ => {}
+            }
+            return;
+        }
         if self.screens.has_action_configuration_error() {
             self.handle_action_configuration_key(key);
             return;
@@ -387,7 +419,8 @@ impl TuiApp {
             return;
         }
         if matches!(key.code, KeyCode::Esc | KeyCode::Backspace) {
-            self.transition_to(TuiScreen::ListActions);
+            let destination = self.screens.previous_screen().unwrap_or(TuiScreen::Home);
+            self.transition_to(destination);
         }
     }
 
@@ -414,7 +447,7 @@ impl TuiApp {
             ConfigurationAction::Submit => self.action_configuration_requested = true,
             ConfigurationAction::Cancel => {
                 let (screens, _) = self.screens.take_action_configuration();
-                self.screens = screens.transition_to(TuiScreen::ListActions);
+                self.screens = screens.transition_to(TuiScreen::Home);
             }
             ConfigurationAction::Continue => {}
         }

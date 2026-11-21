@@ -212,7 +212,7 @@ fn home_renders_initial_menu() {
         }));
 
     assert!(text.contains("Run workflow"));
-    assert!(text.contains("List actions"));
+    assert!(text.contains("Run action"));
     assert!(text.contains("Settings"));
     assert!(!text.contains("List workflows"));
 }
@@ -288,7 +288,7 @@ fn home_renders_highlight_on_selected_menu_item() {
     let buffer =
         TuiRenderAssertions::rendered_screen(|frame, area| HomeScreen::render(frame, area, 1));
 
-    let selected = TuiRenderAssertions::styles_for_label(&buffer, "List actions");
+    let selected = TuiRenderAssertions::styles_for_label(&buffer, "Run action");
     let unselected = TuiRenderAssertions::styles_for_label(&buffer, "Run workflow");
     assert!(
         selected
@@ -328,14 +328,14 @@ fn list_workflows_handler_returns_error_on_invalid_repo_path() {
 }
 
 #[test]
-fn home_down_then_enter_transitions_to_list_actions() {
+fn home_down_then_enter_transitions_to_run_action_picker() {
     let mut app = TuiApp::new(vec![], ephact::PROJECT_EMBLEM.to_string());
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
     app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
 
     app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
-    assert_eq!(app.screen(), TuiScreen::ListActions);
+    assert_eq!(app.screen(), TuiScreen::RunAction);
 }
 
 #[test]
@@ -442,12 +442,12 @@ fn list_actions_screen_renders_highlight_on_selected_row() {
 }
 
 #[test]
-fn home_renders_highlight_on_selected_list_actions_item() {
+fn home_renders_highlight_on_selected_run_action_item() {
     let buffer = TuiRenderAssertions::rendered_screen(|frame, area| {
-        HomeScreen::render(frame, area, HomeScreen::LIST_ACTIONS_INDEX)
+        HomeScreen::render(frame, area, HomeScreen::RUN_ACTION_INDEX)
     });
 
-    let selected = TuiRenderAssertions::styles_for_label(&buffer, "List actions");
+    let selected = TuiRenderAssertions::styles_for_label(&buffer, "Run action");
     let unselected = TuiRenderAssertions::styles_for_label(&buffer, "Run workflow");
     assert!(
         selected

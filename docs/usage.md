@@ -25,7 +25,7 @@ screen appears first; press any key to reach the home menu.
 ### Home menu
 
 The home menu asks what you would like to run and lists **Run workflow**,
-**List actions**, and **Settings**. Move the selection with `Up`/`Down` or
+**Run action**, and **Settings**. Move the selection with `Up`/`Down` or
 `j`/`k`, open it with `Enter`, and quit with `q`.
 
 ### Running a workflow
@@ -43,6 +43,12 @@ job result; press `d` to open the step-by-step run details and scroll with the
 arrow keys. Interactive selection supports only workflows declaring
 `pull_request`; noninteractive runs require `--event` and match that event.
 
+### Running an action
+
+Select **Run action** to open the action picker. Choose an action reference,
+press `Enter` to configure its inputs, and watch it execute in the same screen.
+When it finishes, press `d` for details or `Esc`/`Backspace` to return home.
+
 ### Settings screen
 
 The settings screen edits persisted values in place. Move with `Up`/`Down` or
@@ -53,8 +59,8 @@ go back.
 
 - **Splash**: press any key to continue.
 - **Home**: use `Up`/`Down`/`j`/`k` to move, `Enter` to select, or `q` to quit.
-- **List actions**: use `Up`/`Down`/`j`/`k` to move, `Esc`/`Bksp` to go
-  back, or `q` to quit.
+- **Run action**: use `Up`/`Down`/`j`/`k` to choose an action, `Enter` to
+  configure, `Esc`/`Bksp` to go back, `d` for details, or `q` to quit.
 - **Run workflow**: use `Up`/`Down`/`j`/`k` to move, `Enter` to configure,
   `Esc`/`Bksp` to go back, `d` for details, or `q` to quit.
 - **Settings**: use `Up`/`Down`/`j`/`k` to move, `Enter` to edit, `s` to save,

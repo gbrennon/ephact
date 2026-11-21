@@ -125,11 +125,11 @@ mod tests {
         assert!(rendered_text(&app).contains("action completed"));
 
         app.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
-        assert_eq!(app.screen(), TuiScreen::ListActions);
+        assert_eq!(app.screen(), TuiScreen::Home);
     }
 
     #[tokio::test]
-    async fn event_loop_cancellation_waits_for_action_and_back_navigation_returns_to_list() {
+    async fn event_loop_cancellation_waits_for_action_and_back_navigation_returns_home() {
         let (started_tx, started_rx) = mpsc::channel();
         let (release_tx, release_rx) = mpsc::channel();
         let action_port = Arc::new(BlockingRunActionPort::new(started_tx, release_rx));
@@ -196,7 +196,7 @@ mod tests {
         assert!(rendered_text(&app).contains("CANCELLED"));
 
         app.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
-        assert_eq!(app.screen(), TuiScreen::ListActions);
+        assert_eq!(app.screen(), TuiScreen::Home);
     }
 
     #[tokio::test]

@@ -31,6 +31,23 @@ mod tests {
     }
 
     #[test]
+    fn action_picker_renders_and_navigates_runnable_actions() {
+        let mut screen = RunActionScreen::picker(vec![
+            "actions/checkout@v4".to_owned(),
+            "docker://node:20".to_owned(),
+        ]);
+
+        assert_eq!(screen.selected_action(), "actions/checkout@v4");
+        screen.select_next();
+
+        assert_eq!(screen.selected_action(), "docker://node:20");
+        let text = rendered_text(&screen);
+        assert!(text.contains("Run Action"));
+        assert!(text.contains("actions/checkout@v4"));
+        assert!(text.contains("docker://node:20"));
+    }
+
+    #[test]
     fn action_screen_prefills_declared_defaults() {
         let mut screen = RunActionScreen::new("./.github/actions/demo".to_owned());
         screen.begin_configuration(vec![RunInputDeclarationResponse::new(
