@@ -50,7 +50,7 @@ The home screen asks what you would like to run and lists the available actions:
 
 - **Run workflow** — pick a pull-request workflow, provide its inputs, and watch
   it execute in containers.
-- **List actions** — browse the unique action references used across workflows.
+- **Run action** — pick an action reference, provide its inputs, and watch it execute.
 - **Settings** — view and edit persisted settings such as the default interface.
 
 Navigation from the home menu:
@@ -93,7 +93,7 @@ fall back to built-in defaults. The `default-interface` setting selects whether
 | -------------- | ----------------------------------------------------- |
 | Splash         | any key to continue                                   |
 | Home           | `Up`/`Down`/`j`/`k` move, `Enter` select, `q` quit    |
-| List actions   | `Up`/`Down`/`j`/`k` move, `Esc`/`Bksp` back, `q` quit |
+| Run action     | `Up`/`Down`/`j`/`k` move, `Enter` configure, `Esc`/`Bksp` back, `d` details, `q` quit |
 | Run workflow   | `Up`/`Down`/`j`/`k` move, `Enter` configure, `Esc`/`Bksp` back, `d` details, `q` quit |
 | Settings       | `Up`/`Down`/`j`/`k` move, `Enter` edit, `s` save, `Esc`/`Bksp` back |
 

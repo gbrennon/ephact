@@ -290,7 +290,7 @@ impl TuiRunner {
         app: &mut TuiApp,
         state: &mut TuiLoopState,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        if app.screen() != TuiScreen::RunAction {
+        if app.screen() != TuiScreen::RunAction || app.is_action_picker() {
             if matches!(state, TuiLoopState::ActionInputConfigurationPending) {
                 *state = TuiLoopState::Idle;
             }
@@ -299,6 +299,7 @@ impl TuiRunner {
         if !matches!(state, TuiLoopState::Idle)
             || app.is_action_configuration_ready()
             || app.has_action_outcome()
+            || !app.take_action_selection_request()
         {
             return Ok(());
         }

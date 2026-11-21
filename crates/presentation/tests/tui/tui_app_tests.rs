@@ -197,14 +197,16 @@ mod tests {
     }
 
     #[test]
-    fn selecting_list_actions_enters_actions_screen() {
-        let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string());
+    fn selecting_run_action_enters_action_picker() {
+        let mut app = TuiApp::new(Vec::new(), ephact::PROJECT_EMBLEM.to_string())
+            .with_actions(vec!["actions/checkout@v4".to_owned()]);
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
         app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
 
         app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
 
-        assert_eq!(app.screen(), TuiScreen::ListActions);
+        assert_eq!(app.screen(), TuiScreen::RunAction);
+        assert_eq!(app.selected_action(), Some("actions/checkout@v4"));
     }
 
     #[test]
@@ -240,7 +242,7 @@ mod tests {
             app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
             app.handle_key(KeyEvent::new(back_key, KeyModifiers::NONE));
 
-            assert_eq!(app.screen(), TuiScreen::ListActions);
+            assert_eq!(app.screen(), TuiScreen::Home);
             assert_eq!(app.selected_action_index(), 1);
         }
     }
@@ -276,7 +278,7 @@ mod tests {
         app.begin_action_configuration(Vec::new());
         app.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
 
-        assert_eq!(app.screen(), TuiScreen::ListActions);
+        assert_eq!(app.screen(), TuiScreen::Home);
     }
 
     #[test]

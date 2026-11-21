@@ -179,18 +179,31 @@ impl ScreenManager {
 
     pub fn select_list_actions_previous(&self) -> Self {
         let mut next = self.clone();
-        next.list_actions.select_previous();
+        if let Some(run_action) = next.run_action.as_mut().filter(|screen| screen.is_picker()) {
+            run_action.select_previous();
+        } else {
+            next.list_actions.select_previous();
+        }
         next
     }
 
     pub fn select_list_actions_next(&self) -> Self {
         let mut next = self.clone();
-        next.list_actions.select_next();
+        if let Some(run_action) = next.run_action.as_mut().filter(|screen| screen.is_picker()) {
+            run_action.select_next();
+        } else {
+            next.list_actions.select_next();
+        }
         next
     }
 
     pub fn selected_action(&self) -> Option<&str> {
-        self.list_actions.selected_action()
+        self.run_action
+            .as_ref()
+            .filter(|screen| screen.is_action_list())
+            .map(RunActionScreen::selected_action)
+            .filter(|action| !action.is_empty())
+            .or_else(|| self.list_actions.selected_action())
     }
 
     pub fn open_selected_action(&self) -> Self {
@@ -199,6 +212,14 @@ impl ScreenManager {
             .list_actions
             .selected_action()
             .map(|action| RunActionScreen::new(action.to_owned()));
+        next
+    }
+
+    pub fn open_action_picker(&self) -> Self {
+        let mut next = self.clone();
+        next.run_action = Some(RunActionScreen::picker(
+            next.list_actions.actions().to_vec(),
+        ));
         next
     }
 
@@ -238,6 +259,14 @@ impl ScreenManager {
         let mut next = self.clone();
         let configuration = next.run_workflow.take_configuration();
         (next, configuration)
+    }
+
+    pub fn confirm_action_selection(&self) -> Self {
+        let mut next = self.clone();
+        if let Some(run_action) = next.run_action.as_mut() {
+            run_action.confirm_selection();
+        }
+        next
     }
 
     pub fn begin_action_configuration(
@@ -281,6 +310,14 @@ impl ScreenManager {
 
     pub fn is_workflow_running(&self) -> bool {
         self.run_workflow.is_running()
+    }
+
+    pub fn is_action_picker(&self) -> bool {
+        self.current_screen == TuiScreen::RunAction
+            && self
+                .run_action
+                .as_ref()
+                .is_some_and(RunActionScreen::is_picker)
     }
 
     pub fn is_action_running(&self) -> bool {
@@ -349,7 +386,11 @@ impl ScreenManager {
     }
 
     pub fn selected_action_index(&self) -> usize {
-        self.list_actions.selected_index()
+        self.run_action
+            .as_ref()
+            .filter(|screen| screen.is_action_list())
+            .map(RunActionScreen::selected_index)
+            .unwrap_or_else(|| self.list_actions.selected_index())
     }
 
     pub fn has_run_outcome(&self) -> bool {

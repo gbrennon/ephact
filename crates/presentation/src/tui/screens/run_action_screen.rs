@@ -1,8 +1,8 @@
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Rect},
-    text::Span,
-    widgets::{Block, Borders, Padding, Paragraph},
+    text::{Line, Span},
+    widgets::{Block, Borders, List, ListItem, ListState, Padding, Paragraph},
 };
 
 use crate::{
@@ -17,6 +17,9 @@ use crate::{
 #[derive(Clone)]
 pub struct RunActionScreen {
     action_ref: String,
+    actions: Vec<String>,
+    selected_index: usize,
+    picker: bool,
     configuration: Option<RunConfiguration>,
     running: bool,
     progress_lines: Vec<String>,
@@ -29,11 +32,16 @@ pub struct RunActionScreen {
 impl RunActionScreen {
     const TITLE: &'static str = "Run Action";
     const EMPTY_FOOTER: &'static str = "Enter: Configure | Esc/Bksp: Back | q: Quit";
+    const PICKER_FOOTER: &'static str =
+        "Up/Down/j/k: Move | Enter: Configure | Esc/Bksp: Back | q: Quit";
     const RUNNING_FOOTER: &'static str = "Esc/Bksp: Cancel";
 
     pub fn new(action_ref: String) -> Self {
         Self {
-            action_ref,
+            action_ref: action_ref.clone(),
+            actions: vec![action_ref],
+            selected_index: 0,
+            picker: false,
             configuration: None,
             running: false,
             progress_lines: Vec::new(),
@@ -44,11 +52,72 @@ impl RunActionScreen {
         }
     }
 
+    pub fn picker(actions: Vec<String>) -> Self {
+        let action_ref = actions.first().cloned().unwrap_or_default();
+        Self {
+            action_ref,
+            actions,
+            selected_index: 0,
+            picker: true,
+            configuration: None,
+            running: false,
+            progress_lines: Vec::new(),
+            outcome: None,
+            cancelled: false,
+            showing_details: false,
+            summary_scroll: 0,
+        }
+    }
+
+    pub fn selected_index(&self) -> usize {
+        self.selected_index
+    }
+
     pub fn selected_action(&self) -> &str {
-        &self.action_ref
+        if self.picker {
+            self.actions
+                .get(self.selected_index)
+                .map(String::as_str)
+                .unwrap_or_default()
+        } else {
+            &self.action_ref
+        }
+    }
+
+    pub fn is_picker(&self) -> bool {
+        self.picker
+    }
+
+    pub fn is_action_list(&self) -> bool {
+        self.actions.len() > 1
+    }
+
+    pub fn select_next(&mut self) {
+        if self.picker && self.selected_index + 1 < self.actions.len() {
+            self.selected_index += 1;
+        }
+    }
+
+    pub fn select_previous(&mut self) {
+        if self.picker {
+            self.selected_index = self.selected_index.saturating_sub(1);
+        }
+    }
+
+    pub fn confirm_selection(&mut self) -> bool {
+        let Some(action) = self.actions.get(self.selected_index).cloned() else {
+            return false;
+        };
+        if !self.picker {
+            return false;
+        }
+        self.action_ref = action;
+        self.picker = false;
+        true
     }
 
     pub fn begin_configuration(&mut self, declarations: Vec<RunInputDeclarationResponse>) {
+        self.picker = false;
         self.configuration = Some(RunConfiguration::new(
             vec![self.action_ref.clone()],
             declarations,
@@ -187,7 +256,9 @@ impl RunActionScreen {
             .direction(Direction::Vertical)
             .constraints([Constraint::Min(1), Constraint::Length(1)])
             .split(content_area);
-        if self.showing_details {
+        if self.picker {
+            self.render_picker(frame, chunks[0]);
+        } else if self.showing_details {
             frame.render_widget(
                 Paragraph::new(self.details_text()).scroll((self.summary_scroll, 0)),
                 chunks[0],
@@ -229,6 +300,23 @@ impl RunActionScreen {
         );
     }
 
+    fn render_picker(&self, frame: &mut Frame<'_>, area: Rect) {
+        let items = self
+            .actions
+            .iter()
+            .map(|action| ListItem::new(Line::from(action.clone())))
+            .collect::<Vec<_>>();
+        let mut state = ListState::default();
+        state.select(Some(self.selected_index));
+        frame.render_stateful_widget(
+            List::new(items)
+                .style(Theme::body_style())
+                .highlight_style(Theme::selection_style()),
+            area,
+            &mut state,
+        );
+    }
+
     fn details_text(&self) -> String {
         self.outcome
             .as_ref()
@@ -243,7 +331,9 @@ impl RunActionScreen {
     }
 
     pub fn footer(&self) -> &'static str {
-        if self.showing_details {
+        if self.picker {
+            Self::PICKER_FOOTER
+        } else if self.showing_details {
             "Up/Down: Scroll | Esc/Bksp: Result"
         } else if self.outcome.is_some() && !self.running {
             "d: Details | Up/Down: Scroll | Esc/Bksp: Back | q: Quit"
