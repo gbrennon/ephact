@@ -61,6 +61,7 @@
 - **tui**: Run selected actions independently
 - **tui**: Complete standalone action execution
 - **tui**: Simplify home run menu
+- **tui**: Run actions in picker
 
 ### Bug Fixes
 
