@@ -11,17 +11,15 @@ pub struct HomeScreen {}
 
 impl HomeScreen {
     pub const RUN_WORKFLOW_INDEX: usize = 0;
-    pub const LIST_WORKFLOWS_INDEX: usize = 1;
-    pub const LIST_ACTIONS_INDEX: usize = 2;
-    pub const SETTINGS_INDEX: usize = 3;
-    pub const LAST_MENU_INDEX: usize = 3;
+    pub const LIST_ACTIONS_INDEX: usize = 1;
+    pub const SETTINGS_INDEX: usize = 2;
+    pub const LAST_MENU_INDEX: usize = 2;
 
-    const BLOCK_TITLE: &'static str = "What would you like to do?";
+    const BLOCK_TITLE: &'static str = "What would you like to run?";
     const FOOTER: &'static str = "Up/Down/j/k: Move | Enter: Select | q: Quit";
     const FOOTER_HEIGHT: u16 = 1;
     const CONTENT_MIN_HEIGHT: u16 = 5;
-    const MENU_ITEMS: [&'static str; 4] =
-        ["Run workflow", "List workflows", "List actions", "Settings"];
+    const MENU_ITEMS: [&'static str; 3] = ["Run workflow", "List actions", "Settings"];
 
     pub fn render(frame: &mut Frame<'_>, area: Rect, selected_index: usize) {
         let block = Block::default()
