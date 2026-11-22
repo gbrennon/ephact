@@ -49,6 +49,12 @@ Select **Run action** to open the action picker. Choose an action reference,
 press `Enter` to configure its inputs, and watch it execute in the same screen.
 When it finishes, press `d` for details or `Esc`/`Backspace` to return home.
 
+For repository-local actions, ephact runs a repository-local
+`.forgejo/actions/install-dependencies` or `.github/actions/install-dependencies`
+action first when one exists. This lets standalone actions use the same base
+packages and toolchains as the repository's workflows. Failed actions include
+the persisted failure-log path in the result and details views.
+
 ### Settings screen
 
 The settings screen edits persisted values in place. Move with `Up`/`Down` or

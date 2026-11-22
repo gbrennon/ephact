@@ -78,7 +78,9 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
             .iter()
             .map(|e| e.container_name().to_string())
             .collect();
-        let success = executions.iter().all(|e| e.job_summary().success());
+        let success = executions.iter().all(|execution| {
+            execution.job_summary().success() || execution.job_summary().is_skipped()
+        });
 
         Ok(WorkflowExecutionResponse::new(
             workflow_name.to_owned(),

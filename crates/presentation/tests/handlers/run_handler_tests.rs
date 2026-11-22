@@ -1,3 +1,6 @@
+#[path = "rendered.rs"]
+mod rendered;
+
 #[cfg(test)]
 mod tests {
     use std::{env, time::Duration};
@@ -7,10 +10,14 @@ mod tests {
             JobSummaryResponse, RunSummaryResponse, StepSummaryDetails, StepSummaryResponse,
             StepSummaryResponseInput,
         },
-        domain::value_objects::StepType,
-        presentation::handlers::RunHandler,
+        domain::{
+            Settings,
+            value_objects::{Permissions, StepType},
+        },
+        presentation::handlers::{RunHandler, SingleWorkflowRun},
     };
 
+    use super::rendered::Rendered;
     use crate::{
         common::fakes::stub_run_workflow_port::StubRunWorkflowPort,
         fakes::recording_run_workflow_port::RecordingRunWorkflowPort,
@@ -103,6 +110,36 @@ mod tests {
         let request = port.recorded_request().expect("recorded request");
         assert!(request.workflow().is_none());
         assert!(!request.all_workflows());
+    }
+
+    #[tokio::test]
+    async fn execute_forwards_tui_execution_permissions() {
+        let port = RecordingRunWorkflowPort::new(run_summary(true));
+        let settings = Settings::default().with_permissions(
+            Permissions::default()
+                .with_allow_repo_writes(true)
+                .with_allow_real_container(true)
+                .with_allow_real_fetcher(true)
+                .with_allow_network(true),
+        );
+        let run = SingleWorkflowRun::new(
+            env::current_dir().expect("current directory"),
+            Some("CI".to_owned()),
+            Some("push".to_owned()),
+            Vec::new(),
+            "run-tui-permissions",
+        )
+        .with_settings(&settings);
+
+        RunHandler::execute(&port, run)
+            .await
+            .expect("workflow should run");
+
+        let request = port.recorded_request().expect("recorded request");
+        assert!(request.allow_repo_writes());
+        assert!(request.allow_real_container());
+        assert!(request.allow_real_fetcher());
+        assert!(request.allow_network());
     }
 
     #[tokio::test]
@@ -242,25 +279,5 @@ mod tests {
     fn render_includes_summary_heading_without_jobs() {
         let rendered = Rendered::of(&summary(true, vec![], Duration::ZERO));
         assert_eq!(rendered.lines().count(), 2);
-    }
-
-    struct Rendered {
-        text: String,
-    }
-
-    impl Rendered {
-        fn of(summary: &RunSummaryResponse) -> Self {
-            Self {
-                text: RunHandler::render(summary),
-            }
-        }
-
-        fn line(&self, index: usize) -> &str {
-            self.text.lines().nth(index).unwrap()
-        }
-
-        fn lines(&self) -> std::str::Lines<'_> {
-            self.text.lines()
-        }
     }
 }

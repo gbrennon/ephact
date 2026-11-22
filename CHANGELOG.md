@@ -153,6 +153,11 @@
 - **tui**: Recover cancelled workflow configuration
 - **ci**: Preserve TUI test module paths
 - **ci**: Satisfy changed test conventions
+- **tui**: Forward workflow execution settings
+- **workflows**: Preserve failure diagnostics
+- **actions**: Preserve standalone diagnostics
+- **tests**: Satisfy struct file convention
+- **tests**: Restore action test imports
 
 ### Refactor
 
@@ -344,6 +349,7 @@
 - Rm old md fie
 - Add GitHub and Woodpecker TUI demos
 - **README**: Add terminal badge
+- **actions**: Explain standalone execution flow
 
 ### Testing
 
@@ -492,6 +498,7 @@
 - Add checksum-verified git-cliff installer
 - Verify git-cliff archive checksums
 - Pin nightly toolchain
+- Rerun standalone action checks
 
 ### Miscellaneous Tasks
 
