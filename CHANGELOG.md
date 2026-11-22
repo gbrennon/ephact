@@ -153,11 +153,13 @@
 - **tui**: Recover cancelled workflow configuration
 - **ci**: Preserve TUI test module paths
 - **ci**: Satisfy changed test conventions
+- **ci**: Preserve Rust toolchain PATH
 - **tui**: Forward workflow execution settings
 - **workflows**: Preserve failure diagnostics
 - **actions**: Preserve standalone diagnostics
 - **tests**: Satisfy struct file convention
 - **tests**: Restore action test imports
+- **ci**: Persist cargo home explicitly
 
 ### Refactor
 
