@@ -22,13 +22,13 @@ mod tests {
     }
 
     #[test]
-    fn configuration_error_dismisses_on_escape() {
+    fn configuration_error_dismisses_on_escape_without_leaving_configuration() {
         let mut configuration = RunConfiguration::new(Vec::new(), Vec::new());
         configuration.report_error("Error: Workflow declares no supported events".to_owned());
 
         let action = configuration.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
 
-        assert_eq!(action, ConfigurationAction::Cancel);
+        assert_eq!(action, ConfigurationAction::Continue);
         assert!(configuration.error().is_none());
     }
 

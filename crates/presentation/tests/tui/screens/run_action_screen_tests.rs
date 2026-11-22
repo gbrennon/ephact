@@ -76,6 +76,12 @@ mod tests {
         screen.handle_configuration_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE));
 
         assert!(rendered_text(&screen).contains("Error: token is required"));
+
+        assert_eq!(
+            screen.handle_configuration_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)),
+            ephact::presentation::tui::components::ConfigurationAction::Continue
+        );
+        assert!(rendered_text(&screen).contains("Input: token (required)"));
     }
 
     #[test]
