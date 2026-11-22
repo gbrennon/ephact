@@ -86,7 +86,8 @@ mod tests {
                 .exit_code(2)
                 .stdout("output".to_owned())
                 .stderr("failure log".to_owned())
-                .build(),
+                .build()
+                .with_diagnostics_path("/tmp/ephact/failure.log".to_owned()),
         );
 
         assert!(rendered_text(&screen).contains("Status: FAILED"));
@@ -95,5 +96,6 @@ mod tests {
         let details = rendered_text(&screen);
         assert!(details.contains("stdout:"));
         assert!(details.contains("failure log"));
+        assert!(details.contains("/tmp/ephact/failure.log"));
     }
 }

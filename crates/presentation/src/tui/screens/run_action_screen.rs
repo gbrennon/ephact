@@ -283,10 +283,14 @@ impl RunActionScreen {
             };
             frame.render_widget(
                 Paragraph::new(format!(
-                    "Status: {status}\nExit code: {}\n{}{}",
+                    "Status: {status}\nExit code: {}\n{}{}{}",
                     outcome.exit_code(),
                     outcome.stdout(),
-                    outcome.stderr()
+                    outcome.stderr(),
+                    outcome
+                        .diagnostics_path()
+                        .map(|path| format!("\nFailure log: {path}"))
+                        .unwrap_or_default()
                 ))
                 .scroll((self.summary_scroll, 0)),
                 chunks[0],
@@ -322,9 +326,13 @@ impl RunActionScreen {
             .as_ref()
             .map(|outcome| {
                 format!(
-                    "stdout:\n{}\nstderr:\n{}",
+                    "stdout:\n{}\nstderr:\n{}{}",
                     outcome.stdout(),
-                    outcome.stderr()
+                    outcome.stderr(),
+                    outcome
+                        .diagnostics_path()
+                        .map(|path| format!("\nFailure log: {path}"))
+                        .unwrap_or_default()
                 )
             })
             .unwrap_or_else(|| "No action details available".to_owned())
