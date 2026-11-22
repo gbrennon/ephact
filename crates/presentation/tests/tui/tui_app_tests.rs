@@ -109,6 +109,44 @@ mod tests {
     }
 
     #[test]
+    fn dismissing_missing_workflow_input_error_keeps_configuration_screen() {
+        let mut app = TuiApp::new(
+            vec![WorkflowListItemResponse::new(
+                Some("CI".to_string()),
+                None,
+                vec!["push".to_string()],
+            )],
+            ephact::PROJECT_EMBLEM.to_string(),
+        );
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        app.begin_run_configuration(
+            vec!["push".to_string()],
+            vec![RunInputDeclarationResponse::new(
+                "environment".to_owned(),
+                RunInputSourceResponse::Workflow,
+                None,
+                true,
+                None,
+            )],
+        );
+        app.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        app.handle_key(KeyEvent::new(SUBMIT_CONFIGURATION_KEY, KeyModifiers::NONE));
+        assert!(app.has_configuration_error());
+
+        app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+        assert_eq!(app.screen(), TuiScreen::RunWorkflow);
+        let lines = rendered_app_lines(&app);
+        assert!(
+            lines
+                .iter()
+                .any(|line| line.contains("environment (required)"))
+        );
+        assert!(!lines.iter().any(|line| line.contains("Cannot Run")));
+    }
+
+    #[test]
     fn persisted_marker_is_used_by_text_input_form() {
         let directory = tempfile::tempdir().expect("temporary directory");
         let path = directory.path().join("config.toml");

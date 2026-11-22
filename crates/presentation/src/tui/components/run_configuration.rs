@@ -6,6 +6,7 @@ use ratatui::{
     widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph},
 };
 
+use super::run_configuration_values::RunConfigurationValues;
 use crate::{
     application::dtos::responses::RunInputDeclarationResponse,
     domain::value_objects::Marker,
@@ -17,22 +18,6 @@ use crate::{
         theme::Theme,
     },
 };
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RunConfigurationValues {
-    event: String,
-    inputs: Vec<(String, String)>,
-}
-
-impl RunConfigurationValues {
-    pub fn event(&self) -> &str {
-        &self.event
-    }
-
-    pub fn inputs(&self) -> &[(String, String)] {
-        &self.inputs
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConfigurationAction {
@@ -117,14 +102,13 @@ impl RunConfiguration {
 
     pub fn values(&self) -> Option<RunConfigurationValues> {
         let event = self.events.get(self.selected_event)?.clone();
-        Some(RunConfigurationValues {
+        Some(RunConfigurationValues::new(
             event,
-            inputs: self
-                .inputs
+            self.inputs
                 .iter()
                 .map(|input| (input.name().to_string(), input.value().to_string()))
                 .collect(),
-        })
+        ))
     }
 
     pub fn render(&self, frame: &mut Frame<'_>, area: Rect) {
@@ -201,7 +185,7 @@ impl RunConfiguration {
     fn handle_error_key(&mut self, key: KeyEvent) -> ConfigurationAction {
         if matches!(key.code, KeyCode::Enter | KeyCode::Esc | KeyCode::Backspace) {
             self.error = None;
-            return ConfigurationAction::Cancel;
+            return ConfigurationAction::Continue;
         }
         ConfigurationAction::Continue
     }
