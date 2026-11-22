@@ -8,9 +8,8 @@ runs:
     - name: Install git-cliff
       shell: bash
       run: |
-        cargo_home="${CARGO_HOME:-$HOME/.cargo}"
-        cargo_bin="$cargo_home/bin"
-        export CARGO_HOME="$cargo_home"
+        export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+        cargo_bin="$CARGO_HOME/bin"
         export PATH="$cargo_bin:$PATH"
         echo "$cargo_bin" >> "$GITHUB_PATH"
         echo "CARGO_HOME=$CARGO_HOME" >> "$GITHUB_ENV"
