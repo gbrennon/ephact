@@ -7,7 +7,9 @@ runs:
   steps:
     - name: Clippy
       shell: bash
-      run: cargo clippy --all-targets --locked -- -D warnings
+      run: |
+        export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+        cargo clippy --all-targets --locked -- -D warnings
 
     - name: Response DTO conventions
       shell: bash
@@ -23,3 +25,7 @@ runs:
     - name: Rust convention regression test
       shell: bash
       run: tests/scripts/rust_file_struct_names_test.sh
+
+    - name: Dependency environment regression test
+      shell: bash
+      run: tests/scripts/install_dependencies_environment_test.sh

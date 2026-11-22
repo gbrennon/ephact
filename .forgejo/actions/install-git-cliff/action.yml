@@ -8,12 +8,18 @@ runs:
     - name: Install git-cliff
       shell: bash
       run: |
-        export PATH="$HOME/.cargo/bin:$PATH"
+        export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+        cargo_bin="$CARGO_HOME/bin"
+        export PATH="$cargo_bin:$PATH"
+        echo "$cargo_bin" >> "$GITHUB_PATH"
+        echo "CARGO_HOME=$CARGO_HOME" >> "$GITHUB_ENV"
+        echo "PATH=$cargo_bin:$PATH" >> "$GITHUB_ENV"
         if command -v git-cliff >/dev/null 2>&1; then
           echo "git-cliff already installed: $(git-cliff --version)"
           exit 0
         fi
 
         ./.forgejo/scripts/install_git_cliff.sh
-        echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-        "$HOME/.cargo/bin/git-cliff" --version
+        echo "$cargo_bin" >> "$GITHUB_PATH"
+        echo "PATH=$cargo_bin:$PATH" >> "$GITHUB_ENV"
+        "$cargo_bin/git-cliff" --version

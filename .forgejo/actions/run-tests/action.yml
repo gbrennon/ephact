@@ -7,4 +7,6 @@ runs:
   steps:
     - uses: ./.forgejo/actions/install-cargo-llvm-cov
     - shell: bash
-      run: just test
+      run: |
+        export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+        just test
