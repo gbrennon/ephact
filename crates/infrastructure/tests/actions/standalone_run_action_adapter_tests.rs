@@ -1,15 +1,8 @@
-use std::{
-    collections::HashMap,
-    fs,
-    sync::{Arc, Mutex},
-};
+use std::{collections::HashMap, fs, sync::Arc};
 
 use ephact_infrastructure::{
     actions::{RunActionFactory, StandaloneRunActionAdapter},
-    application::{
-        dtos::requests::{RunActionRequest, RunActionRequestInput},
-        ports::inbound::RunActionPort,
-    },
+    application::dtos::requests::{RunActionRequest, RunActionRequestInput},
     domain::messages::events::Event,
     steps::JsonStepTextCodec,
 };
@@ -22,12 +15,15 @@ mod fake_action;
 mod fake_container;
 #[path = "fake_preparer.rs"]
 mod fake_preparer;
+#[path = "recording_action.rs"]
+mod recording_action;
 #[path = "recording_events.rs"]
 mod recording_events;
 
 use failing_action::FailingAction;
 use fake_action::FakeAction;
 use fake_preparer::FakePreparer;
+use recording_action::RecordingAction;
 use recording_events::RecordingEvents;
 
 fn request_at(repository_path: impl Into<std::path::PathBuf>) -> RunActionRequest {
@@ -105,30 +101,6 @@ fn nonzero_action_response_publishes_failed_lifecycle_event() {
         matches!(events.get(3), Some(Event::WorkflowRunCompleted(payload))
         if !payload.success())
     );
-}
-
-struct RecordingAction {
-    refs: Arc<Mutex<Vec<String>>>,
-}
-
-impl RunActionPort for RecordingAction {
-    fn execute(
-        &self,
-        request: RunActionRequest,
-    ) -> Result<
-        ephact_infrastructure::application::dtos::responses::ExecuteActionResponse,
-        ephact_infrastructure::application::errors::RunActionError,
-    > {
-        self.refs
-            .lock()
-            .unwrap()
-            .push(request.action_ref().to_owned());
-        Ok(
-            ephact_infrastructure::application::dtos::responses::ExecuteActionResponse::note(
-                "done".to_owned(),
-            ),
-        )
-    }
 }
 
 #[test]
