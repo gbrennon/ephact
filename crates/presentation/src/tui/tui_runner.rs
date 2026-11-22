@@ -330,6 +330,10 @@ impl TuiRunner {
         Ok(())
     }
 
+    /// Starts the asynchronous standalone action task after the action screen
+    /// has collected and validated its inputs. The task delegates request
+    /// construction to [`RunActionHandler`], while this event loop remains
+    /// responsible for progress, cancellation, and rendering the outcome.
     fn process_configured_action_request(
         &self,
         app: &mut TuiApp,

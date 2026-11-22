@@ -61,6 +61,11 @@ impl StandaloneRunActionAdapter {
         self
     }
 
+    /// Finds the conventional repository setup action used by local actions.
+    ///
+    /// Standalone actions do not have a workflow's preceding `uses` steps, so
+    /// this convention supplies the same base packages and toolchains without
+    /// preparing remote actions such as `actions/checkout`.
     fn dependency_action_ref(repository_path: &Path, action_ref: &str) -> Option<String> {
         if !action_ref.starts_with("./") {
             return None;
