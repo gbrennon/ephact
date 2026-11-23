@@ -273,6 +273,31 @@ mod tests {
     }
 
     #[test]
+    fn skipped_job_is_rendered_as_skipped_not_failed() {
+        let step = StepSummaryResponse::new(StepSummaryResponseInput::new(
+            "checkout".to_owned(),
+            StepType::Run,
+            StepSummaryDetails::new(None, false, Duration::ZERO, String::new(), String::new()),
+        ))
+        .with_skip_reason("job condition evaluated to false".to_owned());
+        let job = JobSummaryResponse::new(
+            "build".to_owned(),
+            Some("Build".to_owned()),
+            vec![step],
+            false,
+        )
+        .with_skip_reason("job condition evaluated to false".to_owned());
+        let summary = RunSummaryResponse::new("Build".to_owned(), vec![job], true, Duration::ZERO);
+        let mut screen = RunWorkflowScreen::new(workflows());
+        screen.record_outcome(summary);
+
+        let text = rendered_text(&screen);
+
+        assert!(text.contains("Build: SKIPPED"));
+        assert!(!text.contains("Build: FAILED"));
+    }
+
+    #[test]
     fn successful_summary_offers_details() {
         let mut screen = RunWorkflowScreen::new(workflows());
         screen.record_outcome(RunSummaryResponse::new(
