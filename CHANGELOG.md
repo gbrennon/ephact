@@ -160,6 +160,7 @@
 - **tests**: Satisfy struct file convention
 - **tests**: Restore action test imports
 - **ci**: Persist cargo home explicitly
+- **tui**: Keep configuration after input error
 
 ### Refactor
 
