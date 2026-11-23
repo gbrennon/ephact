@@ -161,6 +161,7 @@
 - **tests**: Restore action test imports
 - **ci**: Persist cargo home explicitly
 - **tui**: Keep configuration after input error
+- **tui**: Show failure log in details
 
 ### Refactor
 
