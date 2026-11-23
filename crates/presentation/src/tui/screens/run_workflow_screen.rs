@@ -375,7 +375,21 @@ impl RunWorkflowScreen {
             );
             return;
         };
-        self.details.render(frame, area, summary);
+        if let Some(path) = self.failure_log_path.as_ref() {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Length(2), Constraint::Min(1)])
+                .split(area);
+            frame.render_widget(
+                Paragraph::new(format!("Failure diagnostics: {}", path.display()))
+                    .style(Theme::body_style())
+                    .wrap(Wrap { trim: false }),
+                chunks[0],
+            );
+            self.details.render(frame, chunks[1], summary);
+        } else {
+            self.details.render(frame, area, summary);
+        }
     }
 
     fn render_workflow_names(&self, frame: &mut Frame<'_>, area: Rect) {
