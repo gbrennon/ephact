@@ -162,6 +162,7 @@
 - **ci**: Persist cargo home explicitly
 - **tui**: Keep configuration after input error
 - **tui**: Show failure log in details
+- **tui**: Distinguish skipped jobs
 
 ### Refactor
 
@@ -354,6 +355,7 @@
 - Add GitHub and Woodpecker TUI demos
 - **README**: Add terminal badge
 - **actions**: Explain standalone execution flow
+- **e2e**: Document agent authorization
 
 ### Testing
 
@@ -503,6 +505,8 @@
 - Verify git-cliff archive checksums
 - Pin nightly toolchain
 - Rerun standalone action checks
+- **hooks**: Run and protect e2e tests
+- **scripts**: Guard protected e2e changes
 
 ### Miscellaneous Tasks
 
