@@ -300,6 +300,21 @@ mod tests {
         assert!(text.contains("Exit code: 1"));
         assert!(text.contains("stderr: compiler failed"));
     }
+
+    #[test]
+    fn failure_details_render_diagnostics_path() {
+        let mut screen = RunWorkflowScreen::new(workflows());
+        screen.record_outcome_with_failure_log_path(
+            failed_summary(),
+            Some("/tmp/ephact/repository/failure-run.log".into()),
+        );
+
+        assert!(screen.open_details());
+        let text = rendered_text(&screen);
+
+        assert!(text.contains("Failure diagnostics: /tmp/ephact/repository/failure-run.log"));
+    }
+
     #[test]
     fn failed_summary_renders_failure_diagnostics_path() {
         let mut screen = RunWorkflowScreen::new(workflows());
