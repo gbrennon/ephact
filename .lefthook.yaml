@@ -18,8 +18,12 @@ pre-commit:
 pre-push:
   parallel: false
   jobs:
+    - name: Protect E2E tests
+      run: scripts/check_protected_e2e_changes.sh
     - name: Check Rust file conventions
       run: scripts/check_changed_rust_conventions.sh
+    - name: Run E2E tests
+      run: cargo test --test e2e --locked
     - name: Run quality checks
       run: |
         set -u
