@@ -437,6 +437,12 @@ impl RunWorkflowScreen {
 
     fn job_line(job: &JobSummaryResponse) -> Line<'static> {
         let prefix = format!("{}{}", Self::job_label(job), Self::JOB_STATUS_SEPARATOR);
+        if job.is_skipped() {
+            return Line::from(vec![
+                Span::styled(prefix, Theme::body_style()),
+                Span::styled("SKIPPED", Theme::muted_style()),
+            ]);
+        }
         Self::status_line(&prefix, job.success())
     }
     fn render_summary(&self, frame: &mut Frame<'_>, area: Rect, summary: &RunSummaryResponse) {
