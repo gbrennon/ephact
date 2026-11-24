@@ -12,7 +12,7 @@ pub use self::{
     traits::Validatable,
     value_objects::{
         ActionReference, CleanupPolicy, ContainerEngine, EventPath, InterfaceMode, JobName, Marker,
-        MarkerKind, MarkerPreset, OperationMode, OutputPreferences, Permissions,
+        MarkerKind, MarkerPreset, NavigationMode, OperationMode, OutputPreferences, Permissions,
         ProjectDescription, ProjectEmblem, ProjectName, ProjectVersion, RemoteActionReference,
         RemoteReferenceDefaults, RepoPath, RepositoryName, Secret, WorkflowEvent, WorkflowInput,
         WorkflowPath, WorkflowRunConfig,

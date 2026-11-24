@@ -1,5 +1,6 @@
 use crate::value_objects::{
-    FailureLogRetention, InterfaceMode, Marker, OperationMode, OutputPreferences, Permissions,
+    FailureLogRetention, InterfaceMode, Marker, NavigationMode, OperationMode, OutputPreferences,
+    Permissions,
 };
 
 /// Workflow execution settings for interface, permissions, output, and retention.
@@ -10,6 +11,7 @@ pub struct Settings {
     operation_mode: OperationMode,
     output_preferences: OutputPreferences,
     marker: Marker,
+    navigation_mode: NavigationMode,
     failure_log_retention: FailureLogRetention,
 }
 
@@ -40,6 +42,11 @@ impl Settings {
     /// Returns the configured marker.
     pub fn marker(&self) -> &Marker {
         &self.marker
+    }
+
+    /// Returns the configured navigation mode.
+    pub fn navigation_mode(&self) -> NavigationMode {
+        self.navigation_mode
     }
 
     /// Returns the configured failure-log retention period.
@@ -128,6 +135,14 @@ impl Settings {
     pub fn with_marker(self, value: Marker) -> Self {
         Self {
             marker: value,
+            ..self
+        }
+    }
+
+    /// Sets the navigation mode.
+    pub fn with_navigation_mode(self, value: NavigationMode) -> Self {
+        Self {
+            navigation_mode: value,
             ..self
         }
     }

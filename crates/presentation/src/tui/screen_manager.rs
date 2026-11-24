@@ -66,6 +66,10 @@ impl ScreenManager {
         }
     }
 
+    pub fn navigation_mode(&self) -> crate::domain::NavigationMode {
+        self.settings.settings().navigation_mode()
+    }
+
     pub fn current_screen(&self) -> TuiScreen {
         self.current_screen
     }

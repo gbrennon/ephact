@@ -6,7 +6,7 @@ pub enum Command {
     ListWorkflows(Box<super::list_workflows_args::ListWorkflowsArgs>),
     ListActions(Box<super::list_actions_args::ListActionsArgs>),
     #[command(subcommand)]
-    Settings(super::settings_command::SettingsCommand),
+    Settings(super::settings_set_args::SettingsCommand),
     Tui,
     Cli,
 }
