@@ -62,6 +62,7 @@
 - **tui**: Complete standalone action execution
 - **tui**: Simplify home run menu
 - **tui**: Run actions in picker
+- **tui**: Add persisted navigation modes
 
 ### Bug Fixes
 
