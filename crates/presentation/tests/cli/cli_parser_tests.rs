@@ -21,6 +21,72 @@ mod tests {
         RunSummaryResponse::new("test".to_string(), vec![], true, Duration::ZERO)
     }
 
+    #[test]
+    fn root_help_describes_public_commands() {
+        let help = match CliParser::try_parse_from(["ephact", "--help"]) {
+            Ok(_) => panic!("help should stop argument parsing"),
+            Err(error) => error.to_string(),
+        };
+
+        for description in [
+            "Run workflows locally",
+            "List available workflows",
+            "List actions",
+            "Manage persisted settings",
+            "Launch the TUI",
+            "Use the CLI interface",
+        ] {
+            assert!(
+                help.contains(description),
+                "missing {description:?} in:\n{help}"
+            );
+        }
+    }
+
+    #[test]
+    fn settings_help_documents_persistence_and_value_rules() {
+        let help = match CliParser::try_parse_from(["ephact", "settings", "--help"]) {
+            Ok(_) => panic!("help should stop argument parsing"),
+            Err(error) => error.to_string(),
+        };
+
+        for guidance in [
+            "show reads and displays the current persisted settings",
+            "set <name> <value> changes exactly one setting",
+            "preserves the other settings",
+            "Boolean settings accept only true or false",
+            "default-interface accepts tui or cli",
+            "navigation-mode accepts standard, vim, or emacs",
+            "failure-log-retention-hours requires a positive integer greater than zero",
+            "marker accepts one of the existing preset marker strings or arbitrary custom text",
+            "forward-ssh is persisted in the host settings store",
+            "reset restores all persisted settings to safe defaults",
+        ] {
+            assert!(help.contains(guidance), "missing {guidance:?} in:\n{help}");
+        }
+    }
+
+    #[test]
+    fn run_help_documents_precedence_network_gate_and_examples() {
+        let help = match CliParser::try_parse_from(["ephact", "run", "--help"]) {
+            Ok(_) => panic!("help should stop argument parsing"),
+            Err(error) => error.to_string(),
+        };
+
+        for guidance in [
+            "Persisted boolean settings are applied as defaults with logical-OR behavior",
+            "cannot turn off a persisted true value by omitting the flag",
+            "--failure-log-retention-hours HOURS applies for that run",
+            "--forward-ssh requires --allow-network",
+            "ephact settings set navigation-mode vim",
+            "ephact settings set allow-network true",
+            "ephact run --workflow ci.yml --allow-network --forward-ssh",
+            "ephact run --failure-log-retention-hours 24",
+        ] {
+            assert!(help.contains(guidance), "missing {guidance:?} in:\n{help}");
+        }
+    }
+
     #[tokio::test]
     async fn run_dispatches_success_without_exiting() {
         let wf_port = StubRunWorkflowPort {
