@@ -36,6 +36,7 @@ pub enum SettingName {
     Interactive,
     AllWorkflows,
     FailureLogRetentionHours,
+    NavigationMode,
     ForwardSsh,
     Marker,
 }

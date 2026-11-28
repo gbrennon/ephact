@@ -1,10 +1,15 @@
 use std::{path::PathBuf, sync::Arc};
 
-use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::Frame;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use ratatui::{
+    Frame,
+    layout::{Constraint, Direction, Layout, Rect},
+    widgets::{Block, Borders, Clear, Paragraph},
+};
 
 use super::{
     components::{ConfigurationAction, RunConfigurationValues},
+    navigation_bindings::{NavigationAction, NavigationBindings},
     screen_manager::{ScreenManager, TuiScreen},
     screens::{HomeScreen, SettingsAction},
 };
@@ -28,6 +33,8 @@ pub struct TuiApp {
     action_configuration_requested: bool,
     action_selection_requested: bool,
     splash_quote: &'static str,
+    navigation: NavigationBindings,
+    help_visible: bool,
 }
 
 impl TuiApp {
@@ -35,6 +42,25 @@ impl TuiApp {
     const PREVIOUS_KEY: char = 'k';
     const NEXT_KEY: char = 'j';
     const DETAILS_KEY: char = 'd';
+
+    fn centered_rect(width_percent: u16, height_percent: u16, area: Rect) -> Rect {
+        let vertical = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Percentage((100 - height_percent) / 2),
+                Constraint::Percentage(height_percent),
+                Constraint::Percentage((100 - height_percent) / 2),
+            ])
+            .split(area);
+        Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage((100 - width_percent) / 2),
+                Constraint::Percentage(width_percent),
+                Constraint::Percentage((100 - width_percent) / 2),
+            ])
+            .split(vertical[1])[1]
+    }
 
     pub fn new(workflows: Vec<WorkflowListItemResponse>, emblem: String) -> Self {
         Self {
@@ -45,6 +71,8 @@ impl TuiApp {
             action_configuration_requested: false,
             action_selection_requested: false,
             splash_quote: SplashQuotes::random(),
+            navigation: NavigationBindings::new(crate::domain::NavigationMode::Standard),
+            help_visible: false,
         }
     }
 
@@ -56,14 +84,13 @@ impl TuiApp {
     }
 
     pub fn with_settings(
-        self,
+        mut self,
         settings: Settings,
         store: Option<Arc<dyn SettingsStorePort>>,
     ) -> Self {
-        Self {
-            screens: self.screens.with_settings(settings, store),
-            ..self
-        }
+        self.navigation.set_mode(settings.navigation_mode());
+        self.screens = self.screens.with_settings(settings, store);
+        self
     }
 
     pub fn with_host_ssh_settings(self, settings: Arc<dyn HostSshForwardingSettingsPort>) -> Self {
@@ -236,6 +263,33 @@ impl TuiApp {
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) {
+        if self.help_visible {
+            if matches!(
+                key.code,
+                KeyCode::Char('?') | KeyCode::Esc | KeyCode::Backspace
+            ) {
+                self.help_visible = false;
+            }
+            return;
+        }
+        if self.navigation_is_active() {
+            if let Some(action) = self.navigation.map(key) {
+                if action == NavigationAction::Help {
+                    self.help_visible = true;
+                } else {
+                    self.apply_navigation_action(action);
+                }
+                return;
+            }
+            if self.navigation.mode() != crate::domain::NavigationMode::Standard
+                && matches!(
+                    key.code,
+                    KeyCode::Up | KeyCode::Down | KeyCode::Left | KeyCode::Right
+                )
+            {
+                return;
+            }
+        }
         if key.code == KeyCode::Char(Self::QUIT_KEY)
             && !self.screens.is_workflow_running()
             && !self.screens.is_action_running()
@@ -260,10 +314,131 @@ impl TuiApp {
 
     pub fn render(&self, frame: &mut Frame<'_>) {
         self.screens.render(frame, self.splash_quote);
+        if self.help_visible {
+            self.render_navigation_help(frame);
+        }
+    }
+
+    fn navigation_is_active(&self) -> bool {
+        !self.screens.is_workflow_running()
+            && !self.screens.is_action_running()
+            && !self.screens.is_configuration_editing()
+            && !self.screens.has_configuration_error()
+            && !self.screens.is_action_configuration_editing()
+            && !self.screens.has_action_configuration_error()
+            && !self.screens.action_configuration_footer().is_some()
+            && !self.screens.is_settings_editing()
+    }
+
+    fn apply_navigation_action(&mut self, action: NavigationAction) {
+        match action {
+            NavigationAction::Previous => self.apply_navigation_step(false),
+            NavigationAction::Next => self.apply_navigation_step(true),
+            NavigationAction::Left | NavigationAction::Right => {}
+            NavigationAction::PageUp => self.apply_repeated_navigation(false, 10),
+            NavigationAction::PageDown => self.apply_repeated_navigation(true, 10),
+            NavigationAction::Top => self.apply_repeated_navigation(false, 1_000),
+            NavigationAction::Bottom => self.apply_repeated_navigation(true, 1_000),
+            NavigationAction::Help => self.help_visible = true,
+        }
+    }
+
+    fn apply_repeated_navigation(&mut self, next: bool, count: usize) {
+        for _ in 0..count {
+            self.apply_navigation_step(next);
+        }
+    }
+
+    fn apply_navigation_step(&mut self, next: bool) {
+        match self.screens.current_screen() {
+            TuiScreen::Home => {
+                self.screens = if next {
+                    self.screens.select_home_next()
+                } else {
+                    self.screens.select_home_previous()
+                };
+            }
+            TuiScreen::ListWorkflows => {
+                self.screens = if next {
+                    self.screens.select_list_workflows_next()
+                } else {
+                    self.screens.select_list_workflows_previous()
+                };
+            }
+            TuiScreen::ListActions => {
+                self.screens = if next {
+                    self.screens.select_list_actions_next()
+                } else {
+                    self.screens.select_list_actions_previous()
+                };
+            }
+            TuiScreen::RunWorkflow => {
+                if self.screens.is_showing_details() {
+                    self.screens = if next {
+                        self.screens.scroll_details_down()
+                    } else {
+                        self.screens.scroll_details_up()
+                    };
+                } else if self.screens.has_run_outcome() {
+                    self.screens = if next {
+                        self.screens.scroll_summary_down()
+                    } else {
+                        self.screens.scroll_summary_up()
+                    };
+                } else {
+                    self.screens = if next {
+                        self.screens.select_run_workflow_next()
+                    } else {
+                        self.screens.select_run_workflow_previous()
+                    };
+                }
+            }
+            TuiScreen::RunAction => {
+                if self.screens.is_showing_action_details() {
+                    self.screens = if next {
+                        self.screens.scroll_action_summary_down()
+                    } else {
+                        self.screens.scroll_action_summary_up()
+                    };
+                } else if self.screens.is_action_picker() {
+                    self.screens = if next {
+                        self.screens.select_list_actions_next()
+                    } else {
+                        self.screens.select_list_actions_previous()
+                    };
+                }
+            }
+            TuiScreen::Settings => {
+                let key = if next { KeyCode::Down } else { KeyCode::Up };
+                self.handle_settings_key(KeyEvent::new(key, KeyModifiers::NONE));
+            }
+            TuiScreen::Splash | TuiScreen::Exit => {}
+        }
+    }
+
+    fn render_navigation_help(&self, frame: &mut Frame<'_>) {
+        let area = Self::centered_rect(60, 35, frame.area());
+        let mut lines = vec![format!(
+            "Navigation mode: {}",
+            self.navigation.mode().label()
+        )];
+        lines.extend(NavigationBindings::help_lines(self.navigation.mode()));
+        lines.push("?: close help".to_owned());
+        frame.render_widget(Clear, area);
+        frame.render_widget(
+            Paragraph::new(lines.join("\n"))
+                .block(Block::default().borders(Borders::ALL).title("Keybindings"))
+                .wrap(ratatui::widgets::Wrap { trim: true }),
+            area,
+        );
     }
 
     pub fn screen(&self) -> TuiScreen {
         self.screens.current_screen()
+    }
+
+    pub fn is_navigation_help_visible(&self) -> bool {
+        self.help_visible
     }
 
     pub fn is_action_picker(&self) -> bool {
@@ -333,6 +508,9 @@ impl TuiApp {
     fn handle_settings_key(&mut self, key: KeyEvent) {
         let (screens, action) = self.screens.handle_settings_key(key);
         self.screens = screens;
+        if matches!(action, SettingsAction::Saved) {
+            self.navigation.set_mode(self.screens.navigation_mode());
+        }
         if matches!(action, SettingsAction::Saved | SettingsAction::Back) {
             self.transition_to(TuiScreen::Home);
         }

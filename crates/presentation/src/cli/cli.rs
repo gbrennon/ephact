@@ -11,7 +11,7 @@ use super::{
     cli_parser::CliParser,
     command::Command,
     run_progress_handler::TuiProgressStream,
-    settings_command::{SettingName, SettingsCommand},
+    settings_set_args::{SettingName, SettingsCommand},
 };
 use crate::{
     application::ports::{
@@ -23,7 +23,7 @@ use crate::{
         },
         outbound::{RunInputsDiscovererPort, SettingsStorePort},
     },
-    domain::{InterfaceMode, Marker, MarkerPreset, Settings},
+    domain::{InterfaceMode, Marker, MarkerPreset, NavigationMode, Settings},
     handlers::{
         DiagnosticStores, ListActionsHandler, ListWorkflowsHandler, PreflightPorts, RunHandler,
     },
@@ -330,7 +330,7 @@ impl Cli {
     fn persist_setting(
         &self,
         store: &dyn SettingsStorePort,
-        arguments: super::settings_command::SettingsSetArgs,
+        arguments: super::settings_set_args::SettingsSetArgs,
     ) -> Result<String, Box<dyn std::error::Error>> {
         match arguments.name() {
             SettingName::ForwardSsh => self.persist_forward_ssh(store, arguments.value()),
@@ -341,7 +341,7 @@ impl Cli {
     fn persist_domain_setting(
         &self,
         store: &dyn SettingsStorePort,
-        arguments: super::settings_command::SettingsSetArgs,
+        arguments: super::settings_set_args::SettingsSetArgs,
     ) -> Result<String, Box<dyn std::error::Error>> {
         let settings =
             Self::update_setting(store.read_settings()?, arguments.name(), arguments.value())?;
@@ -397,6 +397,10 @@ impl Cli {
                 "cli" => Ok(settings.with_default_interface(InterfaceMode::Cli)),
                 _ => Err("default-interface must be tui or cli".to_string()),
             },
+            SettingName::NavigationMode => value
+                .parse::<NavigationMode>()
+                .map(|mode| settings.with_navigation_mode(mode))
+                .map_err(|_| "navigation-mode must be standard, vim, or emacs".to_string()),
             SettingName::AllowRepoWrites => {
                 Self::update_bool(settings, value, Settings::with_allow_repo_writes)
             }
@@ -463,6 +467,7 @@ default-interface = {}\n\
 allow-repo-writes = {}\n\
 allow-real-container = {}\n\
 allow-real-fetcher = {}\n\
+navigation-mode = {}\n\
 allow-network = {}\n\
 preserve = {}\n\
 verbose = {}\n\
@@ -476,6 +481,7 @@ marker = {}\n",
             settings.allow_repo_writes(),
             settings.allow_real_container(),
             settings.allow_real_fetcher(),
+            settings.navigation_mode(),
             settings.allow_network(),
             settings.preserve(),
             settings.verbose(),

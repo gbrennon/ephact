@@ -20,6 +20,7 @@ pub mod job_name;
 pub mod job_strategy;
 pub mod json_text_reader;
 pub mod marker;
+pub mod navigation_mode;
 pub mod operation_mode;
 pub mod output_preferences;
 pub mod permissions;
@@ -68,6 +69,7 @@ pub use self::{
     job_name::JobName,
     job_strategy::JobStrategy,
     marker::{Marker, MarkerKind, MarkerPreset},
+    navigation_mode::NavigationMode,
     operation_mode::OperationMode,
     output_preferences::OutputPreferences,
     permissions::Permissions,
