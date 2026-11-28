@@ -164,6 +164,8 @@
 - **tui**: Keep configuration after input error
 - **tui**: Show failure log in details
 - **tui**: Distinguish skipped jobs
+- **ci**: Unblock CLI and TUI quality checks
+- **cli**: Preserve output dimensions without a TTY
 
 ### Refactor
 
@@ -357,6 +359,7 @@
 - **README**: Add terminal badge
 - **actions**: Explain standalone execution flow
 - **e2e**: Document agent authorization
+- **cli**: Document navigation and settings interactions
 
 ### Testing
 
