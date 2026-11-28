@@ -12,7 +12,7 @@ use ratatui::{
 use super::super::theme::Theme;
 use crate::{
     application::ports::outbound::SettingsStorePort,
-    domain::{InterfaceMode, Marker, MarkerKind, MarkerPreset, Settings},
+    domain::{InterfaceMode, Marker, MarkerKind, MarkerPreset, NavigationMode, Settings},
     infrastructure::HostSshForwardingSettingsPort,
 };
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,10 +38,11 @@ pub struct SettingsScreen {
 }
 
 impl SettingsScreen {
-    const SETTING_COUNT: usize = 12;
+    const SETTING_COUNT: usize = 13;
     const RETENTION_INDEX: usize = 9;
     const FORWARD_SSH_INDEX: usize = 10;
     const MARKER_INDEX: usize = 11;
+    const NAVIGATION_MODE_INDEX: usize = 12;
     const CUSTOM_MARKER_INDEX: usize = MarkerPreset::ALL.len();
     const TITLE: &'static str = "Settings";
     const CONTENT_MIN_HEIGHT: u16 = 5;
@@ -353,6 +354,15 @@ impl SettingsScreen {
     }
 
     fn toggle_selected(&mut self) {
+        if self.selected_index == Self::NAVIGATION_MODE_INDEX {
+            let next = match self.settings.navigation_mode() {
+                NavigationMode::Standard => NavigationMode::Vim,
+                NavigationMode::Vim => NavigationMode::Emacs,
+                NavigationMode::Emacs => NavigationMode::Standard,
+            };
+            self.settings = self.settings.clone().with_navigation_mode(next);
+            return;
+        }
         let value = match self.selected_index {
             0 => self.settings.default_interface() == InterfaceMode::Tui,
             1 => self.settings.allow_repo_writes(),
@@ -395,7 +405,17 @@ impl SettingsScreen {
             .chain(std::iter::once(self.retention_line()))
             .chain(std::iter::once(self.forward_ssh_line()))
             .chain(std::iter::once(self.marker_line()))
+            .chain(std::iter::once(self.navigation_mode_line()))
             .collect()
+    }
+
+    fn navigation_mode_line(&self) -> Line<'static> {
+        self.option_line(
+            Self::NAVIGATION_MODE_INDEX,
+            "navigation-mode",
+            self.settings.navigation_mode().as_str(),
+            &["standard", "vim", "emacs"],
+        )
     }
 
     fn retention_line(&self) -> Line<'static> {
@@ -415,7 +435,7 @@ impl SettingsScreen {
         self.option_line(
             Self::FORWARD_SSH_INDEX,
             "forward-ssh",
-            bool_name(self.forward_ssh),
+            Self::bool_name(self.forward_ssh),
             &["false", "true"],
         )
     }
@@ -482,25 +502,25 @@ impl SettingsScreen {
             self.option_line(
                 0,
                 "default-interface",
-                interface_name(self.settings.default_interface()),
+                Self::interface_name(self.settings.default_interface()),
                 &["tui", "cli"],
             ),
             self.option_line(
                 1,
                 "allow-repo-writes",
-                bool_name(self.settings.allow_repo_writes()),
+                Self::bool_name(self.settings.allow_repo_writes()),
                 &["false", "true"],
             ),
             self.option_line(
                 2,
                 "allow-real-container",
-                bool_name(self.settings.allow_real_container()),
+                Self::bool_name(self.settings.allow_real_container()),
                 &["false", "true"],
             ),
             self.option_line(
                 3,
                 "allow-real-fetcher",
-                bool_name(self.settings.allow_real_fetcher()),
+                Self::bool_name(self.settings.allow_real_fetcher()),
                 &["false", "true"],
             ),
         ]
@@ -511,31 +531,31 @@ impl SettingsScreen {
             self.option_line(
                 4,
                 "allow-network",
-                bool_name(self.settings.allow_network()),
+                Self::bool_name(self.settings.allow_network()),
                 &["false", "true"],
             ),
             self.option_line(
                 5,
                 "preserve",
-                bool_name(self.settings.preserve()),
+                Self::bool_name(self.settings.preserve()),
                 &["false", "true"],
             ),
             self.option_line(
                 6,
                 "verbose",
-                bool_name(self.settings.verbose()),
+                Self::bool_name(self.settings.verbose()),
                 &["false", "true"],
             ),
             self.option_line(
                 7,
                 "interactive",
-                bool_name(self.settings.interactive()),
+                Self::bool_name(self.settings.interactive()),
                 &["false", "true"],
             ),
             self.option_line(
                 8,
                 "all-workflows",
-                bool_name(self.settings.all_workflows()),
+                Self::bool_name(self.settings.all_workflows()),
                 &["false", "true"],
             ),
         ]
@@ -576,12 +596,15 @@ impl SettingsScreen {
     }
 }
 
-fn bool_name(value: bool) -> &'static str {
-    if value { "true" } else { "false" }
-}
-fn interface_name(mode: InterfaceMode) -> &'static str {
-    match mode {
-        InterfaceMode::Tui => "tui",
-        InterfaceMode::Cli => "cli",
+impl SettingsScreen {
+    fn bool_name(value: bool) -> &'static str {
+        if value { "true" } else { "false" }
+    }
+
+    fn interface_name(mode: InterfaceMode) -> &'static str {
+        match mode {
+            InterfaceMode::Tui => "tui",
+            InterfaceMode::Cli => "cli",
+        }
     }
 }

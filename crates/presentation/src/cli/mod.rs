@@ -11,7 +11,7 @@ pub mod list_workflows_args;
 pub mod run_args;
 pub mod run_invocation_flags;
 pub mod run_progress_handler;
-pub mod settings_command;
+pub mod settings_set_args;
 
 pub use cli::Cli;
 pub use cli_dependencies::CliDependencies;
@@ -25,7 +25,7 @@ pub use list_workflows_args::ListWorkflowsArgs;
 pub use run_args::RunArgs;
 pub use run_invocation_flags::RunInvocationFlags;
 pub use run_progress_handler::{RunProgressHandler, TuiProgressStream};
-pub use settings_command::{SettingName, SettingsCommand, SettingsSetArgs};
+pub use settings_set_args::{SettingName, SettingsCommand, SettingsSetArgs};
 
 pub use crate::handlers::{
     DiagnosticStores, ListActionsHandler, ListWorkflowsHandler, PreflightPorts, RunHandler,
