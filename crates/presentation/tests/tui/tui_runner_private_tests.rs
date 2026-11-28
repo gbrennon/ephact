@@ -126,7 +126,7 @@ mod tests {
             Ok::<ExecuteActionResponse, String>(ExecuteActionResponse::note("unused".into()))
         });
         let mut state = TuiLoopState::ActionRunning {
-            task: super::super::ActionTask { handle },
+            task: super::super::ActionTask::new(handle),
         };
         tokio::task::yield_now().await;
 

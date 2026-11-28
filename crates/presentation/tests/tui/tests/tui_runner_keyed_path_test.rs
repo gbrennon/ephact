@@ -11,10 +11,7 @@ mod tests {
         let handle = tokio::spawn(async {
             Err::<RunSummaryResponse, String>("workflow could not be read".to_string())
         });
-        let run_task = RunTask {
-            handle,
-            run_id: active_run_id.to_string(),
-        };
+        let run_task = RunTask::new(handle, active_run_id.to_string());
         let mut state = TuiLoopState::Running { task: run_task };
         tokio::task::yield_now().await;
 

@@ -1,10 +1,26 @@
 use std::{fmt, str::FromStr};
 
+/// Selects the keyboard bindings used to navigate the terminal user interface.
+///
+/// Each mode has a distinct movement vocabulary; choose the mode that matches
+/// the user's preferred interaction style.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum NavigationMode {
+    /// The default mode, with arrow keys and h/j/k/l movement aliases.
+    ///
+    /// PageUp and PageDown move between pages.
     #[default]
     Standard,
+    /// Vim-style navigation: h/j/k/l move, gg jumps to the top, G to the
+    /// bottom, and Ctrl-d/Ctrl-u page down/up.
+    ///
+    /// Arrow keys are not mapped in this mode.
     Vim,
+    /// Emacs-style navigation: Ctrl-f/Ctrl-b move right/left,
+    /// Ctrl-n/Ctrl-p move next/previous, Ctrl-a/Ctrl-e move top/bottom, and
+    /// Ctrl-v/Meta-v page down/up.
+    ///
+    /// Arrow keys are not mapped in this mode.
     Emacs,
 }
 

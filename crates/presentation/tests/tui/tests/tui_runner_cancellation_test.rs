@@ -15,10 +15,7 @@ mod tests {
         let handle = tokio::spawn(async {
             std::future::pending::<Result<RunSummaryResponse, String>>().await
         });
-        let run_task = RunTask {
-            handle,
-            run_id: run_id.to_string(),
-        };
+        let run_task = RunTask::new(handle, run_id.to_string());
         let mut state = TuiLoopState::Running { task: run_task };
 
         scenario

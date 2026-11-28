@@ -19,6 +19,19 @@ use crate::{
 /// [`to_domain`](Self::to_domain). The container runtime is auto-detected
 /// (Docker or Podman) at execution time.
 #[derive(Args)]
+#[command(
+    long_about = r#"Run a workflow locally with the selected repository, workflow, job, event, and permission settings.
+
+Persisted boolean settings are applied as defaults with logical-OR behavior. A command-line invocation cannot turn off a persisted true value by omitting the flag.
+--failure-log-retention-hours HOURS applies for that run and overrides the persisted retention value.
+--forward-ssh requires --allow-network in the same run invocation; it is rejected otherwise.
+
+Examples:
+  ephact settings set navigation-mode vim
+  ephact settings set allow-network true
+  ephact run --workflow ci.yml --allow-network --forward-ssh
+  ephact run --failure-log-retention-hours 24"#
+)]
 pub struct RunArgs {
     /// Path to the repository (defaults to the current directory).
     #[arg(default_value = ".")]

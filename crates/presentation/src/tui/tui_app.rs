@@ -88,7 +88,7 @@ impl TuiApp {
         settings: Settings,
         store: Option<Arc<dyn SettingsStorePort>>,
     ) -> Self {
-        self.navigation.set_mode(settings.navigation_mode());
+        self.navigation.apply_mode(settings.navigation_mode());
         self.screens = self.screens.with_settings(settings, store);
         self
     }
@@ -509,7 +509,7 @@ impl TuiApp {
         let (screens, action) = self.screens.handle_settings_key(key);
         self.screens = screens;
         if matches!(action, SettingsAction::Saved) {
-            self.navigation.set_mode(self.screens.navigation_mode());
+            self.navigation.apply_mode(self.screens.navigation_mode());
         }
         if matches!(action, SettingsAction::Saved | SettingsAction::Back) {
             self.transition_to(TuiScreen::Home);

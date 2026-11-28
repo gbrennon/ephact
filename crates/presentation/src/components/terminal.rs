@@ -1,4 +1,4 @@
-use std::io::{self, IsTerminal, Write};
+use std::io;
 
 pub trait Terminal {
     fn dimensions(&self) -> (usize, usize);
@@ -12,26 +12,4 @@ pub trait Terminal {
     }
 }
 
-pub struct SystemTerminal;
-
-impl Terminal for SystemTerminal {
-    fn dimensions(&self) -> (usize, usize) {
-        crossterm::terminal::size()
-            .map(|(width, height)| (usize::from(width), usize::from(height)))
-            .unwrap_or((80, 24))
-    }
-
-    fn write_text(&self, text: &str) -> io::Result<()> {
-        print!("{text}");
-        io::stdout().flush()
-    }
-
-    fn read_line(&self) -> io::Result<String> {
-        let mut line = String::new();
-        io::stdin().read_line(&mut line)?;
-        Ok(line)
-    }
-    fn is_interactive(&self) -> bool {
-        io::stdin().is_terminal()
-    }
-}
+pub use super::system_terminal::SystemTerminal;

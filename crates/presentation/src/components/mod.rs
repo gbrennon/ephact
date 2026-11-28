@@ -6,6 +6,7 @@ pub mod emblem_layout;
 pub mod project_branding;
 pub mod run_summary;
 pub mod splash_quotes;
+pub mod system_terminal;
 pub mod terminal;
 pub mod text_alignment;
 pub use emblem_layout::EmblemLayout;
