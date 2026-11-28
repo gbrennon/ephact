@@ -52,7 +52,7 @@ impl NavigationBindings {
         self.mode
     }
 
-    pub fn set_mode(&mut self, mode: NavigationMode) {
+    pub fn apply_mode(&mut self, mode: NavigationMode) {
         self.mode = mode;
         self.pending_vim_g = false;
     }

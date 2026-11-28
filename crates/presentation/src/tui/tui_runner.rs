@@ -368,7 +368,7 @@ impl TuiRunner {
                 .map_err(|error| error.to_string())
         });
         *state = TuiLoopState::ActionRunning {
-            task: ActionTask { handle },
+            task: ActionTask::new(handle),
         };
         Ok(())
     }
@@ -380,7 +380,7 @@ impl TuiRunner {
     ) -> Result<(), Box<dyn std::error::Error>> {
         let finished = match state {
             TuiLoopState::ActionRunning { task } | TuiLoopState::ActionCancelling { task } => {
-                task.handle.is_finished()
+                task.is_finished()
             }
             _ => return Ok(()),
         };
@@ -390,10 +390,10 @@ impl TuiRunner {
         let previous = std::mem::replace(state, TuiLoopState::Idle);
         match previous {
             TuiLoopState::ActionCancelling { task } => {
-                let _ = task.handle.await;
+                let _ = task.into_handle().await;
             }
             TuiLoopState::ActionRunning { task } => {
-                let outcome = match task.handle.await {
+                let outcome = match task.into_handle().await {
                     Ok(Ok(response)) => response,
                     Ok(Err(error)) => {
                         let response = ExecuteActionResponse::builder()
@@ -445,15 +445,15 @@ impl TuiRunner {
         let workflow_cancelled = matches!(previous_state, TuiLoopState::Running { .. });
         match previous_state {
             TuiLoopState::Running { task } => {
-                task.handle.abort();
-                self.take_failure_log_path(&task.run_id);
+                task.abort();
+                self.take_failure_log_path(task.run_id());
                 *state = TuiLoopState::Cancelling { task };
             }
             TuiLoopState::Cancelling { task } => {
                 *state = TuiLoopState::Cancelling { task };
             }
             TuiLoopState::ActionRunning { task } => {
-                task.handle.abort();
+                task.abort();
                 app.record_action_cancelled();
                 *state = TuiLoopState::ActionCancelling { task };
             }
@@ -476,7 +476,7 @@ impl TuiRunner {
     ) -> Result<(), Box<dyn std::error::Error>> {
         let is_finished = match state {
             TuiLoopState::Running { task } | TuiLoopState::Cancelling { task } => {
-                task.handle.is_finished()
+                task.is_finished()
             }
             TuiLoopState::Idle
             | TuiLoopState::InputConfigurationPending
@@ -490,18 +490,19 @@ impl TuiRunner {
         let previous_state = std::mem::replace(state, TuiLoopState::Idle);
         match previous_state {
             TuiLoopState::Cancelling { task } => {
-                self.take_failure_log_path(&task.run_id);
+                self.take_failure_log_path(task.run_id());
                 Ok(())
             }
             TuiLoopState::Running { task } => {
-                let result = task.handle.await.map_err(|error| error.to_string())?;
+                let (handle, run_id) = task.into_parts();
+                let result = handle.await.map_err(|error| error.to_string())?;
                 match result {
                     Ok(summary) => {
-                        let failure_log_path = self.take_failure_log_path(&task.run_id);
+                        let failure_log_path = self.take_failure_log_path(&run_id);
                         app.record_run_outcome_with_failure_log_path(summary, failure_log_path);
                         Ok(())
                     }
-                    Err(error) => self.record_failed_run(app, &task.run_id, error),
+                    Err(error) => self.record_failed_run(app, &run_id, error),
                 }
             }
             TuiLoopState::Idle
@@ -648,7 +649,6 @@ impl TuiRunner {
         settings: Settings,
     ) -> RunTask {
         let run_id = RunHandler::new_run_id();
-        let task_run_id = run_id.clone();
         let run = SingleWorkflowRun::new(repository_path, workflow, Some(event), inputs, &run_id)
             .with_settings(&settings);
         let handle = tokio::spawn(async move {
@@ -656,10 +656,7 @@ impl TuiRunner {
                 .await
                 .map_err(|error| error.to_string())
         });
-        RunTask {
-            handle,
-            run_id: task_run_id,
-        }
+        RunTask::new(handle, run_id)
     }
 
     fn cancelled_summary() -> RunSummaryResponse {
